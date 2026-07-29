@@ -1,5 +1,5 @@
-version: 12.0.{build}
-image: Visual Studio 2019
+version: 0.1.{build}
+image: Visual Studio 2022
 
 install:
   - ps: (new-object Net.WebClient).DownloadString("https://raw.github.com/madskristensen/ExtensionScripts/master/AppVeyor/vsix.ps1") | iex
@@ -14,13 +14,13 @@ assembly_info:
 before_build:
   - nuget restore
   - ps: Vsix-IncrementVsixVersion | Vsix-UpdateBuildVersion
-  - ps: Vsix-TokenReplacement CodeMaid\source.extension.cs 'Version = "([0-9\\.]+)"' 'Version = "{version}"'
+  - ps: Vsix-TokenReplacement CodeJanitor\source.extension.cs 'Version = "([0-9\\.]+)"' 'Version = "{version}"'
 
 build_script:
   - msbuild /p:configuration=Release /p:DeployExtension=false /p:ZipPackageCompressionLevel=normal /v:m
 
 test:
-  assemblies: SteveCadwallader.CodeMaid.UnitTests.dll
+  assemblies: SteveCadwallader.CodeJanitor.UnitTests.dll
 
 after_test:
   - ps: if ($env:APPVEYOR_REPO_BRANCH -eq 'dev' -or $env:APPVEYOR_REPO_BRANCH -eq 'release') { Vsix-PushArtifacts | Vsix-PublishToGallery }

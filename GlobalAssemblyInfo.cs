@@ -1,4 +1,4 @@
-using SteveCadwallader.CodeMaid;
+using SteveCadwallader.CodeJanitor;
 using System;
 using System.Reflection;
 using System.Resources;

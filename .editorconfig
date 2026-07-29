@@ -1,0 +1,31 @@
+; Top-most EditorConfig file
+root = true
+
+[*.cs]
+#### Core formatting (MVP flow alignment)
+indent_style = space
+indent_size = 4
+tab_width = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+#### Using directives
+csharp_using_directive_placement = outside_namespace
+
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+#### Namespace/path consistency (future BL-019 namespace fixer)
+dotnet_style_namespace_match_folder = true:suggestion
+
+#### Existing style preferences kept
+
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+#### Explicit var policy (aligned with existing converter roadmap)
+csharp_style_var_when_type_is_apparent = false:suggestion
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_elsewhere = false:suggestion

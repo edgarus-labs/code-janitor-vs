@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Include href="CodeJanitor.vsct" />
+
+  <!--The Commands section is where we the commands, menus and menu groups are defined.
+      This section uses a Guid to identify the package that provides the command defined inside it. -->
+  <Commands package="GuidCodeJanitorPackage">
+    <!-- Inside this section we have different sub-sections: one for the menus, another
+    for the menu groups, one for the buttons (the actual commands), one for the combos
+    and the last one for the bitmaps used. Each element is identified by a command id that
+    is a unique pair of guid and numeric identifier; the guid part of the identifier is usually
+    called "command set" and is used to group different command inside a logically related
+    group; your package should define its own command set in order to avoid collisions
+    with command ids defined by other packages. -->
+
+    <!-- Menu section definition -->
+    <Menus>
+      <Menu guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuBaseGroup" priority="0x0700" type="Menu">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
+        <Strings>
+          <ButtonText>&amp;Code Janitor</ButtonText>
+          <CommandName>&amp;Code Janitor</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="ToolbarIDCodeJanitorToolbarSpade" type="ToolWindowToolbar">
+        <CommandFlag>DefaultDocked</CommandFlag>
+        <Strings>
+          <ButtonText>CodeJanitor Spade Toolbar</ButtonText>
+          <CommandName>CodeJanitor Spade Toolbar</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextSpade" type="Context">
+        <Strings>
+          <ButtonText>CodeJanitor Spade Context Menu</ButtonText>
+          <CommandName>CodeJanitor Spade Context Menu</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextASPXWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextASPXWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextASPXCodeWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextASPXCodeWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextCodeWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextCSSWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCSSWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextCSSDocumentMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCSSDocumentGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextHTMLWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextHTMLWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextHTMLDocumentMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextHTMLDocumentGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextJSONDocumentMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextJSONDocumentGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextScriptWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextScriptWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextXAMLWindowMenu" priority="0x0100" type="Menu">
+        <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextXAMLWindowGroup" />
+        <Strings>
+          <ButtonText>CodeJanitor</ButtonText>
+        </Strings>
+      </Menu>
+    </Menus>
+
+    <!--Buttons section. -->
+    <!--This section defines the elements the user can interact with, like a menu command or a button
+        or combo box in a toolbar. -->
+    <Buttons>
+      <!--To define a menu group you have to specify its ID, the parent menu and its display priority.
+          The command is visible and enabled by default. If you need to change the visibility, status, etc, you can use
+          the CommandFlag node.
+          You can add more than one CommandFlag node e.g.:
+              <CommandFlag>DefaultInvisible</CommandFlag>
+              <CommandFlag>DynamicVisibility</CommandFlag>
+          If you do not want an image next to your command, remove the Icon node or set it to <Icon guid="guidOfficeIcon" id="msotcidNoIcon" /> -->
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAbout" priority="0x0100" type="Button">
+        <Icon guid="GuidImageInfo" id="IconInfo" />
+        <Strings>
+          <ButtonText>About CodeJanitor...</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorBuildProgressToolWindow" priority="0x0100" type="Button">
+        <Icon guid="GuidImageProgress" id="IconProgress" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Build Progress</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupActiveCode" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCleanup" id="IconCleanup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Cleanup Active Document</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupAllCode" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCleanupAll" id="IconCleanupAll" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Cleanup &amp;All Code...</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupChangedFiles" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCleanupAll" id="IconCleanupAll" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Cleanup C&amp;hanged Files (git)...</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupOpenCode" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCleanup" id="IconCleanup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Cleanup Open Code</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCleanup" id="IconCleanup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Cleanup Selected Code</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCloseAllReadOnly" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCloseLocked" id="IconCloseLocked" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Close All &amp;Read-Only</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseAllSolutionExplorer" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCollapse" id="IconCollapse" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Co&amp;llapse All Recursively</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCollapse" id="IconCollapse" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Co&amp;llapse Recursively</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCommentFormat" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCommentFormat" id="IconCommentFormat" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Format Comme&amp;nt</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorFindInSolutionExplorer" priority="0x0100" type="Button">
+        <Icon guid="GuidImageFind" id="IconFind" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Find In Solution Explorer</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorJoinLines" priority="0x0100" type="Button">
+        <Icon guid="GuidImageJoin" id="IconJoin" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Join Lines</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorOptions" priority="0x0100" type="Button">
+        <Icon guid="GuidImageOptions" id="IconOptions" />
+        <Strings>
+          <ButtonText>&amp;Options...</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorReadOnlyToggle" priority="0x0100" type="Button">
+        <Icon guid="GuidImageUnlock" id="IconUnlock" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Read-Only Toggle</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorRemoveRegion" priority="0x0100" type="Button">
+        <Icon guid="GuidImageRemoveRegion" id="IconRemoveRegion" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Remove All Regions</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorReorganizeActiveCode" priority="0x0100" type="Button">
+        <Icon guid="GuidImageReorganize" id="IconReorganize" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Reorgani&amp;ze Active Document</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSettingCleanupOnSave" priority="0x0100" type="Button">
+        <Icon guid="GuidImageOptions" id="IconOptions" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Automatic Cleanup On Save</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSortLines" priority="0x0100" type="Button">
+        <Icon guid="GuidImageSortAlpha" id="IconSortAlpha" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Sort Lines</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeContextDelete" priority="0x0100" type="Button">
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Delete</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeContextFindReferences" priority="0x0100" type="Button">
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Find References</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeContextInsertRegion" priority="0x0100" type="Button">
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Insert Region</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeContextRemoveRegion" priority="0x0100" type="Button">
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Remove Region</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeOptions" priority="0x0100" type="Button">
+        <Icon guid="GuidImageOptions" id="IconOptions" />
+        <Strings>
+          <ButtonText>&amp;Options...</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeRefresh" priority="0x0100" type="Button">
+        <Icon guid="GuidImageRefresh" id="IconRefresh" />
+        <Strings>
+          <ButtonText>Refresh Spade</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeSearch" priority="0x0100" type="Button">
+        <Strings>
+          <ButtonText>Search Spade</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeSortOrderAlpha" priority="0x0100" type="Button">
+        <Icon guid="GuidImageSortAlpha" id="IconSortAlpha" />
+        <Strings>
+          <ButtonText>Sort alphabetically</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeSortOrderFile" priority="0x0100" type="Button">
+        <Icon guid="GuidImageSortNumeric" id="IconSortNumeric" />
+        <Strings>
+          <ButtonText>Sort by file order</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeSortOrderType" priority="0x0100" type="Button">
+        <Icon guid="GuidImageSortType" id="IconSortType" />
+        <Strings>
+          <ButtonText>Sort by type</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeToolWindow" priority="0x0100" type="Button">
+        <Icon guid="GuidImageSpade" id="IconSpade" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Spade</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSwitchFile" priority="0x0100" type="Button">
+        <Icon guid="GuidImageSwitch" id="IconSwitch" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Switch File</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+</CommandTable>
