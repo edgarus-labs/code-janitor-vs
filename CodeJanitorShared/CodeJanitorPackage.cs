@@ -6,7 +6,6 @@ using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Integration.Commands;
 using CodeJanitor.Integration.Events;
-using CodeJanitor.Integration.Options;
 using CodeJanitor.Model;
 using CodeJanitor.Properties;
 using CodeJanitor.UI;
@@ -47,30 +46,8 @@ namespace CodeJanitor
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string, PackageAutoLoadFlags.BackgroundLoad)] // Trigger CodeJanitor to load on solution open so menu items can determine their state.
     [ProvideBindingPath]
     [ProvideMenuResource("Menus.ctmenu", 1)] // This attribute is needed to let the shell know that this package exposes some menus.
-    // Native VS Options pages — one per settings section; VS owns the tree navigation.
-    // Resource IDs (category=113, page=114-133) map to display strings in source.extension.resx.
-    // Using 0,0 here breaks label resolution in the VS2026 settings bridge and collapses every
-    // page's display name back to the extension's own name ("Code Janitor" x N) — do not "simplify" this.
-    [ProvideOptionPage(typeof(CodeJanitorGeneralPage),               "Code Janitor",              "General",       113, 114, true)]
-    [ProvideOptionPage(typeof(CodeJanitorFeaturesPage),              "Code Janitor\\General",     "Features",      113, 115, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningParentPage),        "Code Janitor",              "Cleaning",      113, 116, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningGeneralPage),       "Code Janitor\\Cleaning",    "General",       113, 117, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningFileTypesPage),     "Code Janitor\\Cleaning",    "File Types",    113, 118, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningVisualStudioPage),  "Code Janitor\\Cleaning",    "Visual Studio", 113, 119, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningInsertPage),        "Code Janitor\\Cleaning",    "Insert",        113, 120, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningRemovePage),        "Code Janitor\\Cleaning",    "Remove",        113, 121, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCleaningUpdatePage),        "Code Janitor\\Cleaning",    "Update",        113, 122, true)]
-    [ProvideOptionPage(typeof(CodeJanitorCollapsingPage),            "Code Janitor",              "Collapsing",    113, 123, true)]
-    [ProvideOptionPage(typeof(CodeJanitorDiggingPage),               "Code Janitor",              "Digging",       113, 124, true)]
-    [ProvideOptionPage(typeof(CodeJanitorFindingPage),               "Code Janitor",              "Finding",       113, 125, true)]
-    [ProvideOptionPage(typeof(CodeJanitorFormattingPage),            "Code Janitor",              "Formatting",    113, 126, true)]
-    [ProvideOptionPage(typeof(CodeJanitorProgressingPage),           "Code Janitor",              "Progressing",   113, 127, true)]
-    [ProvideOptionPage(typeof(CodeJanitorReorganizingParentPage),    "Code Janitor",              "Reorganizing",  113, 128, true)]
-    [ProvideOptionPage(typeof(CodeJanitorReorganizingGeneralPage),   "Code Janitor\\Reorganizing","General",       113, 129, true)]
-    [ProvideOptionPage(typeof(CodeJanitorReorganizingTypesPage),     "Code Janitor\\Reorganizing","Types",         113, 130, true)]
-    [ProvideOptionPage(typeof(CodeJanitorReorganizingRegionsPage),   "Code Janitor\\Reorganizing","Regions",       113, 131, true)]
-    [ProvideOptionPage(typeof(CodeJanitorSwitchingPage),             "Code Janitor",              "Switching",     113, 132, true)]
-    [ProvideOptionPage(typeof(CodeJanitorThirdPartyPage),            "Code Janitor",              "Third Party",   113, 133, true)]
+    // Settings pages are now provided via the native VisualStudio.Extensibility Settings API
+    // (see CodeJanitor.VS2026/NativeSettings) instead of classic ProvideOptionPage.
     [ProvideToolWindow(typeof(BuildProgressToolWindow), MultiInstances = false, Height = 40, Width = 500, Style = VsDockStyle.Tabbed, Orientation = ToolWindowOrientation.Bottom, Window = EnvDTE.Constants.vsWindowKindMainWindow)]
     [ProvideToolWindow(typeof(SpadeToolWindow), MultiInstances = false, Style = VsDockStyle.Tabbed, Orientation = ToolWindowOrientation.Left, Window = EnvDTE.Constants.vsWindowKindSolutionExplorer)]
     [Guid(PackageGuids.GuidCodeJanitorPackageString)] // Package unique GUID.
@@ -283,7 +260,6 @@ namespace CodeJanitor
             await CommentFormatCommand.InitializeAsync(this);
             await FindInSolutionExplorerCommand.InitializeAsync(this);
             await JoinLinesCommand.InitializeAsync(this);
-            await OptionsCommand.InitializeAsync(this);
             await ReadOnlyToggleCommand.InitializeAsync(this);
             await RemoveRegionCommand.InitializeAsync(this);
             await ReorganizeActiveCodeCommand.InitializeAsync(this);
@@ -293,7 +269,6 @@ namespace CodeJanitor
             await SpadeContextFindReferencesCommand.InitializeAsync(this);
             await SpadeContextInsertRegionCommand.InitializeAsync(this);
             await SpadeContextRemoveRegionCommand.InitializeAsync(this);
-            await SpadeOptionsCommand.InitializeAsync(this);
             await SpadeRefreshCommand.InitializeAsync(this);
             await SpadeSearchCommand.InitializeAsync(this);
             await SpadeSortOrderAlphaCommand.InitializeAsync(this);

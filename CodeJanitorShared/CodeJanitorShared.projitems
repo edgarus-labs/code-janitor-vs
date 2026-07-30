@@ -58,9 +58,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CommentFormatCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FindInSolutionExplorerCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\JoinLinesCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\OptionsCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorSectionDialogPage.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorOptionPages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ReadOnlyToggleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\RemoveRegionCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ReorganizeActiveCodeCommand.cs" />
@@ -70,7 +67,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeContextFindReferencesCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeContextInsertRegionCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeContextRemoveRegionCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeOptionsCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeRefreshCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeSearchCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\SpadeSortOrderAlphaCommand.cs" />
@@ -214,35 +210,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml.cs">
       <DependentUpon>CleanupProgressWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningFileTypesViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningGeneralViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningInsertViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningParentViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningRemoveViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningUpdateViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningVisualStudioViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Collapsing\CollapsingViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Digging\DiggingViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Finding\FindingViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Formatting\FormattingViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\FeaturesViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\GeneralViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ISettingToOptionMapping.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageViewModelEnumerableExtensions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SectionPageHost.xaml.cs">
-      <DependentUpon>SectionPageHost.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Progressing\ProgressingViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingGeneralViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingParentViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingRegionsViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingTypesViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SettingsToOptionsList.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SettingToOptionMapping.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Switching\SwitchingViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ThirdParty\ThirdPartyViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptWindow.xaml.cs">
       <DependentUpon>YesNoPromptWindow.xaml</DependentUpon>
@@ -287,69 +254,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningFileTypesDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningGeneralDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningInsertDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningParentDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningRemoveDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningUpdateDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningVisualStudioDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Collapsing\CollapsingDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Digging\DiggingDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Finding\FindingDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Formatting\FormattingDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\FeaturesDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\GeneralDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SectionPageHost.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Progressing\ProgressingDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingGeneralDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingParentDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingRegionsDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingTypesDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Switching\SwitchingDataTemplate.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ThirdParty\ThirdPartyDataTemplate.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptWindow.xaml">

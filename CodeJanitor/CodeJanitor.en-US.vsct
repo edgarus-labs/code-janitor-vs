@@ -225,13 +225,6 @@
         </Strings>
       </Button>
 
-      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorOptions" priority="0x0100" type="Button">
-        <Icon guid="GuidImageOptions" id="IconOptions" />
-        <Strings>
-          <ButtonText>&amp;Options...</ButtonText>
-        </Strings>
-      </Button>
-
       <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorReadOnlyToggle" priority="0x0100" type="Button">
         <Icon guid="GuidImageUnlock" id="IconUnlock" />
         <CommandFlag>DefaultInvisible</CommandFlag>
@@ -305,13 +298,6 @@
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
           <ButtonText>&amp;Remove Region</ButtonText>
-        </Strings>
-      </Button>
-
-      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeOptions" priority="0x0100" type="Button">
-        <Icon guid="GuidImageOptions" id="IconOptions" />
-        <Strings>
-          <ButtonText>&amp;Options...</ButtonText>
         </Strings>
       </Button>
 
