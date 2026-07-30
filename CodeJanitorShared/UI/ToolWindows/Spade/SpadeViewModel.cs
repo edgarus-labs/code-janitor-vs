@@ -1,13 +1,13 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Logic.Digging;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Model.CodeTree;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Logic.Digging;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeTree;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Windows.Threading;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.Spade
+namespace CodeJanitor.UI.ToolWindows.Spade
 {
     /// <summary>
     /// The view model representing the state and commands available to Spade.

@@ -1,7 +1,8 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A class that handles tracking a document and switching back to it, typically in a using
@@ -31,6 +32,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// </summary>
         internal void StartTracking()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // Cache the active document.
             TrackedDocument = Package.ActiveDocument;
         }
@@ -40,6 +42,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// </summary>
         internal void RestoreTrackedDocument()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (TrackedDocument != null && Package.ActiveDocument != TrackedDocument)
             {
                 TrackedDocument.Activate();

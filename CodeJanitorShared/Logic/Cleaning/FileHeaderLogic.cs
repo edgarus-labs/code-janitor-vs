@@ -1,12 +1,13 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning
 {
     /// <summary>
     /// A class for encapsulating the logic of file header updates.
@@ -57,6 +58,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
         /// <param name="textDocument">The text document to update.</param>
         internal void UpdateFileHeader(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var settingsFileHeader = FileHeaderHelper.GetFileHeaderFromSettings(textDocument);
             if (string.IsNullOrWhiteSpace(settingsFileHeader))
             {
@@ -85,6 +87,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
 
         private int GetHeaderLength(TextDocument textDocument, bool skipUsings)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var headerBlock = ReadTextBlock(textDocument);
             var language = textDocument.GetCodeLanguage();
 
@@ -111,6 +114,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
 
         private int GetNbLinesToSkip(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var docHeadBlock = ReadTextBlock(textDocument);
 
             return FileHeaderHelper.GetNbLinesToSkip("using ", docHeadBlock, new List<string> { "namespace ", "[assembly:" });
@@ -118,6 +122,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
 
         private void InsertFileHeader(TextDocument textDocument, string settingsFileHeader)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switch (FileHeaderHelper.GetFileHeaderPositionFromSettings(textDocument))
             {
                 case HeaderPosition.DocumentStart:
@@ -193,6 +198,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
 
         private void ReplaceFileHeader(TextDocument textDocument, string settingsFileHeader)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switch (FileHeaderHelper.GetFileHeaderPositionFromSettings(textDocument))
             {
                 case HeaderPosition.DocumentStart:

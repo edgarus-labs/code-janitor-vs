@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Adds the <c>sealed</c> modifier to classes only when provably safe to do so from a single
@@ -19,8 +19,14 @@ namespace SteveCadwallader.CodeJanitor.Logic.Transformations
     /// corresponding cleanup setting remains an explicit opt-in. Pure logic, unit-testable without
     /// Visual Studio.
     /// </remarks>
-    public class SealedClassConverter : IClassSealingConverter
+    public class SealedClassConverter : IClassSealingConverter, ISourceTransformation
     {
+        /// <inheritdoc />
+        public string Name => "Sealed Class";
+
+        /// <inheritdoc />
+        public string Apply(string source) => SealWhenSafe(source);
+
         /// <inheritdoc />
         public string SealWhenSafe(string source)
         {

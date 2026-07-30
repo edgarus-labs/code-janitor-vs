@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Reorganizing
+namespace CodeJanitor.UI.Dialogs.Options.Reorganizing
 {
     /// <summary>
     /// The view model for reorganizing regions options.

@@ -1,8 +1,9 @@
-using SteveCadwallader.CodeJanitor.Integration.Options;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Digging;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Integration.Options;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for launching the CodeJanitor Options to the Spade page.
@@ -39,9 +40,9 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
-            OptionsPageNavigation.SetPendingPage(typeof(DiggingViewModel));
-            Package.IDE.ExecuteCommand("Tools.Options");
+            Package.ShowOptionPage(typeof(CodeJanitorDiggingPage));
         }
     }
 }

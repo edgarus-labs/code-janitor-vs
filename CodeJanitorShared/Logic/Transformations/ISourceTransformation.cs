@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// A single composable, DTE-independent source-text transformation - a "block" in the headless

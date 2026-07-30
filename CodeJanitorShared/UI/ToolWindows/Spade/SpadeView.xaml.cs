@@ -1,9 +1,9 @@
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Reorganizing;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Reorganizing;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
@@ -14,7 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interactivity;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.Spade
+namespace CodeJanitor.UI.ToolWindows.Spade
 {
     /// <summary>
     /// The WPF based control/view for the <see cref="SpadeToolWindow" />.

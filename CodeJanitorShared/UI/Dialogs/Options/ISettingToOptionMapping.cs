@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System.Reflection;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options
 {
     /// <summary>
     /// An interface describing a setting to option mapping.

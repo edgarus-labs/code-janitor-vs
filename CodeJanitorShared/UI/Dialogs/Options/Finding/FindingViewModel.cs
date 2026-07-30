@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Finding
+namespace CodeJanitor.UI.Dialogs.Options.Finding
 {
     /// <summary>
     /// The view model for finding options.

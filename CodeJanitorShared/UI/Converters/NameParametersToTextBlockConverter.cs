@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -9,7 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// Converts a code item into a single TextBlock object containing its name and optionally its parameters.

@@ -1,11 +1,11 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options
 {
     /// <summary>
     /// A model class for mapping a setting and an option together, with optional overrides for how

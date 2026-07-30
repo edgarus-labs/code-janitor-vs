@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Prompts
+namespace CodeJanitor.UI.Dialogs.Prompts
 {
     /// <summary>
     /// Interaction logic for YesNoPromptWindow.xaml

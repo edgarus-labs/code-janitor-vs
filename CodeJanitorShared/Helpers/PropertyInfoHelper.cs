@@ -2,7 +2,7 @@ using System;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper class that provides reflection access to property information.

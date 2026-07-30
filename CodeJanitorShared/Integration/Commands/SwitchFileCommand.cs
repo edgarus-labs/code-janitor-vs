@@ -1,13 +1,15 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for switching between files based on their filename.
@@ -59,6 +61,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             string alternatePath = GetAlternatePathIfExists(Package.ActiveDocument);
             bool canAlterate = !string.IsNullOrEmpty(alternatePath);
 
@@ -78,6 +81,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             string alternatePath = GetAlternatePathIfExists(Package.ActiveDocument);

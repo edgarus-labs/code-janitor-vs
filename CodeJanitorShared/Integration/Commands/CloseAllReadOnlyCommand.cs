@@ -1,8 +1,10 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System.Linq;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for closing all read-only files.
@@ -39,6 +41,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Enabled = Package.IDE.Documents.Cast<Document>().Any(x => x.ReadOnly && x.Saved);
         }
 
@@ -47,6 +50,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             var docs = Package.IDE.Documents;

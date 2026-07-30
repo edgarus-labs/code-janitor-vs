@@ -1,9 +1,11 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for collapsing nodes in the solution explorer tool window.
@@ -50,6 +52,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         internal void OnSolutionOpened()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!Settings.Default.Collapsing_CollapseSolutionWhenOpened) return;
 
             var topItem = TopUIHierarchyItem;
@@ -68,6 +71,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Enabled = Package.IDE.Solution.IsOpen;
 
             if (Enabled && _isWaitingToExecute)
@@ -81,6 +85,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             _isWaitingToExecute = false;

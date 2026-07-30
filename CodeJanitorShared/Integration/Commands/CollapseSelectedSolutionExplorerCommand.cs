@@ -1,10 +1,12 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for collapsing selected nodes in the solution explorer tool window.
@@ -46,6 +48,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Enabled = SelectedUIHierarchyItems.Any(x => x.UIHierarchyItems.Expanded);
         }
 
@@ -54,6 +57,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             foreach (UIHierarchyItem item in SelectedUIHierarchyItems)

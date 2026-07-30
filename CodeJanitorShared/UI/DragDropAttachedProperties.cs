@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A collection of attached properties related to drag and drop behavior.

@@ -1,9 +1,10 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
 using System;
-using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events
 {
     /// <summary>
     /// A class that encapsulates listening for document events.
@@ -52,6 +53,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void RegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             DocumentEvents.DocumentClosing += DocumentEvents_DocumentClosing;
         }
 
@@ -60,6 +62,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void UnRegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             DocumentEvents.DocumentClosing -= DocumentEvents_DocumentClosing;
         }
 
@@ -69,6 +72,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="document">The document that is closing.</param>
         private void DocumentEvents_DocumentClosing(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var onDocumentClosing = OnDocumentClosing;
             if (onDocumentClosing != null)
             {

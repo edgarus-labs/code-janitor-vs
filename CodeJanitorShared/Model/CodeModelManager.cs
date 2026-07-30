@@ -1,12 +1,12 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System;
 using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Model
+namespace CodeJanitor.Model
 {
     /// <summary>
     /// A manager class for centralizing code model creation and life cycles.

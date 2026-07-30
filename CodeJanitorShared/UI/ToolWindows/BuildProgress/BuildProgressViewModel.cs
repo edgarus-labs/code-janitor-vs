@@ -1,9 +1,9 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 using System.Windows;
 using System.Windows.Shell;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.BuildProgress
+namespace CodeJanitor.UI.ToolWindows.BuildProgress
 {
     /// <summary>
     /// The view model representing the state and commands for showing build progress.

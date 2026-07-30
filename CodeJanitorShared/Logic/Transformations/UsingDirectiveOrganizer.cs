@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Sorts C# <c>using</c> directives from a single syntax tree without EnvDTE or an open editor

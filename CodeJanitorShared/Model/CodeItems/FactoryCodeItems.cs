@@ -1,7 +1,7 @@
 using EnvDTE;
 using EnvDTE80;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// A static factory class for generating code items.

@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Logic.Transformations;
+using CodeJanitor.Logic.Transformations;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Transformations
+namespace CodeJanitor.UnitTests.Transformations
 {
     /// <summary>
     /// Unit tests for <see cref="ReadonlyFieldConverter" />.

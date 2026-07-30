@@ -1,11 +1,12 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.Comments;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.Comments;
+using CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Properties;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Formatting
+namespace CodeJanitor.Logic.Formatting
 {
     /// <summary>
     /// A class for encapsulating comment formatting logic.
@@ -44,6 +45,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Formatting
         /// <param name="textDocument">The text document.</param>
         public void FormatComments(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!Settings.Default.Formatting_CommentRunDuringCleanup) return;
 
             FormatComments(textDocument, textDocument.StartPoint.CreateEditPoint(), textDocument.EndPoint.CreateEditPoint());
@@ -58,6 +60,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Formatting
         /// <param name="end">The end point.</param>
         public bool FormatComments(TextDocument textDocument, EditPoint start, EditPoint end)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             bool foundComments = false;
 
             var options = FormatterOptions

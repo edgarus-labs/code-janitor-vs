@@ -1,12 +1,13 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     internal static class FileHeaderHelper
     {
@@ -17,6 +18,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>A file header from settings.</returns>
         internal static string GetFileHeaderFromSettings(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switch (textDocument.GetCodeLanguage())
             {
                 case CodeLanguage.CPlusPlus: return Settings.Default.Cleaning_UpdateFileHeaderCPlusPlus;
@@ -41,6 +43,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
 
         internal static HeaderPosition GetFileHeaderPositionFromSettings(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switch (textDocument.GetCodeLanguage())
             {
                 case CodeLanguage.CSharp:

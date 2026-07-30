@@ -1,8 +1,8 @@
-using SteveCadwallader.CodeJanitor.UI;
+using CodeJanitor.UI;
 using System;
 using System.Text.RegularExpressions;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A class that encapsulates the settings associcated with a member type.

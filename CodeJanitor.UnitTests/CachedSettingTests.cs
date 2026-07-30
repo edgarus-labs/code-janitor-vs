@@ -1,8 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests
+namespace CodeJanitor.UnitTests
 {
     [TestClass]
     public class CachedSettingTests

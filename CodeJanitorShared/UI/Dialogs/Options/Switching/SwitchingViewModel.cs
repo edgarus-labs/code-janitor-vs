@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Switching
+namespace CodeJanitor.UI.Dialogs.Options.Switching
 {
     /// <summary>
     /// The view model for switching options.

@@ -1,15 +1,15 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Cleaning;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Thread = System.Threading.Thread;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
+namespace CodeJanitor.Logic.Reorganizing
 {
     /// <summary>
     /// A class for encapsulating the logic of generating regions.
@@ -72,6 +72,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// <returns>An enumerable set of regions to be removed.</returns>
         public IEnumerable<CodeItemRegion> GetRegionsToRemove(IEnumerable<BaseCodeItem> codeItems)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var existingRegions = codeItems.OfType<CodeItemRegion>();
 
             // If also inserting regions, remove all existing for more comprehensive reorganization.
@@ -262,6 +263,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// <returns>An enumerable set of regions that should be present.</returns>
         private IEnumerable<CodeItemRegion> ComposeRegionsList(IEnumerable<BaseCodeItem> codeItems)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return Settings.Default.Reorganizing_RegionsInsertKeepEvenIfEmpty
                 ? ComposeAllPossibleRegionsList()
                 : ComposePresentTypesRegionsList(codeItems);
@@ -298,6 +300,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// <returns>An enumerable set of regions.</returns>
         private IEnumerable<CodeItemRegion> ComposePresentTypesRegionsList(IEnumerable<BaseCodeItem> codeItems)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var regions = new HashSet<CodeItemRegion>(_regionComparerByName);
 
             foreach (var codeItem in codeItems)

@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper for comparing code items by name.

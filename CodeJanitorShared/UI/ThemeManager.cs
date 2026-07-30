@@ -1,14 +1,14 @@
 using EnvDTE80;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A helper class for managing the active theme.

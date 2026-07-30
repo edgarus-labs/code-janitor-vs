@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Interactivity;
 using System.Windows.Media;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A behavior for making TreeView's SelectedItem bindable based on http://stackoverflow.com/questions/1000040/selecteditem-in-a-wpf-treeview.

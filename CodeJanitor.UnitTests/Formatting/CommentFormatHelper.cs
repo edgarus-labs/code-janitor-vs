@@ -1,9 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Model.Comments;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Model.Comments;
+using CodeJanitor.Model.Comments.Options;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Formatting
+namespace CodeJanitor.UnitTests.Formatting
 {
     internal class CommentFormatHelper
     {

@@ -5,12 +5,12 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Operations;
 using Microsoft.VisualStudio.TextManager.Interop;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A static helper class for working with text documents.

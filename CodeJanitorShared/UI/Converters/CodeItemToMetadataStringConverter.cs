@@ -1,12 +1,12 @@
 using EnvDTE80;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// Converts a code item into a metadata string.

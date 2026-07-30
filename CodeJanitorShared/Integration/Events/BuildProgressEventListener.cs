@@ -1,8 +1,9 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using System.Threading.Tasks;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events
 {
     /// <summary>
     /// A class that encapsulates listening for build progress events.
@@ -66,6 +67,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void RegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             BuildEvents.OnBuildBegin += BuildEvents_OnBuildBegin;
             BuildEvents.OnBuildProjConfigBegin += BuildEvents_OnBuildProjConfigBegin;
             BuildEvents.OnBuildProjConfigDone += BuildEvents_OnBuildProjConfigDone;
@@ -77,6 +79,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void UnRegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             BuildEvents.OnBuildBegin -= BuildEvents_OnBuildBegin;
             BuildEvents.OnBuildProjConfigBegin -= BuildEvents_OnBuildProjConfigBegin;
             BuildEvents.OnBuildProjConfigDone -= BuildEvents_OnBuildProjConfigDone;
@@ -90,6 +93,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="action">The action.</param>
         private void BuildEvents_OnBuildBegin(vsBuildScope scope, vsBuildAction action)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildBegin = BuildBegin;
             if (buildBegin != null)
             {
@@ -106,6 +110,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="action">The action.</param>
         private void BuildEvents_OnBuildDone(vsBuildScope scope, vsBuildAction action)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildDone = BuildDone;
             if (buildDone != null)
             {
@@ -124,6 +129,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="solutionConfig">The solution config.</param>
         private void BuildEvents_OnBuildProjConfigBegin(string project, string projectConfig, string platform, string solutionConfig)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildProjConfigBegin = BuildProjConfigBegin;
             if (buildProjConfigBegin != null)
             {
@@ -143,6 +149,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="success">True if project build was successful, otherwise false.</param>
         private void BuildEvents_OnBuildProjConfigDone(string project, string projectConfig, string platform, string solutionConfig, bool success)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildProjConfigDone = BuildProjConfigDone;
             if (buildProjConfigDone != null)
             {

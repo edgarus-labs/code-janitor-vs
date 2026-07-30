@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace SteveCadwallader.CodeJanitor.Logic.SourceControl
+namespace CodeJanitor.Logic.SourceControl
 {
     /// <summary>
     /// Parses <c>git status --porcelain</c> (v1) output into absolute file paths of changed,

@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A static helper class for common enumeration utilities.

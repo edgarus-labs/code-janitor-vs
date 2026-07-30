@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// A converter for turning enumeration values into booleans.

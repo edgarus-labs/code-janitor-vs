@@ -1,11 +1,11 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// A converter that finds the highest complexity item for a specified parent.

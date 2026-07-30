@@ -1,11 +1,11 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeTree
+namespace CodeJanitor.Model.CodeTree
 {
     /// <summary>
     /// A helper class for performing code tree building.

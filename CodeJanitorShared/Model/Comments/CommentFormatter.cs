@@ -1,11 +1,11 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.Comments.Options;
 using System;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments
+namespace CodeJanitor.Model.Comments
 {
     /// <summary>
     /// Class to handle the actual wrapping and formatting of a comment.

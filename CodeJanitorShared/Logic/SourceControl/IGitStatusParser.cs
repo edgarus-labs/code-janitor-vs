@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Logic.SourceControl
+namespace CodeJanitor.Logic.SourceControl
 {
     /// <summary>
     /// Parses the output of <c>git status --porcelain</c> into a set of absolute file paths

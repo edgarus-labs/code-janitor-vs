@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.About
+namespace CodeJanitor.UI.Dialogs.About
 {
     /// <summary>
     /// Interaction logic for AboutWindow.xaml
@@ -71,7 +71,7 @@ namespace SteveCadwallader.CodeJanitor.UI.Dialogs.About
         /// </param>
         private void OnVisualStudioMarketplaceLinkClick(object sender, RoutedEventArgs e)
         {
-            LaunchLink(@"https://marketplace.visualstudio.com/items?itemName=SteveCadwallader.CodeJanitor");
+            LaunchLink(@"https://marketplace.visualstudio.com/items?itemName=CodeJanitor");
         }
 
         /// <summary>

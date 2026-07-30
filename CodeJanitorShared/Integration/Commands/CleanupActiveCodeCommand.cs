@@ -1,10 +1,12 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Cleaning;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for cleaning up code in the active document.
@@ -54,6 +56,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="document">The document about to be saved.</param>
         internal void OnBeforeDocumentSave(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!Settings.Default.Cleaning_AutoCleanupOnFileSave) return;
             if (!CodeCleanupAvailabilityLogic.CanCleanupDocument(document)) return;
 
@@ -77,6 +80,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Enabled = Package.ActiveDocument != null;
         }
 
@@ -85,6 +89,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             CodeCleanupManager.Cleanup(Package.ActiveDocument);

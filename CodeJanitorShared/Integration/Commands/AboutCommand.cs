@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.UI.Dialogs.About;
+using CodeJanitor.UI.Dialogs.About;
 using System.Threading.Tasks;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for launching the CodeJanitor about window.

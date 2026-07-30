@@ -1,10 +1,10 @@
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.ComponentModel.Design;
 using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// The base implementation of a command.

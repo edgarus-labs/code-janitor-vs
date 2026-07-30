@@ -1,11 +1,11 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// Converts a code item into an image.

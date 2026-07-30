@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Input;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A basic ICommand implementation based on http://www.wpftutorial.net/delegatecommand.html.

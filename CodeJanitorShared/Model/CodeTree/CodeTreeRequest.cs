@@ -1,7 +1,7 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeTree
+namespace CodeJanitor.Model.CodeTree
 {
     /// <summary>
     /// A simple class for containing a request to build a code tree.

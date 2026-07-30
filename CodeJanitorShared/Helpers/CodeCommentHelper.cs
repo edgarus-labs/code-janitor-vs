@@ -1,10 +1,11 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A set of helper methods focused around code comments.
@@ -27,6 +28,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>The comment prefix regex, without trailing spaces.</returns>
         internal static string GetCommentPrefix(TextDocument document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return GetCommentPrefixForLanguage(document.GetCodeLanguage());
         }
 

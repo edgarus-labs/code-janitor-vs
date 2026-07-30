@@ -1,10 +1,10 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Model
+namespace CodeJanitor.Model
 {
     /// <summary>
     /// A helper class for working with the code model.

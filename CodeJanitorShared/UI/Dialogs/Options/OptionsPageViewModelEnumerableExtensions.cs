@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options
 {
     /// <summary>
     /// A set of extensions methods for enumerable sets of <see cref="OptionsPageViewModel" />.

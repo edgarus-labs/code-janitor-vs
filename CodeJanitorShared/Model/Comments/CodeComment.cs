@@ -1,13 +1,13 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.Comments.Options;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments
+namespace CodeJanitor.Model.Comments
 {
     /// <summary>
     /// A <c>CodeComment</c> contains one or more <see cref="CodeCommentPhrase">phrases</see> which

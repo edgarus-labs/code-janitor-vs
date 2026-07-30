@@ -1,9 +1,9 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Model
+namespace CodeJanitor.Model
 {
     /// <summary>
     /// A builder class for generating code models.

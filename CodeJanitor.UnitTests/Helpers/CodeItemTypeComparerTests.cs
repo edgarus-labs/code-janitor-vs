@@ -1,11 +1,11 @@
 using EnvDTE80;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
+namespace CodeJanitor.UnitTests.Helpers
 {
     [TestClass]
     public class CodeItemTypeComparerTests

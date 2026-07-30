@@ -1,4 +1,4 @@
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interactivity;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A behavior for supporting list box drag and drop reordering, and optionally merging.

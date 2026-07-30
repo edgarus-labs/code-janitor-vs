@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor.UI.Enumerations
+namespace CodeJanitor.UI.Enumerations
 {
     /// <summary>
     /// A user prompt enumeration.

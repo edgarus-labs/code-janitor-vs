@@ -1,9 +1,11 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for launching the build progress tool window.
@@ -69,6 +71,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="action">The action.</param>
         internal void OnBuildBegin(vsBuildScope scope, vsBuildAction action)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildProgress = Package.BuildProgressForceLoad;
             if (buildProgress != null)
             {
@@ -88,6 +91,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="action">The action.</param>
         internal void OnBuildDone(vsBuildScope scope, vsBuildAction action)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildProgress = Package.BuildProgressForceLoad;
             if (buildProgress != null)
             {
@@ -109,6 +113,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="solutionConfig">The solution config.</param>
         internal void OnBuildProjConfigBegin(string project, string projectConfig, string platform, string solutionConfig)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildProgress = Package.BuildProgressForceLoad;
             if (buildProgress != null)
             {
@@ -126,6 +131,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="success">True if project build was successful, otherwise false.</param>
         internal void OnBuildProjConfigDone(string project, string projectConfig, string platform, string solutionConfig, bool success)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var buildProgress = Package.BuildProgressForceLoad;
             if (buildProgress != null)
             {
@@ -138,6 +144,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             ShowBuildProgressToolWindow();
@@ -165,6 +172,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         private void HideBuildProgressToolWindow()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var frame = BuildProgressWindowFrame;
             if (frame != null)
             {
@@ -177,6 +185,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         private void ShowBuildProgressToolWindow()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var frame = BuildProgressWindowFrame;
             if (frame != null)
             {
@@ -190,6 +199,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         private void ShowBuildProgressToolWindowWithoutActivation()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var frame = BuildProgressWindowFrame;
             if (frame != null)
             {

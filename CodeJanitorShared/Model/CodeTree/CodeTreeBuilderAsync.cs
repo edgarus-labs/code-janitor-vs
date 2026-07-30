@@ -1,8 +1,8 @@
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.ComponentModel;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeTree
+namespace CodeJanitor.Model.CodeTree
 {
     /// <summary>
     /// A helper class for performing code tree building in an asynchronous context.

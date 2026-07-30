@@ -1,8 +1,8 @@
-<UserControl x:Class="SteveCadwallader.CodeJanitor.UI.EditableTextBlock"
+<UserControl x:Class="CodeJanitor.UI.EditableTextBlock"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="clr-namespace:SteveCadwallader.CodeJanitor.UI"
-             xmlns:cnv="clr-namespace:SteveCadwallader.CodeJanitor.UI.Converters"
+             xmlns:ui="clr-namespace:CodeJanitor.UI"
+             xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
              KeyDown="OnKeyDown" LostFocus="OnLostFocus" MouseDoubleClick="OnMouseDoubleClick">
     <Grid>
         <TextBlock x:Name="TextBlock"

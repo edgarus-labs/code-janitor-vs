@@ -1,9 +1,10 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
 using System;
-using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events
 {
     /// <summary>
     /// A class that encapsulates listening for solution events.
@@ -63,6 +64,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void RegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             SolutionEvents.Opened += SolutionEvents_Opened;
             SolutionEvents.AfterClosing += SolutionEvents_AfterClosing;
         }
@@ -72,6 +74,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void UnRegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             SolutionEvents.Opened -= SolutionEvents_Opened;
             SolutionEvents.AfterClosing -= SolutionEvents_AfterClosing;
         }

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Removes trailing whitespace (spaces/tabs at the end of a line) from C# source, including

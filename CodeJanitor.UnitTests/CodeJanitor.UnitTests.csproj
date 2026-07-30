@@ -8,8 +8,8 @@
     <ProjectGuid>{27C78B2A-18BC-4CE0-BCB1-DB4C30D805BE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SteveCadwallader.CodeJanitor.UnitTests</RootNamespace>
-    <AssemblyName>SteveCadwallader.CodeJanitor.UnitTests</AssemblyName>
+    <RootNamespace>CodeJanitor.UnitTests</RootNamespace>
+    <AssemblyName>CodeJanitor.UnitTests</AssemblyName>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\CodeJanitor.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
@@ -74,6 +74,7 @@
     <Compile Include="Transformations\SourceTransformationPipelineTests.cs" />
     <Compile Include="Transformations\RemoveTrailingWhitespaceConverterTests.cs" />
     <Compile Include="Transformations\EnsureFinalNewlineConverterTests.cs" />
+    <Compile Include="Transformations\NormalizeBlankLinesConverterTests.cs" />
     <Compile Include="SourceControl\GitStatusParserTests.cs" />
     <Compile Include="SourceControl\GitChangedFilesProviderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

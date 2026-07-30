@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.Spade
+namespace CodeJanitor.UI.ToolWindows.Spade
 {
     public partial class RadialProgressBar : UserControl
     {

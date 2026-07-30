@@ -1,8 +1,8 @@
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Logic.Transformations;
+using CodeJanitor.Logic.Transformations;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Transformations
+namespace CodeJanitor.UnitTests.Transformations
 {
     /// <summary>
     /// Unit tests for <see cref="SourceTransformationPipeline" />. Verifies that composable blocks
@@ -101,6 +101,44 @@ namespace SteveCadwallader.CodeJanitor.UnitTests.Transformations
             var expected = "namespace N\n{\n    using A;\n    using B;\n}\n";
 
             Assert.AreEqual(expected, pipeline.Run(input));
+        }
+
+        [TestMethod]
+        [TestCategory("Transformations UnitTests")]
+        public void AdaptedConverters_AreComposableInPipeline()
+        {
+            // Verify that VarWhenApparentConverter, ReadonlyFieldConverter, SealedClassConverter,
+            // and FileScopedNamespaceConverter (which were adapted to implement ISourceTransformation)
+            // can be instantiated and composed in a pipeline with other blocks.
+            var pipeline = new SourceTransformationPipeline(
+                new UsingDirectiveOrganizer(),
+                new VarWhenApparentConverter(),
+                new ReadonlyFieldConverter(),
+                new SealedClassConverter(),
+                new FileScopedNamespaceConverter());
+
+            // A simple example: namespace that gets converted to file-scoped. The var/readonly/sealed
+            // converters won't apply but should not disrupt the pipeline.
+            // FileScopedNamespaceConverter appends: header + "namespace N;" + newline + newline + dedented body + newline
+            var input = "namespace N\n{\n\tusing B;\n\tusing A;\n}\n";
+            var expected = "namespace N;\n\nusing A;\nusing B;\n";
+
+            var result = pipeline.Run(input);
+            Assert.AreEqual(expected, result, $"Expected length: {expected.Length}, Actual length: {result.Length}. Expected repr: {repr(expected)}, Actual repr: {repr(result)}");
+
+            // Verify all transformations are exposed with their names.
+            var names = pipeline.Transformations.Select(t => t.Name).ToList();
+            Assert.AreEqual(5, names.Count);
+            Assert.IsTrue(names.Contains("Sort using directives"));
+            Assert.IsTrue(names.Contains("Var When Apparent"));
+            Assert.IsTrue(names.Contains("Readonly Field"));
+            Assert.IsTrue(names.Contains("Sealed Class"));
+            Assert.IsTrue(names.Contains("File-Scoped Namespace"));
+        }
+
+        private static string repr(string s)
+        {
+            return "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
         }
     }
 }

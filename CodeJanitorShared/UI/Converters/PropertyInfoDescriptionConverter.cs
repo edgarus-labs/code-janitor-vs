@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Windows.Data;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// A converter that retrieves the description attribute from a specified property info value.

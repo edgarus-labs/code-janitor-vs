@@ -1,7 +1,8 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A class that handles tracking the cursor position and restoring it, typically in a using
@@ -31,6 +32,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// </summary>
         internal void CaptureCursorPosition()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (TextDocument != null && TextDocument.Selection != null)
             {
                 TrackedCursorPosition = new CursorPosition(TextDocument.Selection);
@@ -42,6 +44,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// </summary>
         internal void RestoreCursorPosition()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (TextDocument != null && TextDocument.Selection != null)
             {
                 if (IsCursorPositionReset() && TrackedCursorPosition.Line > 1)
@@ -66,6 +69,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>True if the cursor position was reset, otherwise false.</returns>
         private bool IsCursorPositionReset()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return TextDocument.Selection.ActivePoint.AtStartOfDocument ||
                    TextDocument.Selection.ActivePoint.AtEndOfDocument;
         }

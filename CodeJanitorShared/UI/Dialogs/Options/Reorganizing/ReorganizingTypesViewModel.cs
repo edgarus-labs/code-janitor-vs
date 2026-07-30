@@ -1,12 +1,12 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Reorganizing
+namespace CodeJanitor.UI.Dialogs.Options.Reorganizing
 {
     /// <summary>
     /// The view model for reorganizing types options.

@@ -1,8 +1,9 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper class for accessing commands.
@@ -52,6 +53,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>The found command, otherwise null.</returns>
         public Command FindCommand(params string[] commandNames)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (commandNames == null || commandNames.Length == 0) return null;
 
             return _package.IDE.Commands.OfType<Command>().FirstOrDefault(x => commandNames.Contains(x.Name));
@@ -65,6 +67,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>The found command, otherwise null.</returns>
         public Command FindCommand(string guid, int id)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return _package.IDE.Commands.OfType<Command>().FirstOrDefault(x => x.Guid == guid && x.ID == id);
         }
 
@@ -75,6 +78,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <param name="commandNames">The cleanup command name(s).</param>
         public void ExecuteCommand(TextDocument textDocument, params string[] commandNames)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             try
             {
                 var command = FindCommand(commandNames);

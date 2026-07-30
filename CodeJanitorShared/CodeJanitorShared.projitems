@@ -59,8 +59,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FindInSolutionExplorerCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\JoinLinesCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\OptionsCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorOptionsDialogPage.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\OptionsPageNavigation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorSectionDialogPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorOptionPages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ReadOnlyToggleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\RemoveRegionCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ReorganizeActiveCodeCommand.cs" />
@@ -120,6 +120,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\TabToSpaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\RemoveTrailingWhitespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\EnsureFinalNewlineConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NormalizeBlankLinesConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\IGitStatusParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\GitStatusParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\IProcessRunner.cs" />
@@ -229,13 +230,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ISettingToOptionMapping.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageViewModelEnumerableExtensions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageControl.xaml.cs">
-      <DependentUpon>OptionsPageControl.xaml</DependentUpon>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SectionPageHost.xaml.cs">
+      <DependentUpon>SectionPageHost.xaml</DependentUpon>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsViewModel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsWindow.xaml.cs">
-      <DependentUpon>OptionsWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Progressing\ProgressingViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingGeneralViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingParentViewModel.cs" />
@@ -330,10 +328,7 @@
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\GeneralDataTemplate.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageControl.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SectionPageHost.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Progressing\ProgressingDataTemplate.xaml">

@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A static helper class for working with the solution.
@@ -22,6 +22,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         internal static IEnumerable<T> GetAllItemsInSolution<T>(Solution solution)
             where T : class
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var allProjects = new List<T>();
 
             if (solution != null)
@@ -42,6 +43,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         internal static IEnumerable<T> GetItemsRecursively<T>(object parentItem)
             where T : class
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (parentItem == null)
             {
                 throw new ArgumentNullException(nameof(parentItem));
@@ -75,6 +77,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>The enumerable set of selected project items.</returns>
         internal static IEnumerable<ProjectItem> GetSelectedProjectItemsRecursively(CodeJanitorPackage package)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var selectedProjectItems = new List<ProjectItem>();
             var selectedUIHierarchyItems = UIHierarchyHelper.GetSelectedUIHierarchyItems(package);
 
@@ -94,6 +97,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>The enumerable set of similar project items.</returns>
         internal static IEnumerable<ProjectItem> GetSimilarProjectItems(CodeJanitorPackage package, ProjectItem projectItem)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var allItems = GetAllItemsInSolution<ProjectItem>(package.IDE.Solution);
 
             return allItems.Where(x => x.Name == projectItem.Name && x.Kind == projectItem.Kind && x.Document.FullName == projectItem.Document.FullName);

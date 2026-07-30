@@ -2,12 +2,12 @@ using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System.Linq;
 using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events
 {
     /// <summary>
     /// A class that listens for running document table events.
@@ -90,6 +90,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <returns>S_OK if successful, otherwise an error code.</returns>
         public int OnAfterSave(uint docCookie)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var afterSave = AfterSave;
             if (afterSave != null)
             {
@@ -114,6 +115,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <returns>S_OK if successful, otherwise an error code.</returns>
         public int OnBeforeSave(uint docCookie)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var beforeSave = BeforeSave;
             if (beforeSave != null)
             {
@@ -132,6 +134,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void RegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // Register with the running document table for events.
             EventCookie = RunningDocumentTable.Advise(this);
         }
@@ -141,6 +144,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void UnRegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             RunningDocumentTable.Unadvise(EventCookie);
             EventCookie = 0;
         }
@@ -152,6 +156,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <returns>The document object, otherwise null.</returns>
         private Document GetDocumentFromCookie(uint docCookie)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // Retrieve document information from the cookie to get the full document name.
             var documentName = RunningDocumentTable.GetDocumentInfo(docCookie).Moniker;
 

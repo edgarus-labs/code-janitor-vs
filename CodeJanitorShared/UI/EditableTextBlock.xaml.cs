@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A user control for transitioning from a <see cref="TextBlock"/> to a <see cref="TextBox"/>.

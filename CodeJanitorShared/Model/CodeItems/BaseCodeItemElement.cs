@@ -1,10 +1,10 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.Threading;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// A base class representation of all code items that have an underlying VSX CodeElement.

@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Properties;
-using Mapping = SteveCadwallader.CodeJanitor.UI.Dialogs.Options.SettingToOptionMapping<bool, bool>;
+using CodeJanitor.Properties;
+using Mapping = CodeJanitor.UI.Dialogs.Options.SettingToOptionMapping<bool, bool>;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.General
+namespace CodeJanitor.UI.Dialogs.Options.General
 {
     public class FeaturesViewModel : OptionsPageViewModel
     {

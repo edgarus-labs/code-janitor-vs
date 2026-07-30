@@ -1,6 +1,6 @@
 using EnvDTE;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// A snapshot of a document and its associated code items at a point in time.

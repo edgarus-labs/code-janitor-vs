@@ -1,9 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Formatting
+namespace CodeJanitor.UnitTests.Formatting
 {
     /// <summary>
     /// Class with simple unit tests for formatting XML based comments. This calls the formatter

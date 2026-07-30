@@ -1,8 +1,8 @@
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper class that simplifies access to <see cref="MemberTypeSetting"/> instances.

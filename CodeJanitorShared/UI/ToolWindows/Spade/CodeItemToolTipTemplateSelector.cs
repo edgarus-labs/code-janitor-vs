@@ -1,8 +1,8 @@
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.Spade
+namespace CodeJanitor.UI.ToolWindows.Spade
 {
     /// <summary>
     /// A template selector for code item tool tips.

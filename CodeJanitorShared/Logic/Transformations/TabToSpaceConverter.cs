@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Replaces tab characters in C# whitespace/indentation with spaces, without touching tabs that

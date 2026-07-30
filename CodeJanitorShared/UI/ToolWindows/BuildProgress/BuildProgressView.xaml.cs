@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.BuildProgress
+namespace CodeJanitor.UI.ToolWindows.BuildProgress
 {
     /// <summary>
     /// Interaction logic for BuildProgressView.xaml

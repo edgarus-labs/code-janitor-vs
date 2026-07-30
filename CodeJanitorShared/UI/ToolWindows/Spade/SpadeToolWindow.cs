@@ -5,10 +5,10 @@ using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using SteveCadwallader.CodeJanitor.Model;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Model.CodeTree;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Model;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeTree;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
@@ -16,10 +16,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
-using CodeModel = SteveCadwallader.CodeJanitor.Model.CodeModel;
+using CodeModel = CodeJanitor.Model.CodeModel;
 using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.Spade
+namespace CodeJanitor.UI.ToolWindows.Spade
 {
     /// <summary>
     /// The Spade tool window pane.

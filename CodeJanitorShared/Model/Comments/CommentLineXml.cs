@@ -1,12 +1,12 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.Comments.Options;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments
+namespace CodeJanitor.Model.Comments
 {
     internal class CommentLineXml : CommentLine
     {

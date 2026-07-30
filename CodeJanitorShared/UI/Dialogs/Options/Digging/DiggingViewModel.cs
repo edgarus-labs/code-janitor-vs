@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Model.CodeTree;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Model.CodeTree;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Digging
+namespace CodeJanitor.UI.Dialogs.Options.Digging
 {
     /// <summary>
     /// The view model for digging options.

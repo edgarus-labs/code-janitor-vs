@@ -1,9 +1,9 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper for comparing code items by type, access level, etc.

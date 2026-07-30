@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.Shell;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     internal static class UIThread
     {

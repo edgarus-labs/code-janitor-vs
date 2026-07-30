@@ -1,7 +1,8 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A static helper class for working with regions.
@@ -12,6 +13,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
 
         internal static string GetRegionName(EditPoint editPoint, string regionText)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var codeLanguage = editPoint.GetCodeLanguage();
             switch (codeLanguage)
             {
@@ -31,6 +33,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
 
         internal static string GetRegionTagText(EditPoint editPoint, string name = null)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var codeLanguage = editPoint.GetCodeLanguage();
             switch (codeLanguage)
             {
@@ -49,6 +52,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
 
         internal static string GetEndRegionTagText(EditPoint editPoint)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var codeLanguage = editPoint.GetCodeLanguage();
             switch (codeLanguage)
             {
@@ -65,6 +69,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
 
         internal static bool LanguageSupportsUpdatingEndRegionDirectives(EditPoint editPoint)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var codeLanguage = editPoint.GetCodeLanguage();
 
             switch (codeLanguage)

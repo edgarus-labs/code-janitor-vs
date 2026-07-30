@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SteveCadwallader.CodeJanitor.Logic.SourceControl
+namespace CodeJanitor.Logic.SourceControl
 {
     /// <summary>
     /// Runs an external process and captures its standard output.

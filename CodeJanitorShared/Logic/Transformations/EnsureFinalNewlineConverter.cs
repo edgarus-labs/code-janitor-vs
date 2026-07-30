@@ -1,6 +1,6 @@
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Ensures C# source ends with exactly one line break (the <c>insert_final_newline</c> convention),

@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System.Configuration;
 
-namespace SteveCadwallader.CodeJanitor.Properties
+namespace CodeJanitor.Properties
 {
     /// <summary>
     /// This partial class instructs the <see cref="Settings"/> class to utilize the <see cref="CodeJanitorSettingsProvider"/>.

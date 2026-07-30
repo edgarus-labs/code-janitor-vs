@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Logic.SourceControl
+namespace CodeJanitor.Logic.SourceControl
 {
     /// <summary>
     /// Provides the set of changed files (absolute paths) for a working directory.

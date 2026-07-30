@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
     <UseCodebase>true</UseCodebase>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectTypeGuids>{82b43b9b-a64c-4715-b499-d71e9ca2bd60};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <ProjectGuid>{6D3EDF86-D2F8-4779-8A95-052227ED56A9}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SteveCadwallader.CodeJanitor</RootNamespace>
-    <AssemblyName>SteveCadwallader.CodeJanitor.VS2022</AssemblyName>
+    <RootNamespace>CodeJanitor</RootNamespace>
+    <AssemblyName>CodeJanitor.VS2026</AssemblyName>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\CodeJanitor.snk</AssemblyOriginatorKeyFile>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFramework>net472</TargetFramework>
+    <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UICulture>en-US</UICulture>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
     <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
@@ -83,6 +84,21 @@
     <Compile Include="source.extension.cs">
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
+    <Compile Include="NativeSettings\CodeJanitorNativeSettingsExtension.cs" />
+    <Compile Include="NativeSettings\NativeSettingCategories.cs" />
+    <Compile Include="NativeSettings\GeneralNativeSettings.cs" />
+    <Compile Include="NativeSettings\FeaturesNativeSettings.cs" />
+    <Compile Include="NativeSettings\CleaningNativeSettings.cs" />
+    <Compile Include="NativeSettings\CollapsingNativeSettings.cs" />
+    <Compile Include="NativeSettings\DiggingNativeSettings.cs" />
+    <Compile Include="NativeSettings\FindingNativeSettings.cs" />
+    <Compile Include="NativeSettings\FormattingNativeSettings.cs" />
+    <Compile Include="NativeSettings\ProgressingNativeSettings.cs" />
+    <Compile Include="NativeSettings\ReorganizingNativeSettings.cs" />
+    <Compile Include="NativeSettings\ThirdPartyNativeSettings.cs" />
+    <Compile Include="NativeSettings\SwitchingNativeSettings.cs" />
+    <Compile Include="NativeSettings\ExportRulesCommand.cs" />
+    <Compile Include="NativeSettings\ImportRulesCommand.cs" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\CodeJanitor\Integration\Images\IDE\progressToolWindow.png">
@@ -711,18 +727,14 @@
       <ExcludeAssets>runtime</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.VSSDK.BuildTools">
-      <Version>17.0.3177-preview3</Version>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40254" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40254" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility" Version="17.14.2098" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp">
       <Version>4.8.0</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="..\CodeJanitorShared\CodeJanitorShared.projitems" Label="Shared" />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

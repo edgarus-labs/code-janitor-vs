@@ -1,9 +1,9 @@
-using SteveCadwallader.CodeJanitor.Model.Comments;
-using SteveCadwallader.CodeJanitor.Model.Comments.Options;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Model.Comments;
+using CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Properties;
 using System.Windows.Media;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Formatting
+namespace CodeJanitor.UI.Dialogs.Options.Formatting
 {
     /// <summary>
     /// The view model for comment formatting options.

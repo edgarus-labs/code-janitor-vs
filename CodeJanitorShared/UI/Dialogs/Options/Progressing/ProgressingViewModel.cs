@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Progressing
+namespace CodeJanitor.UI.Dialogs.Options.Progressing
 {
     /// <summary>
     /// The view model for progressing options.

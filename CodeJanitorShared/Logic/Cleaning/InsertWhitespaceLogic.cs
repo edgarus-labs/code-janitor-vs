@@ -1,9 +1,10 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning
 {
     /// <summary>
     /// A class for encapsulating the logic of inserting whitespace.
@@ -52,6 +53,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
         /// <param name="textDocument">The text document to cleanup.</param>
         internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets) return;
 
             const string pattern = @"([^ \t])/>";
@@ -66,6 +68,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
         /// <param name="textDocument">The text document to cleanup.</param>
         internal void InsertEOFTrailingNewLine(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!Settings.Default.Cleaning_InsertEndOfFileTrailingNewLine) return;
 
             EditPoint cursor = textDocument.EndPoint.CreateEditPoint();

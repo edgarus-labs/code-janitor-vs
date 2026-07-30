@@ -1,6 +1,6 @@
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments.Options
+namespace CodeJanitor.Model.Comments.Options
 {
     [Flags]
     public enum XmlTagNewLine

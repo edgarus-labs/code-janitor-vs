@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A helper class for attached properties on <see cref="Window" />.

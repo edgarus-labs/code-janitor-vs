@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events
 {
     /// <summary>
     /// The base implementation of an event listener.

@@ -1,7 +1,7 @@
 using EnvDTE;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// A base class representation of all code items that have an underlying VSX CodeElement and

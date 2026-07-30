@@ -1,9 +1,9 @@
-using SteveCadwallader.CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Logic.Cleaning;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.CleanupProgress
+namespace CodeJanitor.UI.Dialogs.CleanupProgress
 {
     /// <summary>
     /// The view model representing the state and commands available for cleanup progress.

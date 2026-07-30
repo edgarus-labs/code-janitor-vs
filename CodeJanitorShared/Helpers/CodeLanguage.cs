@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// An internal helper enumeration of code languages.

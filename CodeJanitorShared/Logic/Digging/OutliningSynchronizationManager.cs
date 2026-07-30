@@ -5,13 +5,13 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Outlining;
 using Microsoft.VisualStudio.TextManager.Interop;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Digging
+namespace CodeJanitor.Logic.Digging
 {
     /// <summary>
     /// A manager class for controlling the synchronization of outlining states between the code
@@ -60,6 +60,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Digging
             get { return _document; }
             set
             {
+                ThreadHelper.ThrowIfNotOnUIThread();
                 if (_document != value)
                 {
                     if (_document != null && _outliningManager != null)
@@ -234,6 +235,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Digging
         /// <returns>The associated outlining manager, otherwise null.</returns>
         private IOutliningManager GetOutliningManager(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             try
             {
                 _wpfTextView = GetWpfTextView(document);
@@ -273,6 +275,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Digging
         /// <returns>The associated text view, otherwise null.</returns>
         private IVsTextView GetTextView(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (document == null)
             {
                 return null;

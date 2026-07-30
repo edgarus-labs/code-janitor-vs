@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments.Options
+namespace CodeJanitor.Model.Comments.Options
 {
     /// <summary>
     /// Comment specific options for the formatter.

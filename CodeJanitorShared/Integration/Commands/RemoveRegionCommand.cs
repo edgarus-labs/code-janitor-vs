@@ -1,11 +1,13 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Cleaning;
-using SteveCadwallader.CodeJanitor.Model;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Model;
+using CodeJanitor.Properties;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for removing region(s).
@@ -63,6 +65,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var regionCommandScope = GetRegionCommandScope();
 
             Enabled = regionCommandScope != RegionCommandScope.None;
@@ -88,6 +91,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             var regionCommandScope = GetRegionCommandScope();
@@ -113,6 +117,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <returns>The scope that should be used for the region command.</returns>
         private RegionCommandScope GetRegionCommandScope()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (_removeRegionLogic.CanRemoveRegions(Package.ActiveDocument))
             {
                 var activeTextDocument = ActiveTextDocument;

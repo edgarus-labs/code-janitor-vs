@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Reorganizing
+namespace CodeJanitor.UI.Dialogs.Options.Reorganizing
 {
     /// <summary>
     /// The view model for reorganizing general options.

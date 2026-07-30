@@ -126,6 +126,66 @@
   <data name="113" xml:space="preserve">
     <value>Code Janitor</value>
   </data>
+  <data name="114" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="115" xml:space="preserve">
+    <value>Features</value>
+  </data>
+  <data name="116" xml:space="preserve">
+    <value>Cleaning</value>
+  </data>
+  <data name="117" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="118" xml:space="preserve">
+    <value>File Types</value>
+  </data>
+  <data name="119" xml:space="preserve">
+    <value>Visual Studio</value>
+  </data>
+  <data name="120" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="121" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="122" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="123" xml:space="preserve">
+    <value>Collapsing</value>
+  </data>
+  <data name="124" xml:space="preserve">
+    <value>Digging</value>
+  </data>
+  <data name="125" xml:space="preserve">
+    <value>Finding</value>
+  </data>
+  <data name="126" xml:space="preserve">
+    <value>Formatting</value>
+  </data>
+  <data name="127" xml:space="preserve">
+    <value>Progressing</value>
+  </data>
+  <data name="128" xml:space="preserve">
+    <value>Reorganizing</value>
+  </data>
+  <data name="129" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="130" xml:space="preserve">
+    <value>Types</value>
+  </data>
+  <data name="131" xml:space="preserve">
+    <value>Regions</value>
+  </data>
+  <data name="132" xml:space="preserve">
+    <value>Switching</value>
+  </data>
+  <data name="133" xml:space="preserve">
+    <value>Third Party</value>
+  </data>
   <data name="112" xml:space="preserve">
     <value>CodeJanitor is an open source Visual Studio extension to cleanup and simplify our C#, C++, F#, VB, PHP, PowerShell, R, JSON, XAML, XML, ASP, HTML, CSS, LESS, SCSS, JavaScript and TypeScript coding.</value>
   </data>

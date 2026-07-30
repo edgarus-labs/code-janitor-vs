@@ -1,7 +1,8 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper class for performing actions within the context of an undo transaction.
@@ -40,6 +41,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <param name="catchAction">The action to be performed wihin a catch block.</param>
         public void Run(Action tryAction, Action<Exception> catchAction = null)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             bool shouldCloseUndoContext = false;
 
             // Start an undo transaction (unless inside one already or within an auto save context).

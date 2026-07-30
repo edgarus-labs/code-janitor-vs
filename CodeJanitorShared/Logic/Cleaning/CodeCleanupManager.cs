@@ -1,17 +1,17 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Formatting;
-using SteveCadwallader.CodeJanitor.Logic.Reorganizing;
-using SteveCadwallader.CodeJanitor.Model;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Formatting;
+using CodeJanitor.Logic.Reorganizing;
+using CodeJanitor.Model;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning
 {
     /// <summary>
     /// A manager class for cleaning up code.

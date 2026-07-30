@@ -1,9 +1,9 @@
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper class for writing messages to a CodeJanitor output window pane.

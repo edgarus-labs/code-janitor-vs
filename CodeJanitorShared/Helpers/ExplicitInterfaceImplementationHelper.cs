@@ -1,7 +1,7 @@
 using EnvDTE;
 using EnvDTE80;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A helper class for identifying explicit interface implementations.

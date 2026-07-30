@@ -1,3 +1,3 @@
 using System.Reflection;
 
-[assembly: AssemblyTitle("SteveCadwallader.CodeJanitor.UnitTests")]
+[assembly: AssemblyTitle("CodeJanitor.UnitTests")]

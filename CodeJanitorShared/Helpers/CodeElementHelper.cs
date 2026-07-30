@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.Shell;
 using System;
 using System.Text.RegularExpressions;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A static helper class for common CodeElement requests.

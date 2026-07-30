@@ -12,8 +12,6 @@ Project home, Documentation, News: <a title="codemaid.net" href="https://www.cod
 Download, Reviews: <a title="Visual Studio Marketplace" href="https://marketplace.visualstudio.com/items?itemName=SteveCadwallader.CodeMaid" target="_blank">Visual Studio Marketplace</a> <br />
 
 Code, Issues: <a title="GitHub" href="https://github.com/codecadwallader/codemaid" target="_blank">GitHub</a> <br />
-Continuous Integration: <a title="AppVeyor" href="https://ci.appveyor.com/project/codecadwallader/codemaid" target="_blank">AppVeyor</a>
-[![Build status](https://ci.appveyor.com/api/projects/status/adpt8279h212ceiv)](https://ci.appveyor.com/project/codecadwallader/codemaid) <br />
 
 Twitter @codemaid: <a title="Twitter" href="https://twitter.com/codemaid/" target="_blank">Twitter</a> <br />
 <h2>Features</h2>

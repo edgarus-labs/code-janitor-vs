@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Cleaning
+namespace CodeJanitor.UI.Dialogs.Options.Cleaning
 {
     /// <summary>
     /// The view model for cleaning visual studio options.

@@ -1,8 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Formatting
+namespace CodeJanitor.UnitTests.Formatting
 {
     /// <summary>
     /// Class with list oriented unit tests for formatting. This calls the formatter directly, rather

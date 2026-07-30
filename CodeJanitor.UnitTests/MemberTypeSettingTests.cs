@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests
+namespace CodeJanitor.UnitTests
 {
     [TestClass]
     public class MemberTypeSettingTests

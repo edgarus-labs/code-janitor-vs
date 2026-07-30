@@ -1,9 +1,9 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Model
+namespace CodeJanitor.Model
 {
     /// <summary>
     /// A class for encapsulating a cache of code models.

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace SteveCadwallader.CodeJanitor.Logic.SourceControl
+namespace CodeJanitor.Logic.SourceControl
 {
     /// <summary>
     /// Determines changed files via git, by resolving the repository root and parsing

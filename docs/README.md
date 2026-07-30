@@ -48,7 +48,7 @@ VISUAL_STUDIO_2026_MIGRATION_GATE: PASS
 3. Walidacja runtime GUI zakonczona: rozszerzenie CodeMaid VS2026 zaladowane i dzialajace w VS2026.
 
 ## Deploy do VS Experimental (stabilny workflow)
-Uzywaj zawsze jednego skryptu, ktory ubija wszystkie procesy devenv PRZED deployem:
+Uzywaj zawsze jednego skryptu, ktory ubija wszystkie procesy devenv PRZED deployem i robi update-in-place (bez recznego uninstall):
 
 ```powershell
 & "C:\Dev\codemaid\scripts\deploy-exp.ps1" -Configuration Debug
@@ -65,3 +65,7 @@ Opcjonalnie z automatycznym uruchomieniem VS po deployu:
 ```powershell
 & "C:\Dev\codemaid\scripts\deploy-exp.ps1" -Configuration Debug -LaunchVS
 ```
+
+Uwagi praktyczne:
+1. VSIXInstaller podczas aktualizacji i tak wykonuje wewnetrzny replace pakietu (uninstall/install w transakcji), ale to jest normalne i transparentne dla workflow.
+2. Skrypt toleruje kod wyjscia `2001` jezeli log potwierdza sukces instalacji do VS Experimental.

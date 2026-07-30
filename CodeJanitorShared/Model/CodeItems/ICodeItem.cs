@@ -1,6 +1,6 @@
 using EnvDTE;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// An interface for code items.

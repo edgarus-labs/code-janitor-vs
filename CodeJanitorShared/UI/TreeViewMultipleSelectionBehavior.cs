@@ -7,7 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interactivity;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A behavior that extends a <see cref="TreeView"/> with multiple selection capabilities.

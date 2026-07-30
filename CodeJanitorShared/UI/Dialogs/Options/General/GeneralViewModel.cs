@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.General
+namespace CodeJanitor.UI.Dialogs.Options.General
 {
     /// <summary>
     /// The view model for general options.

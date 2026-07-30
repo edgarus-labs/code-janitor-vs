@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor.Model.Comments.Options
+namespace CodeJanitor.Model.Comments.Options
 {
     public class FormatterOptionsXmlTag
     {

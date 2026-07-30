@@ -1,7 +1,9 @@
-using SteveCadwallader.CodeJanitor.Integration.Options;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Integration.Options;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for launching the CodeJanitor Options to the general cleanup page.
@@ -38,9 +40,9 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
-            OptionsPageNavigation.SetPendingPage(null);
-            Package.IDE.ExecuteCommand("Tools.Options");
+            Package.ShowOptionPage(typeof(CodeJanitorGeneralPage));
         }
     }
 }

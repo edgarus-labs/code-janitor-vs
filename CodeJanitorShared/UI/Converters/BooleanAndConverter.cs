@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// A converter that performs a logical AND on all values.

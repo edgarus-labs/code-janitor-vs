@@ -1,10 +1,10 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Logic.SourceControl;
+using CodeJanitor.Logic.SourceControl;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.SourceControl
+namespace CodeJanitor.UnitTests.SourceControl
 {
     /// <summary>
     /// Unit tests for <see cref="GitStatusParser" />.

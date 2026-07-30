@@ -1,6 +1,6 @@
 using System;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// This attribute is used to declare that a property should raise a notification

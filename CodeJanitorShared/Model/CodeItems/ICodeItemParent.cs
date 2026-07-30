@@ -1,7 +1,7 @@
 using EnvDTE;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// An interface for code items that support having children.

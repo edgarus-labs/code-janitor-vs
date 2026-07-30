@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Sorts C# <c>using</c> directives in source text (see ADR-0007). This is the first purely

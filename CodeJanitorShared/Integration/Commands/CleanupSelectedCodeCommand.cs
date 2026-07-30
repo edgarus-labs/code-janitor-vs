@@ -1,12 +1,14 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Cleaning;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.CleanupProgress;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.UI.Dialogs.CleanupProgress;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for cleaning up code in the selected documents.
@@ -55,6 +57,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Enabled = Package.IDE.Solution.IsOpen;
         }
 
@@ -63,6 +66,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             using (new ActiveDocumentRestorer(Package))

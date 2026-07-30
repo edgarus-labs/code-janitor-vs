@@ -1,15 +1,15 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Cleaning;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Collapsing;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Digging;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Finding;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Formatting;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.General;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Progressing;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Reorganizing;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Switching;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Options.ThirdParty;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.Options.Cleaning;
+using CodeJanitor.UI.Dialogs.Options.Collapsing;
+using CodeJanitor.UI.Dialogs.Options.Digging;
+using CodeJanitor.UI.Dialogs.Options.Finding;
+using CodeJanitor.UI.Dialogs.Options.Formatting;
+using CodeJanitor.UI.Dialogs.Options.General;
+using CodeJanitor.UI.Dialogs.Options.Progressing;
+using CodeJanitor.UI.Dialogs.Options.Reorganizing;
+using CodeJanitor.UI.Dialogs.Options.Switching;
+using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,7 +18,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options
 {
     /// <summary>
     /// The view model representing the state and commands available for configuring options.

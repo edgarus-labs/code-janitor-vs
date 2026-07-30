@@ -2,7 +2,7 @@ using EnvDTE;
 using System;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// The representation of a code region.

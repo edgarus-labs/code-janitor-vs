@@ -1,12 +1,12 @@
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A static helper class for working with the UI hierarchies.

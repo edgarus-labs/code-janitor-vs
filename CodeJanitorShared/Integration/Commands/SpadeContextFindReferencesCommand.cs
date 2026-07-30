@@ -1,9 +1,11 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Model.CodeItems;
 using System.Linq;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for finding references of a member within Spade.
@@ -40,6 +42,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var spade = Package.Spade;
 
             Visible = spade != null && spade.SelectedItems.OfType<BaseCodeItemElement>().Count() == 1;
@@ -50,6 +53,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             var spade = Package.Spade;

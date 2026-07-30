@@ -1,8 +1,8 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.UI;
+using CodeJanitor.UI;
 using System.Diagnostics;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// A base class representation of all code items. Includes VSX supported CodeElements as well

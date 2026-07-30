@@ -1,9 +1,9 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Logic.Transformations;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Logic.Transformations;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning
 {
     /// <summary>
     /// A class for encapsulating the logic of converting a block-scoped namespace to a

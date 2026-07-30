@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments.Options
+namespace CodeJanitor.Model.Comments.Options
 {
     /// <summary>
     /// Document wide options for the comment formatter.

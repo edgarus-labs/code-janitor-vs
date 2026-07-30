@@ -1,8 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Formatting
+namespace CodeJanitor.UnitTests.Formatting
 {
     /// <summary>
     /// </summary>

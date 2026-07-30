@@ -1,8 +1,10 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for launching the Spade tool window.
@@ -50,6 +52,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="document">The document that was saved.</param>
         internal void OnAfterDocumentSave(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var spade = Package.Spade;
             if (spade != null)
             {
@@ -63,6 +66,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// <param name="document">The document that got focus, may be null.</param>
         internal void OnWindowChange(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var spade = Package.Spade;
             if (spade != null)
             {
@@ -75,6 +79,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             var spade = Package.SpadeForceLoad;

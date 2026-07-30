@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Converts explicitly-typed local declarations to <c>var</c> only when the type is apparent
@@ -13,8 +13,14 @@ namespace SteveCadwallader.CodeJanitor.Logic.Transformations
     /// without a full compilation: e.g. <c>IFoo x = new Foo()</c> is left unchanged because the
     /// declared type differs from the created type. Pure logic, unit-testable without Visual Studio.
     /// </remarks>
-    public class VarWhenApparentConverter : ITypeStyleConverter
+    public class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformation
     {
+        /// <inheritdoc />
+        public string Name => "Var When Apparent";
+
+        /// <inheritdoc />
+        public string Apply(string source) => UseVarWhenApparent(source);
+
         /// <inheritdoc />
         public string UseVarWhenApparent(string source)
         {

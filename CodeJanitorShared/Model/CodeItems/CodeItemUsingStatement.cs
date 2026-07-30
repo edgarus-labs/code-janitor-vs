@@ -1,6 +1,6 @@
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// The representation of a code using statemen.

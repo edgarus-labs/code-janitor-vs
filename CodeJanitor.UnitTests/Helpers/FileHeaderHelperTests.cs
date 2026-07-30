@@ -1,12 +1,12 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NUnit.Framework;
-using SteveCadwallader.CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Assert = NUnit.Framework.Assert;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
+namespace CodeJanitor.UnitTests.Helpers
 {
     // remark: EnvDTE only counts 1 character per newline
     [TestClass]
@@ -87,7 +87,7 @@ namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
         }
 
         [TestCase("using System;\r\n/* */", "/*", "*/", 6)]
-        [TestCase("using EnvDTE;\r\nusing System;\r\nusing SteveCadwallader.CodeJanitor.Helpers;\r\n/* \r\n   Copyright © 2021 \r\n */", "/*", "*/", 29)]
+        [TestCase("using EnvDTE;\r\nusing System;\r\nusing CodeJanitor.Helpers;\r\n/* \r\n   Copyright © 2021 \r\n */", "/*", "*/", 29)]
         public void GetHeaderLengthMultiLineSkipUsings(string text, string tagStart, string tagEnd, int expectedLength)
         {
             var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
@@ -106,7 +106,7 @@ namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
             Assert.IsTrue(headerLength == expectedLength, $"Expecting {expectedLength}, found {headerLength}");
         }
 
-        [TestCase("using EnvDTE;\r\nusing System;\r\nusing SteveCadwallader.CodeJanitor.Helpers;\r\n\r\n\r\n/* \r\n   Copyright © 2021 \r\n */", "/*", "*/", 29)]
+        [TestCase("using EnvDTE;\r\nusing System;\r\nusing CodeJanitor.Helpers;\r\n\r\n\r\n/* \r\n   Copyright © 2021 \r\n */", "/*", "*/", 29)]
         [TestCase("using System;\r\n\r\n<!-- -->", "<!--", "-->", 9)]
         public void GetHeaderLengthMultiLineWithEmptyLinesSkipUsings(string text, string tagStart, string tagEnd, int expectedLength)
         {
@@ -173,8 +173,8 @@ namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
         }
 
         [TestCase("//", "using System;\r\n\r\n//  header \r\nnamespace System.Windows;\r\npublic class Test\r\n", 13)]
-        [TestCase("//", "using EnvDTE;\r\nusing System;\r\nusing SteveCadwallader.CodeJanitor.Helpers;\r\n\r\n\r\n//  header \r\n// more header \r\nnamespace SteveCadwallader.CodeJanitor;\r\n", 29)]
-        [TestCase("//", "using System;\r\n\r\n//  header \r\n[assembly: AssemblyTitle(\"SteveCadwallader.CodeJanitor.UnitTests\")]\r\nnamespace ", 13)]
+        [TestCase("//", "using EnvDTE;\r\nusing System;\r\nusing CodeJanitor.Helpers;\r\n\r\n\r\n//  header \r\n// more header \r\nnamespace CodeJanitor;\r\n", 29)]
+        [TestCase("//", "using System;\r\n\r\n//  header \r\n[assembly: AssemblyTitle(\"CodeJanitor.UnitTests\")]\r\nnamespace ", 13)]
         public void GetHeaderLengthMultiSingleLineWithCodeSkipUsings(string tag, string text, int expectedLength)
         {
             var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
@@ -194,7 +194,7 @@ namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
         }
 
         [TestCase("//", "using System;\r\n\r\n\r\n//  header \r\n// header\r\nnamespace \r\n//not header\r\n public class Test\r\n", 23)]
-        [TestCase("//", "using EnvDTE;\r\nusing System;\r\nusing SteveCadwallader.CodeJanitor.Helpers;\r\n//  header \r\n// more header \r\n namespace System.Text;\r\n{\r\n", 29)]
+        [TestCase("//", "using EnvDTE;\r\nusing System;\r\nusing CodeJanitor.Helpers;\r\n//  header \r\n// more header \r\n namespace System.Text;\r\n{\r\n", 29)]
         public void GetHeaderLengthMultiSingleLineWithEmptyLinesSkipUsings(string tag, string text, int expectedLength)
         {
             var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);

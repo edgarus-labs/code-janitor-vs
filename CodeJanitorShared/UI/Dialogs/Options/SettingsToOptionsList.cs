@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options
 {
     /// <summary>
     /// A specialized list class holding settings to options mappings.

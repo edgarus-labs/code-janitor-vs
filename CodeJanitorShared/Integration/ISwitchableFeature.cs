@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace SteveCadwallader.CodeJanitor.Integration
+namespace CodeJanitor.Integration
 {
     internal interface ISwitchableFeature
     {

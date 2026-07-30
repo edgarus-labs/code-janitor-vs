@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Adds the <c>readonly</c> modifier to fields only when provably safe to do so from a single
@@ -17,8 +17,14 @@ namespace SteveCadwallader.CodeJanitor.Logic.Transformations
     /// fields) - never in a regular method, accessor, local function, or nested lambda, since those
     /// could execute after construction. Pure logic, unit-testable without Visual Studio.
     /// </remarks>
-    public class ReadonlyFieldConverter : IFieldMutabilityConverter
+    public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
     {
+        /// <inheritdoc />
+        public string Name => "Readonly Field";
+
+        /// <inheritdoc />
+        public string Apply(string source) => AddReadonlyWhenSafe(source);
+
         /// <inheritdoc />
         public string AddReadonlyWhenSafe(string source)
         {

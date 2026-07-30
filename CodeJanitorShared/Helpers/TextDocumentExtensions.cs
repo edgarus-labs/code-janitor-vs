@@ -1,6 +1,7 @@
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A set of extension methods for <see cref="TextDocument" />.
@@ -14,6 +15,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>A <see cref="CodeLanguage"/>.</returns>
         internal static CodeLanguage GetCodeLanguage(this TextDocument document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return CodeLanguageHelper.GetCodeLanguage(document.Language);
         }
 
@@ -24,6 +26,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>An edit point at the cursor.</returns>
         internal static EditPoint GetEditPointAtCursor(this TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var cursor = textDocument.CreateEditPoint();
             cursor.MoveToPoint(textDocument.Selection.ActivePoint);
 

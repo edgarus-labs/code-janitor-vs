@@ -1,10 +1,10 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning
 {
     /// <summary>
     /// A class for encapsulating the logic of removing whitespace.

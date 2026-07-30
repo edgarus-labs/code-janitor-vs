@@ -1,7 +1,9 @@
-using SteveCadwallader.CodeJanitor.Model.CodeTree;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Model.CodeTree;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for setting Spade to file sort order.
@@ -38,6 +40,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var spade = Package.Spade;
             if (spade != null)
             {
@@ -50,6 +53,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             var spade = Package.Spade;

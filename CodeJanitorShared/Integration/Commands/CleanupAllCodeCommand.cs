@@ -1,14 +1,14 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Logic.Cleaning;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.CleanupProgress;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.CleanupProgress;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for cleaning up code in all documents.

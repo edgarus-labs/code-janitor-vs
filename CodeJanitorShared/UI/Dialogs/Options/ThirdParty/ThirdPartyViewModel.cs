@@ -1,7 +1,7 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.ThirdParty
+namespace CodeJanitor.UI.Dialogs.Options.ThirdParty
 {
     /// <summary>
     /// The view model for third party options.

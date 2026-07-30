@@ -2,7 +2,7 @@ using System;
 using System.Configuration;
 using System.Xml;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// This class handles customizing the settings persistance.
@@ -77,6 +77,57 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         }
 
         #endregion Overridden Members
+
+        #region Import / Export
+
+        /// <summary>
+        /// Exports every current value of the specified settings into a CodeJanitor.config-format
+        /// file at the specified path, for sharing rules between machines/teams.
+        /// </summary>
+        /// <param name="settings">The settings instance to export.</param>
+        /// <param name="filePath">The destination file path.</param>
+        public static void ExportSettingsToFile(ApplicationSettingsBase settings, string filePath)
+        {
+            var sectionName = GetSectionName(settings.Context);
+            var values = settings.PropertyValues;
+
+            foreach (SettingsPropertyValue value in values)
+            {
+                // Force every property to be written, not just ones flagged as changed.
+                value.IsDirty = true;
+            }
+
+            WriteSettingsToFile(filePath, sectionName, values);
+        }
+
+        /// <summary>
+        /// Imports values from a CodeJanitor.config-format file at the specified path into the
+        /// specified settings instance, then saves them as the new user settings.
+        /// </summary>
+        /// <param name="settings">The settings instance to update.</param>
+        /// <param name="filePath">The source file path.</param>
+        public static void ImportSettingsFromFile(ApplicationSettingsBase settings, string filePath)
+        {
+            var sectionName = GetSectionName(settings.Context);
+            var fileSettings = ReadSettingsFromFile(filePath, sectionName);
+
+            foreach (SettingsProperty property in settings.Properties)
+            {
+                var element = fileSettings.Get(property.Name);
+                if (element != null)
+                {
+                    settings[property.Name] = new SettingsPropertyValue(property)
+                    {
+                        SerializedValue = element.Value.ValueXml.InnerText,
+                        Deserialized = false,
+                    }.PropertyValue;
+                }
+            }
+
+            settings.Save();
+        }
+
+        #endregion Import / Export
 
         #region Shared Methods
 

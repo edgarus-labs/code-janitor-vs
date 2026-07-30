@@ -1,7 +1,10 @@
-using SteveCadwallader.CodeJanitor.Logic.Reorganizing;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Logic.Reorganizing;
+using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands
 {
     /// <summary>
     /// A command that provides for reorganizing code in the active document.
@@ -48,6 +51,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnBeforeQueryStatus()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Enabled = Package.ActiveDocument != null;
         }
 
@@ -56,6 +60,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Commands
         /// </summary>
         protected override void OnExecute()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.OnExecute();
 
             CodeReorganizationManager.Reorganize(Package.ActiveDocument);

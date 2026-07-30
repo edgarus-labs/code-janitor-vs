@@ -1,9 +1,10 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Properties;
 using System;
 using System.Configuration;
 using System.IO;
 
-namespace SteveCadwallader.CodeJanitor.Helpers
+namespace CodeJanitor.Helpers
 {
     /// <summary>
     /// A singleton helper class for aiding in settings context operations (e.g. user or solution settings).
@@ -72,6 +73,7 @@ namespace SteveCadwallader.CodeJanitor.Helpers
         /// <returns>True if solution-specific settings were loaded, otherwise false.</returns>
         internal bool LoadSolutionSpecificSettings(Settings settings, bool canCreate = false)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (_package.IDE.Solution.IsOpen && !string.IsNullOrWhiteSpace(_package.IDE.Solution.FullName))
             {
                 var solutionPath = Path.GetDirectoryName(_package.IDE.Solution.FullName);

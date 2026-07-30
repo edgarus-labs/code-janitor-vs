@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.CleanupProgress
+namespace CodeJanitor.UI.Dialogs.CleanupProgress
 {
     /// <summary>
     /// Interaction logic for CleanupProgressWindow.xaml

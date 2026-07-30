@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor.Model.Comments
+namespace CodeJanitor.Model.Comments
 {
     internal class CommentLine : ICommentLine
     {

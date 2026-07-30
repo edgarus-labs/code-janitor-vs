@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
-namespace SteveCadwallader.CodeJanitor.UI
+namespace CodeJanitor.UI
 {
     /// <summary>
     /// A set of extension methods for <see cref="DependencyObject" />.

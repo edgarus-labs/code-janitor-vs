@@ -1,8 +1,8 @@
-using SteveCadwallader.CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
+namespace CodeJanitor.Logic.Reorganizing
 {
     /// <summary>
     /// An implementation of <see cref="IEqualityComparer{T}"/> for handling region comparison by name.

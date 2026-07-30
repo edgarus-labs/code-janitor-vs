@@ -1,6 +1,6 @@
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
-namespace SteveCadwallader.CodeJanitor.UI.Dialogs.Options.Collapsing
+namespace CodeJanitor.UI.Dialogs.Options.Collapsing
 {
     /// <summary>
     /// The view model for collapsing options.

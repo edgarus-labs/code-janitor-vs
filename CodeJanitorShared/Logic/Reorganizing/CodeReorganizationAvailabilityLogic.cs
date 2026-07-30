@@ -1,11 +1,12 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
-using SteveCadwallader.CodeJanitor.UI.Dialogs.Prompts;
-using SteveCadwallader.CodeJanitor.UI.Enumerations;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.Prompts;
+using CodeJanitor.UI.Enumerations;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
+namespace CodeJanitor.Logic.Reorganizing
 {
     /// <summary>
     /// A class for determining if reorganization can/should occur on specified items.
@@ -56,6 +57,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// <returns>True if item can be reorganized, otherwise false.</returns>
         internal bool CanReorganize(Document document, bool allowUserPrompts = false)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!IsReorganizationEnvironmentAvailable())
             {
                 OutputWindowHelper.DiagnosticWriteLine($"CodeReorganizationAvailabilityLogic.CanReorganize returned false due to the reorganization environment not being available.");
@@ -95,6 +97,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// <returns>True if reorganization can occur, false otherwise.</returns>
         internal bool IsReorganizationEnvironmentAvailable()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return _package.IDE.Debugger.CurrentMode == dbgDebugMode.dbgDesignMode;
         }
 
@@ -113,6 +116,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// </returns>
         private bool IsDocumentExcludedBecausePreprocessorConditionals(Document document, bool allowUserPrompts)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!HasPreprocessorConditionalCompilationDirectives(document)) return false;
 
             switch ((AskYesNo)Settings.Default.Reorganizing_PerformWhenPreprocessorConditionals)
@@ -142,6 +146,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Reorganizing
         /// <returns>True if preprocessor conditional compilation directives are detected, otherwise false.</returns>
         private bool HasPreprocessorConditionalCompilationDirectives(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var textDocument = document.GetTextDocument();
             if (textDocument != null)
             {

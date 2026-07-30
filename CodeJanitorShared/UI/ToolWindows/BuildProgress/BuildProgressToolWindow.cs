@@ -2,7 +2,7 @@ using EnvDTE;
 using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -10,7 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace SteveCadwallader.CodeJanitor.UI.ToolWindows.BuildProgress
+namespace CodeJanitor.UI.ToolWindows.BuildProgress
 {
     /// <summary>
     /// This class implements the build progress tool window and hosts a user control.

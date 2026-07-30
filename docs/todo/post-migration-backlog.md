@@ -49,7 +49,7 @@ TODO
 
 - BL-006 Spojnosc wygladu UI (WPF) z Visual Studio
   - Priorytet: Medium
-  - Status: IN PROGRESS (compat mode; modern options UX docelowo)
+  - Status: IN PROGRESS (natywne strony VS wdrozone; pozostaje runtime smoke-test)
   - Obszar: CodeMaidShared/UI (okna Options i dialogi WPF)
   - Kontekst: po instalacji w VS2026 UI dziala, ale konfiguracja otwiera sie jako oddzielne okno WPF, wizualnie niespojne z motywem VS.
   - Zrobione (2026-07-29):
@@ -59,6 +59,10 @@ TODO
     - Zachowane funkcje: switch user/solution settings, import/export, reset, apply przez przyciski OK/Apply Visual Studio.
   - Uwaga runtime (2026-07-29): po migracji do `ProvideOptionPage` strona widnieje w nowym shellu opcji, ale nadal uruchamia sie przez tryb kompatybilnosci (legacy launcher/modal flow) zamiast natywnego nowego hosta ustawien.
   - Naprawione (2026-07-29, czesc metadanych): usunieto rejestracje `#0` dla ToolsOptionsPages (String load failed ID:0) przez ustawienie resource IDs `110/111` w `ProvideOptionPage` i dodanie zasobu `111` (General) w `source.extension*.resx`.
+  - Zrobione (2026-07-30): pelne drzewo podstron opcji w natywnym `Tools > Options` (resource IDs 114-133 w obu pakietach), komendy `Options`/`SpadeOptions` otwieraja konkretne strony natywne, usuniety legacy tor opcji (`CodeJanitorOptionsDialogPage`, `OptionsPageNavigation`, `OptionsWindow`, `OptionsPageControl`) z kompilacji i repo.
+  - Decyzja uzytkownika (2026-07-30): pelna migracja na natywne `VisualStudio.Extensibility` Settings API (SettingCategory/Setting.*), mimo statusu preview/experimental - "tylko tak maja opcje dzialac".
+  - Pilotaz (2026-07-30, ta sama sesja): `CodeJanitor.VS2022.csproj` przekonwertowany na SDK-style hybrydowy projekt `VSSDK+VisualStudio.Extensibility` (VssdkCompatibleExtension=true, EnableDefaultItems=false, GenerateAssemblyInfo=false, pakiety Microsoft.VisualStudio.Extensibility.Sdk/.Build/(API) w17.14.40254/2098 zamiast Microsoft.VSSDK.BuildTools). Dodano `CodeJanitor.VS2022/NativeSettings/` z `Extension` (RequiresInProcessHosting=true) i pilotazowym `SettingCategory`/`Setting.String` dla jedynego ustawienia strony Switching (Switching_RelatedFileExtensionsExpression). Build headless (MSBuild, bez devenv/VSIXInstaller) 0 bledow; wygenerowany VSIX zawiera JEDNOCZESNIE klasyczny `.pkgdef` (stare komendy/tool windows/ProvideOptionPage nienaruszone) ORAZ nowy `.vsextension/settingsRegistration.json` z poprawna kategoria "Switching" i ustawieniem. Nie instalowane/nie uruchamiane w realnym VS w tej turze (na prosbe uzytkownika - bez odpalania VS).
+  - Pozostaje (natywna migracja): instalacja+wizualna weryfikacja w VS2026; zaprojektowanie mostka odczyt/zapis do istniejacego `Settings.Default...` (ReadEffectiveValueAsync/WriteAsync/SubscribeAsync); decyzja o skalowaniu na pozostale 18 stron/194 ustawienia, uwzgledniajac ze natywne API renderuje plaski automatyczny UI (bez customowego WPF layoutu jak dzis).
   - Kryterium done: strony ustawien osadzone/spojne z motywem VS ORAZ otwierane bez legacy launcher (pelne nowoczesne podejscie opcji).
 
 ## Wizja funkcjonalna: "darmowy ReSharper" (nowy etap, poza migracja)
@@ -116,6 +120,14 @@ Wspolny wniosek techniczny: wieksza czesc tych funkcji jest bezpieczniejsza i do
     - walidacja schematu i wartosci domyslne.
   - Ryzyka: duza zmiana w systemie ustawien, ryzyko regresji wielu funkcji; wymaga pelnej migracji i testow.
   - Kryterium done: konfiguracja czytana/zapisywana z TOML/YAML, import starych ustawien, brak regresji.
+
+- BL-011 Oznaczanie metod jako `static` gdy nie odwoluja sie do instancji (optymalizacja)
+  - Priorytet: Low
+  - Status: TODO
+  - Obszar: cala baza kodu (CodeMaidShared/CodeJanitorShared + projekty VSIX)
+  - Kontekst: metody w klasach, ktore nie odwoluja sie do innych metod instancyjnych ani do wlasciwosci/pol instancji, powinny byc zmieniane na `static` tam, gdzie to mozliwe (Roslyn IDE0062 "Make local function static" / analogiczna regula dla metod czlonkowskich, mniejszy narzut na wywolanie, jasniejszy kontrakt braku zaleznosci od stanu instancji).
+  - Uwaga: nie dotyczy metod wirtualnych/nadpisywanych, metod z interfejsow, oraz tych uzywanych jako delegaty/event handlery, gdzie zmiana sygnatury mogloby zerwac powiazania.
+  - Kryterium done: przeglad kandydatow (np. przez analizator Roslyn), zmiana bezpiecznych przypadkow na `static`, build 0 errors, testy bez regresji.
 
 - BL-011 Poprawa pozycji using i namespace podczas cleanup
   - Priorytet: Medium

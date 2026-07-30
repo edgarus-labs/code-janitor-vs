@@ -1,9 +1,9 @@
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 
-namespace SteveCadwallader.CodeJanitor.Model.Comments.Options
+namespace CodeJanitor.Model.Comments.Options
 {
     public class FormatterOptionsXml
     {

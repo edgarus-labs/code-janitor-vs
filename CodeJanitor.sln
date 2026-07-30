@@ -22,7 +22,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor.UnitTests", "Co
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "CodeJanitorShared", "CodeJanitorShared\CodeJanitorShared.shproj", "{E94629D8-7803-4242-A0C6-3560005515E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor.VS2022", "CodeJanitor.VS2022\CodeJanitor.VS2022.csproj", "{6D3EDF86-D2F8-4779-8A95-052227ED56A9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor.VS2026", "CodeJanitor.VS2026\CodeJanitor.VS2026.csproj", "{6D3EDF86-D2F8-4779-8A95-052227ED56A9}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution

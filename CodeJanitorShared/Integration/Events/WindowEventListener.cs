@@ -1,9 +1,10 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
 using System;
-using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 
-namespace SteveCadwallader.CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events
 {
     /// <summary>
     /// A class that encapsulates listening for window events.
@@ -52,6 +53,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void RegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             WindowEvents.WindowActivated += WindowEvents_WindowActivated;
         }
 
@@ -60,6 +62,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// </summary>
         protected override void UnRegisterListeners()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             WindowEvents.WindowActivated -= WindowEvents_WindowActivated;
         }
 
@@ -69,6 +72,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="document">The document that got focus, may be null.</param>
         private void RaiseWindowChange(Document document)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var onWindowChange = OnWindowChange;
             if (onWindowChange != null)
             {
@@ -85,6 +89,7 @@ namespace SteveCadwallader.CodeJanitor.Integration.Events
         /// <param name="lostFocus">The window that lost focus.</param>
         private void WindowEvents_WindowActivated(Window gotFocus, Window lostFocus)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (gotFocus.Kind == "Document")
             {
                 RaiseWindowChange(gotFocus.Document);

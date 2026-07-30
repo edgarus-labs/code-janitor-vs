@@ -1,10 +1,11 @@
 using EnvDTE;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System;
 using System.Linq;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning
 {
     /// <summary>
     /// A class for encapsulating using statement cleanup logic.
@@ -67,6 +68,7 @@ namespace SteveCadwallader.CodeJanitor.Logic.Cleaning
         /// <param name="textDocument">The text document to update.</param>
         public void RemoveAndSortUsingStatements(TextDocument textDocument)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return;
             if (_package.IsAutoSaveContext && Settings.Default.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave) return;
 

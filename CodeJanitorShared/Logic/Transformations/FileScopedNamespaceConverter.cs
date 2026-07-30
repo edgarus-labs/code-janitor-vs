@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SteveCadwallader.CodeJanitor.Logic.Transformations
+namespace CodeJanitor.Logic.Transformations
 {
     /// <summary>
     /// Converts a single top-level block-scoped namespace to a file-scoped namespace.
@@ -17,8 +17,14 @@ namespace SteveCadwallader.CodeJanitor.Logic.Transformations
     /// This is a pure text transformation with no dependency on Visual Studio / EnvDTE,
     /// which keeps it unit-testable in isolation (see ADR-0005 / ADR-0006).
     /// </remarks>
-    public class FileScopedNamespaceConverter : INamespaceScopeConverter
+    public class FileScopedNamespaceConverter : INamespaceScopeConverter, ISourceTransformation
     {
+        /// <inheritdoc />
+        public string Name => "File-Scoped Namespace";
+
+        /// <inheritdoc />
+        public string Apply(string source) => ConvertToFileScoped(source);
+
         /// <inheritdoc />
         public string ConvertToFileScoped(string source)
         {

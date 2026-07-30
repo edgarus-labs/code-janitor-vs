@@ -1,9 +1,9 @@
-using SteveCadwallader.CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace SteveCadwallader.CodeJanitor.UI.Converters
+namespace CodeJanitor.UI.Converters
 {
     /// <summary>
     /// A converter that retrieves the description attribute from a specified enumeration value.

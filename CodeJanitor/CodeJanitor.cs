@@ -1,4 +1,4 @@
-namespace SteveCadwallader.CodeJanitor
+namespace CodeJanitor
 {
     using System;
     

@@ -2,7 +2,7 @@ using EnvDTE;
 using EnvDTE80;
 using System;
 
-namespace SteveCadwallader.CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems
 {
     /// <summary>
     /// The representation of a code class.

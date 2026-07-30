@@ -1,10 +1,10 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SteveCadwallader.CodeJanitor.Helpers;
-using SteveCadwallader.CodeJanitor.Properties;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SteveCadwallader.CodeJanitor.UnitTests.Helpers
+namespace CodeJanitor.UnitTests.Helpers
 {
     [TestClass]
     public class SettingsMonitorTests
