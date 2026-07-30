@@ -95,6 +95,33 @@ Write-Host "[5/6] ResetSkipPkgs + UpdateConfiguration..."
 & $devenv /rootsuffix Exp /ResetSkipPkgs
 & $devenv /rootsuffix Exp /updateconfiguration
 
+# /updateconfiguration merges each extension's pkgdef into privateregistry.bin. If it's
+# interrupted (or the merge silently no-ops), CodeJanitor's package/menu registrations never
+# make it into the hive even though the extension files are on disk. Verify and retry once.
+function Test-PkgDefMerged {
+    $regPath = Join-Path $expHive "privateregistry.bin"
+    if (-not (Test-Path $regPath)) { return $false }
+    $fs = [System.IO.File]::Open($regPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    try {
+        $bytes = New-Object byte[] $fs.Length
+        $fs.Read($bytes, 0, $bytes.Length) | Out-Null
+    }
+    finally {
+        $fs.Close()
+    }
+    $text = [System.Text.Encoding]::Unicode.GetString($bytes)
+    return $text.Contains("CodeJanitor.VS2026.pkgdef")
+}
+
+if (-not (Test-PkgDefMerged)) {
+    Write-Host "  WARNING: CodeJanitor pkgdef not found in privateregistry.bin after /updateconfiguration - retrying..."
+    & $devenv /rootsuffix Exp /updateconfiguration
+    if (-not (Test-PkgDefMerged)) {
+        throw "CodeJanitor pkgdef still not merged into privateregistry.bin after retry - menu/commands will not appear."
+    }
+}
+Write-Host "  pkgdef merge verified in privateregistry.bin."
+
 Write-Host "[6/6] Final devenv Exp-hive cleanup..."
 Stop-ExpDevenv
 
