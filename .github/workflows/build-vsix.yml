@@ -1,0 +1,60 @@
+name: Build VSIX
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build-vsix:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore solution
+        run: nuget restore CodeJanitor.sln
+
+      - name: Build solution (Release)
+        run: msbuild CodeJanitor.sln /t:Build /p:Configuration=Release /p:Platform=AnyCPU /p:DeployExtension=false /m
+
+      - name: Collect VSIX artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+
+          $vsixFiles = Get-ChildItem -Path . -Recurse -Filter *.vsix |
+            Where-Object {
+              $_.FullName -match '\\bin\\Release\\' -and
+              $_.FullName -notmatch '\\obj\\'
+            }
+
+          if (-not $vsixFiles) {
+            throw 'No VSIX files were produced in bin/Release. Build failed to generate release artifacts.'
+          }
+
+          foreach ($file in $vsixFiles) {
+            Copy-Item -Path $file.FullName -Destination (Join-Path artifacts $file.Name) -Force
+          }
+
+          Write-Host 'Collected VSIX files:'
+          Get-ChildItem artifacts -Filter *.vsix | ForEach-Object { Write-Host $_.FullName }
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-release
+          path: artifacts/*.vsix
+          if-no-files-found: error
