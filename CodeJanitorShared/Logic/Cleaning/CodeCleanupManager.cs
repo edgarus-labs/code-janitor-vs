@@ -41,6 +41,7 @@ namespace CodeJanitor.Logic.Cleaning
         private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
         private readonly VarWhenApparentLogic _varWhenApparentLogic;
         private readonly ReadonlyFieldLogic _readonlyFieldLogic;
+        private readonly RazorFormatterLogic _razorFormatterLogic;
         private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
         private readonly SealedClassLogic _sealedClassLogic;
         private readonly RemoveRegionLogic _removeRegionLogic;
@@ -97,6 +98,7 @@ namespace CodeJanitor.Logic.Cleaning
             _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
             _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
             _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
+            _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
             _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
             _sealedClassLogic = SealedClassLogic.GetInstance(_package);
             _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
@@ -532,6 +534,10 @@ namespace CodeJanitor.Logic.Cleaning
             var textDocument = document.GetTextDocument();
 
             RunExternalFormatting(textDocument);
+
+            // Run Razor-specific formatting in a safe, scoped way for .razor files only.
+            _razorFormatterLogic.FormatRazorDocument(textDocument);
+
             if (!document.IsExternal())
             {
                 _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument);

@@ -54,6 +54,7 @@
     </Compile>
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
+    <Compile Include="Cleaning\RazorFormatterLogicTests.cs" />
     <Compile Include="Formatting\CommentFormatHelper.cs" />
     <Compile Include="Formatting\HeaderFormattingTests.cs" />
     <Compile Include="Formatting\FormatWithPrefixTests.cs" />

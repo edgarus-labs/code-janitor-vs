@@ -92,6 +92,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileHeaderLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileScopedNamespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReadonlyFieldLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RazorFormatterLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReturnThrowBlankLinePaddingLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\SealedClassLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\VarWhenApparentLogic.cs" />
