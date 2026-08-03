@@ -261,6 +261,16 @@
         </Strings>
       </Button>
 
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorFixNamespace" priority="0x0100" type="Button">
+        <Icon guid="GuidImageReorganize" id="IconReorganize" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>Fix &amp;Namespace</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSettingCleanupOnSave" priority="0x0100" type="Button">
         <Icon guid="GuidImageOptions" id="IconOptions" />
         <CommandFlag>DefaultInvisible</CommandFlag>

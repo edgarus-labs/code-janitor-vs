@@ -466,6 +466,13 @@
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
     </CommandPlacement>
 
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorFixNamespace" priority="0x0800">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuExtendGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorFixNamespace" priority="0x0900">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
+    </CommandPlacement>
+
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSettingCleanupOnSave" priority="0x0800">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuCleanupGroup" />
     </CommandPlacement>
@@ -775,6 +782,7 @@
       <IDSymbol name="CmdIDCodeJanitorSpadeSortOrderType" value="0x3700" />
       <IDSymbol name="CmdIDCodeJanitorSpadeToolWindow" value="0x3800" />
       <IDSymbol name="CmdIDCodeJanitorSwitchFile" value="0x3900" />
+      <IDSymbol name="CmdIDCodeJanitorFixNamespace" value="0x3A00" />
       <IDSymbol name="CmdIDCodeJanitorCleanupChangedFiles" value="0x4000" />
     </GuidSymbol>
 

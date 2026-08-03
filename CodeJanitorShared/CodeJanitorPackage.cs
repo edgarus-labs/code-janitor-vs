@@ -123,6 +123,11 @@ namespace CodeJanitor
                 Settings.Default.Upgrade();
                 Settings.Default.Save();
             }
+
+            if (Settings.Default.MigrateSensitiveSettings())
+            {
+                Settings.Default.Save();
+            }
         }
 
         /// <summary>
@@ -332,6 +337,7 @@ namespace CodeJanitor
             await CollapseAllSolutionExplorerCommand.InitializeAsync(this);
             await CollapseSelectedSolutionExplorerCommand.InitializeAsync(this);
             await CommentFormatCommand.InitializeAsync(this);
+            await FixNamespaceCommand.InitializeAsync(this);
             await FindInSolutionExplorerCommand.InitializeAsync(this);
             await JoinLinesCommand.InitializeAsync(this);
             await OptionsCommand.InitializeAsync(this);

@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:p="clr-namespace:CodeJanitor.Properties"
         xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Cleaning"
+        xmlns:ui="clr-namespace:CodeJanitor.UI"
         xmlns:converters="clr-namespace:CodeJanitor.UI.Converters"
         xmlns:enums="clr-namespace:CodeJanitor.UI.Enumerations">
     <DataTemplate DataType="{x:Type local:CleaningUpdateViewModel}">
@@ -24,6 +25,36 @@
                         <TextBox Text="{Binding RazorAttributeWrapThreshold, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Width="40" />
                         <TextBlock Text="(0 = use default 2)" VerticalAlignment="Center" Margin="6,0,0,0" />
                     </StackPanel>
+
+                    <Separator Margin="0,8,0,8" />
+                    <TextBlock Text="AI-assisted XML documentation (C# methods)" FontWeight="SemiBold" />
+                    <CheckBox Content="Enable AI-assisted XML documentation during cleanup"
+                              IsChecked="{Binding AiXmlDocumentationEnabled}"
+                              IsEnabled="{Binding IsEnabledAiXmlDocumentationEnabled}" />
+
+                    <TextBlock Text="Endpoint URL" Margin="0,4,0,0" />
+                    <TextBox Text="{Binding AiXmlDocumentationEndpointUrl, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="API key" Margin="0,4,0,0" />
+                    <PasswordBox
+                        ui:PasswordBoxAssistant.BindPassword="True"
+                        ui:PasswordBoxAssistant.BoundPassword="{Binding AiXmlDocumentationApiKey, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="API key header (Authorization / api-key / x-api-key)" Margin="0,4,0,0" />
+                    <TextBox Text="{Binding AiXmlDocumentationApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="Model or deployment name (optional)" Margin="0,4,0,0" />
+                    <TextBox Text="{Binding AiXmlDocumentationModel, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Timeout (seconds)" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding AiXmlDocumentationTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="8,0,0,0" TextAlignment="Right" />
+                        <TextBlock Text="Max methods/file" VerticalAlignment="Center" Margin="12,0,0,0" />
+                        <TextBox Text="{Binding AiXmlDocumentationMaxMethodsPerFile, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="8,0,0,0" TextAlignment="Right" />
+                        <Button Content="Test Connection" Command="{Binding TestAiXmlDocumentationConnectionCommand}" Margin="12,0,0,0" Padding="10,2" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding AiXmlDocumentationConnectionStatus}" Margin="0,4,0,0" TextWrapping="Wrap" FontStyle="Italic" />
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="{x:Static p:Resources.FileHeader}">

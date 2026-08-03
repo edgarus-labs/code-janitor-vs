@@ -55,6 +55,7 @@
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
     <Compile Include="Cleaning\RazorFormatterLogicTests.cs" />
+    <Compile Include="Cleaning\AiXmlDocumentationLogicTests.cs" />
     <Compile Include="Formatting\CommentFormatHelper.cs" />
     <Compile Include="Formatting\HeaderFormattingTests.cs" />
     <Compile Include="Formatting\FormatWithPrefixTests.cs" />
@@ -64,10 +65,12 @@
     <Compile Include="Formatting\ListFormattingTests.cs" />
     <Compile Include="Helpers\CodeItemTypeComparerTests.cs" />
     <Compile Include="Helpers\FileHeaderHelperTests.cs" />
+    <Compile Include="Helpers\NamespacePathHelperTests.cs" />
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="Transformations\CollectionExpressionConverterTests.cs" />
     <Compile Include="Transformations\FileScopedNamespaceConverterTests.cs" />
+    <Compile Include="Transformations\NamespaceFixerConverterTests.cs" />
     <Compile Include="Transformations\ReturnThrowBlankLinePaddingConverterTests.cs" />
     <Compile Include="Transformations\VarWhenApparentConverterTests.cs" />
     <Compile Include="Transformations\ReadonlyFieldConverterTests.cs" />

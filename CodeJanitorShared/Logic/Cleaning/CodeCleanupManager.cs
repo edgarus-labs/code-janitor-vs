@@ -41,6 +41,7 @@ namespace CodeJanitor.Logic.Cleaning
         private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
         private readonly VarWhenApparentLogic _varWhenApparentLogic;
         private readonly ReadonlyFieldLogic _readonlyFieldLogic;
+        private readonly AiXmlDocumentationLogic _aiXmlDocumentationLogic;
         private readonly RazorFormatterLogic _razorFormatterLogic;
         private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
         private readonly SealedClassLogic _sealedClassLogic;
@@ -98,6 +99,7 @@ namespace CodeJanitor.Logic.Cleaning
             _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
             _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
             _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
+            _aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_package);
             _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
             _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
             _sealedClassLogic = SealedClassLogic.GetInstance(_package);
@@ -385,6 +387,10 @@ namespace CodeJanitor.Logic.Cleaning
             _updateLogic.UpdateEventAccessorsToBothBeSingleLineOrMultiLine(events);
             _updateLogic.UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(properties);
             _updateLogic.UpdateSingleLineMethods(methods);
+
+            // Add AI-assisted XML documentation before comment formatting so normal formatter can
+            // align and wrap newly inserted tags consistently.
+            _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
 
             // Perform comment cleaning.
             _commentFormatLogic.FormatComments(textDocument);

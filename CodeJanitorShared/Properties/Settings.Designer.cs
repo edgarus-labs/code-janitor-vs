@@ -1294,6 +1294,102 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_UpdateSingleLineMethods"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_AiXmlDocumentationEnabled {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationEnabled"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Cleaning_AiXmlDocumentationEndpointUrl {
+            get {
+                return ((string)(this["Cleaning_AiXmlDocumentationEndpointUrl"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationEndpointUrl"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Cleaning_AiXmlDocumentationApiKey {
+            get {
+                return ((string)(this["Cleaning_AiXmlDocumentationApiKey"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationApiKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Cleaning_AiXmlDocumentationApiKeyEncrypted {
+            get {
+                return ((string)(this["Cleaning_AiXmlDocumentationApiKeyEncrypted"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationApiKeyEncrypted"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Authorization")]
+        public string Cleaning_AiXmlDocumentationApiKeyHeader {
+            get {
+                return ((string)(this["Cleaning_AiXmlDocumentationApiKeyHeader"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationApiKeyHeader"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Cleaning_AiXmlDocumentationModel {
+            get {
+                return ((string)(this["Cleaning_AiXmlDocumentationModel"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationModel"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("30")]
+        public int Cleaning_AiXmlDocumentationTimeoutSeconds {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationTimeoutSeconds"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationTimeoutSeconds"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("25")]
+        public int Cleaning_AiXmlDocumentationMaxMethodsPerFile {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationMaxMethodsPerFile"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationMaxMethodsPerFile"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

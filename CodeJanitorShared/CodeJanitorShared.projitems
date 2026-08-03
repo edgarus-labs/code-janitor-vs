@@ -30,6 +30,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\FileHeaderHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\MemberTypeSetting.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\MemberTypeSettingHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\NamespacePathHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\OutputWindowHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\ProjectItemExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\PropertyInfoHelper.cs" />
@@ -37,6 +38,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\RegionHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\SettingsContextHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\SettingsMonitor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\SecretProtectionHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\SolutionHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\TextDocumentExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\TextDocumentHelper.cs" />
@@ -58,6 +60,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CommentFormatCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FindInSolutionExplorerCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\JoinLinesCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FixNamespaceCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\OptionsCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorSectionDialogPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorOptionPages.cs" />
@@ -91,6 +94,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileHeaderLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileScopedNamespaceLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\AiXmlDocumentationLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\OpenAiCompatibleClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\NamespaceFixerLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReadonlyFieldLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RazorFormatterLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReturnThrowBlankLinePaddingLogic.cs" />
@@ -109,6 +115,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Reorganizing\CodeReorganizationManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Reorganizing\GenerateRegionLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\INamespaceScopeConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NamespaceFixerConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\CollectionExpressionConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\FileScopedNamespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ReturnThrowBlankLinePaddingConverter.cs" />
@@ -264,6 +271,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Enumerations\ThemeMode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\ListBoxReorderBehavior.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\NotifiesOnAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\PasswordBoxAssistant.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\ThemeManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\ToolWindows\BuildProgress\BuildProgressToolWindow.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\ToolWindows\BuildProgress\BuildProgressView.xaml.cs">

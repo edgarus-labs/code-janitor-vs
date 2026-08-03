@@ -87,6 +87,12 @@ namespace CodeJanitor.Helpers
                         // Reload the solution settings into the given settings (merge on top of user settings).
                         settings.Context["SolutionPath"] = solutionPath;
                         settings.Reload();
+
+                        if (settings.MigrateSensitiveSettings())
+                        {
+                            settings.Save();
+                        }
+
                         return true;
                     }
                 }
@@ -136,6 +142,12 @@ namespace CodeJanitor.Helpers
                 // Unload the solution settings from the given settings (restore to user settings only).
                 settings.Context.Remove("SolutionPath");
                 settings.Reload();
+
+                if (settings.MigrateSensitiveSettings())
+                {
+                    settings.Save();
+                }
+
                 return true;
             }
 
