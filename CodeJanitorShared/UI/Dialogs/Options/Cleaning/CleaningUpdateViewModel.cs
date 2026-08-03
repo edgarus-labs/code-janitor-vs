@@ -47,6 +47,8 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_MakeFieldsReadonlyWhenSafe, x => MakeFieldsReadonlyWhenSafe),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SealClassesWhenSafe, x => SealClassesWhenSafe),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements, x => InsertBlankLineBeforeReturnAndThrowStatements),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_FormatRazorComponents, x => FormatRazorComponents),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_RazorAttributeWrapThreshold, x => RazorAttributeWrapThreshold),
             };
         }
 
@@ -316,6 +318,31 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
         {
             get { return GetPropertyValue<bool>(); }
             set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the flag indicating if safe Razor component formatting should run for
+        /// <c>.razor</c> files during cleanup.
+        /// </summary>
+        public bool FormatRazorComponents
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the number of attributes a Razor tag may keep inline before it is wrapped.
+        /// </summary>
+        public int RazorAttributeWrapThreshold
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value >= 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
         }
 
         #endregion Options

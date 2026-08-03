@@ -1234,6 +1234,30 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_InsertBlankLineBeforeReturnAndThrowStatements"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_FormatRazorComponents {
+            get {
+                return ((bool)(this["Cleaning_FormatRazorComponents"]));
+            }
+            set {
+                this["Cleaning_FormatRazorComponents"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public int Cleaning_RazorAttributeWrapThreshold {
+            get {
+                return ((int)(this["Cleaning_RazorAttributeWrapThreshold"]));
+            }
+            set {
+                this["Cleaning_RazorAttributeWrapThreshold"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

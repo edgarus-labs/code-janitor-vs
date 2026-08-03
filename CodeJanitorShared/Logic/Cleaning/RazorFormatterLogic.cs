@@ -2,6 +2,7 @@ using EnvDTE;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +16,7 @@ namespace CodeJanitor.Logic.Cleaning
     /// </summary>
     internal class RazorFormatterLogic
     {
-        private const int AttributeInlineThreshold = 2;
+        private const int DefaultAttributeInlineThreshold = 2;
         private const string IndentUnit = "    ";
 
         private readonly CodeJanitorPackage _package;
@@ -38,13 +39,20 @@ namespace CodeJanitor.Logic.Cleaning
 
             if (textDocument?.Parent?.FullName == null) return;
             if (!string.Equals(Path.GetExtension(textDocument.Parent.FullName), ".razor", StringComparison.OrdinalIgnoreCase)) return;
+            if (!Settings.Default.Cleaning_FormatRazorComponents) return;
 
             var start = textDocument.StartPoint.CreateEditPoint();
             var end = textDocument.EndPoint.CreateEditPoint();
             var original = start.GetText(end);
             if (string.IsNullOrWhiteSpace(original)) return;
 
-            var formatted = FormatRazorText(original, AttributeInlineThreshold);
+            var attributeInlineThreshold = Math.Max(0, Settings.Default.Cleaning_RazorAttributeWrapThreshold);
+            if (attributeInlineThreshold == 0)
+            {
+                attributeInlineThreshold = DefaultAttributeInlineThreshold;
+            }
+
+            var formatted = FormatRazorText(original, attributeInlineThreshold);
             if (string.Equals(original, formatted, StringComparison.Ordinal)) return;
 
             start.ReplaceText(end, formatted, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
