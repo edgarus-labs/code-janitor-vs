@@ -1,19 +1,29 @@
-### Environment
-- Visual Studio version: [example 2022 Community]
-- CodeMaid version: [example 12.0]
-- Code language: [example C#]
+## Environment
 
-### Description
-Replace this text with a short description and code sample.
+- Code Janitor version or commit:
+- Visual Studio version and edition:
+- Windows version:
+- Project type: C#, C++, F#, VB, Razor, Blazor, other
+- Extension feature involved:
 
-### Steps to recreate
-1. Replace this
-2. text with 
-3. the steps
-4. to recreate
+## Description
 
-### Current behavior
-Explain what it's doing and why it's wrong.
+<!-- Describe the problem clearly. Do not include secrets or proprietary source code. -->
 
-### Expected behavior
-Explain what it should be doing after it's fixed.
+## Steps to reproduce
+
+1.
+2.
+3.
+
+## Current behavior
+
+<!-- What happens? Include the relevant error message if available. -->
+
+## Expected behavior
+
+<!-- What should happen instead? -->
+
+## Additional context
+
+<!-- Include a minimal reproducible example, logs or screenshots when helpful. -->
