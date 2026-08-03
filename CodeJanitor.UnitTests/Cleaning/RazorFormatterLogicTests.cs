@@ -103,6 +103,18 @@ namespace CodeJanitor.UnitTests.Cleaning
 
         [TestMethod]
         [TestCategory("Cleaning UnitTests")]
+        public void FormatsTryCatchFinallyBlocks()
+        {
+            var input = "@try{var xml=\"<Child A='1' B='2' C='3' />\";}@catch(Exception ex){var total=1+2;}@finally{<Child A=\"1\" B=\"2\" C=\"3\" />}";
+            var expected = "@try\n{\n    var xml = \"<Child A='1' B='2' C='3' />\";\n}\n@catch (Exception ex)\n{\n    var total = 1 + 2;\n}\n@finally\n{\n    <Child A=\"1\"\n           B=\"2\"\n           C=\"3\" />\n}";
+
+            var output = RazorFormatterLogic.FormatRazorText(input, 2);
+
+            Assert.AreEqual(expected, output);
+        }
+
+        [TestMethod]
+        [TestCategory("Cleaning UnitTests")]
         public void IsIdempotent()
         {
             var input = "<MyComp A=\"1\" B=\"2\" C=\"3\" />\n@code{public void A(){if(true){return;}}}";

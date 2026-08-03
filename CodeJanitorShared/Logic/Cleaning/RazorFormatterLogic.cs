@@ -114,7 +114,17 @@ namespace CodeJanitor.Logic.Cleaning
                     continue;
                 }
 
-                buffer = buffer.Substring(0, range.Start) + formatted + buffer.Substring(range.End + 1);
+                var separator = string.Empty;
+                if (range.End + 1 < buffer.Length)
+                {
+                    var next = buffer[range.End + 1];
+                    if (next != '\r' && next != '\n' && !char.IsWhiteSpace(next))
+                    {
+                        separator = lineEnding;
+                    }
+                }
+
+                buffer = buffer.Substring(0, range.Start) + formatted + separator + buffer.Substring(range.End + 1);
             }
 
             return buffer;
@@ -216,6 +226,31 @@ namespace CodeJanitor.Logic.Cleaning
         private static string TryBuildControlBlockHeader(string rawBlock, int braceIndex, string lineEnding)
         {
             var headerText = rawBlock.Substring(0, braceIndex).TrimEnd();
+            if (headerText.StartsWith("@try", StringComparison.OrdinalIgnoreCase) ||
+                headerText.StartsWith("@finally", StringComparison.OrdinalIgnoreCase))
+            {
+                return headerText;
+            }
+
+            if (headerText.StartsWith("@catch", StringComparison.OrdinalIgnoreCase))
+            {
+                var catchSuffix = headerText.Substring("@catch".Length).Trim();
+                if (string.IsNullOrEmpty(catchSuffix))
+                {
+                    return "@catch";
+                }
+
+                var catchConditionStart = catchSuffix.IndexOf('(');
+                if (catchConditionStart < 0 || !TryFindConditionRange(catchSuffix, catchConditionStart, out var catchOpenParenIndex, out var catchCloseParenIndex))
+                {
+                    return null;
+                }
+
+                var catchCondition = catchSuffix.Substring(catchOpenParenIndex, catchCloseParenIndex - catchOpenParenIndex + 1);
+                var normalizedCatch = TryNormalizeControlHeader("catch", catchCondition, lineEnding) ?? ("@catch " + catchCondition.Trim());
+                return normalizedCatch;
+            }
+
             if (headerText.StartsWith("@else", StringComparison.OrdinalIgnoreCase))
             {
                 var suffix = headerText.Substring("@else".Length).Trim();
@@ -777,7 +812,7 @@ namespace CodeJanitor.Logic.Cleaning
         private static List<RazorCodeBlockRange> FindControlBlockRanges(string text)
         {
             var ranges = new List<RazorCodeBlockRange>();
-            var directives = new[] { "@if", "@for", "@foreach", "@while", "@switch", "@else" };
+            var directives = new[] { "@if", "@for", "@foreach", "@while", "@switch", "@else", "@try", "@catch", "@finally" };
             var i = 0;
 
             while (i < text.Length)
@@ -790,9 +825,26 @@ namespace CodeJanitor.Logic.Cleaning
                 }
 
                 var cursor = i + directive.Length;
-                if (!string.Equals(directive, "@else", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(directive, "@else", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!TryFindConditionRange(text, i, out var openParenIndex, out var closeParenIndex))
+                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+
+                    if (cursor + 1 < text.Length && string.Compare(text, cursor, "if", 0, 2, StringComparison.OrdinalIgnoreCase) == 0)
+                    {
+                        if (!TryFindConditionRange(text, cursor + 2, out _, out var elseIfCloseParenIndex))
+                        {
+                            i++;
+                            continue;
+                        }
+
+                        cursor = elseIfCloseParenIndex + 1;
+                        while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+                    }
+                }
+                else if (!string.Equals(directive, "@try", StringComparison.OrdinalIgnoreCase) &&
+                         !string.Equals(directive, "@finally", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!TryFindConditionRange(text, i, out _, out var closeParenIndex))
                     {
                         i++;
                         continue;
@@ -802,20 +854,6 @@ namespace CodeJanitor.Logic.Cleaning
                 }
 
                 while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
-
-                if (string.Equals(directive, "@else", StringComparison.OrdinalIgnoreCase) &&
-                    cursor + 1 < text.Length &&
-                    string.Compare(text, cursor, "if", 0, 2, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    if (!TryFindConditionRange(text, cursor + 2, out _, out var elseIfCloseParenIndex))
-                    {
-                        i++;
-                        continue;
-                    }
-
-                    cursor = elseIfCloseParenIndex + 1;
-                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
-                }
 
                 if (cursor >= text.Length || text[cursor] != '{')
                 {
