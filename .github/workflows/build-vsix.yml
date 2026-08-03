@@ -5,9 +5,14 @@ on:
   push:
     branches:
       - develop
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - develop
+
+permissions:
+  contents: write
 
 jobs:
   build-vsix:
@@ -58,3 +63,11 @@ jobs:
           name: vsix-release
           path: artifacts/*.vsix
           if-no-files-found: error
+
+      - name: Publish GitHub Release (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.vsix
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
