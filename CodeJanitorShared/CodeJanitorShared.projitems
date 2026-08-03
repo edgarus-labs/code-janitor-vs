@@ -222,6 +222,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\About\AboutWindow.xaml.cs">
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml.cs">
+      <DependentUpon>CleanupOptionsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml.cs">
       <DependentUpon>CleanupProgressWindow.xaml</DependentUpon>
@@ -299,6 +303,9 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningFileTypesDataTemplate.xaml">
