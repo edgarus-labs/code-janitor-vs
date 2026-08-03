@@ -32,7 +32,7 @@ jobs:
         run: nuget restore CodeJanitor.sln
 
       - name: Build solution (Release)
-        run: msbuild CodeJanitor.sln /t:Build /p:Configuration=Release /p:Platform=AnyCPU /p:DeployExtension=false /m
+        run: msbuild CodeJanitor.sln /t:Build /p:Configuration=Release /p:Platform="Any CPU" /p:DeployExtension=false /m
 
       - name: Collect VSIX artifacts
         shell: pwsh
