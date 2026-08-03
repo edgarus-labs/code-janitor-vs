@@ -1390,6 +1390,138 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_AiXmlDocumentationMaxMethodsPerFile"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_AiXmlDocumentationPreviewChanges {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationPreviewChanges"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationPreviewChanges"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("25")]
+        public int Cleaning_AiXmlDocumentationMaxRequestsPerCleanup {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationMaxRequestsPerCleanup"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationMaxRequestsPerCleanup"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2500")]
+        public int Cleaning_AiXmlDocumentationMaxInputCharsPerMethod {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationMaxInputCharsPerMethod"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationMaxInputCharsPerMethod"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("256")]
+        public int Cleaning_AiXmlDocumentationMaxTokensPerRequest {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationMaxTokensPerRequest"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationMaxTokensPerRequest"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("8000")]
+        public int Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60")]
+        public int Cleaning_AiXmlDocumentationGlobalTimeoutSeconds {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationGlobalTimeoutSeconds"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationGlobalTimeoutSeconds"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_AiXmlDocumentationAllowDeterministicFallback {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationAllowDeterministicFallback"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationAllowDeterministicFallback"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_AiXmlDocumentationIgnoreGeneratedCode {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationIgnoreGeneratedCode"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationIgnoreGeneratedCode"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_AiXmlDocumentationIgnoreObsolete {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationIgnoreObsolete"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationIgnoreObsolete"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_AiXmlDocumentationIgnoreTestMethods {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationIgnoreTestMethods"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationIgnoreTestMethods"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Cleaning_AiXmlDocumentationIgnorePattern {
+            get {
+                return ((string)(this["Cleaning_AiXmlDocumentationIgnorePattern"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationIgnorePattern"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

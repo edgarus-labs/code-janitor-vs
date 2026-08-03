@@ -54,6 +54,31 @@
                         <Button Content="Test Connection" Command="{Binding TestAiXmlDocumentationConnectionCommand}" Margin="12,0,0,0" Padding="10,2" />
                     </StackPanel>
 
+                    <CheckBox Content="Preview AI XMLDoc changes before applying per file" IsChecked="{Binding AiXmlDocumentationPreviewChanges}" Margin="0,4,0,0" />
+                    <CheckBox Content="Allow deterministic fallback when AI response fails" IsChecked="{Binding AiXmlDocumentationAllowDeterministicFallback}" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Max requests/cleanup" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding AiXmlDocumentationMaxRequestsPerCleanup, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="8,0,0,0" TextAlignment="Right" />
+                        <TextBlock Text="Max input chars/method" VerticalAlignment="Center" Margin="12,0,0,0" />
+                        <TextBox Text="{Binding AiXmlDocumentationMaxInputCharsPerMethod, UpdateSourceTrigger=PropertyChanged}" Width="64" Margin="8,0,0,0" TextAlignment="Right" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Max output tokens/request" VerticalAlignment="Center" />
+                        <TextBox Text="{Binding AiXmlDocumentationMaxTokensPerRequest, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="8,0,0,0" TextAlignment="Right" />
+                        <TextBlock Text="Max estimated tokens/cleanup" VerticalAlignment="Center" Margin="12,0,0,0" />
+                        <TextBox Text="{Binding AiXmlDocumentationMaxEstimatedTokensPerCleanup, UpdateSourceTrigger=PropertyChanged}" Width="64" Margin="8,0,0,0" TextAlignment="Right" />
+                        <TextBlock Text="Global timeout (s)" VerticalAlignment="Center" Margin="12,0,0,0" />
+                        <TextBox Text="{Binding AiXmlDocumentationGlobalTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="8,0,0,0" TextAlignment="Right" />
+                    </StackPanel>
+
+                    <CheckBox Content="Ignore [GeneratedCode]/[CompilerGenerated] methods" IsChecked="{Binding AiXmlDocumentationIgnoreGeneratedCode}" Margin="0,4,0,0" />
+                    <CheckBox Content="Ignore [Obsolete] methods" IsChecked="{Binding AiXmlDocumentationIgnoreObsolete}" />
+                    <CheckBox Content="Ignore unit test methods (Fact/Theory/TestMethod/etc.)" IsChecked="{Binding AiXmlDocumentationIgnoreTestMethods}" />
+                    <TextBlock Text="Ignore regex (full member path Namespace.Type.Method)" Margin="0,4,0,0" />
+                    <TextBox Text="{Binding AiXmlDocumentationIgnorePattern, UpdateSourceTrigger=PropertyChanged}" />
+
                     <TextBlock Text="{Binding AiXmlDocumentationConnectionStatus}" Margin="0,4,0,0" TextWrapping="Wrap" FontStyle="Italic" />
                 </StackPanel>
             </GroupBox>

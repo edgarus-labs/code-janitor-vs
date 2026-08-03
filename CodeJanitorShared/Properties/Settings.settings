@@ -344,6 +344,39 @@
     <Setting Name="Cleaning_AiXmlDocumentationMaxMethodsPerFile" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">25</Value>
     </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationPreviewChanges" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationMaxRequestsPerCleanup" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">25</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationMaxInputCharsPerMethod" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">2500</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationMaxTokensPerRequest" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">256</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">8000</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationGlobalTimeoutSeconds" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">60</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationAllowDeterministicFallback" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationIgnoreGeneratedCode" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationIgnoreObsolete" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationIgnoreTestMethods" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationIgnorePattern" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
     <Setting Name="Cleaning_UsingStatementsToReinsertWhenRemovedExpression" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>

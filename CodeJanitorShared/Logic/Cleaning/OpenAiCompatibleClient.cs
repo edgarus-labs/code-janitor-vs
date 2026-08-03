@@ -70,9 +70,10 @@ namespace CodeJanitor.Logic.Cleaning
                 out errorMessage);
         }
 
-        internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage)
+        internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256)
         {
-            return TrySendChatCompletion(prompt, 256, out completionText, out errorMessage);
+            var safeMaxTokens = maxTokens > 0 ? maxTokens : 256;
+            return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage);
         }
 
         private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage)

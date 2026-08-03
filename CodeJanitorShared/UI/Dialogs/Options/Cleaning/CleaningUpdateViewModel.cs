@@ -63,6 +63,17 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
                 new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationModel, x => AiXmlDocumentationModel),
                 new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationTimeoutSeconds, x => AiXmlDocumentationTimeoutSeconds),
                 new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxMethodsPerFile, x => AiXmlDocumentationMaxMethodsPerFile),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationPreviewChanges, x => AiXmlDocumentationPreviewChanges),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, x => AiXmlDocumentationMaxRequestsPerCleanup),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, x => AiXmlDocumentationMaxInputCharsPerMethod),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxTokensPerRequest, x => AiXmlDocumentationMaxTokensPerRequest),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, x => AiXmlDocumentationMaxEstimatedTokensPerCleanup),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, x => AiXmlDocumentationGlobalTimeoutSeconds),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationAllowDeterministicFallback, x => AiXmlDocumentationAllowDeterministicFallback),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationIgnoreGeneratedCode, x => AiXmlDocumentationIgnoreGeneratedCode),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationIgnoreObsolete, x => AiXmlDocumentationIgnoreObsolete),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationIgnoreTestMethods, x => AiXmlDocumentationIgnoreTestMethods),
+                new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationIgnorePattern, x => AiXmlDocumentationIgnorePattern),
             };
         }
 
@@ -433,6 +444,102 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
             }
         }
 
+        public bool AiXmlDocumentationPreviewChanges
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        public int AiXmlDocumentationMaxRequestsPerCleanup
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value > 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
+        }
+
+        public int AiXmlDocumentationMaxInputCharsPerMethod
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value > 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
+        }
+
+        public int AiXmlDocumentationMaxTokensPerRequest
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value > 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
+        }
+
+        public int AiXmlDocumentationMaxEstimatedTokensPerCleanup
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value > 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
+        }
+
+        public int AiXmlDocumentationGlobalTimeoutSeconds
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value > 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
+        }
+
+        public bool AiXmlDocumentationAllowDeterministicFallback
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        public bool AiXmlDocumentationIgnoreGeneratedCode
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        public bool AiXmlDocumentationIgnoreObsolete
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        public bool AiXmlDocumentationIgnoreTestMethods
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        public string AiXmlDocumentationIgnorePattern
+        {
+            get { return GetPropertyValue<string>(); }
+            set { SetPropertyValue(value); }
+        }
+
         /// <summary>
         /// Gets or sets the API key header name. Defaults to Authorization.
         /// </summary>
@@ -531,6 +638,31 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
             if (AiXmlDocumentationMaxMethodsPerFile <= 0)
             {
                 AiXmlDocumentationMaxMethodsPerFile = 25;
+            }
+
+            if (AiXmlDocumentationMaxRequestsPerCleanup <= 0)
+            {
+                AiXmlDocumentationMaxRequestsPerCleanup = 25;
+            }
+
+            if (AiXmlDocumentationMaxInputCharsPerMethod <= 0)
+            {
+                AiXmlDocumentationMaxInputCharsPerMethod = 2500;
+            }
+
+            if (AiXmlDocumentationMaxTokensPerRequest <= 0)
+            {
+                AiXmlDocumentationMaxTokensPerRequest = 256;
+            }
+
+            if (AiXmlDocumentationMaxEstimatedTokensPerCleanup <= 0)
+            {
+                AiXmlDocumentationMaxEstimatedTokensPerCleanup = 8000;
+            }
+
+            if (AiXmlDocumentationGlobalTimeoutSeconds <= 0)
+            {
+                AiXmlDocumentationGlobalTimeoutSeconds = 60;
             }
 
             _aiXmlDocumentationConnectionSucceeded = IsCachedConnectionSuccess();
