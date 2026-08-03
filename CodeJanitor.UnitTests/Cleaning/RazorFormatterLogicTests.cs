@@ -55,6 +55,54 @@ namespace CodeJanitor.UnitTests.Cleaning
 
         [TestMethod]
         [TestCategory("Cleaning UnitTests")]
+        public void FormatsCodeInsideIfBlock()
+        {
+            var input = "@if(true){<Child A=\"1\" B=\"2\" C=\"3\" /> var x=1+2;}";
+            var expected = "@if (true)\n{\n    <Child A=\"1\"\n           B=\"2\"\n           C=\"3\" />\n    var x = 1 + 2;\n}";
+
+            var output = RazorFormatterLogic.FormatRazorText(input, 2);
+
+            Assert.AreEqual(expected, output);
+        }
+
+        [TestMethod]
+        [TestCategory("Cleaning UnitTests")]
+        public void ProtectsStringMarkupInsideForeachBlock()
+        {
+            var input = "@foreach(var item in items){var xml=\"<Child A='1' B='2' C='3' />\";}\n<Child A=\"1\" B=\"2\" C=\"3\" />";
+            var expected = "@foreach (var item in items)\n{\n    var xml = \"<Child A='1' B='2' C='3' />\";\n}\n<Child A=\"1\"\n       B=\"2\"\n       C=\"3\" />";
+
+            var output = RazorFormatterLogic.FormatRazorText(input, 2);
+
+            Assert.AreEqual(expected, output);
+        }
+
+        [TestMethod]
+        [TestCategory("Cleaning UnitTests")]
+        public void FormatsElseBlockMarkup()
+        {
+            var input = "@else{<Child A=\"1\" B=\"2\" C=\"3\" />}";
+            var expected = "@else\n{\n    <Child A=\"1\"\n           B=\"2\"\n           C=\"3\" />\n}";
+
+            var output = RazorFormatterLogic.FormatRazorText(input, 2);
+
+            Assert.AreEqual(expected, output);
+        }
+
+        [TestMethod]
+        [TestCategory("Cleaning UnitTests")]
+        public void FormatsElseIfHeaderAndCode()
+        {
+            var input = "@else if(flag&&other){var total=1+2;}";
+            var expected = "@else if (flag && other)\n{\n    var total = 1 + 2;\n}";
+
+            var output = RazorFormatterLogic.FormatRazorText(input, 2);
+
+            Assert.AreEqual(expected, output);
+        }
+
+        [TestMethod]
+        [TestCategory("Cleaning UnitTests")]
         public void IsIdempotent()
         {
             var input = "<MyComp A=\"1\" B=\"2\" C=\"3\" />\n@code{public void A(){if(true){return;}}}";

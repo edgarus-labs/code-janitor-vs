@@ -64,9 +64,10 @@ namespace CodeJanitor.Logic.Cleaning
 
             var lineEnding = DetectLineEnding(input);
             var withFormattedCode = FormatCodeBlocks(input, lineEnding);
-            var protectedRanges = FindCodeBlockRanges(withFormattedCode);
+            var withFormattedControlBlocks = FormatControlBlocks(withFormattedCode, attributeInlineThreshold, lineEnding);
+            var protectedRanges = FindProtectedRanges(withFormattedControlBlocks);
 
-            return FormatTagAttributes(withFormattedCode, protectedRanges, attributeInlineThreshold, lineEnding);
+            return FormatTagAttributes(withFormattedControlBlocks, protectedRanges, attributeInlineThreshold, lineEnding);
         }
 
         private static string DetectLineEnding(string text)
@@ -76,7 +77,7 @@ namespace CodeJanitor.Logic.Cleaning
 
         private static string FormatCodeBlocks(string text, string lineEnding)
         {
-            var ranges = FindCodeBlockRanges(text);
+            var ranges = FindDirectiveCodeBlockRanges(text);
             if (ranges.Count == 0) return text;
 
             var buffer = text;
@@ -93,6 +94,27 @@ namespace CodeJanitor.Logic.Cleaning
                 var baseIndent = GetLineIndent(buffer, range.Start);
                 var indented = IndentBlock(formatted, baseIndent, lineEnding);
                 buffer = buffer.Substring(0, contentStart) + indented + buffer.Substring(contentStart + contentLength);
+            }
+
+            return buffer;
+        }
+
+        private static string FormatControlBlocks(string text, int threshold, string lineEnding)
+        {
+            var ranges = FindControlBlockRanges(text);
+            if (ranges.Count == 0) return text;
+
+            var buffer = text;
+            foreach (var range in ranges.OrderByDescending(x => x.Start))
+            {
+                var rawBlock = buffer.Substring(range.Start, range.End - range.Start + 1);
+                var formatted = TryFormatControlBlock(rawBlock, GetLineIndent(buffer, range.Start), threshold, lineEnding);
+                if (string.IsNullOrEmpty(formatted) || string.Equals(rawBlock, formatted, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                buffer = buffer.Substring(0, range.Start) + formatted + buffer.Substring(range.End + 1);
             }
 
             return buffer;
@@ -152,6 +174,312 @@ namespace CodeJanitor.Logic.Cleaning
             builder.Append(baseIndent);
 
             return builder.ToString();
+        }
+
+        private static string TryFormatControlBlock(string rawBlock, string baseIndent, int threshold, string lineEnding)
+        {
+            if (string.IsNullOrWhiteSpace(rawBlock) || rawBlock[0] != '@') return null;
+
+            var braceIndex = rawBlock.IndexOf('{');
+            if (braceIndex < 0)
+            {
+                return null;
+            }
+
+            var header = TryBuildControlBlockHeader(rawBlock, braceIndex, lineEnding);
+            if (header == null)
+            {
+                return null;
+            }
+
+            var inner = rawBlock.Substring(braceIndex + 1, rawBlock.Length - braceIndex - 2);
+            var childIndent = baseIndent + IndentUnit;
+            var formattedInner = FormatMixedBlockInner(inner, childIndent, threshold, lineEnding);
+
+            var builder = new StringBuilder();
+            builder.Append(baseIndent).Append(header).Append(lineEnding);
+            builder.Append(baseIndent).Append('{');
+
+            if (!string.IsNullOrWhiteSpace(formattedInner))
+            {
+                builder.Append(lineEnding).Append(formattedInner).Append(lineEnding);
+            }
+            else
+            {
+                builder.Append(lineEnding);
+            }
+
+            builder.Append(baseIndent).Append('}');
+            return builder.ToString();
+        }
+
+        private static string TryBuildControlBlockHeader(string rawBlock, int braceIndex, string lineEnding)
+        {
+            var headerText = rawBlock.Substring(0, braceIndex).TrimEnd();
+            if (headerText.StartsWith("@else", StringComparison.OrdinalIgnoreCase))
+            {
+                var suffix = headerText.Substring("@else".Length).Trim();
+                if (string.IsNullOrEmpty(suffix))
+                {
+                    return "@else";
+                }
+
+                if (!suffix.StartsWith("if", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                var conditionStart = suffix.IndexOf('(');
+                if (conditionStart < 0 || !TryFindConditionRange(suffix, conditionStart, out var openParenIndex, out var closeParenIndex))
+                {
+                    return null;
+                }
+
+                var condition = suffix.Substring(openParenIndex, closeParenIndex - openParenIndex + 1);
+                var normalized = TryNormalizeControlHeader("if", condition, lineEnding) ?? ("@if " + condition.Trim());
+                return "@else " + normalized.Substring(1);
+            }
+
+            if (!TryFindConditionRange(rawBlock, 0, out var rawOpenParenIndex, out var rawCloseParenIndex))
+            {
+                return null;
+            }
+
+            var keyword = rawBlock.Substring(1, rawOpenParenIndex - 1).Trim();
+            var rawCondition = rawBlock.Substring(rawOpenParenIndex, rawCloseParenIndex - rawOpenParenIndex + 1);
+            return TryNormalizeControlHeader(keyword, rawCondition, lineEnding) ?? ("@" + keyword + " " + rawCondition.Trim());
+        }
+
+        private static string TryNormalizeControlHeader(string keyword, string condition, string lineEnding)
+        {
+            var statement = SyntaxFactory.ParseStatement(keyword + condition + "{}")
+                .NormalizeWhitespace(IndentUnit, lineEnding, elasticTrivia: false)
+                .ToFullString();
+
+            var braceIndex = statement.IndexOf('{');
+            if (braceIndex < 0)
+            {
+                return null;
+            }
+
+            return "@" + statement.Substring(0, braceIndex).TrimEnd();
+        }
+
+        private static string FormatMixedBlockInner(string content, string indent, int threshold, string lineEnding)
+        {
+            var segments = SplitMarkupAndCodeSegments(content);
+            if (segments.Count == 0) return string.Empty;
+
+            var formattedSegments = new List<string>();
+            foreach (var segment in segments)
+            {
+                if (segment.Kind == RazorSegmentKind.Markup)
+                {
+                    var formattedTag = TryFormatTag(segment.Content.Trim(), threshold, lineEnding) ?? segment.Content.Trim();
+                    formattedSegments.Add(IndentLines(formattedTag, indent, lineEnding));
+                    continue;
+                }
+
+                var trimmedCode = segment.Content.Trim();
+                if (string.IsNullOrWhiteSpace(trimmedCode))
+                {
+                    continue;
+                }
+
+                var formattedCode = TryFormatCSharpStatements(trimmedCode, indent, lineEnding) ?? IndentLines(trimmedCode, indent, lineEnding);
+                formattedSegments.Add(formattedCode);
+            }
+
+            return string.Join(lineEnding, formattedSegments.Where(x => !string.IsNullOrWhiteSpace(x)));
+        }
+
+        private static string TryFormatCSharpStatements(string content, string indent, string lineEnding)
+        {
+            var wrapped = "class __CodeJanitorRazorDummy__\n{\n    void __M()\n    {\n" + content + "\n    }\n}";
+            var tree = CSharpSyntaxTree.ParseText(wrapped);
+            if (tree.GetDiagnostics().Any(x => x.Severity == DiagnosticSeverity.Error))
+            {
+                return null;
+            }
+
+            var root = tree.GetCompilationUnitRoot();
+            var method = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>().FirstOrDefault();
+            var body = method?.Body;
+            if (body == null)
+            {
+                return null;
+            }
+
+            var normalizedBody = body.NormalizeWhitespace(IndentUnit, lineEnding, elasticTrivia: false).ToFullString();
+            var open = normalizedBody.IndexOf('{');
+            var close = normalizedBody.LastIndexOf('}');
+            if (open < 0 || close <= open)
+            {
+                return null;
+            }
+
+            var inner = normalizedBody.Substring(open + 1, close - open - 1).Trim('\r', '\n');
+            inner = TrimCommonLeadingIndent(inner, IndentUnit);
+            return IndentLines(inner, indent, lineEnding);
+        }
+
+        private static string TrimCommonLeadingIndent(string content, string indentUnit)
+        {
+            var lines = content.Replace("\r\n", "\n").Split('\n');
+
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i]))
+                {
+                    continue;
+                }
+
+                if (lines[i].StartsWith(indentUnit, StringComparison.Ordinal))
+                {
+                    lines[i] = lines[i].Substring(indentUnit.Length);
+                }
+            }
+
+            return string.Join("\n", lines);
+        }
+
+        private static string IndentLines(string content, string indent, string lineEnding)
+        {
+            var lines = content.Replace("\r\n", "\n").Split('\n');
+            var builder = new StringBuilder();
+
+            for (var i = 0; i < lines.Length; i++)
+            {
+                builder.Append(indent).Append(lines[i]);
+                if (i < lines.Length - 1)
+                {
+                    builder.Append(lineEnding);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        private static List<RazorSegment> SplitMarkupAndCodeSegments(string content)
+        {
+            var segments = new List<RazorSegment>();
+            var index = 0;
+            var codeStart = 0;
+            var scannerState = RazorScannerState.Default;
+
+            while (index < content.Length)
+            {
+                var current = content[index];
+                var next = index + 1 < content.Length ? content[index + 1] : '\0';
+
+                UpdateScannerState(current, next, ref scannerState, ref index);
+                if (scannerState != RazorScannerState.Default)
+                {
+                    index++;
+                    continue;
+                }
+
+                if (current == '<' && next != '/' && next != '!' && next != '?')
+                {
+                    var tagEnd = FindTagEnd(content, index);
+                    if (tagEnd > index)
+                    {
+                        if (index > codeStart)
+                        {
+                            segments.Add(new RazorSegment(RazorSegmentKind.Code, content.Substring(codeStart, index - codeStart)));
+                        }
+
+                        segments.Add(new RazorSegment(RazorSegmentKind.Markup, content.Substring(index, tagEnd - index + 1)));
+                        index = tagEnd + 1;
+                        codeStart = index;
+                        continue;
+                    }
+                }
+
+                index++;
+            }
+
+            if (codeStart < content.Length)
+            {
+                segments.Add(new RazorSegment(RazorSegmentKind.Code, content.Substring(codeStart)));
+            }
+
+            return segments;
+        }
+
+        private static void UpdateScannerState(char current, char next, ref RazorScannerState state, ref int index)
+        {
+            switch (state)
+            {
+                case RazorScannerState.LineComment:
+                    if (current == '\n') state = RazorScannerState.Default;
+                    return;
+
+                case RazorScannerState.BlockComment:
+                    if (current == '*' && next == '/')
+                    {
+                        state = RazorScannerState.Default;
+                        index++;
+                    }
+                    return;
+
+                case RazorScannerState.CharLiteral:
+                    if (current == '\\')
+                    {
+                        index++;
+                        return;
+                    }
+                    if (current == '\'') state = RazorScannerState.Default;
+                    return;
+
+                case RazorScannerState.StringLiteral:
+                    if (current == '\\')
+                    {
+                        index++;
+                        return;
+                    }
+                    if (current == '"') state = RazorScannerState.Default;
+                    return;
+
+                case RazorScannerState.VerbatimStringLiteral:
+                    if (current == '"' && next == '"')
+                    {
+                        index++;
+                        return;
+                    }
+                    if (current == '"') state = RazorScannerState.Default;
+                    return;
+
+                default:
+                    if (current == '/' && next == '/')
+                    {
+                        state = RazorScannerState.LineComment;
+                        index++;
+                        return;
+                    }
+                    if (current == '/' && next == '*')
+                    {
+                        state = RazorScannerState.BlockComment;
+                        index++;
+                        return;
+                    }
+                    if (current == '\'')
+                    {
+                        state = RazorScannerState.CharLiteral;
+                        return;
+                    }
+                    if (current == '@' && next == '"')
+                    {
+                        state = RazorScannerState.VerbatimStringLiteral;
+                        index++;
+                        return;
+                    }
+                    if (current == '"')
+                    {
+                        state = RazorScannerState.StringLiteral;
+                    }
+                    return;
+            }
         }
 
         private static string FormatTagAttributes(string text, IReadOnlyList<RazorCodeBlockRange> protectedRanges, int threshold, string lineEnding)
@@ -394,7 +722,14 @@ namespace CodeJanitor.Logic.Cleaning
             return text.Substring(lineStart, i - lineStart);
         }
 
-        private static List<RazorCodeBlockRange> FindCodeBlockRanges(string text)
+        private static List<RazorCodeBlockRange> FindProtectedRanges(string text)
+        {
+            var ranges = FindDirectiveCodeBlockRanges(text);
+            ranges.AddRange(FindControlBlockRanges(text));
+            return ranges.OrderBy(x => x.Start).ToList();
+        }
+
+        private static List<RazorCodeBlockRange> FindDirectiveCodeBlockRanges(string text)
         {
             var ranges = new List<RazorCodeBlockRange>();
             var i = 0;
@@ -437,6 +772,112 @@ namespace CodeJanitor.Logic.Cleaning
             }
 
             return ranges;
+        }
+
+        private static List<RazorCodeBlockRange> FindControlBlockRanges(string text)
+        {
+            var ranges = new List<RazorCodeBlockRange>();
+            var directives = new[] { "@if", "@for", "@foreach", "@while", "@switch", "@else" };
+            var i = 0;
+
+            while (i < text.Length)
+            {
+                var directive = directives.FirstOrDefault(x => IsDirectiveAt(text, i, x));
+                if (directive == null)
+                {
+                    i++;
+                    continue;
+                }
+
+                var cursor = i + directive.Length;
+                if (!string.Equals(directive, "@else", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!TryFindConditionRange(text, i, out var openParenIndex, out var closeParenIndex))
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    cursor = closeParenIndex + 1;
+                }
+
+                while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+
+                if (string.Equals(directive, "@else", StringComparison.OrdinalIgnoreCase) &&
+                    cursor + 1 < text.Length &&
+                    string.Compare(text, cursor, "if", 0, 2, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    if (!TryFindConditionRange(text, cursor + 2, out _, out var elseIfCloseParenIndex))
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    cursor = elseIfCloseParenIndex + 1;
+                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+                }
+
+                if (cursor >= text.Length || text[cursor] != '{')
+                {
+                    i++;
+                    continue;
+                }
+
+                var closeBrace = FindMatchingBrace(text, cursor);
+                if (closeBrace < 0)
+                {
+                    i++;
+                    continue;
+                }
+
+                ranges.Add(new RazorCodeBlockRange(i, closeBrace, cursor, closeBrace));
+                i = closeBrace + 1;
+            }
+
+            return ranges;
+        }
+
+        private static bool TryFindConditionRange(string text, int directiveStart, out int openParenIndex, out int closeParenIndex)
+        {
+            openParenIndex = -1;
+            closeParenIndex = -1;
+
+            for (var i = directiveStart; i < text.Length; i++)
+            {
+                if (text[i] != '(') continue;
+
+                openParenIndex = i;
+                var depth = 1;
+                var scannerState = RazorScannerState.Default;
+                for (var j = i + 1; j < text.Length; j++)
+                {
+                    var current = text[j];
+                    var next = j + 1 < text.Length ? text[j + 1] : '\0';
+                    UpdateScannerState(current, next, ref scannerState, ref j);
+                    if (scannerState != RazorScannerState.Default)
+                    {
+                        continue;
+                    }
+
+                    if (current == '(')
+                    {
+                        depth++;
+                    }
+                    else if (current == ')')
+                    {
+                        depth--;
+                        if (depth == 0)
+                        {
+                            closeParenIndex = j;
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            return false;
         }
 
         private static bool IsDirectiveAt(string text, int index, string directive)
@@ -588,6 +1029,34 @@ namespace CodeJanitor.Logic.Cleaning
             internal int End { get; }
             internal int BraceStart { get; }
             internal int BraceEnd { get; }
+        }
+
+        private readonly struct RazorSegment
+        {
+            internal RazorSegment(RazorSegmentKind kind, string content)
+            {
+                Kind = kind;
+                Content = content;
+            }
+
+            internal RazorSegmentKind Kind { get; }
+            internal string Content { get; }
+        }
+
+        private enum RazorSegmentKind
+        {
+            Code,
+            Markup
+        }
+
+        private enum RazorScannerState
+        {
+            Default,
+            LineComment,
+            BlockComment,
+            CharLiteral,
+            StringLiteral,
+            VerbatimStringLiteral
         }
 
         private readonly struct TagReplacement
