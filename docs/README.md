@@ -1,71 +1,33 @@
-# CodeMaid Migration Documentation
+# Code Janitor Documentation
 
-## Cel dokumentacji
-Kompletna dokumentacja analizy, planowania, wykonania i walidacji migracji repozytorium CodeMaid do Visual Studio 2026.
+This directory contains project, engineering and migration documentation.
 
-## Data ostatniej aktualizacji
-2026-07-29
+## Project documentation
 
-## Aktualny status
-IN PROGRESS
+- [Project origin and relationship with CodeMaid](project-origin.md)
+- [Features](features.md)
+- [Development guide](development.md)
+- [Architecture overview](architecture.md)
+- [Roadmap](roadmap.md)
+- [Licensing and attribution](licensing.md)
 
-## Dokument startowy
-Rozpocznij od: [migration/05-final-migration-report.md](migration/05-final-migration-report.md)
+## Migration documentation
 
-## Aktualny etap migracji
-Etap: walidacja runtime GUI zakonczona; migracja podstawowa domknieta
+The repository also contains the historical Visual Studio 2026 migration records:
 
-## Migration Quality Gate
-VISUAL_STUDIO_2026_MIGRATION_GATE: PASS
+- [Repository inventory](migration/00-repository-inventory.md)
+- [Initial assessment](migration/01-initial-assessment.md)
+- [Visual Studio 2026 migration plan](migration/02-visual-studio-2026-migration-plan.md)
+- [Migration progress](migration/03-migration-progress.md)
+- [Validation results](migration/04-validation-results.md)
+- [Final migration report](migration/05-final-migration-report.md)
+- [Post-migration recommendations](migration/06-post-migration-recommendations.md)
 
-## Najwazniejsze blokady
-- Brak blokad krytycznych migracji.
-- Prace jakosciowe (nie-blokujace): redukcja VSTHRD*, aktualizacja CI, spojnosc UI (WPF) z motywem VS (BL-006).
+## Architecture decisions
 
-## Indeks dokumentow
-### Migration
-- [migration/00-repository-inventory.md](migration/00-repository-inventory.md)
-- [migration/01-initial-assessment.md](migration/01-initial-assessment.md)
-- [migration/02-visual-studio-2026-migration-plan.md](migration/02-visual-studio-2026-migration-plan.md)
-- [migration/03-migration-progress.md](migration/03-migration-progress.md)
-- [migration/04-validation-results.md](migration/04-validation-results.md)
-- [migration/05-final-migration-report.md](migration/05-final-migration-report.md)
-- [migration/06-post-migration-recommendations.md](migration/06-post-migration-recommendations.md)
+- [Architecture decision records](decisions/README.md)
 
-### Decisions
-- [decisions/README.md](decisions/README.md)
-- [decisions/ADR-0001-vs2026-native-msbuild-and-vstest.md](decisions/ADR-0001-vs2026-native-msbuild-and-vstest.md)
-- [decisions/ADR-0002-keep-net-framework-472.md](decisions/ADR-0002-keep-net-framework-472.md)
-- [decisions/ADR-0003-keep-dual-vsix-targeting.md](decisions/ADR-0003-keep-dual-vsix-targeting.md)
+## Backlog and follow-up work
 
-### TODO
-- [todo/migration-todo.md](todo/migration-todo.md)
-- [todo/post-migration-backlog.md](todo/post-migration-backlog.md)
-
-## Jednoznaczne wnioski
-1. Build i testy przechodza w natywnym toolchain VS2026.
-2. Dotnet CLI nie jest rownowaznym pipeline build dla tego typu projektu.
-3. Walidacja runtime GUI zakonczona: rozszerzenie CodeMaid VS2026 zaladowane i dzialajace w VS2026.
-
-## Deploy do VS Experimental (stabilny workflow)
-Uzywaj zawsze jednego skryptu, ktory ubija wszystkie procesy devenv PRZED deployem i robi update-in-place (bez recznego uninstall):
-
-```powershell
-& "C:\Dev\codemaid\scripts\deploy-exp.ps1" -Configuration Debug
-```
-
-Opcjonalnie (gdy Exp jest rozjechany):
-
-```powershell
-& "C:\Dev\codemaid\scripts\deploy-exp.ps1" -Configuration Debug -CleanHive
-```
-
-Opcjonalnie z automatycznym uruchomieniem VS po deployu:
-
-```powershell
-& "C:\Dev\codemaid\scripts\deploy-exp.ps1" -Configuration Debug -LaunchVS
-```
-
-Uwagi praktyczne:
-1. VSIXInstaller podczas aktualizacji i tak wykonuje wewnetrzny replace pakietu (uninstall/install w transakcji), ale to jest normalne i transparentne dla workflow.
-2. Skrypt toleruje kod wyjscia `2001` jezeli log potwierdza sukces instalacji do VS Experimental.
+- [Migration TODO](todo/migration-todo.md)
+- [Post-migration backlog](todo/post-migration-backlog.md)
