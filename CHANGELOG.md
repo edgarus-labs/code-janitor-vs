@@ -9,6 +9,10 @@ This file records changes made in Code Janitor after the project became an indep
 - Safe Razor and Blazor formatter.
 - Razor formatter settings and configuration UI.
 - Formatting support for Razor control blocks, including `@try`, `@catch` and `@finally`.
+- Namespace fixer and namespace cleanup support.
+- Optional AI-assisted XML documentation cleanup.
+- Advanced XMLDoc controls, filters and budget limits.
+- One-time cleanup options dialog for selected-scope cleanup.
 - Documentation describing project origin, attribution, licensing, architecture and roadmap.
 
 ### Changed
@@ -17,6 +21,7 @@ This file records changes made in Code Janitor after the project became an indep
 - Migrated the legacy Options experience to the native Visual Studio settings system.
 - Organized approximately 191 settings into 21 categories.
 - Removed the legacy classic Options UI after the native settings migration.
+- Added secure configuration boundaries for AI-assisted operations.
 
 ## CodeMaid history
 
