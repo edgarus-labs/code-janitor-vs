@@ -10,13 +10,18 @@ This roadmap describes the intended direction of Code Janitor. It is deliberatel
 - Organize the settings model into clear categories.
 - Add a safe Razor and Blazor formatter.
 - Add Razor control-block support and regression tests.
+- Add namespace fixing and cleanup.
+- Add optional AI-assisted XMLDoc cleanup with filters and budget limits.
+- Add a selected-scope cleanup options dialog.
 - Replace inherited project documentation with Code Janitor documentation.
 
 ## Near-term priorities
 
 - Complete the modernization of the Visual Studio settings experience.
 - Expand Razor and Blazor formatting coverage.
-- Increase automated test coverage for formatting and cleaning behavior.
+- Expand XMLDoc cleanup safely across supported C# constructs.
+- Increase automated test coverage for formatting, AI boundaries and cleaning behavior.
+- Review privacy and security controls for AI-assisted processing.
 - Review compatibility with current Visual Studio releases.
 - Improve build and release automation.
 - Publish reproducible development and preview builds.
@@ -35,4 +40,5 @@ This roadmap describes the intended direction of Code Janitor. It is deliberatel
 
 - Provide a stable, actively maintained successor for users who rely on CodeMaid functionality.
 - Make Code Janitor a reliable code-maintenance companion for modern .NET, C# and Blazor development.
+- Provide safe, transparent and user-controlled AI assistance for repetitive documentation and maintenance tasks.
 - Keep the project transparent, open-source and respectful of its upstream history.
