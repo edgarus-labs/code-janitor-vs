@@ -12,6 +12,8 @@ Code Janitor combines the established CodeMaid feature set with ongoing moderniz
 - Run cleanup on demand or automatically on save.
 - Apply inclusion and exclusion rules.
 - Support configurable file headers.
+- Fix and normalize namespaces.
+- Show a one-time cleanup options dialog for selected-scope cleanup.
 
 ## Code organization
 
@@ -21,15 +23,6 @@ Code Janitor combines the established CodeMaid feature set with ongoing moderniz
 - Join adjacent lines or selected code.
 - Navigate through code structure.
 - Display McCabe complexity information where supported.
-
-## Navigation and workflow
-
-- Find the active file in Solution Explorer.
-- Collapse Solution Explorer nodes recursively.
-- Switch between related files.
-- Toggle read-only file state.
-- Display build progress in Visual Studio and the Windows taskbar.
-- Integrate with selected third-party cleanup tools.
 
 ## Razor and Blazor
 
@@ -47,11 +40,35 @@ The formatter currently targets:
 
 The formatter is designed to be conservative. It should not alter content that it cannot safely understand.
 
+## AI-assisted XML documentation
+
+Code Janitor includes optional AI-assisted XML documentation cleanup for C# code.
+
+The feature is designed to help improve or complete XML documentation while keeping the developer in control through:
+
+- explicit XMLDoc controls;
+- configurable filters;
+- scope selection;
+- budget limits;
+- secure settings;
+- controlled cleanup operations.
+
+AI-assisted processing is opt-in. The project does not treat AI processing as a replacement for compiler diagnostics, code review or developer judgment. Sensitive or proprietary code should only be processed when the user has reviewed the configured provider and deployment model.
+
 ## Settings modernization
 
 The legacy Options experience is being replaced by the native Visual Studio settings system.
 
 The current development branch includes an organized settings tree containing approximately 191 settings in 21 categories. This improves discoverability, aligns the extension with Visual Studio conventions and creates a clearer foundation for future configuration work.
+
+## Navigation and workflow
+
+- Find the active file in Solution Explorer.
+- Collapse Solution Explorer nodes recursively.
+- Switch between related files.
+- Toggle read-only file state.
+- Display build progress in Visual Studio and the Windows taskbar.
+- Integrate with selected third-party cleanup tools.
 
 ## Supported Visual Studio versions
 
