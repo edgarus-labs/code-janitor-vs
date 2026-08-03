@@ -21,8 +21,15 @@ The current development branch includes:
 - a structured settings tree covering approximately 191 settings in 21 categories;
 - a safe Razor formatter for Blazor applications;
 - Razor control-block formatting for `@if`, `@else`, `@for`, `@foreach`, `@while`, `@switch`, `@try`, `@catch` and `@finally`;
+- namespace fixing and cleanup;
+- optional AI-assisted XML documentation cleanup;
+- configurable XMLDoc filters, controls and budget limits;
+- secure settings for AI-assisted operations;
+- a one-time cleanup options dialog for selected-scope cleanup;
 - dedicated Razor formatter options and tests;
 - continued maintenance of the original cleaning, navigation and code-organization features.
+
+AI-assisted features are opt-in and designed to provide explicit scope and budget controls. They do not run silently over an entire solution.
 
 The project is currently under active development. Releases and marketplace publication will follow after the modernization and verification work reaches a stable milestone.
 
