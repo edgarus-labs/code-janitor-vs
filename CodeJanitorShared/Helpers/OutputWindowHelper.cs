@@ -26,6 +26,27 @@ namespace CodeJanitor.Helpers
         #region Methods
 
         /// <summary>
+        /// Ensures the CodeJanitor output pane exists and is visible in the Output window's
+        /// "Show output from" list, without writing any message to it. Safe to call multiple
+        /// times/early (e.g. during package load) so the pane isn't only lazily created on the
+        /// first logged message.
+        /// </summary>
+        internal static void EnsurePaneCreated()
+        {
+            _ = CodeJanitorOutputWindowPane;
+        }
+
+        /// <summary>
+        /// Writes the specified informational line to the CodeJanitor output pane. Always shown,
+        /// regardless of Diagnostics Mode.
+        /// </summary>
+        /// <param name="message">The message.</param>
+        internal static void InfoWriteLine(string message)
+        {
+            WriteLine(Resources.Info, message);
+        }
+
+        /// <summary>
         /// Writes the specified diagnostic line to the CodeJanitor output pane, but only if diagnostics are enabled.
         /// </summary>
         /// <param name="message">The message.</param>

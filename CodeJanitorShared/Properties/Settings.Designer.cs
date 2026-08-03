@@ -61,7 +61,7 @@ namespace CodeJanitor.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("\\.Designer\\.cs$||\\.Designer\\.vb$||\\.resx$||\\.min\\.css$||\\.min\\.js$")]
+        [global::System.Configuration.DefaultSettingValueAttribute("\\.Designer\\.cs$||\\.Designer\\.vb$||\\.g\\.cs$||\\.resx$||\\.min\\.css$||\\.min\\.js$")]
         public string Cleaning_ExclusionExpression {
             get {
                 return ((string)(this["Cleaning_ExclusionExpression"]));
@@ -925,10 +925,10 @@ namespace CodeJanitor.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public int Cleaning_RemoveRegions {
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_RemoveRegions {
             get {
-                return ((int)(this["Cleaning_RemoveRegions"]));
+                return ((bool)(this["Cleaning_RemoveRegions"]));
             }
             set {
                 this["Cleaning_RemoveRegions"] = value;
@@ -1208,6 +1208,30 @@ namespace CodeJanitor.Properties {
             }
             set {
                 this["Cleaning_ConvertToVarWhenApparent"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_ConvertToCollectionExpressions {
+            get {
+                return ((bool)(this["Cleaning_ConvertToCollectionExpressions"]));
+            }
+            set {
+                this["Cleaning_ConvertToCollectionExpressions"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_InsertBlankLineBeforeReturnAndThrowStatements {
+            get {
+                return ((bool)(this["Cleaning_InsertBlankLineBeforeReturnAndThrowStatements"]));
+            }
+            set {
+                this["Cleaning_InsertBlankLineBeforeReturnAndThrowStatements"] = value;
             }
         }
         
@@ -1597,30 +1621,6 @@ namespace CodeJanitor.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Segoe UI")]
-        public string General_Font {
-            get {
-                return ((string)(this["General_Font"]));
-            }
-            set {
-                this["General_Font"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int General_IconSet {
-            get {
-                return ((int)(this["General_IconSet"]));
-            }
-            set {
-                this["General_IconSet"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool General_LoadModelsAsynchronously {
             get {
@@ -1652,18 +1652,6 @@ namespace CodeJanitor.Properties {
             }
             set {
                 this["General_SkipUndoTransactionsDuringAutoCleanupOnSave"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int General_Theme {
-            get {
-                return ((int)(this["General_Theme"]));
-            }
-            set {
-                this["General_Theme"] = value;
             }
         }
         

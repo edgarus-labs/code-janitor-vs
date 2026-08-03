@@ -10,7 +10,6 @@
         xmlns:p="clr-namespace:CodeJanitor.Properties"
         d:DataContext="{d:DesignInstance local:YesNoPromptViewModel, IsDesignTimeCreatable=False}"
         Icon="/source.extension.ico" Title="{Binding Title}"
-        TextElement.FontFamily="{Binding General_Font, Source={x:Static p:Settings.Default}}"
         Height="190" Width="400" ShowInTaskbar="False" WindowStartupLocation="CenterScreen"
         ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}"
         FocusManager.FocusedElement="{Binding ElementName=noButton}">

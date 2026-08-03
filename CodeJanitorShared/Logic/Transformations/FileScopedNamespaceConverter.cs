@@ -84,6 +84,26 @@ namespace CodeJanitor.Logic.Transformations
             return builder.ToString();
         }
 
+        /// <inheritdoc />
+        public bool HasMultipleNamespaces(string source)
+        {
+            if (string.IsNullOrEmpty(source))
+            {
+                return false;
+            }
+
+            var tree = CSharpSyntaxTree.ParseText(source);
+            if (!(tree.GetRoot() is CompilationUnitSyntax root))
+            {
+                return false;
+            }
+
+            var namespaceCount = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().Count()
+                + root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().Count();
+
+            return namespaceCount > 1;
+        }
+
         /// <summary>
         /// Removes one indentation level (four spaces or a single tab) from the start of each
         /// line, after trimming surrounding blank lines.

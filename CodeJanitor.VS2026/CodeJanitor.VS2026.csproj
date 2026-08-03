@@ -29,13 +29,21 @@
     <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp</StartArguments>
     <LangVersion>latest</LangVersion>
+    <!-- The VisualStudio.Extensibility native settings bridge (NativeSettings\*) is parked:
+         CodeJanitorNativeSettingsExtension.InitializeAsync never reliably activates in this VS
+         version (ServiceUnavailableException / never fires at all - see repo memory notes), so
+         the classic WPF Options UI was restored as the actual settings UI. Kept compiled out
+         (not deleted) so it can be re-enabled later by flipping this to true, without having to
+         reconstruct everything from git history again. -->
+    <EnableNativeSettings Condition="'$(EnableNativeSettings)' == ''">false</EnableNativeSettings>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;CODEJANITOR_VS2026</DefineConstants>
+    <DefineConstants Condition="'$(EnableNativeSettings)' == 'true'">$(DefineConstants);CODEJANITOR_NATIVE_SETTINGS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -45,7 +53,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;CODEJANITOR_VS2026</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>false</RunCodeAnalysis>
@@ -84,21 +92,23 @@
     <Compile Include="source.extension.cs">
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
-    <Compile Include="NativeSettings\CodeJanitorNativeSettingsExtension.cs" />
-    <Compile Include="NativeSettings\NativeSettingCategories.cs" />
-    <Compile Include="NativeSettings\GeneralNativeSettings.cs" />
-    <Compile Include="NativeSettings\FeaturesNativeSettings.cs" />
-    <Compile Include="NativeSettings\CleaningNativeSettings.cs" />
-    <Compile Include="NativeSettings\CollapsingNativeSettings.cs" />
-    <Compile Include="NativeSettings\DiggingNativeSettings.cs" />
-    <Compile Include="NativeSettings\FindingNativeSettings.cs" />
-    <Compile Include="NativeSettings\FormattingNativeSettings.cs" />
-    <Compile Include="NativeSettings\ProgressingNativeSettings.cs" />
-    <Compile Include="NativeSettings\ReorganizingNativeSettings.cs" />
-    <Compile Include="NativeSettings\ThirdPartyNativeSettings.cs" />
-    <Compile Include="NativeSettings\SwitchingNativeSettings.cs" />
-    <Compile Include="NativeSettings\ExportRulesCommand.cs" />
-    <Compile Include="NativeSettings\ImportRulesCommand.cs" />
+    <Compile Include="NativeSettings\PlaceholderExtension.cs" />
+    <Compile Include="NativeSettings\CodeJanitorNativeSettingsExtension.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\NativeSettingCategories.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\GeneralNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\FeaturesNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\CleaningNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\CollapsingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\DiggingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\FindingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\FormattingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\ProgressingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\ReorganizingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\MemberTypeArrayItem.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\ThirdPartyNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\SwitchingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\ExportRulesCommand.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
+    <Compile Include="NativeSettings\ImportRulesCommand.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\CodeJanitor\Integration\Images\IDE\progressToolWindow.png">
@@ -632,6 +642,9 @@
     </Content>
     <Resource Include="..\CodeJanitor\Integration\Images\about.png">
       <Link>Integration\Images\about.png</Link>
+    </Resource>
+    <Resource Include="..\CodeJanitor\CodeJanitor_Large.png">
+      <Link>Integration\Images\AboutLogo.png</Link>
     </Resource>
     <Resource Include="..\CodeJanitor\Integration\Images\IDE\cleanup.bmp">
       <Link>Integration\Images\IDE\cleanup.bmp</Link>

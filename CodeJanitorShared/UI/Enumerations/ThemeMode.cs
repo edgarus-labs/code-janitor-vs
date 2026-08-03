@@ -1,12 +1,12 @@
 namespace CodeJanitor.UI.Enumerations
 {
     /// <summary>
-    /// The enumeration of theme options.
+    /// The enumeration of theme options. Always auto-detected from the current IDE theme -
+    /// manual theme selection was removed as redundant/confusing.
     /// </summary>
     public enum ThemeMode
     {
-        AutoDetect = 0,
-        Dark = 1,
-        Light = 2
+        Dark = 0,
+        Light = 1
     }
 }

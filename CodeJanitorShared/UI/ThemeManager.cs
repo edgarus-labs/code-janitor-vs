@@ -106,14 +106,13 @@ namespace CodeJanitor.UI
         }
 
         /// <summary>
-        /// Resolves which theme should currently be active based on settings.
+        /// Resolves which theme should currently be active. Always auto-detected from the
+        /// current IDE theme - manual theme selection was removed as redundant/confusing.
         /// </summary>
         /// <returns>The resolved theme.</returns>
         private ThemeMode ResolveActiveTheme()
         {
-            var theme = (ThemeMode)Settings.Default.General_Theme;
-
-            return theme == ThemeMode.AutoDetect ? AutoDetectTheme() : theme;
+            return AutoDetectTheme();
         }
 
         /// <summary>

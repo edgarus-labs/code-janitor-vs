@@ -205,15 +205,6 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want all .
-        /// </summary>
-        public static string AreYouSureYouWantAll {
-            get {
-                return ResourceManager.GetString("AreYouSureYouWantAll", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to ask.
         /// </summary>
         public static string Ask {
@@ -727,6 +718,15 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to CodeJanitor skipped file-scoped namespace conversion for &apos;{0}&apos; because the file contains more than one namespace..
+        /// </summary>
+        public static string CodeJanitorSkippedFileScopedNamespaceConversion0 {
+            get {
+                return ResourceManager.GetString("CodeJanitorSkippedFileScopedNamespaceConversion0", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to CodeJanitor Join.
         /// </summary>
         public static string CodeJanitorJoin {
@@ -996,6 +996,15 @@ namespace CodeJanitor.Properties {
         public static string Diagnostic {
             get {
                 return ResourceManager.GetString("Diagnostic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Info.
+        /// </summary>
+        public static string Info {
+            get {
+                return ResourceManager.GetString("Info", resourceCulture);
             }
         }
         
@@ -1567,15 +1576,6 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to  to be reset to their defaults?.
-        /// </summary>
-        public static string OptionsViewModel_OnResetToDefaultsCommandExecuted_ToBeResetToTheirDefaults {
-            get {
-                return ResourceManager.GetString("OptionsViewModel_OnResetToDefaultsCommandExecuted_ToBeResetToTheirDefaults", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Other.
         /// </summary>
         public static string Other {
@@ -1851,6 +1851,24 @@ namespace CodeJanitor.Properties {
         public static string RemoveRegion {
             get {
                 return ResourceManager.GetString("RemoveRegion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Always remove regions.
+        /// </summary>
+        public static string AlwaysRemoveRegions {
+            get {
+                return ResourceManager.GetString("AlwaysRemoveRegions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Removes all #region/#endregion tags (keeping their contents&apos; code) from C# and VB files during cleanup..
+        /// </summary>
+        public static string AlwaysRemoveRegionsToolTip {
+            get {
+                return ResourceManager.GetString("AlwaysRemoveRegionsToolTip", resourceCulture);
             }
         }
         

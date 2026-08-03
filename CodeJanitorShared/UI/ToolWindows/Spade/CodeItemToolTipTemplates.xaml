@@ -10,7 +10,6 @@
 
     <!-- Styles -->
     <Style x:Key="DefaultToolTipTextStyle" TargetType="{x:Type TextBlock}">
-        <Setter Property="FontFamily" Value="{Binding General_Font, Source={x:Static p:Settings.Default}}" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="Black" />
         <Setter Property="VerticalAlignment" Value="Center" />

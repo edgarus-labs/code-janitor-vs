@@ -281,6 +281,9 @@
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Resource Include="Integration\Images\about.png" />
+    <Resource Include="CodeJanitor_Large.png">
+      <Link>Integration\Images\AboutLogo.png</Link>
+    </Resource>
     <Resource Include="Integration\Images\IDE\cleanup.bmp" />
     <Resource Include="Integration\Images\IDE\cleanupAll.bmp" />
     <Resource Include="Integration\Images\IDE\closeLocked.bmp" />

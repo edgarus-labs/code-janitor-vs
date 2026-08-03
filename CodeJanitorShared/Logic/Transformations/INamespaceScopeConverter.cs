@@ -14,5 +14,14 @@ namespace CodeJanitor.Logic.Transformations
         /// applicable (no namespace, multiple namespaces, nested namespaces, or already file-scoped).
         /// </returns>
         string ConvertToFileScoped(string source);
+
+        /// <summary>
+        /// Determines whether the specified source contains more than one namespace declaration
+        /// (multiple top-level namespaces, and/or a namespace nested inside another), which makes
+        /// conversion to a file-scoped namespace inapplicable.
+        /// </summary>
+        /// <param name="source">The full C# source text.</param>
+        /// <returns>True if the source contains more than one namespace declaration.</returns>
+        bool HasMultipleNamespaces(string source);
     }
 }

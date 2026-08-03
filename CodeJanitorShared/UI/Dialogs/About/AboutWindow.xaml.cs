@@ -21,6 +21,8 @@ namespace CodeJanitor.UI.Dialogs.About
             Application.ResourceAssembly = Assembly.GetExecutingAssembly();
 
             InitializeComponent();
+
+            VersionTextBlock.Text = $"Version {Vsix.Version}";
         }
 
         #endregion Constructors

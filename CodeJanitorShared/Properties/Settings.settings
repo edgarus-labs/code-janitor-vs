@@ -12,7 +12,7 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="Cleaning_ExclusionExpression" Type="System.String" Scope="User">
-      <Value Profile="(Default)">\.Designer\.cs$||\.Designer\.vb$||\.resx$||\.min\.css$||\.min\.js$</Value>
+      <Value Profile="(Default)">\.Designer\.cs$||\.Designer\.vb$||\.g\.cs$||\.resx$||\.min\.css$||\.min\.js$</Value>
     </Setting>
     <Setting Name="Cleaning_IncludeCPlusPlus" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
@@ -227,8 +227,8 @@
     <Setting Name="Cleaning_RemoveMultipleConsecutiveBlankLines" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="Cleaning_RemoveRegions" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
+    <Setting Name="Cleaning_RemoveRegions" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="Cleaning_RunVisualStudioFormatDocumentCommand" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
@@ -297,6 +297,12 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="Cleaning_ConvertToVarWhenApparent" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Cleaning_ConvertToCollectionExpressions" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Cleaning_InsertBlankLineBeforeReturnAndThrowStatements" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="Cleaning_MakeFieldsReadonlyWhenSafe" Type="System.Boolean" Scope="User">
@@ -395,12 +401,6 @@
     <Setting Name="General_DiagnosticsMode" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="General_Font" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Segoe UI</Value>
-    </Setting>
-    <Setting Name="General_IconSet" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
     <Setting Name="General_LoadModelsAsynchronously" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
@@ -409,9 +409,6 @@
     </Setting>
     <Setting Name="General_SkipUndoTransactionsDuringAutoCleanupOnSave" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="General_Theme" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="General_UseUndoTransactions" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>

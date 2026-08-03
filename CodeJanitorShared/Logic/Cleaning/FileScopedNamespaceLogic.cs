@@ -1,5 +1,6 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
@@ -64,15 +65,26 @@ namespace CodeJanitor.Logic.Cleaning
 
             if (!Settings.Default.Cleaning_ConvertToFileScopedNamespace)
             {
+                OutputWindowHelper.InfoWriteLine(
+                    $"FileScopedNamespaceLogic.ConvertToFileScopedNamespace skipped for '{textDocument.Parent.FullName}' because Cleaning_ConvertToFileScopedNamespace is false.");
                 return;
             }
 
             var startPoint = textDocument.StartPoint.CreateEditPoint();
             var originalText = startPoint.GetText(textDocument.EndPoint);
 
+            if (_converter.HasMultipleNamespaces(originalText))
+            {
+                OutputWindowHelper.WarningWriteLine(
+                    string.Format(Resources.CodeJanitorSkippedFileScopedNamespaceConversion0, textDocument.Parent.FullName));
+                return;
+            }
+
             var convertedText = _converter.ConvertToFileScoped(originalText);
             if (convertedText == originalText)
             {
+                OutputWindowHelper.InfoWriteLine(
+                    $"FileScopedNamespaceLogic.ConvertToFileScopedNamespace made no change for '{textDocument.Parent.FullName}' (not exactly one top-level block-scoped namespace, or already file-scoped).");
                 return;
             }
 

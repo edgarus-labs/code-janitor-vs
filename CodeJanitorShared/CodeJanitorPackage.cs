@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Integration.Commands;
 using CodeJanitor.Integration.Events;
+using CodeJanitor.Integration.Options;
 using CodeJanitor.Model;
 using CodeJanitor.Properties;
 using CodeJanitor.UI;
@@ -46,8 +47,19 @@ namespace CodeJanitor
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string, PackageAutoLoadFlags.BackgroundLoad)] // Trigger CodeJanitor to load on solution open so menu items can determine their state.
     [ProvideBindingPath]
     [ProvideMenuResource("Menus.ctmenu", 1)] // This attribute is needed to let the shell know that this package exposes some menus.
-    // Settings pages are now provided via the native VisualStudio.Extensibility Settings API
-    // (see CodeJanitor.VS2026/NativeSettings) instead of classic ProvideOptionPage.
+    // Native VS Options pages — one per settings section; VS owns the tree navigation.
+    // Resource IDs (category=113, page=114-133) map to display strings in source.extension.resx.
+    // General/Cleaning/Reorganizing/Navigation each host their former sibling pages stacked on
+    // one panel (see CompositeOptionsPageViewModel) instead of separate tree nodes, to keep the
+    // tree shallow. Digging (Spade settings) stays standalone for now (undecided future).
+    [ProvideOptionPage(typeof(CodeJanitorGeneralPage),               "Code Janitor",              "General",       113, 114, true)]
+    [ProvideOptionPage(typeof(CodeJanitorCleaningParentPage),        "Code Janitor",              "Cleaning",      113, 116, true)]
+    [ProvideOptionPage(typeof(CodeJanitorNavigationPage),            "Code Janitor",              "Navigation",    113, 123, true)]
+    [ProvideOptionPage(typeof(CodeJanitorDiggingPage),               "Code Janitor",              "Digging",       113, 124, true)]
+    [ProvideOptionPage(typeof(CodeJanitorFormattingPage),            "Code Janitor",              "Formatting",    113, 126, true)]
+    [ProvideOptionPage(typeof(CodeJanitorProgressingPage),           "Code Janitor",              "Progressing",   113, 127, true)]
+    [ProvideOptionPage(typeof(CodeJanitorReorganizingParentPage),    "Code Janitor",              "Reorganizing",  113, 128, true)]
+    [ProvideOptionPage(typeof(CodeJanitorThirdPartyPage),            "Code Janitor",              "Third Party",   113, 133, true)]
     [ProvideToolWindow(typeof(BuildProgressToolWindow), MultiInstances = false, Height = 40, Width = 500, Style = VsDockStyle.Tabbed, Orientation = ToolWindowOrientation.Bottom, Window = EnvDTE.Constants.vsWindowKindMainWindow)]
     [ProvideToolWindow(typeof(SpadeToolWindow), MultiInstances = false, Style = VsDockStyle.Tabbed, Orientation = ToolWindowOrientation.Left, Window = EnvDTE.Constants.vsWindowKindSolutionExplorer)]
     [Guid(PackageGuids.GuidCodeJanitorPackageString)] // Package unique GUID.
@@ -210,11 +222,73 @@ namespace CodeJanitor
             // Make the package instance available as early as possible for Options page activation paths.
             Instance = this;
 
+            // Create the CodeJanitor output pane immediately so it's visible in the Output
+            // window's "Show output from" list from startup, rather than only appearing
+            // lazily the first time something is logged.
+            OutputWindowHelper.EnsurePaneCreated();
+
             SettingsMonitor = new SettingsMonitor<Settings>(Settings.Default, JoinableTaskFactory);
 
             await RegisterCommandsAsync();
             await RegisterEventListenersAsync();
+
+#if CODEJANITOR_NATIVE_SETTINGS
+            // Fire-and-forget: this retries with delays (the VisualStudioExtensibility service
+            // is often not yet available this early in package init), so it must not block the
+            // rest of package initialization.
+            _ = InitializeNativeSettingsBridgeAsync(cancellationToken);
+#endif
         }
+
+#if CODEJANITOR_NATIVE_SETTINGS
+        private CodeJanitor.NativeSettings.CodeJanitorNativeSettingsExtension _nativeSettingsBridge;
+
+        /// <summary>
+        /// Wires up the VisualStudio.Extensibility native settings bridge
+        /// (<see cref="CodeJanitor.NativeSettings.CodeJanitorNativeSettingsExtension"/>) from this
+        /// classic package, which reliably loads on every VS startup. The extension's own
+        /// IExtensionInitializer.InitializeAsync activation was found to never fire on its own
+        /// for this hybrid VSSDK/Extensibility extension type (see repo memory notes) - obtaining
+        /// VisualStudioExtensibility via GetServiceAsync is the documented, supported way for an
+        /// existing VSSDK package to use VisualStudio.Extensibility APIs in-proc. The service is
+        /// frequently not ready yet this early in VS startup (ServiceUnavailableException), so
+        /// this retries a few times with a delay before giving up.
+        /// </summary>
+        private async Task InitializeNativeSettingsBridgeAsync(CancellationToken cancellationToken)
+        {
+            const int maxAttempts = 10;
+            var delay = TimeSpan.FromSeconds(3);
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    var extensibility = await this.GetServiceAsync<
+                        Microsoft.VisualStudio.Extensibility.VisualStudioExtensibility,
+                        Microsoft.VisualStudio.Extensibility.VisualStudioExtensibility>();
+                    if (extensibility == null)
+                    {
+                        OutputWindowHelper.WarningWriteLine("Native settings bridge: VisualStudioExtensibility service was not available.");
+                        return;
+                    }
+
+                    _nativeSettingsBridge = new CodeJanitor.NativeSettings.CodeJanitorNativeSettingsExtension();
+                    await _nativeSettingsBridge.InitializeAsync(null, null, extensibility, cancellationToken);
+                    return;
+                }
+                catch (Exception ex) when (attempt < maxAttempts)
+                {
+                    OutputWindowHelper.DiagnosticWriteLine($"Native settings bridge: attempt {attempt}/{maxAttempts} failed, retrying in {delay.TotalSeconds}s.", ex);
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.ExceptionWriteLine("Unable to initialize the native settings bridge", ex);
+                    return;
+                }
+            }
+        }
+#endif
 
         /// <summary>
         /// Called when a DispatcherUnhandledException is raised by Visual Studio.
@@ -260,6 +334,7 @@ namespace CodeJanitor
             await CommentFormatCommand.InitializeAsync(this);
             await FindInSolutionExplorerCommand.InitializeAsync(this);
             await JoinLinesCommand.InitializeAsync(this);
+            await OptionsCommand.InitializeAsync(this);
             await ReadOnlyToggleCommand.InitializeAsync(this);
             await RemoveRegionCommand.InitializeAsync(this);
             await ReorganizeActiveCodeCommand.InitializeAsync(this);
@@ -269,6 +344,7 @@ namespace CodeJanitor
             await SpadeContextFindReferencesCommand.InitializeAsync(this);
             await SpadeContextInsertRegionCommand.InitializeAsync(this);
             await SpadeContextRemoveRegionCommand.InitializeAsync(this);
+            await SpadeOptionsCommand.InitializeAsync(this);
             await SpadeRefreshCommand.InitializeAsync(this);
             await SpadeSearchCommand.InitializeAsync(this);
             await SpadeSortOrderAlphaCommand.InitializeAsync(this);

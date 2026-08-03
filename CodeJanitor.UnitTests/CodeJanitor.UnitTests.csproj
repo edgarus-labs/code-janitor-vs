@@ -65,7 +65,9 @@
     <Compile Include="Helpers\FileHeaderHelperTests.cs" />
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
+    <Compile Include="Transformations\CollectionExpressionConverterTests.cs" />
     <Compile Include="Transformations\FileScopedNamespaceConverterTests.cs" />
+    <Compile Include="Transformations\ReturnThrowBlankLinePaddingConverterTests.cs" />
     <Compile Include="Transformations\VarWhenApparentConverterTests.cs" />
     <Compile Include="Transformations\ReadonlyFieldConverterTests.cs" />
     <Compile Include="Transformations\SealedClassConverterTests.cs" />

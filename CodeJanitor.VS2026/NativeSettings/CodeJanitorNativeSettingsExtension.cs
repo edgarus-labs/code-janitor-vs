@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CodeJanitor.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.Settings;
@@ -11,9 +13,24 @@ namespace CodeJanitor.NativeSettings
     [VisualStudioContribution]
     internal class CodeJanitorNativeSettingsExtension : Extension, IExtensionInitializer
     {
+        // Subscriptions must be kept alive for the extension's lifetime - SubscribeAsync
+        // returns an IDisposable "unsubscribe handle" and if it isn't held onto, it becomes
+        // eligible for garbage collection almost immediately, silently cancelling the
+        // subscription (change handlers then stop firing for live edits made in the
+        // Options UI, even though the native settings store itself still saves correctly).
+        private readonly System.Collections.Generic.List<IDisposable> _settingSubscriptions = new();
+
         public override ExtensionConfiguration ExtensionConfiguration => new()
         {
             RequiresInProcessHosting = true,
+            // Without an explicit LoadedWhen rule, this extension only activates on-demand
+            // (e.g. when one of its Commands is invoked) and InitializeAsync never runs at VS
+            // startup - meaning the settings bridge to Properties.Settings.Default never wires
+            // up, so live edits made in the Options UI are silently never applied. Load
+            // unconditionally, whether or not a solution is open, matching the classic VSSDK
+            // "always autoload" pattern (NoSolution | Exists covers every solution state).
+            LoadedWhen = ActivationConstraint.SolutionState(SolutionState.NoSolution)
+                | ActivationConstraint.SolutionState(SolutionState.Exists),
         };
 
         protected override void InitializeServices(IServiceCollection serviceCollection)
@@ -23,21 +40,51 @@ namespace CodeJanitor.NativeSettings
 
         public async Task InitializeAsync(ExtensionCore extension, IServiceProvider serviceProvider, VisualStudioExtensibility extensibility, CancellationToken cancellationToken)
         {
-            // Push the user's current settings into the native store first, so the native UI
-            // reflects reality instead of the Setting.*'s hardcoded compile-time defaults.
-            await PushCurrentSettingsToNativeStoreAsync(extensibility, cancellationToken);
+            DebugLog("InitializeAsync starting.");
+            try
+            {
+                // Push the user's current settings into the native store first, so the native UI
+                // reflects reality instead of the Setting.*'s hardcoded compile-time defaults.
+                await PushCurrentSettingsToNativeStoreAsync(extensibility, cancellationToken);
+                DebugLog("PushCurrentSettingsToNativeStoreAsync completed.");
 
-            await extensibility.Settings().SubscribeAsync(GeneralSettings, cancellationToken, changeHandler: OnGeneralSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(SwitchingSettings, cancellationToken, changeHandler: OnSwitchingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(FeaturesSettings, cancellationToken, changeHandler: OnFeaturesSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(CleaningSettings, cancellationToken, changeHandler: OnCleaningSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(CollapsingSettings, cancellationToken, changeHandler: OnCollapsingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(DiggingSettings, cancellationToken, changeHandler: OnDiggingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(FindingSettings, cancellationToken, changeHandler: OnFindingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(FormattingSettings, cancellationToken, changeHandler: OnFormattingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(ProgressingSettings, cancellationToken, changeHandler: OnProgressingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(ReorganizingSettings, cancellationToken, changeHandler: OnReorganizingSettingsChanged);
-            await extensibility.Settings().SubscribeAsync(ThirdPartySettings, cancellationToken, changeHandler: OnThirdPartySettingsChanged);
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(GeneralSettings, cancellationToken, changeHandler: OnGeneralSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(SwitchingSettings, cancellationToken, changeHandler: OnSwitchingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(FeaturesSettings, cancellationToken, changeHandler: OnFeaturesSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(CleaningSettings, cancellationToken, changeHandler: OnCleaningSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(CollapsingSettings, cancellationToken, changeHandler: OnCollapsingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(DiggingSettings, cancellationToken, changeHandler: OnDiggingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(FindingSettings, cancellationToken, changeHandler: OnFindingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(FormattingSettings, cancellationToken, changeHandler: OnFormattingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(ProgressingSettings, cancellationToken, changeHandler: OnProgressingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(ReorganizingSettings, cancellationToken, changeHandler: OnReorganizingSettingsChanged));
+                _settingSubscriptions.Add(await extensibility.Settings().SubscribeAsync(ThirdPartySettings, cancellationToken, changeHandler: OnThirdPartySettingsChanged));
+
+                DebugLog($"InitializeAsync completed successfully. Subscriptions held: {_settingSubscriptions.Count}.");
+            }
+            catch (Exception ex)
+            {
+                DebugLog($"InitializeAsync FAILED: {ex}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Temporary diagnostic logging that writes directly to a plain text file, bypassing
+        /// OutputWindowHelper/classic VSSDK service resolution entirely, so we get a signal even
+        /// if this new-style extension can't safely call into classic VS services from here.
+        /// </summary>
+        private static void DebugLog(string message)
+        {
+            try
+            {
+                var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "codejanitor-settings-init-debug.log");
+                System.IO.File.AppendAllText(path, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}");
+            }
+            catch
+            {
+                // Best-effort diagnostic only - never let logging failures affect the extension.
+            }
         }
 
         private static Setting[] GeneralSettings { get; } = new Setting[]
@@ -248,18 +295,7 @@ namespace CodeJanitor.NativeSettings
             ReorganizingNativeSettings.PrimaryOrderByAccessLevel,
             ReorganizingNativeSettings.ReverseOrderByAccessLevel,
             ReorganizingNativeSettings.RunAtStartOfCleanup,
-            ReorganizingNativeSettings.MemberTypeClasses,
-            ReorganizingNativeSettings.MemberTypeConstructors,
-            ReorganizingNativeSettings.MemberTypeDelegates,
-            ReorganizingNativeSettings.MemberTypeDestructors,
-            ReorganizingNativeSettings.MemberTypeEnums,
-            ReorganizingNativeSettings.MemberTypeEvents,
-            ReorganizingNativeSettings.MemberTypeFields,
-            ReorganizingNativeSettings.MemberTypeIndexers,
-            ReorganizingNativeSettings.MemberTypeInterfaces,
-            ReorganizingNativeSettings.MemberTypeMethods,
-            ReorganizingNativeSettings.MemberTypeProperties,
-            ReorganizingNativeSettings.MemberTypeStructs,
+            ReorganizingNativeSettings.MemberTypes,
             ReorganizingNativeSettings.RegionsIncludeAccessLevel,
             ReorganizingNativeSettings.RegionsIncludeAccessLevelForMethodsOnly,
             ReorganizingNativeSettings.RegionsInsertKeepEvenIfEmpty,
@@ -463,18 +499,24 @@ namespace CodeJanitor.NativeSettings
                     batch.WriteSetting(ReorganizingNativeSettings.PrimaryOrderByAccessLevel, settings.Reorganizing_PrimaryOrderByAccessLevel);
                     batch.WriteSetting(ReorganizingNativeSettings.ReverseOrderByAccessLevel, settings.Reorganizing_ReverseOrderByAccessLevel);
                     batch.WriteSetting(ReorganizingNativeSettings.RunAtStartOfCleanup, settings.Reorganizing_RunAtStartOfCleanup);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeClasses, settings.Reorganizing_MemberTypeClasses);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeConstructors, settings.Reorganizing_MemberTypeConstructors);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeDelegates, settings.Reorganizing_MemberTypeDelegates);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeDestructors, settings.Reorganizing_MemberTypeDestructors);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeEnums, settings.Reorganizing_MemberTypeEnums);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeEvents, settings.Reorganizing_MemberTypeEvents);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeFields, settings.Reorganizing_MemberTypeFields);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeIndexers, settings.Reorganizing_MemberTypeIndexers);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeInterfaces, settings.Reorganizing_MemberTypeInterfaces);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeMethods, settings.Reorganizing_MemberTypeMethods);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeProperties, settings.Reorganizing_MemberTypeProperties);
-                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypeStructs, settings.Reorganizing_MemberTypeStructs);
+
+                    var memberTypeSettings = new[]
+                    {
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeClasses,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeConstructors,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeDelegates,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeDestructors,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeEnums,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeEvents,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeFields,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeIndexers,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeInterfaces,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeMethods,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeProperties,
+                        (MemberTypeSetting)settings.Reorganizing_MemberTypeStructs,
+                    };
+                    batch.WriteSetting(ReorganizingNativeSettings.MemberTypes, memberTypeSettings.Select(MemberTypeArrayItem.FromMemberTypeSetting));
+
                     batch.WriteSetting(ReorganizingNativeSettings.RegionsIncludeAccessLevel, settings.Reorganizing_RegionsIncludeAccessLevel);
                     batch.WriteSetting(ReorganizingNativeSettings.RegionsIncludeAccessLevelForMethodsOnly, settings.Reorganizing_RegionsIncludeAccessLevelForMethodsOnly);
                     batch.WriteSetting(ReorganizingNativeSettings.RegionsInsertKeepEvenIfEmpty, settings.Reorganizing_RegionsInsertKeepEvenIfEmpty);
@@ -539,6 +581,8 @@ namespace CodeJanitor.NativeSettings
 
         private void OnCleaningSettingsChanged(SettingValues values)
         {
+            DebugLog($"OnCleaningSettingsChanged fired. ConvertToFileScopedNamespace raw value present: {values.ValueOrDefault(CleaningNativeSettings.ConvertToFileScopedNamespace, false)}.");
+
             var settings = Properties.Settings.Default;
 
             settings.Cleaning_AutoCleanupOnFileSave = values.ValueOrDefault(CleaningNativeSettings.AutoCleanupOnFileSave, settings.Cleaning_AutoCleanupOnFileSave);
@@ -650,6 +694,8 @@ namespace CodeJanitor.NativeSettings
             settings.Cleaning_UpdateFileHeaderXAML = values.ValueOrDefault(CleaningNativeSettings.UpdateFileHeaderXAML, settings.Cleaning_UpdateFileHeaderXAML);
             settings.Cleaning_UpdateFileHeaderXML = values.ValueOrDefault(CleaningNativeSettings.UpdateFileHeaderXML, settings.Cleaning_UpdateFileHeaderXML);
             settings.Save();
+
+            DebugLog($"OnCleaningSettingsChanged saved. settings.Cleaning_ConvertToFileScopedNamespace is now: {settings.Cleaning_ConvertToFileScopedNamespace}.");
         }
 
         private void OnCollapsingSettingsChanged(SettingValues values)
@@ -727,18 +773,26 @@ namespace CodeJanitor.NativeSettings
             settings.Reorganizing_PrimaryOrderByAccessLevel = values.ValueOrDefault(ReorganizingNativeSettings.PrimaryOrderByAccessLevel, settings.Reorganizing_PrimaryOrderByAccessLevel);
             settings.Reorganizing_ReverseOrderByAccessLevel = values.ValueOrDefault(ReorganizingNativeSettings.ReverseOrderByAccessLevel, settings.Reorganizing_ReverseOrderByAccessLevel);
             settings.Reorganizing_RunAtStartOfCleanup = values.ValueOrDefault(ReorganizingNativeSettings.RunAtStartOfCleanup, settings.Reorganizing_RunAtStartOfCleanup);
-            settings.Reorganizing_MemberTypeClasses = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeClasses, settings.Reorganizing_MemberTypeClasses);
-            settings.Reorganizing_MemberTypeConstructors = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeConstructors, settings.Reorganizing_MemberTypeConstructors);
-            settings.Reorganizing_MemberTypeDelegates = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeDelegates, settings.Reorganizing_MemberTypeDelegates);
-            settings.Reorganizing_MemberTypeDestructors = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeDestructors, settings.Reorganizing_MemberTypeDestructors);
-            settings.Reorganizing_MemberTypeEnums = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeEnums, settings.Reorganizing_MemberTypeEnums);
-            settings.Reorganizing_MemberTypeEvents = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeEvents, settings.Reorganizing_MemberTypeEvents);
-            settings.Reorganizing_MemberTypeFields = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeFields, settings.Reorganizing_MemberTypeFields);
-            settings.Reorganizing_MemberTypeIndexers = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeIndexers, settings.Reorganizing_MemberTypeIndexers);
-            settings.Reorganizing_MemberTypeInterfaces = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeInterfaces, settings.Reorganizing_MemberTypeInterfaces);
-            settings.Reorganizing_MemberTypeMethods = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeMethods, settings.Reorganizing_MemberTypeMethods);
-            settings.Reorganizing_MemberTypeProperties = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeProperties, settings.Reorganizing_MemberTypeProperties);
-            settings.Reorganizing_MemberTypeStructs = values.ValueOrDefault(ReorganizingNativeSettings.MemberTypeStructs, settings.Reorganizing_MemberTypeStructs);
+
+            foreach (var item in values.ValueOrDefault(ReorganizingNativeSettings.MemberTypes, Array.Empty<MemberTypeArrayItem>()))
+            {
+                switch (item.Kind)
+                {
+                    case "Classes": settings.Reorganizing_MemberTypeClasses = item.ToSerializedMemberTypeSetting(); break;
+                    case "Constructors": settings.Reorganizing_MemberTypeConstructors = item.ToSerializedMemberTypeSetting(); break;
+                    case "Delegates": settings.Reorganizing_MemberTypeDelegates = item.ToSerializedMemberTypeSetting(); break;
+                    case "Destructors": settings.Reorganizing_MemberTypeDestructors = item.ToSerializedMemberTypeSetting(); break;
+                    case "Enums": settings.Reorganizing_MemberTypeEnums = item.ToSerializedMemberTypeSetting(); break;
+                    case "Events": settings.Reorganizing_MemberTypeEvents = item.ToSerializedMemberTypeSetting(); break;
+                    case "Fields": settings.Reorganizing_MemberTypeFields = item.ToSerializedMemberTypeSetting(); break;
+                    case "Indexers": settings.Reorganizing_MemberTypeIndexers = item.ToSerializedMemberTypeSetting(); break;
+                    case "Interfaces": settings.Reorganizing_MemberTypeInterfaces = item.ToSerializedMemberTypeSetting(); break;
+                    case "Methods": settings.Reorganizing_MemberTypeMethods = item.ToSerializedMemberTypeSetting(); break;
+                    case "Properties": settings.Reorganizing_MemberTypeProperties = item.ToSerializedMemberTypeSetting(); break;
+                    case "Structs": settings.Reorganizing_MemberTypeStructs = item.ToSerializedMemberTypeSetting(); break;
+                }
+            }
+
             settings.Reorganizing_RegionsIncludeAccessLevel = values.ValueOrDefault(ReorganizingNativeSettings.RegionsIncludeAccessLevel, settings.Reorganizing_RegionsIncludeAccessLevel);
             settings.Reorganizing_RegionsIncludeAccessLevelForMethodsOnly = values.ValueOrDefault(ReorganizingNativeSettings.RegionsIncludeAccessLevelForMethodsOnly, settings.Reorganizing_RegionsIncludeAccessLevelForMethodsOnly);
             settings.Reorganizing_RegionsInsertKeepEvenIfEmpty = values.ValueOrDefault(ReorganizingNativeSettings.RegionsInsertKeepEvenIfEmpty, settings.Reorganizing_RegionsInsertKeepEvenIfEmpty);

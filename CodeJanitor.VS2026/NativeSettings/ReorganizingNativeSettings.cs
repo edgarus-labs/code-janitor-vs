@@ -42,56 +42,54 @@ namespace CodeJanitor.NativeSettings
         internal static Setting.Boolean RunAtStartOfCleanup { get; } = new(
             "codeJanitorReorganizingRunAtStartOfCleanup", "Run at start of cleanup", GeneralCategory, defaultValue: false);
 
+        // Each classic Reorganizing_MemberTypeX setting is one System.String storing a
+        // serialized "DefaultName||Order||EffectiveName" triple (see MemberTypeSetting.cs).
+        // The old custom WPF control edited all 12 as one drag/drop/rename list; here they're
+        // exposed as a single Setting.ObjectArray - the same grid-of-rows primitive used for
+        // things like the NuGet Package Manager sources list - with an Order/Display name
+        // column per row instead of showing the raw serialized string.
         [VisualStudioContribution]
         internal static SettingCategory TypesCategory { get; } = new("codeJanitorReorganizingTypes", "Types", ReorganizingCategory);
 
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeClasses { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeClasses", "Classes", TypesCategory, defaultValue: "Classes||12||Classes");
+        internal const string MemberTypeKindPropertyId = "kind";
+        internal const string MemberTypeOrderPropertyId = "order";
+        internal const string MemberTypeNamePropertyId = "name";
+
+        private static ArraySettingItemProperty.String MemberTypeKindProperty { get; } = new(
+            MemberTypeKindPropertyId, "Type", defaultValue: "")
+        { IsEditable = false };
+
+        private static ArraySettingItemProperty.Integer MemberTypeOrderProperty { get; } = new(
+            MemberTypeOrderPropertyId, "Order", defaultValue: 0);
+
+        private static ArraySettingItemProperty.String MemberTypeNameProperty { get; } = new(
+            MemberTypeNamePropertyId, "Display name", defaultValue: "");
 
         [VisualStudioContribution]
-        internal static Setting.String MemberTypeConstructors { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeConstructors", "Constructors", TypesCategory, defaultValue: "Constructors||2||Constructors");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeDelegates { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeDelegates", "Delegates", TypesCategory, defaultValue: "Delegates||4||Delegates");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeDestructors { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeDestructors", "Destructors", TypesCategory, defaultValue: "Destructors||3||Destructors");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeEnums { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeEnums", "Enums", TypesCategory, defaultValue: "Enums||6||Enums");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeEvents { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeEvents", "Events", TypesCategory, defaultValue: "Events||5||Events");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeFields { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeFields", "Fields", TypesCategory, defaultValue: "Fields||1||Fields");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeIndexers { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeIndexers", "Indexers", TypesCategory, defaultValue: "Indexers||9||Indexers");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeInterfaces { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeInterfaces", "Interfaces", TypesCategory, defaultValue: "Interfaces||7||Interfaces");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeMethods { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeMethods", "Methods", TypesCategory, defaultValue: "Methods||10||Methods");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeProperties { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeProperties", "Properties", TypesCategory, defaultValue: "Properties||8||Properties");
-
-        [VisualStudioContribution]
-        internal static Setting.String MemberTypeStructs { get; } = new(
-            "codeJanitorReorganizingTypesMemberTypeStructs", "Structs", TypesCategory, defaultValue: "Structs||11||Structs");
+        internal static Setting.ObjectArray MemberTypes { get; } = new(
+            "codeJanitorReorganizingTypesMemberTypes",
+            "Member types",
+            TypesCategory,
+            new ArraySettingItemProperty[] { MemberTypeKindProperty, MemberTypeOrderProperty, MemberTypeNameProperty },
+            new[]
+            {
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Fields" }, { MemberTypeOrderPropertyId, 1 }, { MemberTypeNamePropertyId, "Fields" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Constructors" }, { MemberTypeOrderPropertyId, 2 }, { MemberTypeNamePropertyId, "Constructors" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Destructors" }, { MemberTypeOrderPropertyId, 3 }, { MemberTypeNamePropertyId, "Destructors" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Delegates" }, { MemberTypeOrderPropertyId, 4 }, { MemberTypeNamePropertyId, "Delegates" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Events" }, { MemberTypeOrderPropertyId, 5 }, { MemberTypeNamePropertyId, "Events" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Enums" }, { MemberTypeOrderPropertyId, 6 }, { MemberTypeNamePropertyId, "Enums" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Interfaces" }, { MemberTypeOrderPropertyId, 7 }, { MemberTypeNamePropertyId, "Interfaces" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Properties" }, { MemberTypeOrderPropertyId, 8 }, { MemberTypeNamePropertyId, "Properties" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Indexers" }, { MemberTypeOrderPropertyId, 9 }, { MemberTypeNamePropertyId, "Indexers" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Methods" }, { MemberTypeOrderPropertyId, 10 }, { MemberTypeNamePropertyId, "Methods" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Structs" }, { MemberTypeOrderPropertyId, 11 }, { MemberTypeNamePropertyId, "Structs" } },
+                new ArraySettingItem { { MemberTypeKindPropertyId, "Classes" }, { MemberTypeOrderPropertyId, 12 }, { MemberTypeNamePropertyId, "Classes" } },
+            })
+        {
+            // The 12 member types are fixed - users reorder/rename/group them, not add/remove rows.
+            AllowAdditionsAndRemovals = false,
+        };
 
         [VisualStudioContribution]
         internal static SettingCategory RegionsCategory { get; } = new("codeJanitorReorganizingRegions", "Regions", ReorganizingCategory);

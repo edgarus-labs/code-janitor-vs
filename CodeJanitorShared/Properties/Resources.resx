@@ -165,9 +165,6 @@
   <data name="AreYouReadyForCodeJanitorToCleanNChangedFiles" xml:space="preserve">
     <value>Are you ready for CodeJanitor to clean {0} file(s) changed according to git status?</value>
   </data>
-  <data name="AreYouSureYouWantAll" xml:space="preserve">
-    <value>Are you sure you want all </value>
-  </data>
   <data name="Ask" xml:space="preserve">
     <value>ask</value>
   </data>
@@ -339,6 +336,9 @@
   <data name="CodeJanitorIsCleaning0" xml:space="preserve">
     <value>CodeJanitor is cleaning '{0}'...</value>
   </data>
+  <data name="CodeJanitorSkippedFileScopedNamespaceConversion0" xml:space="preserve">
+    <value>CodeJanitor skipped file-scoped namespace conversion for '{0}' because the file contains more than one namespace.</value>
+  </data>
   <data name="CodeJanitorJoin" xml:space="preserve">
     <value>CodeJanitor Join</value>
   </data>
@@ -430,6 +430,9 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   </data>
   <data name="Diagnostic" xml:space="preserve">
     <value>Diagnostic</value>
+  </data>
+  <data name="Info" xml:space="preserve">
+    <value>Info</value>
   </data>
   <data name="Diagnostics" xml:space="preserve">
     <value>Diagnostics</value>
@@ -617,9 +620,6 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   <data name="None" xml:space="preserve">
     <value>none</value>
   </data>
-  <data name="OptionsViewModel_OnResetToDefaultsCommandExecuted_ToBeResetToTheirDefaults" xml:space="preserve">
-    <value> to be reset to their defaults?</value>
-  </data>
   <data name="Other" xml:space="preserve">
     <value>Other</value>
   </data>
@@ -709,6 +709,12 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   </data>
   <data name="RemoveRegion" xml:space="preserve">
     <value>Remove Region</value>
+  </data>
+  <data name="AlwaysRemoveRegions" xml:space="preserve">
+    <value>Always remove regions</value>
+  </data>
+  <data name="AlwaysRemoveRegionsToolTip" xml:space="preserve">
+    <value>Removes all #region/#endregion tags (keeping their contents' code) from C# and VB files during cleanup.</value>
   </data>
   <data name="RemoveRegions" xml:space="preserve">
     <value>Remove regions</value>

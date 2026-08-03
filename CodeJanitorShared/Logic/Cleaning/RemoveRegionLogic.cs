@@ -4,7 +4,6 @@ using CodeJanitor.Helpers;
 using CodeJanitor.Model;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
-using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -141,18 +140,11 @@ namespace CodeJanitor.Logic.Cleaning
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            var setting = (NoneEmptyAll)Settings.Default.Cleaning_RemoveRegions;
-            if (setting == NoneEmptyAll.None) return;
+            if (!Settings.Default.Cleaning_RemoveRegions) return;
 
             // Iterate through regions in reverse order (reduces line number updates during removal).
             foreach (var region in regions.OrderByDescending(x => x.StartLine))
             {
-                // Check if a region IsEmpty on the fly to handle nested empty regions.
-                if (setting == NoneEmptyAll.Empty && !region.IsEmpty)
-                {
-                    continue;
-                }
-
                 RemoveRegion(region);
             }
         }

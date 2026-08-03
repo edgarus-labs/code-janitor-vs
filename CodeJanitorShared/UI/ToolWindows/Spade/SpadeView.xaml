@@ -134,7 +134,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid TextElement.FontFamily="{Binding General_Font, Source={x:Static p:Settings.Default}}">
+    <Grid>
         <TreeView x:Name="treeView" BorderThickness="0" ItemsSource="{Binding OrganizedCodeItems}"
                   ItemContainerStyle="{StaticResource SpadeTreeViewItemContainerStyle}"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"

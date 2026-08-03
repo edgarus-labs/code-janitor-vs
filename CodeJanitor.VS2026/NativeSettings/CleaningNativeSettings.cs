@@ -42,7 +42,10 @@ namespace CodeJanitor.NativeSettings
         [VisualStudioContribution]
         internal static Setting.String ExclusionExpression { get; } = new(
             "codeJanitorCleaningExclusionExpression", "Exclusion expression", FileTypesCategory,
-            defaultValue: @"\.Designer\.cs$||\.Designer\.vb$||\.resx$||\.min\.css$||\.min\.js$");
+            defaultValue: @"\.Designer\.cs$||\.Designer\.vb$||\.g\.cs$||\.resx$||\.min\.css$||\.min\.js$")
+        {
+            Description = "Files whose full path matches any of these '||'-separated regular expressions are skipped entirely during cleanup (e.g. generated code such as '.g.cs').",
+        };
 
         [VisualStudioContribution]
         internal static Setting.String InclusionExpression { get; } = new(
@@ -374,8 +377,11 @@ namespace CodeJanitor.NativeSettings
             "codeJanitorCleaningRemoveMultipleConsecutiveBlankLines", "Multiple consecutive blank lines", RemoveCategory, defaultValue: true);
 
         [VisualStudioContribution]
-        internal static Setting.Integer RemoveRegions { get; } = new(
-            "codeJanitorCleaningRemoveRegions", "Remove regions", RemoveCategory, defaultValue: 1);
+        internal static Setting.Boolean RemoveRegions { get; } = new(
+            "codeJanitorCleaningRemoveRegions", "Always remove regions", RemoveCategory, defaultValue: true)
+        {
+            Description = "Removes all #region/#endregion tags (including their contents' code, which is kept) from C# and VB files during cleanup.",
+        };
 
         #endregion Remove
 
@@ -398,7 +404,10 @@ namespace CodeJanitor.NativeSettings
 
         [VisualStudioContribution]
         internal static Setting.Boolean ConvertToFileScopedNamespace { get; } = new(
-            "codeJanitorCleaningConvertToFileScopedNamespace", "Convert to file scoped namespace", UpdateCategory, defaultValue: false);
+            "codeJanitorCleaningConvertToFileScopedNamespace", "Convert to file scoped namespace", UpdateCategory, defaultValue: false)
+        {
+            Description = "Converts a C# block-scoped namespace ('namespace X { }') to a file-scoped namespace ('namespace X;') during cleanup. Only applies when the file has exactly one top-level namespace; files with multiple or nested namespaces are left unchanged (a warning is written to the CodeJanitor output pane).",
+        };
 
         [VisualStudioContribution]
         internal static Setting.Boolean ConvertToVarWhenApparent { get; } = new(

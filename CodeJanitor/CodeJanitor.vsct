@@ -573,6 +573,14 @@
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSwitchFile" priority="0x0800">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextXAMLWindowSubGroup" />
     </CommandPlacement>
+
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorOptions" priority="0x0200">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuMetaGroup" />
+    </CommandPlacement>
+
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeOptions" priority="0x0100">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorToolbarSpadeMetaGroup" />
+    </CommandPlacement>
   </CommandPlacements>
 
   <KeyBindings>
@@ -590,6 +598,9 @@
 
     <KeyBinding guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorJoinLines" editor="guidVSStd97" key1="M" mod1="Control" key2="J" mod2="Control" />
     <KeyBinding guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorJoinLines" editor="guidVSStd97" key1="M" mod1="Control" key2="J" />
+
+    <KeyBinding guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorOptions" editor="guidVSStd97" key1="M" mod1="Control" key2="0xBF" mod2="Control" />
+    <KeyBinding guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorOptions" editor="guidVSStd97" key1="M" mod1="Control" key2="0xBF" />
 
     <KeyBinding guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorRemoveRegion" editor="guidVSStd97" key1="M" mod1="Control" key2="R" mod2="Control" />
     <KeyBinding guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorRemoveRegion" editor="guidVSStd97" key1="M" mod1="Control" key2="R" />
@@ -746,6 +757,7 @@
       <IDSymbol name="CmdIDCodeJanitorCommentFormat" value="0x1900" />
       <IDSymbol name="CmdIDCodeJanitorFindInSolutionExplorer" value="0x2000" />
       <IDSymbol name="CmdIDCodeJanitorJoinLines" value="0x2100" />
+      <IDSymbol name="CmdIDCodeJanitorOptions" value="0x2200" />
       <IDSymbol name="CmdIDCodeJanitorReadOnlyToggle" value="0x2300" />
       <IDSymbol name="CmdIDCodeJanitorRemoveRegion" value="0x2400" />
       <IDSymbol name="CmdIDCodeJanitorReorganizeActiveCode" value="0x2500" />
@@ -755,6 +767,7 @@
       <IDSymbol name="CmdIDCodeJanitorSpadeContextFindReferences" value="0x2900" />
       <IDSymbol name="CmdIDCodeJanitorSpadeContextInsertRegion" value="0x3000" />
       <IDSymbol name="CmdIDCodeJanitorSpadeContextRemoveRegion" value="0x3100" />
+      <IDSymbol name="CmdIDCodeJanitorSpadeOptions" value="0x3200" />
       <IDSymbol name="CmdIDCodeJanitorSpadeRefresh" value="0x3300" />
       <IDSymbol name="CmdIDCodeJanitorSpadeSearch" value="0x3400" />
       <IDSymbol name="CmdIDCodeJanitorSpadeSortOrderAlpha" value="0x3500" />

@@ -162,8 +162,8 @@
   <data name="AreYouReadyForCodeJanitorToCleanEverythingInTheSolution" xml:space="preserve">
     <value>Are you ready for CodeJanitor to clean everything in the solution?</value>
   </data>
-  <data name="AreYouSureYouWantAll" xml:space="preserve">
-    <value>Are you sure you want all </value>
+  <data name="AreYouReadyForCodeJanitorToCleanNChangedFiles" xml:space="preserve">
+    <value>Are you ready for CodeJanitor to clean {0} file(s) changed according to git status?</value>
   </data>
   <data name="Ask" xml:space="preserve">
     <value>ask</value>
@@ -249,6 +249,9 @@
   <data name="CleanupCannotRunWhileDebugging" xml:space="preserve">
     <value>Cleanup cannot run while debugging.</value>
   </data>
+  <data name="CleanupChangedFiles" xml:space="preserve">
+    <value>Cleanup Changed Files (git)</value>
+  </data>
   <data name="CleanupOpenCode" xml:space="preserve">
     <value>Cleanup Open Code</value>
   </data>
@@ -273,6 +276,9 @@
   <data name="CodeJanitorCleanupExternalFile" xml:space="preserve">
     <value>CodeJanitor: Cleanup External File</value>
   </data>
+  <data name="CodeJanitorCleanupChangedFiles" xml:space="preserve">
+    <value>CodeJanitor: Cleanup Changed Files</value>
+  </data>
   <data name="CodeJanitorCleanupFor0" xml:space="preserve">
     <value>CodeJanitor Cleanup for '{0}'</value>
   </data>
@@ -281,6 +287,9 @@
   </data>
   <data name="CodeJanitorConfirmationForCleanupAllCode" xml:space="preserve">
     <value>CodeJanitor: Confirmation for Cleanup All Code</value>
+  </data>
+  <data name="CodeJanitorConfirmationForCleanupChangedFiles" xml:space="preserve">
+    <value>CodeJanitor: Confirmation for Cleanup Changed Files</value>
   </data>
   <data name="CodeJanitorConfirmationForReset" xml:space="preserve">
     <value>CodeJanitor: Confirmation for Reset </value>
@@ -366,6 +375,9 @@
   <data name="CodeJanitorReset" xml:space="preserve">
     <value>CodeJanitor: Reset </value>
   </data>
+  <data name="CodeJanitorSkippedFileScopedNamespaceConversion0" xml:space="preserve">
+    <value>CodeJanitor skipped file-scoped namespace conversion for '{0}' because the file contains more than one namespace.</value>
+  </data>
   <data name="CodeJanitorSort" xml:space="preserve">
     <value>CodeJanitor Sort</value>
   </data>
@@ -418,6 +430,9 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   </data>
   <data name="Diagnostic" xml:space="preserve">
     <value>Diagnostic</value>
+  </data>
+  <data name="Info" xml:space="preserve">
+    <value>Info</value>
   </data>
   <data name="Diagnostics" xml:space="preserve">
     <value>Diagnostics</value>
@@ -602,8 +617,8 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   <data name="None" xml:space="preserve">
     <value>none</value>
   </data>
-  <data name="OptionsViewModel_OnResetToDefaultsCommandExecuted_ToBeResetToTheirDefaults" xml:space="preserve">
-    <value> to be reset to their defaults?</value>
+  <data name="NoChangedFilesFoundAccordingToGitStatus" xml:space="preserve">
+    <value>No changed files were found according to git status.</value>
   </data>
   <data name="Other" xml:space="preserve">
     <value>Other</value>
@@ -694,6 +709,12 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   </data>
   <data name="RemoveRegion" xml:space="preserve">
     <value>Remove Region</value>
+  </data>
+  <data name="AlwaysRemoveRegions" xml:space="preserve">
+    <value>Always remove regions</value>
+  </data>
+  <data name="AlwaysRemoveRegionsToolTip" xml:space="preserve">
+    <value>Removes all #region/#endregion tags (keeping their contents' code) from C# and VB files during cleanup.</value>
   </data>
   <data name="RemoveRegions" xml:space="preserve">
     <value>Remove regions</value>

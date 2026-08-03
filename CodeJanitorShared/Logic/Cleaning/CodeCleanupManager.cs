@@ -33,6 +33,7 @@ namespace CodeJanitor.Logic.Cleaning
 
         private readonly CodeCleanupAvailabilityLogic _codeCleanupAvailabilityLogic;
         private readonly CommentFormatLogic _commentFormatLogic;
+        private readonly CollectionExpressionLogic _collectionExpressionLogic;
         private readonly InsertBlankLinePaddingLogic _insertBlankLinePaddingLogic;
         private readonly InsertExplicitAccessModifierLogic _insertExplicitAccessModifierLogic;
         private readonly InsertWhitespaceLogic _insertWhitespaceLogic;
@@ -40,6 +41,7 @@ namespace CodeJanitor.Logic.Cleaning
         private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
         private readonly VarWhenApparentLogic _varWhenApparentLogic;
         private readonly ReadonlyFieldLogic _readonlyFieldLogic;
+        private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
         private readonly SealedClassLogic _sealedClassLogic;
         private readonly RemoveRegionLogic _removeRegionLogic;
         private readonly RemoveWhitespaceLogic _removeWhitespaceLogic;
@@ -87,6 +89,7 @@ namespace CodeJanitor.Logic.Cleaning
 
             _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(_package);
             _commentFormatLogic = CommentFormatLogic.GetInstance(_package);
+            _collectionExpressionLogic = CollectionExpressionLogic.GetInstance(_package);
             _insertBlankLinePaddingLogic = InsertBlankLinePaddingLogic.GetInstance(_package);
             _insertExplicitAccessModifierLogic = InsertExplicitAccessModifierLogic.GetInstance();
             _insertWhitespaceLogic = InsertWhitespaceLogic.GetInstance(_package);
@@ -94,6 +97,7 @@ namespace CodeJanitor.Logic.Cleaning
             _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
             _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
             _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
+            _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
             _sealedClassLogic = SealedClassLogic.GetInstance(_package);
             _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
             _removeWhitespaceLogic = RemoveWhitespaceLogic.GetInstance(_package);
@@ -185,14 +189,14 @@ namespace CodeJanitor.Logic.Cleaning
                     var cleanupMethod = FindCodeCleanupMethod(document);
                     if (cleanupMethod != null)
                     {
-                        OutputWindowHelper.DiagnosticWriteLine($"CodeCleanupManager.Cleanup started for '{document.FullName}'");
+                        OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");
                         _package.IDE.StatusBar.Text = string.Format(Resources.CodeJanitorIsCleaning0, document.Name);
 
                         // Perform the set of configured cleanups based on the language.
                         cleanupMethod(document);
 
                         _package.IDE.StatusBar.Text = string.Format(Resources.CodeJanitorCleaned0, document.Name);
-                        OutputWindowHelper.DiagnosticWriteLine($"CodeCleanupManager.Cleanup completed for '{document.FullName}'");
+                        OutputWindowHelper.InfoWriteLine($"Cleanup completed for '{document.FullName}'");
                     }
                 });
         }
@@ -266,6 +270,12 @@ namespace CodeJanitor.Logic.Cleaning
 
             // Add 'sealed' to classes provably safe to seal within this file, when enabled.
             _sealedClassLogic.SealWhenSafe(textDocument);
+
+            // Insert a blank line before return/throw statements that end a block, when enabled.
+            _returnThrowBlankLinePaddingLogic.InsertPaddingBeforeReturnAndThrowStatements(textDocument);
+
+            // Convert List<T>/array initializations to collection expression syntax, when enabled.
+            _collectionExpressionLogic.ConvertToCollectionExpressions(textDocument);
 
             // Perform any actions that can modify the file code model first.
             RunExternalFormatting(textDocument);
