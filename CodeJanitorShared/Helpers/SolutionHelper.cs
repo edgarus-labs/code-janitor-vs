@@ -81,8 +81,24 @@ namespace CodeJanitor.Helpers
             var selectedProjectItems = new List<ProjectItem>();
             var selectedUIHierarchyItems = UIHierarchyHelper.GetSelectedUIHierarchyItems(package);
 
-            foreach (var item in selectedUIHierarchyItems.Select(uiHierarchyItem => uiHierarchyItem.Object))
+            foreach (var uiHierarchyItem in selectedUIHierarchyItems)
             {
+                object item;
+                try
+                {
+                    item = uiHierarchyItem.Object;
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.DiagnosticWriteLine("Unable to retrieve selected Solution Explorer item for cleanup.", ex);
+                    continue;
+                }
+
+                if (item == null)
+                {
+                    continue;
+                }
+
                 selectedProjectItems.AddRange(GetItemsRecursively<ProjectItem>(item));
             }
 
@@ -118,36 +134,98 @@ namespace CodeJanitor.Helpers
 
             // First check if the item is a solution.
             var solution = parentItem as Solution;
-            if (solution?.Projects != null)
+            if (solution != null)
             {
-                return solution.Projects.Cast<Project>().Cast<object>().ToList();
+                try
+                {
+                    return solution.Projects == null
+                        ? Array.Empty<object>()
+                        : solution.Projects.Cast<Project>().Where(x => x != null).Cast<object>().ToList();
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.DiagnosticWriteLine("Unable to enumerate solution children for cleanup.", ex);
+                    return Array.Empty<object>();
+                }
             }
 
             // Next check if the item is a project.
             var project = parentItem as Project;
-            if (project?.ProjectItems != null)
+            if (project != null)
             {
-                return project.ProjectItems.Cast<ProjectItem>().Cast<object>().ToList();
+                try
+                {
+                    return project.ProjectItems == null
+                        ? Array.Empty<object>()
+                        : project.ProjectItems.Cast<ProjectItem>().Where(x => x != null).Cast<object>().ToList();
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.DiagnosticWriteLine($"Unable to enumerate child items for project '{GetProjectName(project)}' during cleanup.", ex);
+                    return Array.Empty<object>();
+                }
             }
 
             // Next check if the item is a project item.
             if (parentItem is ProjectItem projectItem)
             {
                 // Standard projects.
-                if (projectItem.ProjectItems != null)
+                try
                 {
-                    return projectItem.ProjectItems.Cast<ProjectItem>().Cast<object>().ToList();
+                    if (projectItem.ProjectItems != null)
+                    {
+                        return projectItem.ProjectItems.Cast<ProjectItem>().Where(x => x != null).Cast<object>().ToList();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.DiagnosticWriteLine($"Unable to enumerate child items for project item '{GetProjectItemName(projectItem)}' during cleanup.", ex);
                 }
 
                 // Projects within a solution folder.
-                if (projectItem.SubProject != null)
+                try
                 {
-                    return new[] { projectItem.SubProject };
+                    if (projectItem.SubProject != null)
+                    {
+                        return new[] { projectItem.SubProject };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.DiagnosticWriteLine($"Unable to retrieve sub-project for project item '{GetProjectItemName(projectItem)}' during cleanup.", ex);
                 }
             }
 
             // Otherwise return an empty array.
-            return new object[0];
+            return Array.Empty<object>();
+        }
+
+        private static string GetProjectItemName(ProjectItem projectItem)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            try
+            {
+                return projectItem?.Name ?? "(unknown)";
+            }
+            catch
+            {
+                return "(unknown)";
+            }
+        }
+
+        private static string GetProjectName(Project project)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            try
+            {
+                return project?.Name ?? "(unknown)";
+            }
+            catch
+            {
+                return "(unknown)";
+            }
         }
 
         #endregion Private Methods
