@@ -1,6 +1,8 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
+using System;
+using System.Reflection;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Events
@@ -24,22 +26,22 @@ namespace CodeJanitor.Integration.Events
         /// <summary>
         /// An event raised when a build has begun.
         /// </summary>
-        internal event _dispBuildEvents_OnBuildBeginEventHandler BuildBegin;
+        internal event Action<vsBuildScope, vsBuildAction> BuildBegin;
 
         /// <summary>
         /// An event raised when a build is done.
         /// </summary>
-        internal event _dispBuildEvents_OnBuildDoneEventHandler BuildDone;
+        internal event Action<vsBuildScope, vsBuildAction> BuildDone;
 
         /// <summary>
         /// An event raised when an individual project build has begun.
         /// </summary>
-        internal event _dispBuildEvents_OnBuildProjConfigBeginEventHandler BuildProjConfigBegin;
+        internal event Action<string, string, string, string> BuildProjConfigBegin;
 
         /// <summary>
         /// An event raised when an individual project build is done.
         /// </summary>
-        internal event _dispBuildEvents_OnBuildProjConfigDoneEventHandler BuildProjConfigDone;
+        internal event Action<string, string, string, string, bool> BuildProjConfigDone;
 
         /// <summary>
         /// A singleton instance of this command.
@@ -50,6 +52,16 @@ namespace CodeJanitor.Integration.Events
         /// Gets or sets a pointer to the IDE build events.
         /// </summary>
         private BuildEvents BuildEvents { get; set; }
+
+        private EventInfo _onBuildBeginEvent;
+        private EventInfo _onBuildProjConfigBeginEvent;
+        private EventInfo _onBuildProjConfigDoneEvent;
+        private EventInfo _onBuildDoneEvent;
+
+        private Delegate _onBuildBeginHandler;
+        private Delegate _onBuildProjConfigBeginHandler;
+        private Delegate _onBuildProjConfigDoneHandler;
+        private Delegate _onBuildDoneHandler;
 
         /// <summary>
         /// Initializes a singleton instance of this event listener.
@@ -68,10 +80,38 @@ namespace CodeJanitor.Integration.Events
         protected override void RegisterListeners()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            BuildEvents.OnBuildBegin += BuildEvents_OnBuildBegin;
-            BuildEvents.OnBuildProjConfigBegin += BuildEvents_OnBuildProjConfigBegin;
-            BuildEvents.OnBuildProjConfigDone += BuildEvents_OnBuildProjConfigDone;
-            BuildEvents.OnBuildDone += BuildEvents_OnBuildDone;
+
+            var eventSourceType = BuildEvents.GetType();
+
+            _onBuildBeginEvent = eventSourceType.GetEvent("OnBuildBegin");
+            _onBuildProjConfigBeginEvent = eventSourceType.GetEvent("OnBuildProjConfigBegin");
+            _onBuildProjConfigDoneEvent = eventSourceType.GetEvent("OnBuildProjConfigDone");
+            _onBuildDoneEvent = eventSourceType.GetEvent("OnBuildDone");
+
+            _onBuildBeginHandler = CreateHandler(_onBuildBeginEvent, nameof(BuildEvents_OnBuildBegin));
+            _onBuildProjConfigBeginHandler = CreateHandler(_onBuildProjConfigBeginEvent, nameof(BuildEvents_OnBuildProjConfigBegin));
+            _onBuildProjConfigDoneHandler = CreateHandler(_onBuildProjConfigDoneEvent, nameof(BuildEvents_OnBuildProjConfigDone));
+            _onBuildDoneHandler = CreateHandler(_onBuildDoneEvent, nameof(BuildEvents_OnBuildDone));
+
+            if (_onBuildBeginEvent != null && _onBuildBeginHandler != null)
+            {
+                _onBuildBeginEvent.AddEventHandler(BuildEvents, _onBuildBeginHandler);
+            }
+
+            if (_onBuildProjConfigBeginEvent != null && _onBuildProjConfigBeginHandler != null)
+            {
+                _onBuildProjConfigBeginEvent.AddEventHandler(BuildEvents, _onBuildProjConfigBeginHandler);
+            }
+
+            if (_onBuildProjConfigDoneEvent != null && _onBuildProjConfigDoneHandler != null)
+            {
+                _onBuildProjConfigDoneEvent.AddEventHandler(BuildEvents, _onBuildProjConfigDoneHandler);
+            }
+
+            if (_onBuildDoneEvent != null && _onBuildDoneHandler != null)
+            {
+                _onBuildDoneEvent.AddEventHandler(BuildEvents, _onBuildDoneHandler);
+            }
         }
 
         /// <summary>
@@ -80,10 +120,46 @@ namespace CodeJanitor.Integration.Events
         protected override void UnRegisterListeners()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            BuildEvents.OnBuildBegin -= BuildEvents_OnBuildBegin;
-            BuildEvents.OnBuildProjConfigBegin -= BuildEvents_OnBuildProjConfigBegin;
-            BuildEvents.OnBuildProjConfigDone -= BuildEvents_OnBuildProjConfigDone;
-            BuildEvents.OnBuildDone -= BuildEvents_OnBuildDone;
+
+            if (_onBuildBeginEvent != null && _onBuildBeginHandler != null)
+            {
+                _onBuildBeginEvent.RemoveEventHandler(BuildEvents, _onBuildBeginHandler);
+            }
+
+            if (_onBuildProjConfigBeginEvent != null && _onBuildProjConfigBeginHandler != null)
+            {
+                _onBuildProjConfigBeginEvent.RemoveEventHandler(BuildEvents, _onBuildProjConfigBeginHandler);
+            }
+
+            if (_onBuildProjConfigDoneEvent != null && _onBuildProjConfigDoneHandler != null)
+            {
+                _onBuildProjConfigDoneEvent.RemoveEventHandler(BuildEvents, _onBuildProjConfigDoneHandler);
+            }
+
+            if (_onBuildDoneEvent != null && _onBuildDoneHandler != null)
+            {
+                _onBuildDoneEvent.RemoveEventHandler(BuildEvents, _onBuildDoneHandler);
+            }
+
+            _onBuildBeginEvent = null;
+            _onBuildProjConfigBeginEvent = null;
+            _onBuildProjConfigDoneEvent = null;
+            _onBuildDoneEvent = null;
+
+            _onBuildBeginHandler = null;
+            _onBuildProjConfigBeginHandler = null;
+            _onBuildProjConfigDoneHandler = null;
+            _onBuildDoneHandler = null;
+        }
+
+        private Delegate CreateHandler(EventInfo eventInfo, string methodName)
+        {
+            if (eventInfo?.EventHandlerType == null)
+            {
+                return null;
+            }
+
+            return Delegate.CreateDelegate(eventInfo.EventHandlerType, this, methodName);
         }
 
         /// <summary>

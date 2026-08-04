@@ -34,7 +34,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupOptions
         public int ItemCount
         {
             get { return GetPropertyValue<int>(); }
-            private set { SetPropertyValue(value); }
+            set { SetPropertyValue(value); }
         }
 
         /// <summary>

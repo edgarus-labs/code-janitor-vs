@@ -220,29 +220,46 @@ namespace CodeJanitor
         /// </returns>
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
-            // When initialized asynchronously, the current thread may be a background thread at this point.
-            // Do any initialization that requires the UI thread after switching to the UI thread.
-            await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+            try
+            {
+                // When initialized asynchronously, the current thread may be a background thread at this point.
+                // Do any initialization that requires the UI thread after switching to the UI thread.
+                await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
-            // Make the package instance available as early as possible for Options page activation paths.
-            Instance = this;
+                // Make the package instance available as early as possible for Options page activation paths.
+                Instance = this;
 
-            // Create the CodeJanitor output pane immediately so it's visible in the Output
-            // window's "Show output from" list from startup, rather than only appearing
-            // lazily the first time something is logged.
-            OutputWindowHelper.EnsurePaneCreated();
+                // Create the CodeJanitor output pane immediately so it's visible in the Output
+                // window's "Show output from" list from startup, rather than only appearing
+                // lazily the first time something is logged.
+                OutputWindowHelper.EnsurePaneCreated();
 
-            SettingsMonitor = new SettingsMonitor<Settings>(Settings.Default, JoinableTaskFactory);
+                SettingsMonitor = new SettingsMonitor<Settings>(Settings.Default, JoinableTaskFactory);
 
-            await RegisterCommandsAsync();
-            await RegisterEventListenersAsync();
+                await RegisterCommandsAsync();
+                await RegisterEventListenersAsync();
 
 #if CODEJANITOR_NATIVE_SETTINGS
-            // Fire-and-forget: this retries with delays (the VisualStudioExtensibility service
-            // is often not yet available this early in package init), so it must not block the
-            // rest of package initialization.
-            _ = InitializeNativeSettingsBridgeAsync(cancellationToken);
+                // Fire-and-forget: this retries with delays (the VisualStudioExtensibility service
+                // is often not yet available this early in package init), so it must not block the
+                // rest of package initialization.
+                _ = InitializeNativeSettingsBridgeAsync(cancellationToken);
 #endif
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    var diagnosticPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodeJanitor", "package-init-error.txt");
+                    Directory.CreateDirectory(Path.GetDirectoryName(diagnosticPath));
+                    File.WriteAllText(diagnosticPath, ex.ToString());
+                }
+                catch
+                {
+                }
+
+                throw;
+            }
         }
 
 #if CODEJANITOR_NATIVE_SETTINGS

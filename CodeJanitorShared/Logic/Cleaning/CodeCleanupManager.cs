@@ -37,6 +37,7 @@ namespace CodeJanitor.Logic.Cleaning
         private readonly InsertBlankLinePaddingLogic _insertBlankLinePaddingLogic;
         private readonly InsertExplicitAccessModifierLogic _insertExplicitAccessModifierLogic;
         private readonly InsertWhitespaceLogic _insertWhitespaceLogic;
+        private readonly JsonSerializerOptionsReuseLogic _jsonSerializerOptionsReuseLogic;
         private readonly FileHeaderLogic _fileHeaderLogic;
         private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
         private readonly VarWhenApparentLogic _varWhenApparentLogic;
@@ -45,6 +46,7 @@ namespace CodeJanitor.Logic.Cleaning
         private readonly RazorFormatterLogic _razorFormatterLogic;
         private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
         private readonly SealedClassLogic _sealedClassLogic;
+        private readonly SingleStatementLambdaLogic _singleStatementLambdaLogic;
         private readonly RemoveRegionLogic _removeRegionLogic;
         private readonly RemoveWhitespaceLogic _removeWhitespaceLogic;
         private readonly UpdateLogic _updateLogic;
@@ -92,6 +94,7 @@ namespace CodeJanitor.Logic.Cleaning
             _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(_package);
             _commentFormatLogic = CommentFormatLogic.GetInstance(_package);
             _collectionExpressionLogic = CollectionExpressionLogic.GetInstance(_package);
+            _jsonSerializerOptionsReuseLogic = JsonSerializerOptionsReuseLogic.GetInstance(_package);
             _insertBlankLinePaddingLogic = InsertBlankLinePaddingLogic.GetInstance(_package);
             _insertExplicitAccessModifierLogic = InsertExplicitAccessModifierLogic.GetInstance();
             _insertWhitespaceLogic = InsertWhitespaceLogic.GetInstance(_package);
@@ -103,6 +106,7 @@ namespace CodeJanitor.Logic.Cleaning
             _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
             _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
             _sealedClassLogic = SealedClassLogic.GetInstance(_package);
+            _singleStatementLambdaLogic = SingleStatementLambdaLogic.GetInstance(_package);
             _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
             _removeWhitespaceLogic = RemoveWhitespaceLogic.GetInstance(_package);
             _updateLogic = UpdateLogic.GetInstance(_package);
@@ -280,6 +284,12 @@ namespace CodeJanitor.Logic.Cleaning
 
             // Convert List<T>/array initializations to collection expression syntax, when enabled.
             _collectionExpressionLogic.ConvertToCollectionExpressions(textDocument);
+
+            // Replace direct JsonSerializerOptions allocations in JsonSerializer calls, when enabled.
+            _jsonSerializerOptionsReuseLogic.ReuseJsonSerializerOptionsForCA1869(textDocument);
+
+            // Simplify single-statement lambda blocks to expression-bodied lambdas, when enabled.
+            _singleStatementLambdaLogic.SimplifySingleStatementLambdas(textDocument);
 
             // Perform any actions that can modify the file code model first.
             RunExternalFormatting(textDocument);

@@ -16,6 +16,8 @@
                     <CheckBox Content="Convert block-scoped namespace to file-scoped (C# 10+)" IsChecked="{Binding ConvertToFileScopedNamespace}" />
                     <CheckBox Content="Convert local variables to 'var' when the type is apparent" IsChecked="{Binding ConvertToVarWhenApparent}" />
                     <CheckBox Content="Convert List&lt;T&gt;/array initializations to collection expressions ([] / [a, b, c])" IsChecked="{Binding ConvertToCollectionExpressions}" />
+                    <CheckBox Content="CA1869: replace direct JsonSerializerOptions allocations in JsonSerializer calls with null (conservative)" IsChecked="{Binding ReuseJsonSerializerOptionsForCA1869}" />
+                    <CheckBox Content="Simplify single-statement lambda blocks to expression lambdas (remove braces/return)" IsChecked="{Binding SimplifySingleStatementLambdas}" />
                     <CheckBox Content="Add 'readonly' to fields never written outside their constructor" IsChecked="{Binding MakeFieldsReadonlyWhenSafe}" />
                     <CheckBox Content="Add 'sealed' to classes not derived from in the same file (single-file heuristic)" IsChecked="{Binding SealClassesWhenSafe}" />
                     <CheckBox Content="Insert a blank line before 'return' and 'throw' statements that end a block of logic" IsChecked="{Binding InsertBlankLineBeforeReturnAndThrowStatements}" />

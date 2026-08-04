@@ -1,7 +1,9 @@
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Windows;
 
 namespace CodeJanitor.UI.Dialogs.CleanupProgress
 {
@@ -27,8 +29,10 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         {
             CodeCleanupManager = CodeCleanupManager.GetInstance(package);
 
+            var cleanupItems = items.ToList();
+
             // Initialize UI elements.
-            CountTotal = items.Count();
+            CountTotal = cleanupItems.Count;
 
             // Initialize background worker.
             _backgroundWorker = new BackgroundWorker
@@ -41,7 +45,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
             _backgroundWorker.ProgressChanged += backgroundWorker_ProgressChanged;
             _backgroundWorker.RunWorkerCompleted += backgroundWorker_RunWorkerCompleted;
 
-            _backgroundWorker.RunWorkerAsync(items);
+            _backgroundWorker.RunWorkerAsync(cleanupItems);
         }
 
         #endregion Constructors
@@ -158,7 +162,11 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
 
                 bw.ReportProgress(++i, item);
 
-                CodeCleanupManager.Cleanup(item);
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    CodeCleanupManager.Cleanup(item);
+                });
             }
         }
 
@@ -189,6 +197,11 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         /// </param>
         private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            if (e.Error != null)
+            {
+                MessageBox.Show(e.Error.Message, "CodeJanitor Cleanup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
             // Close the dialog.
             DialogResult = true;
         }

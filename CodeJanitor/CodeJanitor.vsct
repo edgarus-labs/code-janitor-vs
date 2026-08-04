@@ -286,6 +286,9 @@
     </CommandPlacement>
 
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSolutionNodeGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSolutionFolderGroup" />
     </CommandPlacement>
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">

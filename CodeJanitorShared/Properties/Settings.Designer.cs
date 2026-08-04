@@ -1222,6 +1222,30 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_ConvertToCollectionExpressions"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_ReuseJsonSerializerOptionsForCA1869 {
+            get {
+                return ((bool)(this["Cleaning_ReuseJsonSerializerOptionsForCA1869"]));
+            }
+            set {
+                this["Cleaning_ReuseJsonSerializerOptionsForCA1869"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_SimplifySingleStatementLambdas {
+            get {
+                return ((bool)(this["Cleaning_SimplifySingleStatementLambdas"]));
+            }
+            set {
+                this["Cleaning_SimplifySingleStatementLambdas"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

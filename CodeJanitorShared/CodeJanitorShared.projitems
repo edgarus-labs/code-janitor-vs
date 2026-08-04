@@ -92,6 +92,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupAvailabilityLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\JsonSerializerOptionsReuseLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\SingleStatementLambdaLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileHeaderLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileScopedNamespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\AiXmlDocumentationLogic.cs" />
@@ -117,6 +119,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\INamespaceScopeConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NamespaceFixerConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\CollectionExpressionConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\JsonSerializerOptionsReuseConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\SingleStatementLambdaConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\FileScopedNamespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ReturnThrowBlankLinePaddingConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ITypeStyleConverter.cs" />

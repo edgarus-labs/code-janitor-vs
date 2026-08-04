@@ -69,6 +69,8 @@
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="Transformations\CollectionExpressionConverterTests.cs" />
+    <Compile Include="Transformations\JsonSerializerOptionsReuseConverterTests.cs" />
+    <Compile Include="Transformations\SingleStatementLambdaConverterTests.cs" />
     <Compile Include="Transformations\FileScopedNamespaceConverterTests.cs" />
     <Compile Include="Transformations\NamespaceFixerConverterTests.cs" />
     <Compile Include="Transformations\ReturnThrowBlankLinePaddingConverterTests.cs" />

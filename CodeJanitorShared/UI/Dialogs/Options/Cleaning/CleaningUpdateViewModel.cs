@@ -51,6 +51,8 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToFileScopedNamespace, x => ConvertToFileScopedNamespace),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToVarWhenApparent, x => ConvertToVarWhenApparent),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToCollectionExpressions, x => ConvertToCollectionExpressions),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ReuseJsonSerializerOptionsForCA1869, x => ReuseJsonSerializerOptionsForCA1869),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SimplifySingleStatementLambdas, x => SimplifySingleStatementLambdas),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_MakeFieldsReadonlyWhenSafe, x => MakeFieldsReadonlyWhenSafe),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SealClassesWhenSafe, x => SealClassesWhenSafe),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements, x => InsertBlankLineBeforeReturnAndThrowStatements),
@@ -308,6 +310,27 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
         /// should be converted to the C# 12 collection expression syntax.
         /// </summary>
         public bool ConvertToCollectionExpressions
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the flag indicating if direct <c>new JsonSerializerOptions()</c>
+        /// allocations in <c>JsonSerializer.*</c> calls should be replaced with <c>null</c>
+        /// (conservative CA1869-focused optimization).
+        /// </summary>
+        public bool ReuseJsonSerializerOptionsForCA1869
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the flag indicating if single-statement lambda block bodies should be
+        /// simplified to expression bodies (including removing unnecessary <c>return</c>).
+        /// </summary>
+        public bool SimplifySingleStatementLambdas
         {
             get { return GetPropertyValue<bool>(); }
             set { SetPropertyValue(value); }
