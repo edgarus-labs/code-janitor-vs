@@ -189,6 +189,13 @@ namespace CodeJanitor.Logic.Cleaning
 
                 var fieldDeclaration = CodeElementHelper.GetFieldDeclaration(codeField);
 
+                // Legacy EnvDTE access rewrites can drop the `fixed` keyword on unsafe fixed-size
+                // buffers. Skip these declarations until they have a dedicated syntax-aware path.
+                if (IsFixedFieldDeclaration(fieldDeclaration))
+                {
+                    continue;
+                }
+
                 if (!IsAccessModifierExplicitlySpecifiedOnCodeElement(fieldDeclaration, codeField.Access))
                 {
                     // Set the access value to itself to cause the code to be added.
@@ -358,6 +365,16 @@ namespace CodeJanitor.Logic.Cleaning
             string keyword = CodeElementHelper.GetAccessModifierKeyword(accessModifier);
 
             return IsKeywordSpecified(codeElementDeclaration, keyword);
+        }
+
+        /// <summary>
+        /// Determines whether the specified field declaration represents an unsafe fixed-size buffer.
+        /// </summary>
+        /// <param name="fieldDeclaration">The field declaration text.</param>
+        /// <returns>True if the declaration contains the <c>fixed</c> keyword, otherwise false.</returns>
+        internal static bool IsFixedFieldDeclaration(string fieldDeclaration)
+        {
+            return IsKeywordSpecified(fieldDeclaration, "fixed");
         }
 
         /// <summary>

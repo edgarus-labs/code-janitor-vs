@@ -24,6 +24,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CommandHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CursorPositionRestorer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\DocumentExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\EditorConfigHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\EditPointExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\EnumHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\ExplicitInterfaceImplementationHelper.cs" />

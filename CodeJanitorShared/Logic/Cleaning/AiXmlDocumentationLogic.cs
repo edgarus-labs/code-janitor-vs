@@ -143,6 +143,41 @@ namespace CodeJanitor.Logic.Cleaning
                 return;
             }
 
+            if (Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges)
+            {
+                ApplyXmlDocumentationWithPreview(textDocument, client);
+                return;
+            }
+
+            var startPoint = textDocument.StartPoint.CreateEditPoint();
+            var originalText = startPoint.GetText(textDocument.EndPoint);
+            var updatedText = ApplyXmlDocumentationToSourceInternal(originalText, client);
+
+            if (updatedText == originalText)
+            {
+                return;
+            }
+
+            var endPoint = textDocument.EndPoint.CreateEditPoint();
+            startPoint.ReplaceText(endPoint, updatedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+        }
+
+        internal string ApplyXmlDocumentationToSource(string source)
+        {
+            if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled ||
+                Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges)
+            {
+                return source;
+            }
+
+            var client = CreateClientFromSettings();
+            return client == null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
+        }
+
+        private void ApplyXmlDocumentationWithPreview(TextDocument textDocument, OpenAiCompatibleClient client)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             var options = LoadRunOptionsFromSettings();
             var stats = new AiXmlDocumentationRunStats();
             var stopwatch = Stopwatch.StartNew();
@@ -169,24 +204,45 @@ namespace CodeJanitor.Logic.Cleaning
                 return;
             }
 
-            if (options.PreviewChanges)
-            {
-                var preview = BuildChangesPreview(originalText, updatedText, 90);
-                var previewText = preview.Length > 3800 ? preview.Substring(0, 3800) + "\n..." : preview;
-                var shouldApply = MessageBox.Show(
-                    "Apply AI XMLDoc changes for this file?\n\n" + previewText,
-                    "Code Janitor - AI XMLDoc Preview",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question) == MessageBoxResult.Yes;
+            var preview = BuildChangesPreview(originalText, updatedText, 90);
+            var previewText = preview.Length > 3800 ? preview.Substring(0, 3800) + "\n..." : preview;
+            var shouldApply = MessageBox.Show(
+                "Apply AI XMLDoc changes for this file?\n\n" + previewText,
+                "Code Janitor - AI XMLDoc Preview",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes;
 
-                if (!shouldApply)
-                {
-                    return;
-                }
+            if (!shouldApply)
+            {
+                return;
             }
 
             var endPoint = textDocument.EndPoint.CreateEditPoint();
             startPoint.ReplaceText(endPoint, updatedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+        }
+
+        private static string ApplyXmlDocumentationToSourceInternal(string source, OpenAiCompatibleClient client)
+        {
+            var options = LoadRunOptionsFromSettings();
+            var stats = new AiXmlDocumentationRunStats();
+            var stopwatch = Stopwatch.StartNew();
+
+            var updatedText = GenerateXmlDocumentationForSourceInternal(
+                source,
+                method => CreateSummary(client, method, options, stats),
+                options,
+                stats);
+
+            stopwatch.Stop();
+            stats.ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+
+            OutputWindowHelper.DiagnosticWriteLine(
+                "AI XMLDoc stats: " +
+                $"eligible={stats.EligibleMethods}, attempted={stats.AttemptedMethods}, documented={stats.DocumentedMethods}, " +
+                $"filtered={stats.SkippedByFilters}, budgetSkipped={stats.SkippedByBudget}, aiFailures={stats.AiFailures}, " +
+                $"fallbacks={stats.FallbacksUsed}, estTokens={stats.EstimatedTokensUsed}, elapsedMs={stats.ElapsedMilliseconds}");
+
+            return updatedText;
         }
 
         #endregion Internal Methods

@@ -1,7 +1,9 @@
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Helpers;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 
@@ -15,6 +17,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         #region Fields
 
         private readonly BackgroundWorker _backgroundWorker;
+        private readonly Stopwatch _batchStopwatch;
 
         #endregion Fields
 
@@ -28,11 +31,14 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         public CleanupProgressViewModel(CodeJanitorPackage package, IEnumerable<object> items)
         {
             CodeCleanupManager = CodeCleanupManager.GetInstance(package);
+            CodeCleanupManager.ResetCleanupExecutionStats();
+            _batchStopwatch = Stopwatch.StartNew();
 
             var cleanupItems = items.ToList();
 
             // Initialize UI elements.
             CountTotal = cleanupItems.Count;
+            UpdateExecutionSummary();
 
             // Initialize background worker.
             _backgroundWorker = new BackgroundWorker
@@ -56,6 +62,24 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         /// Gets or sets the name of the current file being cleaned.
         /// </summary>
         public string CurrentFileName
+        {
+            get { return GetPropertyValue<string>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the current execution stats summary.
+        /// </summary>
+        public string ExecutionSummary
+        {
+            get { return GetPropertyValue<string>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the current elapsed time summary.
+        /// </summary>
+        public string ElapsedSummary
         {
             get { return GetPropertyValue<string>(); }
             set { SetPropertyValue(value); }
@@ -166,6 +190,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     CodeCleanupManager.Cleanup(item);
+                    UpdateExecutionSummary();
                 });
             }
         }
@@ -197,13 +222,49 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         /// </param>
         private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            _batchStopwatch.Stop();
+            UpdateExecutionSummary();
+
+            var stats = CodeCleanupManager.GetCleanupExecutionStats();
+
             if (e.Error != null)
             {
+                OutputWindowHelper.WarningWriteLine(
+                    $"Cleanup batch failed after headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
                 MessageBox.Show(e.Error.Message, "CodeJanitor Cleanup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            else if (e.Cancelled)
+            {
+                OutputWindowHelper.InfoWriteLine(
+                    $"Cleanup batch canceled. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            }
+            else
+            {
+                OutputWindowHelper.InfoWriteLine(
+                    $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
             }
 
             // Close the dialog.
             DialogResult = true;
+        }
+
+        /// <summary>
+        /// Updates the execution summary displayed in the progress dialog.
+        /// </summary>
+        private void UpdateExecutionSummary()
+        {
+            var stats = CodeCleanupManager.GetCleanupExecutionStats();
+            ExecutionSummary = string.Format(
+                "Headless changed: {0} | Headless no-op: {1} | Editor: {2}",
+                stats.HeadlessChangedItems,
+                stats.HeadlessNoOpItems,
+                stats.EditorItems);
+
+            ElapsedSummary = string.Format(
+                "Processed: {0}/{1} | Elapsed: {2:mm\\:ss}",
+                stats.TotalProcessedItems,
+                CountTotal,
+                _batchStopwatch.Elapsed);
         }
 
         #endregion Methods

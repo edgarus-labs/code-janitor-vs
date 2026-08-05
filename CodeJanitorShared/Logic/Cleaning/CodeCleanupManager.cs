@@ -1,15 +1,22 @@
 using EnvDTE;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Formatting;
+using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Logic.Reorganizing;
 using CodeJanitor.Model;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Cleaning
 {
@@ -23,6 +30,42 @@ namespace CodeJanitor.Logic.Cleaning
     /// </remarks>
     internal class CodeCleanupManager
     {
+        private sealed class DelegateSourceTransformation : ISourceTransformation
+        {
+            private readonly Func<string, string> _apply;
+
+            internal DelegateSourceTransformation(string name, Func<string, string> apply)
+            {
+                Name = name;
+                _apply = apply;
+            }
+
+            public string Name { get; }
+
+            public string Apply(string source)
+            {
+                return _apply(source) ?? source;
+            }
+        }
+
+        internal enum HeadlessCleanupResult
+        {
+            NotApplicable,
+            NoChanges,
+            Changed
+        }
+
+        internal struct CleanupExecutionStats
+        {
+            internal int HeadlessChangedItems { get; set; }
+
+            internal int HeadlessNoOpItems { get; set; }
+
+            internal int EditorItems { get; set; }
+
+            internal int TotalProcessedItems => HeadlessChangedItems + HeadlessNoOpItems + EditorItems;
+        }
+
         #region Fields
 
         private readonly CodeJanitorPackage _package;
@@ -59,6 +102,8 @@ namespace CodeJanitor.Logic.Cleaning
                                                    .Select(x => x.Trim())
                                                    .Where(y => !string.IsNullOrEmpty(y))
                                                    .ToList());
+
+        private CleanupExecutionStats _cleanupExecutionStats;
 
         #endregion Fields
 
@@ -131,8 +176,31 @@ namespace CodeJanitor.Logic.Cleaning
             // had to be opened by cleanup (opening documents is the primary performance concern).
             var stopwatch = Stopwatch.StartNew();
 
-            // Attempt to open the document if not already opened.
+            var projectItemFileName = projectItem.GetFileName();
+
+            // Skip the disk-based headless path for documents that are already open - the editor
+            // buffer is then the source of truth and cleanup must operate on the live document.
             bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
+            var headlessResult = wasOpen ? HeadlessCleanupResult.NotApplicable : TryRunHeadlessPreCleanupForCSharp(projectItemFileName);
+
+            if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
+            {
+                if (headlessResult == HeadlessCleanupResult.Changed)
+                {
+                    _cleanupExecutionStats.HeadlessChangedItems++;
+                }
+                else
+                {
+                    _cleanupExecutionStats.HeadlessNoOpItems++;
+                }
+
+                stopwatch.Stop();
+                OutputWindowHelper.DiagnosticWriteLine(
+                    $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: False, headlessOnly: True, changed: {headlessResult == HeadlessCleanupResult.Changed})");
+                return;
+            }
+
+            // Attempt to open the document if not already opened.
             if (!wasOpen)
             {
                 try
@@ -162,12 +230,482 @@ namespace CodeJanitor.Logic.Cleaning
         }
 
         /// <summary>
+        /// Runs the subset of C# cleanup steps that can safely execute on raw file text without
+        /// opening the document in the editor.
+        /// </summary>
+        /// <param name="projectItemFileName">The project item file path.</param>
+        /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
+        private HeadlessCleanupResult TryRunHeadlessPreCleanupForCSharp(string projectItemFileName)
+        {
+            if (string.IsNullOrEmpty(projectItemFileName) ||
+                !projectItemFileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+                !File.Exists(projectItemFileName))
+            {
+                return HeadlessCleanupResult.NotApplicable;
+            }
+
+            try
+            {
+                string originalSource;
+                Encoding encoding;
+
+                using (var reader = new StreamReader(projectItemFileName, detectEncodingFromByteOrderMarks: true))
+                {
+                    originalSource = reader.ReadToEnd();
+                    encoding = reader.CurrentEncoding;
+                }
+
+                var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
+                if (!string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
+                {
+                    File.WriteAllText(projectItemFileName, transformedSource, encoding);
+                    return HeadlessCleanupResult.Changed;
+                }
+
+                return HeadlessCleanupResult.NoChanges;
+            }
+            catch (Exception ex)
+            {
+                OutputWindowHelper.WarningWriteLine(
+                    $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}");
+                return HeadlessCleanupResult.NotApplicable;
+            }
+        }
+
+        /// <summary>
+        /// Applies enabled, Roslyn-based C# source transformations in the same order used by the
+        /// in-editor cleanup path.
+        /// </summary>
+        /// <param name="source">The source text.</param>
+        /// <returns>Transformed source text.</returns>
+        internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
+        {
+            var editorConfig = EditorConfigHelper.LoadCSharpOptions(filePath);
+            var transformations = new List<ISourceTransformation>();
+
+            if (Settings.Default.Cleaning_ConvertToFileScopedNamespace)
+            {
+                var fileScopedConverter = new FileScopedNamespaceConverter();
+                if (!fileScopedConverter.HasMultipleNamespaces(source))
+                {
+                    transformations.Add(fileScopedConverter);
+                }
+            }
+
+            if (Settings.Default.Cleaning_ConvertToVarWhenApparent)
+            {
+                transformations.Add(new VarWhenApparentConverter());
+            }
+
+            if (Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe)
+            {
+                transformations.Add(new ReadonlyFieldConverter());
+            }
+
+            if (Settings.Default.Cleaning_SealClassesWhenSafe)
+            {
+                transformations.Add(new SealedClassConverter());
+            }
+
+            if (Settings.Default.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)
+            {
+                transformations.Add(new ReturnThrowBlankLinePaddingConverter());
+            }
+
+            if (Settings.Default.Cleaning_ConvertToCollectionExpressions)
+            {
+                transformations.Add(new CollectionExpressionConverter());
+            }
+
+            if (Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869)
+            {
+                transformations.Add(new JsonSerializerOptionsReuseConverter());
+            }
+
+            if (Settings.Default.Cleaning_SimplifySingleStatementLambdas)
+            {
+                transformations.Add(new SingleStatementLambdaConverter());
+            }
+
+            if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
+            {
+                transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
+            }
+
+            if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
+                !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
+                AiXmlDocumentationLogic.IsConfigurationPresent())
+            {
+                var aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_instance._package);
+                transformations.Add(new DelegateSourceTransformation("Apply AI XML documentation", aiXmlDocumentationLogic.ApplyXmlDocumentationToSource));
+            }
+
+            if (string.Equals(editorConfig.IndentStyle, "space", StringComparison.OrdinalIgnoreCase))
+            {
+                var tabSize = editorConfig.TabWidth ?? editorConfig.IndentSize ?? 4;
+                transformations.Add(new TabToSpaceConverter(tabSize));
+            }
+
+            if (!Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements &&
+                editorConfig.SortSystemDirectivesFirst == true &&
+                editorConfig.SeparateImportDirectiveGroups != true)
+            {
+                transformations.Add(new UsingDirectiveOrganizer());
+            }
+
+            if (Settings.Default.Cleaning_RemoveEndOfLineWhitespace)
+            {
+                transformations.Add(new RemoveTrailingWhitespaceConverter());
+            }
+            else if (editorConfig.TrimTrailingWhitespace == true)
+            {
+                transformations.Add(new RemoveTrailingWhitespaceConverter());
+            }
+
+            if (Settings.Default.Cleaning_RemoveBlankLinesAtTop)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove blank lines at top", RemoveBlankLinesAtTop));
+            }
+
+            if (Settings.Default.Cleaning_RemoveBlankLinesAtBottom)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove blank lines at bottom", RemoveBlankLinesAtBottom));
+            }
+
+            if (Settings.Default.Cleaning_RemoveEndOfFileTrailingNewLine)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove final newline", RemoveFinalNewline));
+            }
+
+            if (Settings.Default.Cleaning_RemoveBlankLinesAfterAttributes)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove blank lines after attributes", RemoveBlankLinesAfterAttributes));
+            }
+
+            if (Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove blank lines after opening brace", RemoveBlankLinesAfterOpeningBrace));
+            }
+
+            if (Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove blank lines before closing brace", RemoveBlankLinesBeforeClosingBrace));
+            }
+
+            if (Settings.Default.Cleaning_RemoveBlankLinesBetweenChainedStatements)
+            {
+                transformations.Add(new DelegateSourceTransformation("Remove blank lines between chained statements", RemoveBlankLinesBetweenChainedStatements));
+            }
+
+            if (Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines)
+            {
+                transformations.Add(new NormalizeBlankLinesConverter());
+            }
+
+            if (Settings.Default.Cleaning_InsertEndOfFileTrailingNewLine)
+            {
+                transformations.Add(new EnsureFinalNewlineConverter());
+            }
+            else if (editorConfig.InsertFinalNewline == true)
+            {
+                transformations.Add(new EnsureFinalNewlineConverter());
+            }
+
+            if (transformations.Count == 0)
+            {
+                return source;
+            }
+
+            var pipeline = new SourceTransformationPipeline(transformations);
+            return pipeline.Run(source);
+        }
+
+        /// <summary>
+        /// Determines whether the C# cleanup settings still require the editor-backed DTE path.
+        /// </summary>
+        /// <returns>True if editor-backed cleanup must run, otherwise false.</returns>
+        private bool RequiresEditorCleanupForCSharp()
+        {
+            if (Settings.Default.Reorganizing_RunAtStartOfCleanup) return true;
+
+            if (Settings.Default.Cleaning_RunVisualStudioFormatDocumentCommand ||
+                Settings.Default.ThirdParty_UseJetBrainsReSharperCleanup ||
+                Settings.Default.ThirdParty_UseTelerikJustCodeCleanup ||
+                Settings.Default.ThirdParty_UseXAMLStylerCleanup ||
+                _otherCleaningCommands.Value.Any())
+            {
+                return true;
+            }
+
+            if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
+
+            if (Settings.Default.Cleaning_RemoveRegions)
+            {
+                return true;
+            }
+
+            if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors)
+            {
+                return true;
+            }
+
+            if (Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs)
+            {
+                return true;
+            }
+
+            if (Settings.Default.Cleaning_UpdateEndRegionDirectives ||
+                Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine ||
+                Settings.Default.Cleaning_UpdateSingleLineMethods ||
+                Settings.Default.Formatting_CommentRunDuringCleanup)
+            {
+                return true;
+            }
+
+            if (Settings.Default.Cleaning_AiXmlDocumentationEnabled)
+            {
+                return Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges;
+            }
+
+            return false;
+        }
+
+        private static string ApplyConfiguredCSharpFileHeader(string source)
+        {
+            var settingsFileHeader = Settings.Default.Cleaning_UpdateFileHeaderCSharp;
+            if (string.IsNullOrWhiteSpace(settingsFileHeader))
+            {
+                return source;
+            }
+
+            var newline = source.Contains("\r\n") ? "\r\n" : Environment.NewLine;
+            settingsFileHeader = NormalizeLineEndings(settingsFileHeader, newline);
+            if (!settingsFileHeader.EndsWith(newline, StringComparison.Ordinal))
+            {
+                settingsFileHeader += newline;
+            }
+
+            var headerPosition = (HeaderPosition)Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition;
+            var headerUpdateMode = (HeaderUpdateMode)Settings.Default.Cleaning_UpdateFileHeader_HeaderUpdateMode;
+
+            switch (headerPosition)
+            {
+                case HeaderPosition.DocumentStart:
+                    return headerUpdateMode == HeaderUpdateMode.Insert
+                        ? InsertHeaderAtDocumentStart(source, settingsFileHeader)
+                        : ReplaceHeaderAtDocumentStart(source, settingsFileHeader);
+
+                case HeaderPosition.AfterUsings:
+                    return headerUpdateMode == HeaderUpdateMode.Insert
+                        ? InsertHeaderAfterUsings(source, settingsFileHeader)
+                        : ReplaceHeaderAfterUsings(source, settingsFileHeader);
+
+                default:
+                    return source;
+            }
+        }
+
+        private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
+        {
+            return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
+                ? source
+                : settingsFileHeader + source;
+        }
+
+        private static string ReplaceHeaderAtDocumentStart(string source, string settingsFileHeader)
+        {
+            TryExtractLeadingHeaderSegment(source, out var currentHeaderLength, out var currentHeader);
+            return string.Equals(currentHeader, settingsFileHeader.Trim(), StringComparison.Ordinal)
+                ? source
+                : settingsFileHeader + source.Substring(currentHeaderLength);
+        }
+
+        private static string InsertHeaderAfterUsings(string source, string settingsFileHeader)
+        {
+            var insertionIndex = GetTopLevelUsingInsertionIndex(source);
+            TryExtractLeadingHeaderSegment(source.Substring(insertionIndex), out _, out var currentHeader);
+
+            if (currentHeader.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal))
+            {
+                return source;
+            }
+
+            var headerWithLeadingNewline = EnsureHeaderStartsOnNewLine(settingsFileHeader);
+            return source.Insert(insertionIndex, headerWithLeadingNewline);
+        }
+
+        private static string ReplaceHeaderAfterUsings(string source, string settingsFileHeader)
+        {
+            var insertionIndex = GetTopLevelUsingInsertionIndex(source);
+            var suffix = source.Substring(insertionIndex);
+
+            TryExtractLeadingHeaderSegment(suffix, out var currentHeaderLength, out var currentHeader);
+            if (string.Equals(currentHeader, settingsFileHeader.Trim(), StringComparison.Ordinal))
+            {
+                return source;
+            }
+
+            var headerWithLeadingNewline = EnsureHeaderStartsOnNewLine(settingsFileHeader);
+            return source.Substring(0, insertionIndex) +
+                   headerWithLeadingNewline +
+                   suffix.Substring(currentHeaderLength);
+        }
+
+        private static string EnsureHeaderStartsOnNewLine(string header)
+        {
+            var newline = header.Contains("\r\n") ? "\r\n" : Environment.NewLine;
+            return header.StartsWith(newline, StringComparison.Ordinal) ? header : newline + header;
+        }
+
+        private static int GetTopLevelUsingInsertionIndex(string source)
+        {
+            var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
+            return root.Usings.Count == 0 ? 0 : root.Usings.Last().FullSpan.End;
+        }
+
+        private static bool TryExtractLeadingHeaderSegment(string source, out int segmentLength, out string trimmedHeader)
+        {
+            var lineHeaderMatch = Regex.Match(
+                source,
+                @"\A(?<segment>(?:[ \t]*\r?\n)*(?://[^\r\n]*(?:\r?\n//[^\r\n]*)*(?:\r?\n)?))",
+                RegexOptions.Multiline);
+
+            if (lineHeaderMatch.Success)
+            {
+                var segment = lineHeaderMatch.Groups["segment"].Value;
+                segmentLength = segment.Length;
+                trimmedHeader = segment.Trim();
+                return true;
+            }
+
+            var blockHeaderMatch = Regex.Match(
+                source,
+                @"\A(?<segment>(?:[ \t]*\r?\n)*/\*.*?\*/(?:\r?\n)?)",
+                RegexOptions.Singleline);
+
+            if (blockHeaderMatch.Success)
+            {
+                var segment = blockHeaderMatch.Groups["segment"].Value;
+                segmentLength = segment.Length;
+                trimmedHeader = segment.Trim();
+                return true;
+            }
+
+            segmentLength = 0;
+            trimmedHeader = string.Empty;
+            return false;
+        }
+
+        private static string NormalizeLineEndings(string value, string newline)
+        {
+            return value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", newline);
+        }
+
+        private static string RemoveBlankLinesAtTop(string source)
+        {
+            return Regex.Replace(source, @"\A(?:[ \t]*\r?\n)+", string.Empty);
+        }
+
+        private static string RemoveBlankLinesAtBottom(string source)
+        {
+            return Regex.Replace(source, @"(?:\r?\n[ \t]*)+\z", string.Empty);
+        }
+
+        private static string RemoveFinalNewline(string source)
+        {
+            if (string.IsNullOrEmpty(source))
+            {
+                return source;
+            }
+
+            if (source.EndsWith("\r\n", StringComparison.Ordinal))
+            {
+                return source.Substring(0, source.Length - 2);
+            }
+
+            if (source.EndsWith("\n", StringComparison.Ordinal))
+            {
+                return source.Substring(0, source.Length - 1);
+            }
+
+            return source;
+        }
+
+        private static string RemoveBlankLinesAfterAttributes(string source)
+        {
+            return ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
+        }
+
+        private static string RemoveBlankLinesAfterOpeningBrace(string source)
+        {
+            return ReplaceUsingFileLineEnding(source, @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}", "{$1{NL}");
+        }
+
+        private static string RemoveBlankLinesBeforeClosingBrace(string source)
+        {
+            return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)\}", "{NL}$2}");
+        }
+
+        private static string RemoveBlankLinesBetweenChainedStatements(string source)
+        {
+            return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)", "{NL}$2$3$4");
+        }
+
+        private static string ReplaceUsingFileLineEnding(string source, string pattern, string replacement)
+        {
+            var newline = source.Contains("\r\n") ? "\r\n" : "\n";
+            return Regex.Replace(source, pattern, replacement.Replace("{NL}", newline), RegexOptions.Multiline);
+        }
+
+        /// <summary>
         /// Attempts to run code cleanup on the specified document.
         /// </summary>
         /// <param name="document">The document for cleanup.</param>
         internal void Cleanup(Document document)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            _cleanupExecutionStats.EditorItems++;
 
             if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true)) return;
 
@@ -207,6 +745,23 @@ namespace CodeJanitor.Logic.Cleaning
                         OutputWindowHelper.InfoWriteLine($"Cleanup completed for '{document.FullName}'");
                     }
                 });
+        }
+
+        /// <summary>
+        /// Resets execution statistics for the next cleanup batch.
+        /// </summary>
+        internal void ResetCleanupExecutionStats()
+        {
+            _cleanupExecutionStats = default(CleanupExecutionStats);
+        }
+
+        /// <summary>
+        /// Returns the current execution statistics for the ongoing cleanup batch.
+        /// </summary>
+        /// <returns>The current cleanup execution statistics.</returns>
+        internal CleanupExecutionStats GetCleanupExecutionStats()
+        {
+            return _cleanupExecutionStats;
         }
 
         #endregion Internal Methods

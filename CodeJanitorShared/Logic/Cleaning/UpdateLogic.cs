@@ -80,36 +80,34 @@ namespace CodeJanitor.Logic.Cleaning
                 eolCursor.EndOfLine();
                 string regionText = cursor.GetText(eolCursor);
 
-                if (regionText.StartsWith("region ")) // Space required by compiler.
+                if (TryParseRegionDirective(regionText, out string regionNameTrimmed))
                 {
-                    // Cleanup any whitespace in the region name.
-                    string regionName = regionText.Substring(7);
-                    string regionNameTrimmed = regionName.Trim();
-                    if (regionName != regionNameTrimmed)
+                    // Normalize whitespace after #region to a single space and trim the region name.
+                    string expectedRegionSuffix = BuildDirectiveNameSuffix(regionNameTrimmed);
+                    string actualRegionSuffix = regionText.Substring(6);
+                    if (actualRegionSuffix != expectedRegionSuffix)
                     {
-                        cursor.CharRight(7);
+                        cursor.CharRight(6);
                         cursor.Delete(eolCursor);
-                        cursor.Insert(regionNameTrimmed);
+                        cursor.Insert(expectedRegionSuffix);
                     }
 
                     // Push the parsed region name onto the top of the stack.
                     regionStack.Push(regionNameTrimmed);
                 }
-                else if (regionText.StartsWith("endregion")) // Space may or may not be present.
+                else if (TryParseEndRegionDirective(regionText, out string endRegionName))
                 {
                     if (regionStack.Count > 0)
                     {
-                        // Do not trim the endRegionName in order to catch whitespace differences.
-                        string endRegionName = regionText.Length > 9 ?
-                            regionText.Substring(10) : string.Empty;
                         string matchingRegion = regionStack.Pop();
+                        string expectedEndRegionSuffix = BuildDirectiveNameSuffix(matchingRegion);
 
                         // Update if the strings do not match.
-                        if (matchingRegion != endRegionName)
+                        if (expectedEndRegionSuffix != endRegionName)
                         {
                             cursor.CharRight(9);
                             cursor.Delete(eolCursor);
-                            cursor.Insert(" " + matchingRegion);
+                            cursor.Insert(expectedEndRegionSuffix);
                         }
                     }
                     else
@@ -122,6 +120,80 @@ namespace CodeJanitor.Logic.Cleaning
                 // Note: eolCursor may be outdated now if changes have been made.
                 cursor.EndOfLine();
             }
+        }
+
+        /// <summary>
+        /// Attempts to parse a #region directive suffix (text following the '#').
+        /// </summary>
+        /// <param name="regionText">The raw directive text after '#'.</param>
+        /// <param name="regionName">The parsed, trimmed region name.</param>
+        /// <returns>True if the text represents a #region directive; otherwise false.</returns>
+        internal static bool TryParseRegionDirective(string regionText, out string regionName)
+        {
+            regionName = null;
+
+            if (string.IsNullOrEmpty(regionText) ||
+                !regionText.StartsWith("region", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (regionText.Length == 6)
+            {
+                regionName = string.Empty;
+                return true;
+            }
+
+            if (!char.IsWhiteSpace(regionText[6]))
+            {
+                return false;
+            }
+
+            regionName = regionText.Substring(7).Trim();
+            return true;
+        }
+
+        /// <summary>
+        /// Attempts to parse a #endregion directive suffix (text following the '#').
+        /// </summary>
+        /// <param name="regionText">The raw directive text after '#'.</param>
+        /// <param name="endRegionName">
+        /// The parsed end region name as-is (including leading whitespace) for strict comparison.
+        /// </param>
+        /// <returns>True if the text represents a #endregion directive; otherwise false.</returns>
+        internal static bool TryParseEndRegionDirective(string regionText, out string endRegionName)
+        {
+            endRegionName = null;
+
+            if (string.IsNullOrEmpty(regionText) ||
+                !regionText.StartsWith("endregion", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (regionText.Length == 9)
+            {
+                endRegionName = string.Empty;
+                return true;
+            }
+
+            if (!char.IsWhiteSpace(regionText[9]))
+            {
+                return false;
+            }
+
+            endRegionName = regionText.Substring(9);
+            return true;
+        }
+
+        /// <summary>
+        /// Builds a normalized directive suffix from a region name.
+        /// </summary>
+        /// <param name="regionName">The region name.</param>
+        /// <returns>An empty suffix for empty names, otherwise a single leading space + name.</returns>
+        internal static string BuildDirectiveNameSuffix(string regionName)
+        {
+            return string.IsNullOrWhiteSpace(regionName) ? string.Empty : " " + regionName.Trim();
         }
 
         /// <summary>

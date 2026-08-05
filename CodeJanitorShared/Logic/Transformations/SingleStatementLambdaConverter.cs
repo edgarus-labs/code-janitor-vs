@@ -51,6 +51,16 @@ namespace CodeJanitor.Logic.Transformations
                     parameterList,
                     expression.WithTriviaFrom(node.Block));
 
+                var leadingArrowTrivia = parameterList.Parameters.Count == 0
+                    ? SyntaxFactory.TriviaList(SyntaxFactory.Space)
+                    : SyntaxTriviaList.Empty;
+
+                lambda = lambda.WithArrowToken(
+                    SyntaxFactory.Token(
+                        leadingArrowTrivia,
+                        SyntaxKind.EqualsGreaterThanToken,
+                        SyntaxFactory.TriviaList(SyntaxFactory.Space)));
+
                 if (node.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
                 {
                     lambda = lambda.WithAsyncKeyword(node.AsyncKeyword);
