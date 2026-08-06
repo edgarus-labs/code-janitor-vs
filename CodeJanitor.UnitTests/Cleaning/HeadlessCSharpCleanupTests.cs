@@ -119,5 +119,20 @@ namespace CodeJanitor.UnitTests.Cleaning
 
             Assert.IsTrue(output.StartsWith("using System;\r\nusing Alpha;\r\nusing Zebra;", StringComparison.Ordinal), "Headless cleanup should sort using directives according to .editorconfig-compatible organizer rules.");
         }
+
+        [TestMethod]
+        public void ApplyHeadlessCSharpTransformations_AlwaysRemovesRegionDirectives_WhilePreservingIfDirectives()
+        {
+            var filePath = Path.Combine(_tempDirectory, "RegionSample.cs");
+            var input =
+                "namespace Demo;\r\n\r\npublic class C\r\n{\r\n#if DEBUG\r\n#region DebugOnly\r\n    public void M() { }\r\n#endregion\r\n#endif\r\n}\r\n";
+
+            var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+            Assert.IsFalse(output.Contains("#region"), "Cleanup should always remove #region directives.");
+            Assert.IsFalse(output.Contains("#endregion"), "Cleanup should always remove #endregion directives.");
+            Assert.IsTrue(output.Contains("#if DEBUG"), "Cleanup must preserve #if directives.");
+            Assert.IsTrue(output.Contains("#endif"), "Cleanup must preserve #endif directives.");
+        }
     }
 }

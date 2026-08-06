@@ -296,6 +296,9 @@
     <Setting Name="Cleaning_ConvertToFileScopedNamespace" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="Cleaning_MoveTopLevelTypesToSeparateFiles" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
     <Setting Name="Cleaning_ConvertToVarWhenApparent" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>

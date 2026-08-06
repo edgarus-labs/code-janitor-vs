@@ -100,6 +100,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\AiXmlDocumentationLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\OpenAiCompatibleClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\NamespaceFixerLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeToFileSplitFileProcessor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeToFileSplitPlanner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReadonlyFieldLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RazorFormatterLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReturnThrowBlankLinePaddingLogic.cs" />
@@ -138,6 +140,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\RemoveTrailingWhitespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\EnsureFinalNewlineConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NormalizeBlankLinesConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\RegionDirectiveRemover.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\IGitStatusParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\GitStatusParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\IProcessRunner.cs" />

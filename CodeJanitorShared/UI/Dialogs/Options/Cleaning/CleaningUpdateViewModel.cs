@@ -49,6 +49,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
                 new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_UpdateFileHeaderXML, x => UpdateFileHeaderXML),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_UpdateSingleLineMethods, x => UpdateSingleLineMethods),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToFileScopedNamespace, x => ConvertToFileScopedNamespace),
+                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_MoveTopLevelTypesToSeparateFiles, x => MoveTopLevelTypesToSeparateFiles),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToVarWhenApparent, x => ConvertToVarWhenApparent),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToCollectionExpressions, x => ConvertToCollectionExpressions),
                 new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ReuseJsonSerializerOptionsForCA1869, x => ReuseJsonSerializerOptionsForCA1869),
@@ -290,6 +291,16 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning
         /// Gets or sets the flag indicating if block-scoped namespaces should be converted to file-scoped.
         /// </summary>
         public bool ConvertToFileScopedNamespace
+        {
+            get { return GetPropertyValue<bool>(); }
+            set { SetPropertyValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the flag indicating if extra top-level C# types should be moved into
+        /// their own files during cleanup.
+        /// </summary>
+        public bool MoveTopLevelTypesToSeparateFiles
         {
             get { return GetPropertyValue<bool>(); }
             set { SetPropertyValue(value); }

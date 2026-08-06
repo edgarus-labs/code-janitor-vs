@@ -58,6 +58,8 @@
     <Compile Include="Cleaning\AiXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
+    <Compile Include="Cleaning\TopLevelTypeToFileSplitFileProcessorTests.cs" />
+    <Compile Include="Cleaning\TopLevelTypeToFileSplitPlannerTests.cs" />
     <Compile Include="Cleaning\UpdateLogicDirectiveParsingTests.cs" />
     <Compile Include="Formatting\CommentFormatHelper.cs" />
     <Compile Include="Formatting\HeaderFormattingTests.cs" />

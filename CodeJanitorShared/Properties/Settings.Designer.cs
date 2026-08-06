@@ -1198,6 +1198,18 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_ConvertToFileScopedNamespace"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_MoveTopLevelTypesToSeparateFiles {
+            get {
+                return ((bool)(this["Cleaning_MoveTopLevelTypesToSeparateFiles"]));
+            }
+            set {
+                this["Cleaning_MoveTopLevelTypesToSeparateFiles"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

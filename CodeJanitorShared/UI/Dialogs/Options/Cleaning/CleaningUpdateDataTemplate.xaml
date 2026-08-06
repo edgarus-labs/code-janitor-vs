@@ -14,6 +14,7 @@
                     <TextBlock Text="{x:Static p:Resources.ExEndregionMethods}" Margin="35,0,5,10" />
                     <CheckBox Content="{x:Static p:Resources.UpdateSingleLineMethodsByPlacingBracesOnSeparateLinesSA1502}" IsChecked="{Binding UpdateSingleLineMethods}" />
                     <CheckBox Content="Convert block-scoped namespace to file-scoped (C# 10+)" IsChecked="{Binding ConvertToFileScopedNamespace}" />
+                    <CheckBox Content="Move extra top-level C# types into their own files (skip partial, nested, and non-region preprocessor cases)" IsChecked="{Binding MoveTopLevelTypesToSeparateFiles}" />
                     <CheckBox Content="Convert local variables to 'var' when the type is apparent" IsChecked="{Binding ConvertToVarWhenApparent}" />
                     <CheckBox Content="Convert List&lt;T&gt;/array initializations to collection expressions ([] / [a, b, c])" IsChecked="{Binding ConvertToCollectionExpressions}" />
                     <CheckBox Content="CA1869: replace direct JsonSerializerOptions allocations in JsonSerializer calls with null (conservative)" IsChecked="{Binding ReuseJsonSerializerOptionsForCA1869}" />

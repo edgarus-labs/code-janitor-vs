@@ -72,7 +72,10 @@ namespace CodeJanitor.Logic.Cleaning
 
         private readonly CodeModelManager _codeModelManager;
         private readonly CodeReorganizationManager _codeReorganizationManager;
+        private readonly CodeReorganizationAvailabilityLogic _codeReorganizationAvailabilityLogic;
         private readonly CommandHelper _commandHelper;
+        private readonly TopLevelTypeToFileSplitPlanner _topLevelTypeToFileSplitPlanner;
+        private readonly TopLevelTypeToFileSplitFileProcessor _topLevelTypeToFileSplitFileProcessor;
 
         private readonly CodeCleanupAvailabilityLogic _codeCleanupAvailabilityLogic;
         private readonly CommentFormatLogic _commentFormatLogic;
@@ -134,7 +137,10 @@ namespace CodeJanitor.Logic.Cleaning
 
             _codeModelManager = CodeModelManager.GetInstance(_package);
             _codeReorganizationManager = CodeReorganizationManager.GetInstance(_package);
+            _codeReorganizationAvailabilityLogic = CodeReorganizationAvailabilityLogic.GetInstance(_package);
             _commandHelper = CommandHelper.GetInstance(_package);
+            _topLevelTypeToFileSplitPlanner = new TopLevelTypeToFileSplitPlanner();
+            _topLevelTypeToFileSplitFileProcessor = new TopLevelTypeToFileSplitFileProcessor(_topLevelTypeToFileSplitPlanner);
 
             _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(_package);
             _commentFormatLogic = CommentFormatLogic.GetInstance(_package);
@@ -181,7 +187,7 @@ namespace CodeJanitor.Logic.Cleaning
             // Skip the disk-based headless path for documents that are already open - the editor
             // buffer is then the source of truth and cleanup must operate on the live document.
             bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
-            var headlessResult = wasOpen ? HeadlessCleanupResult.NotApplicable : TryRunHeadlessPreCleanupForCSharp(projectItemFileName);
+            var headlessResult = wasOpen ? HeadlessCleanupResult.NotApplicable : TryRunHeadlessPreCleanupForCSharp(projectItem);
 
             if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
             {
@@ -233,10 +239,13 @@ namespace CodeJanitor.Logic.Cleaning
         /// Runs the subset of C# cleanup steps that can safely execute on raw file text without
         /// opening the document in the editor.
         /// </summary>
-        /// <param name="projectItemFileName">The project item file path.</param>
+        /// <param name="projectItem">The project item.</param>
         /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
-        private HeadlessCleanupResult TryRunHeadlessPreCleanupForCSharp(string projectItemFileName)
+        private HeadlessCleanupResult TryRunHeadlessPreCleanupForCSharp(ProjectItem projectItem)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var projectItemFileName = projectItem.GetFileName();
             if (string.IsNullOrEmpty(projectItemFileName) ||
                 !projectItemFileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
                 !File.Exists(projectItemFileName))
@@ -255,8 +264,28 @@ namespace CodeJanitor.Logic.Cleaning
                     encoding = reader.CurrentEncoding;
                 }
 
+                bool splitChanged = false;
+                if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles)
+                {
+                    var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
+                        originalSource,
+                        projectItemFileName,
+                        encoding,
+                        ApplyHeadlessCSharpTransformations);
+                    if (splitResult.Changed)
+                    {
+                        splitChanged = true;
+                        originalSource = splitResult.UpdatedSource;
+
+                        foreach (var createdFile in splitResult.CreatedFiles)
+                        {
+                            AddGeneratedFileToProject(projectItem, createdFile);
+                        }
+                    }
+                }
+
                 var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
-                if (!string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
+                if (splitChanged || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
                 {
                     File.WriteAllText(projectItemFileName, transformedSource, encoding);
                     return HeadlessCleanupResult.Changed;
@@ -282,6 +311,9 @@ namespace CodeJanitor.Logic.Cleaning
         {
             var editorConfig = EditorConfigHelper.LoadCSharpOptions(filePath);
             var transformations = new List<ISourceTransformation>();
+
+            // Region directives are policy-only structure and should always be removed.
+            transformations.Add(new RegionDirectiveRemover());
 
             if (Settings.Default.Cleaning_ConvertToFileScopedNamespace)
             {
@@ -438,11 +470,6 @@ namespace CodeJanitor.Logic.Cleaning
             }
 
             if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
-
-            if (Settings.Default.Cleaning_RemoveRegions)
-            {
-                return true;
-            }
 
             if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags ||
                 Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags ||
@@ -723,10 +750,20 @@ namespace CodeJanitor.Logic.Cleaning
                 OutputWindowHelper.WarningWriteLine($"Activation was not completed before cleaning began for '{document.Name}'");
             }
 
+            TrySplitTopLevelTypesToSeparateFiles(document);
+
             // Conditionally start cleanup with reorganization.
             if (Settings.Default.Reorganizing_RunAtStartOfCleanup)
             {
-                _codeReorganizationManager.Reorganize(document);
+                if (_codeReorganizationAvailabilityLogic.CanReorganize(document, false))
+                {
+                    _codeReorganizationManager.Reorganize(document);
+                }
+                else
+                {
+                    OutputWindowHelper.DiagnosticWriteLine(
+                        $"Skipped start-of-cleanup reorganization for '{document.FullName}' because it is not safe to reorganize without prompting.");
+                }
             }
 
             new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorCleanupFor0, document.Name)).Run(
@@ -812,6 +849,86 @@ namespace CodeJanitor.Logic.Cleaning
             }
         }
 
+        private void TrySplitTopLevelTypesToSeparateFiles(Document document)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (!Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles ||
+                document == null ||
+                document.GetCodeLanguage() != CodeLanguage.CSharp)
+            {
+                return;
+            }
+
+            var projectItem = document.ProjectItem;
+            var filePath = projectItem?.GetFileName();
+            if (projectItem == null || string.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            var textDocument = document.GetTextDocument();
+            if (textDocument == null)
+            {
+                return;
+            }
+
+            var startPoint = textDocument.StartPoint.CreateEditPoint();
+            var originalSource = startPoint.GetText(textDocument.EndPoint);
+            Encoding encoding = Encoding.UTF8;
+            if (File.Exists(filePath))
+            {
+                using (var reader = new StreamReader(filePath, detectEncodingFromByteOrderMarks: true))
+                {
+                    reader.ReadToEnd();
+                    encoding = reader.CurrentEncoding;
+                }
+            }
+
+            var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
+                originalSource,
+                filePath,
+                encoding,
+                ApplyHeadlessCSharpTransformations);
+            if (!splitResult.Changed)
+            {
+                return;
+            }
+
+            foreach (var createdFile in splitResult.CreatedFiles)
+            {
+                AddGeneratedFileToProject(projectItem, createdFile);
+            }
+
+            var endPoint = textDocument.EndPoint.CreateEditPoint();
+            startPoint.ReplaceText(endPoint, splitResult.UpdatedSource, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+        }
+
+        private void AddGeneratedFileToProject(ProjectItem sourceProjectItem, string filePath)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (sourceProjectItem == null || string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                return;
+            }
+
+            if (_package.IDE.Solution.FindProjectItem(filePath) != null)
+            {
+                return;
+            }
+
+            try
+            {
+                var projectItems = sourceProjectItem.Collection ?? sourceProjectItem.ContainingProject?.ProjectItems;
+                projectItems?.AddFromFile(filePath);
+            }
+            catch (Exception ex)
+            {
+                OutputWindowHelper.WarningWriteLine($"Unable to add generated file '{filePath}' to the project: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Attempts to run code cleanup on the specified CSharp document.
         /// </summary>
@@ -878,7 +995,7 @@ namespace CodeJanitor.Logic.Cleaning
             _fileHeaderLogic.UpdateFileHeader(textDocument);
 
             // Perform removal cleanup.
-            _removeRegionLogic.RemoveRegionsPerSettings(regions);
+            _removeRegionLogic.RemoveRegions(regions);
             _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
             _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
             _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
@@ -1003,7 +1120,7 @@ namespace CodeJanitor.Logic.Cleaning
             _fileHeaderLogic.UpdateFileHeader(textDocument);
 
             // Perform removal cleanup.
-            _removeRegionLogic.RemoveRegionsPerSettings(regions);
+            _removeRegionLogic.RemoveRegions(regions);
             _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
             _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
             _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
