@@ -420,6 +420,11 @@ namespace CodeJanitor.Logic.Cleaning
                 transformations.Add(new UpdateEndRegionDirectivesConverter());
             }
 
+            if (Settings.Default.Cleaning_UpdateSingleLineMethods)
+            {
+                transformations.Add(new UpdateSingleLineMethodsConverter());
+            }
+
             if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
             {
                 transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
@@ -533,7 +538,6 @@ namespace CodeJanitor.Logic.Cleaning
             if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
 
             if (Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine ||
-                Settings.Default.Cleaning_UpdateSingleLineMethods ||
                 Settings.Default.Formatting_CommentRunDuringCleanup)
             {
                 return true;
