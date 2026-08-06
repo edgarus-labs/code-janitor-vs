@@ -410,7 +410,9 @@ namespace CodeJanitor.Logic.Cleaning
                 Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
                 Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)
             {
-                transformations.Add(new BlankLinePaddingConverter());
+                // TODO: BlankLinePaddingConverter disabled (not yet implemented).
+                // The conversion logic would move blank line padding from editor-dependent DTE path to headless Roslyn pipeline.
+                // transformations.Add(new BlankLinePaddingConverter());
             }
 
             if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
