@@ -30,7 +30,12 @@ namespace CodeJanitor.Logic.Cleaning
             _planner = planner ?? new TopLevelTypeToFileSplitPlanner();
         }
 
-        internal ApplyResult Apply(string source, string filePath, Encoding encoding, Func<string, string, string> transformSource)
+        internal ApplyResult Apply(
+            string source,
+            string filePath,
+            Encoding encoding,
+            Func<string, string, string> transformSource,
+            bool transformUpdatedSource = true)
         {
             var splitPlan = _planner.CreatePlan(source, filePath);
             if (!splitPlan.HasChanges)
@@ -45,15 +50,47 @@ namespace CodeJanitor.Logic.Cleaning
                     ? transformSource(plannedFile.Content, plannedFile.FilePath)
                     : plannedFile.Content;
 
-                File.WriteAllText(plannedFile.FilePath, transformedSource, encoding);
+                WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding);
                 createdFiles.Add(plannedFile.FilePath);
             }
 
-            var updatedSource = transformSource != null
+            var updatedSource = transformSource != null && transformUpdatedSource
                 ? transformSource(splitPlan.UpdatedSource, filePath)
                 : splitPlan.UpdatedSource;
 
             return new ApplyResult(true, updatedSource, createdFiles);
+        }
+
+        private static void WriteAllTextAtomically(string targetFilePath, string content, Encoding encoding)
+        {
+            var directoryPath = Path.GetDirectoryName(targetFilePath);
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            var tempFilePath = targetFilePath + ".codejanitor.tmp." + Guid.NewGuid().ToString("N");
+
+            try
+            {
+                File.WriteAllText(tempFilePath, content, encoding);
+
+                if (File.Exists(targetFilePath))
+                {
+                    File.Delete(targetFilePath);
+                }
+
+                File.Move(tempFilePath, targetFilePath);
+            }
+            catch
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+
+                throw;
+            }
         }
     }
 }

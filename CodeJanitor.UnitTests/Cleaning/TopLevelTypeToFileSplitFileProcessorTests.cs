@@ -79,5 +79,39 @@ namespace CodeJanitor.UnitTests.Cleaning
             Assert.AreEqual(0, result.CreatedFiles.Count);
             Assert.AreEqual(0, Directory.GetFiles(_tempDirectory, "*.cs").Length);
         }
+
+        [TestMethod]
+        public void Apply_WithTransformUpdatedSourceDisabled_OnlyTransformsGeneratedFiles()
+        {
+            var source =
+                "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\n";
+            var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+            var result = _processor.Apply(
+                source,
+                filePath,
+                Encoding.UTF8,
+                (text, path) => "// " + Path.GetFileName(path) + "\r\n" + text,
+                transformUpdatedSource: false);
+
+            Assert.IsTrue(result.Changed);
+            Assert.IsFalse(result.UpdatedSource.StartsWith("// ", StringComparison.Ordinal));
+            var generatedFile = result.CreatedFiles.Single();
+            StringAssert.StartsWith(File.ReadAllText(generatedFile), "// Bar.cs");
+        }
+
+        [TestMethod]
+        public void Apply_WhenSplitCreatesFiles_DoesNotLeaveTemporaryFiles()
+        {
+            var source =
+                "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n";
+            var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+            var result = _processor.Apply(source, filePath, Encoding.UTF8, null);
+
+            Assert.IsTrue(result.Changed);
+            var tempArtifacts = Directory.GetFiles(_tempDirectory, "*.codejanitor.tmp.*", SearchOption.TopDirectoryOnly);
+            Assert.AreEqual(0, tempArtifacts.Length);
+        }
     }
 }

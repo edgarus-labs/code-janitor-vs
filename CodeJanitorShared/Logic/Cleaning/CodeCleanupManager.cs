@@ -63,6 +63,10 @@ namespace CodeJanitor.Logic.Cleaning
 
             internal int EditorItems { get; set; }
 
+            internal int SplitOperations { get; set; }
+
+            internal int SplitCreatedFiles { get; set; }
+
             internal int TotalProcessedItems => HeadlessChangedItems + HeadlessNoOpItems + EditorItems;
         }
 
@@ -271,7 +275,8 @@ namespace CodeJanitor.Logic.Cleaning
                         originalSource,
                         projectItemFileName,
                         encoding,
-                        ApplyHeadlessCSharpTransformations);
+                        ApplyHeadlessCSharpTransformations,
+                        transformUpdatedSource: false);
                     if (splitResult.Changed)
                     {
                         splitChanged = true;
@@ -281,6 +286,12 @@ namespace CodeJanitor.Logic.Cleaning
                         {
                             AddGeneratedFileToProject(projectItem, createdFile);
                         }
+
+                        _cleanupExecutionStats.SplitOperations++;
+                        _cleanupExecutionStats.SplitCreatedFiles += splitResult.CreatedFiles.Count;
+
+                        OutputWindowHelper.DiagnosticWriteLine(
+                            $"Headless top-level type split for '{projectItemFileName}' created {splitResult.CreatedFiles.Count} file(s).");
                     }
                 }
 
@@ -899,6 +910,12 @@ namespace CodeJanitor.Logic.Cleaning
             {
                 AddGeneratedFileToProject(projectItem, createdFile);
             }
+
+            _cleanupExecutionStats.SplitOperations++;
+            _cleanupExecutionStats.SplitCreatedFiles += splitResult.CreatedFiles.Count;
+
+            OutputWindowHelper.DiagnosticWriteLine(
+                $"Top-level type split for '{filePath}' created {splitResult.CreatedFiles.Count} file(s).");
 
             var endPoint = textDocument.EndPoint.CreateEditPoint();
             startPoint.ReplaceText(endPoint, splitResult.UpdatedSource, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
