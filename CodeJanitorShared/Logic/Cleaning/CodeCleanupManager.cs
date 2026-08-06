@@ -430,6 +430,11 @@ namespace CodeJanitor.Logic.Cleaning
                 transformations.Add(new UpdateAccessorsToBothBeSingleLineOrMultiLineConverter());
             }
 
+            if (Settings.Default.Formatting_CommentRunDuringCleanup)
+            {
+                transformations.Add(new CommentFormatConverter());
+            }
+
             if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
             {
                 transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
@@ -541,11 +546,6 @@ namespace CodeJanitor.Logic.Cleaning
             }
 
             if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
-
-            if (Settings.Default.Formatting_CommentRunDuringCleanup)
-            {
-                return true;
-            }
 
             if (Settings.Default.Cleaning_AiXmlDocumentationEnabled)
             {
