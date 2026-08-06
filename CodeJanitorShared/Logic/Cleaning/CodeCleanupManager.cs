@@ -370,6 +370,19 @@ namespace CodeJanitor.Logic.Cleaning
                 transformations.Add(new SingleStatementLambdaConverter());
             }
 
+            if (Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties ||
+                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs)
+            {
+                transformations.Add(new ExplicitAccessModifierConverter());
+            }
+
             if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
             {
                 transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
@@ -515,19 +528,6 @@ namespace CodeJanitor.Logic.Cleaning
                 Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements ||
                 Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments ||
                 Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors)
-            {
-                return true;
-            }
-
-            if (Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties ||
-                Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs)
             {
                 return true;
             }
