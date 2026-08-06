@@ -124,6 +124,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\CollectionExpressionConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\JsonSerializerOptionsReuseConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ExplicitAccessModifierConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\UpdateEndRegionDirectivesConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\SingleStatementLambdaConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\FileScopedNamespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ReturnThrowBlankLinePaddingConverter.cs" />
