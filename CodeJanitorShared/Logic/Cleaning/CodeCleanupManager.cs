@@ -408,11 +408,15 @@ namespace CodeJanitor.Logic.Cleaning
                 Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs ||
                 Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs ||
                 Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)
             {
-                // TODO: BlankLinePaddingConverter disabled (not yet implemented).
-                // The conversion logic would move blank line padding from editor-dependent DTE path to headless Roslyn pipeline.
-                // transformations.Add(new BlankLinePaddingConverter());
+                transformations.Add(new BlankLinePaddingConverter());
             }
 
             if (Settings.Default.Cleaning_UpdateEndRegionDirectives)

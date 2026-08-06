@@ -59,6 +59,7 @@
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitFileProcessorTests.cs" />
+    <Compile Include="Cleaning\BlankLinePaddingConverterTests.cs" />
     <Compile Include="Cleaning\ExplicitAccessModifierConverterTests.cs" />
     <Compile Include="Cleaning\UpdateEndRegionDirectivesConverterTests.cs" />
     <Compile Include="Cleaning\UpdateSingleLineMethodsConverterTests.cs" />
