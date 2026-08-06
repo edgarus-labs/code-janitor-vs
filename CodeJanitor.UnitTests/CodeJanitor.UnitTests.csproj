@@ -62,6 +62,7 @@
     <Compile Include="Cleaning\ExplicitAccessModifierConverterTests.cs" />
     <Compile Include="Cleaning\UpdateEndRegionDirectivesConverterTests.cs" />
     <Compile Include="Cleaning\UpdateSingleLineMethodsConverterTests.cs" />
+    <Compile Include="Cleaning\UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitPlannerTests.cs" />
     <Compile Include="Cleaning\UpdateLogicDirectiveParsingTests.cs" />
     <Compile Include="Formatting\CommentFormatHelper.cs" />
