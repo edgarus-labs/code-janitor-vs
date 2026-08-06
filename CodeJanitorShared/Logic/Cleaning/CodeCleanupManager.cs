@@ -383,6 +383,36 @@ namespace CodeJanitor.Logic.Cleaning
                 transformations.Add(new ExplicitAccessModifierConverter());
             }
 
+            if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
+                Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)
+            {
+                transformations.Add(new BlankLinePaddingConverter());
+            }
+
             if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
             {
                 transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
@@ -494,43 +524,6 @@ namespace CodeJanitor.Logic.Cleaning
             }
 
             if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
-
-            if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments ||
-                Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors)
-            {
-                return true;
-            }
 
             if (Settings.Default.Cleaning_UpdateEndRegionDirectives ||
                 Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine ||
