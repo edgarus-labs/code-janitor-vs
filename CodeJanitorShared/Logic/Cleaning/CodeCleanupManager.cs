@@ -61,13 +61,15 @@ namespace CodeJanitor.Logic.Cleaning
 
             internal int HeadlessNoOpItems { get; set; }
 
+            internal int FailedItems { get; set; }
+
             internal int EditorItems { get; set; }
 
             internal int SplitOperations { get; set; }
 
             internal int SplitCreatedFiles { get; set; }
 
-            internal int TotalProcessedItems => HeadlessChangedItems + HeadlessNoOpItems + EditorItems;
+            internal int TotalProcessedItems => HeadlessChangedItems + HeadlessNoOpItems + EditorItems + FailedItems;
         }
 
         #region Fields
@@ -217,9 +219,10 @@ namespace CodeJanitor.Logic.Cleaning
                 {
                     projectItem.Open(Constants.vsViewKindTextView);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // OK if file cannot be opened (ex: deleted from disk, non-text based type.)
+                    OutputWindowHelper.WarningWriteLine(
+                        $"Unable to open '{projectItemFileName}' for editor cleanup: {ex.Message}");
                 }
             }
 
@@ -232,6 +235,12 @@ namespace CodeJanitor.Logic.Cleaning
                 {
                     projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
                 }
+            }
+            else
+            {
+                RecordCleanupFailure(
+                    projectItemFileName,
+                    new InvalidOperationException("The project item did not expose an open document."));
             }
 
             stopwatch.Stop();
@@ -292,6 +301,11 @@ namespace CodeJanitor.Logic.Cleaning
 
                         OutputWindowHelper.DiagnosticWriteLine(
                             $"Headless top-level type split for '{projectItemFileName}' created {splitResult.CreatedFiles.Count} file(s).");
+                    }
+                    else
+                    {
+                        OutputWindowHelper.DiagnosticWriteLine(
+                            $"Headless top-level type split skipped for '{projectItemFileName}': {splitResult.SkipReason}.");
                     }
                 }
 
@@ -812,6 +826,18 @@ namespace CodeJanitor.Logic.Cleaning
         internal void ResetCleanupExecutionStats()
         {
             _cleanupExecutionStats = default(CleanupExecutionStats);
+        }
+
+        /// <summary>
+        /// Records a failure that was isolated to one cleanup item.
+        /// </summary>
+        /// <param name="filePath">The item path.</param>
+        /// <param name="exception">The failure.</param>
+        internal void RecordCleanupFailure(string filePath, Exception exception)
+        {
+            _cleanupExecutionStats.FailedItems++;
+            OutputWindowHelper.ExceptionWriteLine(
+                $"Cleanup failed for '{filePath}'", exception);
         }
 
         /// <summary>

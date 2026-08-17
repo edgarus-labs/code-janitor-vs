@@ -9,11 +9,16 @@ namespace CodeJanitor.Logic.Cleaning
     {
         internal sealed class ApplyResult
         {
-            internal ApplyResult(bool changed, string updatedSource, IReadOnlyList<string> createdFiles)
+            internal ApplyResult(
+                bool changed,
+                string updatedSource,
+                IReadOnlyList<string> createdFiles,
+                TopLevelTypeSplitSkipReason skipReason)
             {
                 Changed = changed;
                 UpdatedSource = updatedSource;
                 CreatedFiles = createdFiles;
+                SkipReason = skipReason;
             }
 
             internal bool Changed { get; }
@@ -21,6 +26,8 @@ namespace CodeJanitor.Logic.Cleaning
             internal string UpdatedSource { get; }
 
             internal IReadOnlyList<string> CreatedFiles { get; }
+
+            internal TopLevelTypeSplitSkipReason SkipReason { get; }
         }
 
         private readonly TopLevelTypeToFileSplitPlanner _planner;
@@ -40,7 +47,7 @@ namespace CodeJanitor.Logic.Cleaning
             var splitPlan = _planner.CreatePlan(source, filePath);
             if (!splitPlan.HasChanges)
             {
-                return new ApplyResult(false, source, Array.Empty<string>());
+                return new ApplyResult(false, source, Array.Empty<string>(), splitPlan.SkipReason);
             }
 
             var createdFiles = new List<string>();
@@ -58,7 +65,7 @@ namespace CodeJanitor.Logic.Cleaning
                 ? transformSource(splitPlan.UpdatedSource, filePath)
                 : splitPlan.UpdatedSource;
 
-            return new ApplyResult(true, updatedSource, createdFiles);
+            return new ApplyResult(true, updatedSource, createdFiles, TopLevelTypeSplitSkipReason.None);
         }
 
         private static void WriteAllTextAtomically(string targetFilePath, string content, Encoding encoding)

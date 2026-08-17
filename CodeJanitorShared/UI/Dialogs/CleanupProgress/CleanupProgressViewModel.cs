@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
+using System;
 
 namespace CodeJanitor.UI.Dialogs.CleanupProgress
 {
@@ -189,7 +190,15 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
                 ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    CodeCleanupManager.Cleanup(item);
+                    try
+                    {
+                        CodeCleanupManager.Cleanup(item);
+                    }
+                    catch (Exception ex)
+                    {
+                        CodeCleanupManager.RecordCleanupFailure(item.Name, ex);
+                    }
+
                     UpdateExecutionSummary();
                 });
             }
@@ -230,18 +239,18 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
             if (e.Error != null)
             {
                 OutputWindowHelper.WarningWriteLine(
-                    $"Cleanup batch failed after headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+                    $"Cleanup batch failed after headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
                 MessageBox.Show(e.Error.Message, "CodeJanitor Cleanup Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else if (e.Cancelled)
             {
                 OutputWindowHelper.InfoWriteLine(
-                    $"Cleanup batch canceled. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+                    $"Cleanup batch canceled. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
             }
             else
             {
                 OutputWindowHelper.InfoWriteLine(
-                    $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+                    $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
             }
 
             // Close the dialog.
@@ -255,10 +264,11 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress
         {
             var stats = CodeCleanupManager.GetCleanupExecutionStats();
             ExecutionSummary = string.Format(
-                "Headless changed: {0} | Headless no-op: {1} | Editor: {2} | Split ops: {3} | Split files: {4}",
+                "Headless changed: {0} | Headless no-op: {1} | Editor: {2} | Failed: {3} | Split ops: {4} | Split files: {5}",
                 stats.HeadlessChangedItems,
                 stats.HeadlessNoOpItems,
                 stats.EditorItems,
+                stats.FailedItems,
                 stats.SplitOperations,
                 stats.SplitCreatedFiles);
 

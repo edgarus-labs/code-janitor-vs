@@ -8,6 +8,14 @@ using System.Linq;
 
 namespace CodeJanitor.Logic.Cleaning
 {
+    internal enum TopLevelTypeSplitSkipReason
+    {
+        None,
+        EmptySource,
+        UnsupportedStructure,
+        NotMultipleEligibleTypes
+    }
+
     internal sealed class TopLevelTypeToFileSplitPlanner
     {
         internal sealed class PlannedFile
@@ -25,15 +33,21 @@ namespace CodeJanitor.Logic.Cleaning
 
         internal sealed class SplitPlan
         {
-            internal SplitPlan(string updatedSource, IReadOnlyList<PlannedFile> newFiles)
+            internal SplitPlan(
+                string updatedSource,
+                IReadOnlyList<PlannedFile> newFiles,
+                TopLevelTypeSplitSkipReason skipReason = TopLevelTypeSplitSkipReason.None)
             {
                 UpdatedSource = updatedSource;
                 NewFiles = newFiles;
+                SkipReason = skipReason;
             }
 
             internal string UpdatedSource { get; }
 
             internal IReadOnlyList<PlannedFile> NewFiles { get; }
+
+            internal TopLevelTypeSplitSkipReason SkipReason { get; }
 
             internal bool HasChanges => NewFiles.Count > 0;
         }
@@ -42,7 +56,7 @@ namespace CodeJanitor.Logic.Cleaning
         {
             if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(filePath))
             {
-                return new SplitPlan(source, Array.Empty<PlannedFile>());
+                return new SplitPlan(source, Array.Empty<PlannedFile>(), TopLevelTypeSplitSkipReason.EmptySource);
             }
 
             var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
@@ -50,20 +64,20 @@ namespace CodeJanitor.Logic.Cleaning
                 !TryGetContainerMembers(root, out var members) ||
                 members.Any(x => x is BaseNamespaceDeclarationSyntax || x is GlobalStatementSyntax))
             {
-                return new SplitPlan(source, Array.Empty<PlannedFile>());
+                return new SplitPlan(source, Array.Empty<PlannedFile>(), TopLevelTypeSplitSkipReason.UnsupportedStructure);
             }
 
             var eligibleMembers = members.Where(IsEligibleTopLevelType).ToList();
             if (eligibleMembers.Count <= 1)
             {
-                return new SplitPlan(source, Array.Empty<PlannedFile>());
+                return new SplitPlan(source, Array.Empty<PlannedFile>(), TopLevelTypeSplitSkipReason.NotMultipleEligibleTypes);
             }
 
             var memberToKeep = ChooseMemberToKeep(eligibleMembers, Path.GetFileName(filePath)) ?? eligibleMembers[0];
             var movedMembers = eligibleMembers.Where(x => x != memberToKeep).ToList();
             if (movedMembers.Count == 0)
             {
-                return new SplitPlan(source, Array.Empty<PlannedFile>());
+                return new SplitPlan(source, Array.Empty<PlannedFile>(), TopLevelTypeSplitSkipReason.NotMultipleEligibleTypes);
             }
 
             var updatedMembers = members.Where(x => !movedMembers.Contains(x)).ToList();
