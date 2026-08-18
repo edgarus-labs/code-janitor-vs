@@ -671,7 +671,7 @@
     <GuidSymbol name="GuidCodeJanitorOutputPane" value="{4e7ba904-9311-4dd0-abe5-a61c1739780f}" />
 
     <!-- These are the symbols for all menu items provided by CodeJanitor -->
-    <GuidSymbol name="GuidCodeJanitorMenuSet" value="{369b04df-0688-4074-911d-d0d6c6a31632}">
+    <GuidSymbol name="GuidCodeJanitorMenuSet" value="{7ab3f0cc-4caa-4b7a-b4cb-53b9d6fd391c}">
       <!-- This is the id used to group the menu commands together -->
       <IDSymbol name="GroupIDCodeJanitorMenuBaseGroup" value="0x1020" />
 

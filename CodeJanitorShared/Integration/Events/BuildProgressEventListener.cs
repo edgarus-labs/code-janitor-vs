@@ -159,7 +159,16 @@ namespace CodeJanitor.Integration.Events
                 return null;
             }
 
-            return Delegate.CreateDelegate(eventInfo.EventHandlerType, this, methodName);
+            try
+            {
+                return Delegate.CreateDelegate(eventInfo.EventHandlerType, this, methodName);
+            }
+            catch (Exception ex)
+            {
+                OutputWindowHelper.WarningWriteLine(
+                    $"Unable to subscribe to Visual Studio build event '{eventInfo.Name}': {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>

@@ -17,7 +17,7 @@ namespace CodeJanitor
         public const string GuidCodeJanitorToolWindowBuildProgressString = "260978c3-582c-487d-ab12-c1fdde07c578";
         public const string GuidCodeJanitorToolWindowSpadeString = "75d09b86-471e-4b30-8720-362d13ad0a45";
         public const string GuidCodeJanitorOutputPaneString = "4e7ba904-9311-4dd0-abe5-a61c1739780f";
-        public const string GuidCodeJanitorMenuSetString = "369b04df-0688-4074-911d-d0d6c6a31632";
+        public const string GuidCodeJanitorMenuSetString = "7ab3f0cc-4caa-4b7a-b4cb-53b9d6fd391c";
         public const string GuidCodeJanitorImageMonikerString = "e4c3c7f4-7250-4f02-b07b-575a320898ab";
         public const string GuidImageCleanupString = "54aa78c8-285a-4166-9eba-369dde5d787e";
         public const string GuidImageCleanupAllString = "e3d926ae-03d7-4c69-8226-440eeddab292";
