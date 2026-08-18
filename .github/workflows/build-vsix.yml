@@ -98,8 +98,16 @@ jobs:
           }
 
           foreach ($file in $vsixFiles) {
-            $projectName = $file.Directory.Parent.Parent.Name
-            $artifactName = "$projectName-$env:VSIX_VERSION.vsix"
+            if ($file.FullName -match '\\CodeJanitor\\bin\\Release\\') {
+              $artifactName = "CodeJanitor-VS2019-$env:VSIX_VERSION.vsix"
+            }
+            elseif ($file.FullName -match '\\CodeJanitor\.VS2026\\bin\\Release\\') {
+              $artifactName = "CodeJanitor-VS2022Plus-$env:VSIX_VERSION.vsix"
+            }
+            else {
+              throw "Unrecognized VSIX output path: $($file.FullName)"
+            }
+
             Copy-Item -Path $file.FullName -Destination (Join-Path artifacts $artifactName) -Force
           }
 
