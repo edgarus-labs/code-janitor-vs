@@ -661,7 +661,7 @@
     </GuidSymbol>
 
     <!-- This is the package guid. -->
-    <GuidSymbol name="GuidCodeJanitorPackage" value="{4c82e17d-927e-42d2-8460-b473ac7df316}" />
+    <GuidSymbol name="GuidCodeJanitorPackage" value="{d731b062-e78e-4efb-a626-245702f3a6a0}" />
 
     <!-- These are the tool window guids -->
     <GuidSymbol name="GuidCodeJanitorToolWindowBuildProgress" value="{260978c3-582c-487d-ab12-c1fdde07c578}" />

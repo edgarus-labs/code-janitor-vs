@@ -13,7 +13,7 @@ namespace CodeJanitor
         public const string GuidVisualStudioHTMLDocumentContextMenuString = "78f03954-2fb8-4087-8ce7-59d71710b3bb";
         public const string GuidVisualStudioJSONDocumentContextMenuString = "f718ca06-cf4f-4a0c-9106-e79e9ee5e7cd";
         public const string GuidVisualStudioXAMLWindowContextMenuString = "4c87b692-1202-46aa-b64c-ef01faec53da";
-        public const string GuidCodeJanitorPackageString = "4c82e17d-927e-42d2-8460-b473ac7df316";
+        public const string GuidCodeJanitorPackageString = "d731b062-e78e-4efb-a626-245702f3a6a0";
         public const string GuidCodeJanitorToolWindowBuildProgressString = "260978c3-582c-487d-ab12-c1fdde07c578";
         public const string GuidCodeJanitorToolWindowSpadeString = "75d09b86-471e-4b30-8720-362d13ad0a45";
         public const string GuidCodeJanitorOutputPaneString = "4e7ba904-9311-4dd0-abe5-a61c1739780f";
