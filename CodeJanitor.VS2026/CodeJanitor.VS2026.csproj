@@ -742,6 +742,19 @@
       <ExcludeAssets>runtime</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="EnvDTE">
+      <Version>17.0.31902.159</Version>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+    </PackageReference>
+    <PackageReference Include="EnvDTE80">
+      <Version>17.0.31902.159</Version>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VSSDK.BuildTools">
+      <Version>17.14.2094</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40254" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40254" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Extensibility" Version="17.14.2098" />

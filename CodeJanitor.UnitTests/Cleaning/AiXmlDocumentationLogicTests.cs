@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
@@ -273,6 +273,37 @@ public int Second(int y)
         var property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
         Assert.IsNotNull(property, "Missing property on options object: " + name);
         property.SetValue(instance, value);
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_IsEndpointConfigured_ValidatesUrlAndKey()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("IsEndpointConfigured", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        Assert.IsTrue((bool)method.Invoke(null, new object[] { "https://api.openai.com/v1", "sk-12345" }));
+        Assert.IsTrue((bool)method.Invoke(null, new object[] { "http://localhost:11434/v1", "\"sk-quoted-key\"" }));
+        Assert.IsFalse((bool)method.Invoke(null, new object[] { "", "sk-12345" }));
+        Assert.IsFalse((bool)method.Invoke(null, new object[] { "https://api.openai.com/v1", "" }));
+        Assert.IsFalse((bool)method.Invoke(null, new object[] { "invalid-url", "sk-12345" }));
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_GetNormalizedEndpointUrl_AppendsChatCompletionsWhenNeeded()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("GetNormalizedEndpointUrl", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        Assert.AreEqual("https://api.openai.com/v1/chat/completions", method.Invoke(null, new object[] { "https://api.openai.com/v1" }));
+        Assert.AreEqual("https://api.openai.com/v1/chat/completions", method.Invoke(null, new object[] { "https://api.openai.com/v1/" }));
+        Assert.AreEqual("https://api.openai.com/v1/chat/completions", method.Invoke(null, new object[] { "https://api.openai.com/v1/chat/completions" }));
+        Assert.AreEqual("http://localhost:11434/v1/chat/completions", method.Invoke(null, new object[] { "http://localhost:11434/v1" }));
     }
 
     private static int CountOccurrences(string text, string value)

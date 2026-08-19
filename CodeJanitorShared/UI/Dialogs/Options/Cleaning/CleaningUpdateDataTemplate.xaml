@@ -41,7 +41,7 @@
                     <TextBlock Text="API key" Margin="0,4,0,0" />
                     <PasswordBox
                         ui:PasswordBoxAssistant.BindPassword="True"
-                        ui:PasswordBoxAssistant.BoundPassword="{Binding AiXmlDocumentationApiKey, UpdateSourceTrigger=PropertyChanged}" />
+                        ui:PasswordBoxAssistant.BoundPassword="{Binding AiXmlDocumentationApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                     <TextBlock Text="API key header (Authorization / api-key / x-api-key)" Margin="0,4,0,0" />
                     <TextBox Text="{Binding AiXmlDocumentationApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />

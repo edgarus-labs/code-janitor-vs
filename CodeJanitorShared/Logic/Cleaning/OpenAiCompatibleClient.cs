@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -18,8 +18,8 @@ internal sealed class OpenAiCompatibleClient
 
     internal OpenAiCompatibleClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds)
     {
-        EndpointUrl = endpointUrl?.Trim();
-        ApiKey = apiKey?.Trim();
+        EndpointUrl = GetNormalizedEndpointUrl(endpointUrl);
+        ApiKey = apiKey?.Trim().Trim('"');
         ApiKeyHeader = string.IsNullOrWhiteSpace(apiKeyHeader) ? "Authorization" : apiKeyHeader.Trim();
         Model = model?.Trim();
         TimeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : 30;
@@ -35,6 +35,30 @@ internal sealed class OpenAiCompatibleClient
 
     internal int TimeoutSeconds { get; }
 
+    internal static string GetNormalizedEndpointUrl(string endpointUrl)
+    {
+        if (string.IsNullOrWhiteSpace(endpointUrl))
+        {
+            return endpointUrl;
+        }
+
+        var url = endpointUrl.Trim();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return url;
+        }
+
+        if (url.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase) ||
+            url.EndsWith("/completions", StringComparison.OrdinalIgnoreCase))
+        {
+            return url;
+        }
+
+        url = url.TrimEnd('/');
+
+        return url + "/chat/completions";
+    }
+
     internal static bool IsEndpointConfigured(string endpointUrl, string apiKey)
     {
         if (string.IsNullOrWhiteSpace(endpointUrl) || string.IsNullOrWhiteSpace(apiKey))
@@ -42,8 +66,14 @@ internal sealed class OpenAiCompatibleClient
             return false;
         }
 
+        var cleanKey = apiKey.Trim().Trim('"');
+        if (string.IsNullOrWhiteSpace(cleanKey))
+        {
+            return false;
+        }
+
         Uri endpoint;
-        if (!Uri.TryCreate(endpointUrl, UriKind.Absolute, out endpoint))
+        if (!Uri.TryCreate(endpointUrl?.Trim(), UriKind.Absolute, out endpoint))
         {
             return false;
         }
