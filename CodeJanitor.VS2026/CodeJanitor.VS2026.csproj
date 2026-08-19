@@ -29,6 +29,7 @@
     <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp</StartArguments>
     <LangVersion>latest</LangVersion>
+    <RuntimeIdentifier>win</RuntimeIdentifier>
     <!-- The VisualStudio.Extensibility native settings bridge (NativeSettings\*) is parked:
          CodeJanitorNativeSettingsExtension.InitializeAsync never reliably activates in this VS
          version (ServiceUnavailableException / never fires at all - see repo memory notes), so
