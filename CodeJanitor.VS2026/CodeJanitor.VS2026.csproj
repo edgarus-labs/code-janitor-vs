@@ -738,28 +738,29 @@
       <Version>1.0.2</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.SDK">
-      <Version>17.0.0-previews-2-31512-422</Version>
+      <Version>17.14.40265</Version>
       <ExcludeAssets>runtime</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="EnvDTE">
-      <Version>17.0.31902.159</Version>
+      <Version>17.14.40260</Version>
       <EmbedInteropTypes>false</EmbedInteropTypes>
     </PackageReference>
     <PackageReference Include="EnvDTE80">
-      <Version>17.0.31902.159</Version>
+      <Version>17.14.40260</Version>
       <EmbedInteropTypes>false</EmbedInteropTypes>
     </PackageReference>
     <PackageReference Include="Microsoft.VSSDK.BuildTools">
-      <Version>17.14.2094</Version>
+      <Version>18.5.40034</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40254" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40254" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Extensibility" Version="17.14.2098" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp">
-      <Version>4.8.0</Version>
+      <Version>5.9.0</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="..\CodeJanitorShared\CodeJanitorShared.projitems" Label="Shared" />
