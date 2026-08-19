@@ -87,7 +87,7 @@ internal sealed class OpenAiCompatibleClient
 
         return TrySendChatCompletion(
             "Reply with exactly: OK",
-            16,
+            512,
             out content,
             out errorMessage);
     }
@@ -145,7 +145,7 @@ internal sealed class OpenAiCompatibleClient
                     var content = TryExtractContentFromChatResponse(responseText);
                     if (string.IsNullOrWhiteSpace(content))
                     {
-                        errorMessage = "AI endpoint response does not contain choices[0].message.content.";
+                        errorMessage = $"AI endpoint response did not contain message content. Response: {Truncate(responseText, 512)}";
 
                         return false;
                     }
@@ -222,7 +222,7 @@ internal sealed class OpenAiCompatibleClient
         return serializer.Serialize(request);
     }
 
-    private static string TryExtractContentFromChatResponse(string responseText)
+    internal static string TryExtractContentFromChatResponse(string responseText)
     {
         if (string.IsNullOrWhiteSpace(responseText))
         {
@@ -237,26 +237,74 @@ internal sealed class OpenAiCompatibleClient
         }
 
         var choices = payload["choices"] as IList;
-        if (choices == null || choices.Count == 0)
+        if (choices != null && choices.Count > 0)
         {
-            return null;
+            var firstChoice = choices[0] as IDictionary;
+            if (firstChoice != null)
+            {
+                var message = firstChoice["message"] as IDictionary;
+                if (message != null)
+                {
+                    if (message["content"] != null)
+                    {
+                        var content = Convert.ToString(message["content"]);
+                        if (!string.IsNullOrWhiteSpace(content))
+                        {
+                            return content;
+                        }
+                    }
+
+                    // Fallback for reasoning models (e.g. DeepSeek-R1 / deepseek-reasoner) when content is empty or omitted
+                    if (message["reasoning_content"] != null)
+                    {
+                        var reasoning = Convert.ToString(message["reasoning_content"]);
+                        if (!string.IsNullOrWhiteSpace(reasoning))
+                        {
+                            return reasoning;
+                        }
+                    }
+
+                    if (message["reasoning"] != null)
+                    {
+                        var reasoning = Convert.ToString(message["reasoning"]);
+                        if (!string.IsNullOrWhiteSpace(reasoning))
+                        {
+                            return reasoning;
+                        }
+                    }
+                }
+
+                // Fallback for APIs returning text directly on the choice.
+                if (firstChoice["text"] != null)
+                {
+                    var text = Convert.ToString(firstChoice["text"]);
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        return text;
+                    }
+                }
+            }
         }
 
-        var firstChoice = choices[0] as IDictionary;
-        if (firstChoice == null)
+        if (payload["response"] != null)
         {
-            return null;
+            var response = Convert.ToString(payload["response"]);
+            if (!string.IsNullOrWhiteSpace(response))
+            {
+                return response;
+            }
         }
 
-        var message = firstChoice["message"] as IDictionary;
-        if (message != null && message["content"] != null)
+        if (payload["output"] != null)
         {
-            return Convert.ToString(message["content"]);
+            var output = Convert.ToString(payload["output"]);
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                return output;
+            }
         }
 
-        // Fallback for APIs returning text directly on the choice.
-
-        return firstChoice["text"] == null ? null : Convert.ToString(firstChoice["text"]);
+        return null;
     }
 
     private static string Truncate(string text, int length)

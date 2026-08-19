@@ -306,6 +306,37 @@ public int Second(int y)
         Assert.AreEqual("http://localhost:11434/v1/chat/completions", method.Invoke(null, new object[] { "http://localhost:11434/v1" }));
     }
 
+    [TestMethod]
+    public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_HandlesOpenAiAndDeepSeekFormats()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        // Standard OpenAI message
+        var openAiJson = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"}}]}";
+        Assert.AreEqual("OK", method.Invoke(null, new object[] { openAiJson }));
+
+        // DeepSeek Reasoner with content
+        var deepSeekJson = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Result text\",\"reasoning_content\":\"Thinking...\"}}]}";
+        Assert.AreEqual("Result text", method.Invoke(null, new object[] { deepSeekJson }));
+
+        // DeepSeek Reasoner with empty content (tokens exhausted by reasoning)
+        var deepSeekReasoningOnly = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"Summary from reasoning\"}}]}";
+        Assert.AreEqual("Summary from reasoning", method.Invoke(null, new object[] { deepSeekReasoningOnly }));
+
+        // Legacy / completions endpoint format
+        var textJson = "{\"choices\":[{\"text\":\"Direct text\"}]}";
+        Assert.AreEqual("Direct text", method.Invoke(null, new object[] { textJson }));
+
+        // Invalid or empty JSON
+        Assert.IsNull(method.Invoke(null, new object[] { "{}" }));
+        Assert.IsNull(method.Invoke(null, new object[] { "{\"choices\":[]}" }));
+        Assert.IsNull(method.Invoke(null, new object[] { (string)null }));
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value))
