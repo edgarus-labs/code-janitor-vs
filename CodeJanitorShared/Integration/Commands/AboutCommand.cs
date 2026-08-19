@@ -1,46 +1,49 @@
-using CodeJanitor.UI.Dialogs.About;
+﻿using CodeJanitor.UI.Dialogs.About;
 using System.Threading.Tasks;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for launching the CodeJanitor about window.
+/// </summary>
+
+internal sealed class AboutCommand : BaseCommand
 {
     /// <summary>
-    /// A command that provides for launching the CodeJanitor about window.
+    /// Initializes a new instance of the <see cref="AboutCommand" /> class.
     /// </summary>
-    internal sealed class AboutCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    private AboutCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorAbout)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AboutCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        private AboutCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorAbout)
-        {
-        }
+    }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static AboutCommand Instance { get; private set; }
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static AboutCommand Instance { get; private set; }
 
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
-        {
-            Instance = new AboutCommand(package);
-            await Instance.SwitchAsync(on: true);
-        }
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
 
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            base.OnExecute();
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new AboutCommand(package);
+        await Instance.SwitchAsync(on: true);
+    }
 
-            new AboutWindow().ShowModal();
-        }
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        base.OnExecute();
+
+        new AboutWindow().ShowModal();
     }
 }

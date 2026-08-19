@@ -68,8 +68,6 @@
                 <ToggleButton Content="properties" IsChecked="{Binding InsertExplicitAccessModifiersOnProperties}" />
                 <ToggleButton Content="structs" IsChecked="{Binding InsertExplicitAccessModifiersOnStructs}" />
             </WrapPanel>
-
-            <CheckBox Content="{x:Static p:Resources.InsertEndOfFileTrailingNewLine}" IsChecked="{Binding InsertEndOfFileTrailingNewLine}" />
         </StackPanel>
     </DataTemplate>
 </ResourceDictionary>

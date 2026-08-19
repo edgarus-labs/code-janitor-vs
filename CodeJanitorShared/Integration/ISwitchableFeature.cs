@@ -1,9 +1,8 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace CodeJanitor.Integration
+namespace CodeJanitor.Integration;
+
+internal interface ISwitchableFeature
 {
-    internal interface ISwitchableFeature
-    {
-        Task SwitchAsync(bool on);
-    }
+    Task SwitchAsync(bool on);
 }

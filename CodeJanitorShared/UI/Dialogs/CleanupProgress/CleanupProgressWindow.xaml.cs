@@ -1,47 +1,41 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
 
-namespace CodeJanitor.UI.Dialogs.CleanupProgress
+namespace CodeJanitor.UI.Dialogs.CleanupProgress;
+
+/// <summary>
+/// Interaction logic for CleanupProgressWindow.xaml
+/// </summary>
+
+public partial class CleanupProgressWindow
 {
     /// <summary>
-    /// Interaction logic for CleanupProgressWindow.xaml
+    /// Initializes a new instance of the <see cref="CleanupProgressWindow" /> class.
     /// </summary>
-    public partial class CleanupProgressWindow
+
+    public CleanupProgressWindow()
     {
-        #region Constructors
+        Application.ResourceAssembly = Assembly.GetExecutingAssembly();
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CleanupProgressWindow" /> class.
-        /// </summary>
-        public CleanupProgressWindow()
+        InitializeComponent();
+    }
+
+    /// <summary>
+    /// Called when the window is attempting to close.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">
+    /// The <see cref="System.ComponentModel.CancelEventArgs" /> instance containing the event data.
+    /// </param>
+
+    private void OnClosing(object sender, CancelEventArgs e)
+    {
+        var viewModel = DataContext as CleanupProgressViewModel;
+        if (viewModel != null && viewModel.DialogResult == null)
         {
-            Application.ResourceAssembly = Assembly.GetExecutingAssembly();
-
-            InitializeComponent();
+            viewModel.CancelCommand.Execute(null);
+            e.Cancel = true;
         }
-
-        #endregion Constructors
-
-        #region Private Event Handlers
-
-        /// <summary>
-        /// Called when the window is attempting to close.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="e">
-        /// The <see cref="System.ComponentModel.CancelEventArgs" /> instance containing the event data.
-        /// </param>
-        private void OnClosing(object sender, CancelEventArgs e)
-        {
-            var viewModel = DataContext as CleanupProgressViewModel;
-            if (viewModel != null && viewModel.DialogResult == null)
-            {
-                viewModel.CancelCommand.Execute(null);
-                e.Cancel = true;
-            }
-        }
-
-        #endregion Private Event Handlers
     }
 }

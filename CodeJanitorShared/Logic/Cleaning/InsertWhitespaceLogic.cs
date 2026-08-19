@@ -1,84 +1,75 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System;
 
-namespace CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning;
+
+/// <summary>
+/// A class for encapsulating the logic of inserting whitespace.
+/// </summary>
+
+internal sealed class InsertWhitespaceLogic
 {
+    private readonly CodeJanitorPackage _package;
+
     /// <summary>
-    /// A class for encapsulating the logic of inserting whitespace.
+    /// The singleton instance of the <see cref="InsertWhitespaceLogic" /> class.
     /// </summary>
-    internal class InsertWhitespaceLogic
+    private static InsertWhitespaceLogic _instance;
+
+    /// <summary>
+    /// Gets an instance of the <see cref="InsertWhitespaceLogic" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>An instance of the <see cref="InsertWhitespaceLogic" /> class.</returns>
+
+    internal static InsertWhitespaceLogic GetInstance(CodeJanitorPackage package)
     {
-        #region Fields
+        return _instance ?? (_instance = new InsertWhitespaceLogic(package));
+    }
 
-        private readonly CodeJanitorPackage _package;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InsertWhitespaceLogic" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
 
-        #endregion Fields
+    private InsertWhitespaceLogic(CodeJanitorPackage package)
+    {
+        _package = package;
+    }
 
-        #region Constructors
+    /// <summary>
+    /// Inserts a single blank space before a self-closing angle bracket.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
 
-        /// <summary>
-        /// The singleton instance of the <see cref="InsertWhitespaceLogic" /> class.
-        /// </summary>
-        private static InsertWhitespaceLogic _instance;
+    internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        if (!Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets) return;
 
-        /// <summary>
-        /// Gets an instance of the <see cref="InsertWhitespaceLogic" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>An instance of the <see cref="InsertWhitespaceLogic" /> class.</returns>
-        internal static InsertWhitespaceLogic GetInstance(CodeJanitorPackage package)
+        const string pattern = @"([^ \t])/>";
+        const string replacement = @"$1 />";
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
+
+    /// <summary>
+    /// Insert the trailing newline to the end of the specified text document.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void InsertEOFTrailingNewLine(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
+
+        if (cursor.AtEndOfDocument && !cursor.AtStartOfLine)
         {
-            return _instance ?? (_instance = new InsertWhitespaceLogic(package));
+            cursor.Insert(Environment.NewLine);
         }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InsertWhitespaceLogic" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        private InsertWhitespaceLogic(CodeJanitorPackage package)
-        {
-            _package = package;
-        }
-
-        #endregion Constructors
-
-        #region Methods
-
-        /// <summary>
-        /// Inserts a single blank space before a self-closing angle bracket.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            if (!Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets) return;
-
-            const string pattern = @"([^ \t])/>";
-            const string replacement = @"$1 />";
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Insert the trailing newline to the end of the specified text document.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void InsertEOFTrailingNewLine(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            if (!Settings.Default.Cleaning_InsertEndOfFileTrailingNewLine) return;
-
-            EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
-
-            if (cursor.AtEndOfDocument && !cursor.AtStartOfLine)
-            {
-                cursor.Insert(Environment.NewLine);
-            }
-        }
-
-        #endregion Methods
     }
 }

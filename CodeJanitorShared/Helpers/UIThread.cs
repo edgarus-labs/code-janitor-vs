@@ -1,37 +1,38 @@
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using System;
 
-namespace CodeJanitor.Helpers
-{
-    internal static class UIThread
-    {
-        public static void Run(Action action)
-        {
-            if (ThreadHelper.CheckAccess())
-            {
-                action();
-            }
-            else
-            {
-                ThreadHelper.JoinableTaskFactory.Run(async () =>
-                {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    action();
-                });
-            }
-        }
+namespace CodeJanitor.Helpers;
 
-        public static T Run<T>(Func<T> func)
+internal static class UIThread
+{
+    public static void Run(Action action)
+    {
+        if (ThreadHelper.CheckAccess())
         {
-            if (ThreadHelper.CheckAccess())
-            {
-                return func();
-            }
-            return ThreadHelper.JoinableTaskFactory.Run(async () =>
+            action();
+        }
+        else
+        {
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                return func();
+                action();
             });
         }
+    }
+
+    public static T Run<T>(Func<T> func)
+    {
+        if (ThreadHelper.CheckAccess())
+        {
+            return func();
+        }
+
+        return ThreadHelper.JoinableTaskFactory.Run(async () =>
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            return func();
+        });
     }
 }

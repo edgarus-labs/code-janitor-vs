@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -8,137 +8,143 @@ using System.Text;
 using Task = System.Threading.Tasks.Task;
 using TextSelection = EnvDTE.TextSelection;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for sorting lines.
+/// </summary>
+
+internal sealed class SortLinesCommand : BaseCommand
 {
+    private readonly UndoTransactionHelper _undoTransactionHelper;
+
     /// <summary>
-    /// A command that provides for sorting lines.
+    /// Initializes a new instance of the <see cref="SortLinesCommand" /> class.
     /// </summary>
-    internal sealed class SortLinesCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal SortLinesCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSortLines)
     {
-        private readonly UndoTransactionHelper _undoTransactionHelper;
+        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorSort);
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SortLinesCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal SortLinesCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSortLines)
-        {
-            _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorSort);
-        }
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static SortLinesCommand Instance { get; private set; }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static SortLinesCommand Instance { get; private set; }
+    /// <summary>
+    /// Gets the active text document, otherwise null.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the active text document, otherwise null.
-        /// </summary>
-        private TextDocument ActiveTextDocument
-        {
-            get
-            {
-                ThreadHelper.ThrowIfNotOnUIThread();
-
-                return Package.ActiveDocument?.GetTextDocument();
-            }
-        }
-
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
-        {
-            Instance = new SortLinesCommand(package);
-            await package.SettingsMonitor.WatchAsync(s => s.Feature_SortLines, Instance.SwitchAsync);
-        }
-
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
+    private TextDocument ActiveTextDocument
+    {
+        get
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            Enabled = ActiveTextDocument != null;
+            return Package.ActiveDocument?.GetTextDocument();
+        }
+    }
+
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new SortLinesCommand(package);
+        await package.SettingsMonitor.WatchAsync(s => s.Feature_SortLines, Instance.SwitchAsync);
+    }
+
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
+
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        Enabled = ActiveTextDocument != null;
+    }
+
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        base.OnExecute();
+
+        var activeTextDocument = ActiveTextDocument;
+        if (activeTextDocument != null)
+        {
+            var textSelection = activeTextDocument.Selection;
+            if (textSelection != null)
+            {
+                _undoTransactionHelper.Run(() => SortText(textSelection));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sorts the text within the specified text selection.
+    /// </summary>
+    /// <param name="textSelection">The text selection.</param>
+
+    private void SortText(TextSelection textSelection)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        // If the selection has no length, try to pick up the next line.
+        if (textSelection.IsEmpty)
+        {
+            textSelection.LineDown(true);
+            textSelection.EndOfLine(true);
         }
 
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
+        // Start of selection should always be at the beginning of the line.
+        var start = textSelection.TopPoint.CreateEditPoint();
+        start.StartOfLine();
+
+        // End of selection should always be at the start of the following line (i.e. extend past the last line's newline character).
+        var end = textSelection.BottomPoint.CreateEditPoint();
+        if (!end.AtStartOfLine)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            base.OnExecute();
-
-            var activeTextDocument = ActiveTextDocument;
-            if (activeTextDocument != null)
-            {
-                var textSelection = activeTextDocument.Selection;
-                if (textSelection != null)
-                {
-                    _undoTransactionHelper.Run(() => SortText(textSelection));
-                }
-            }
+            end.EndOfLine();
+            end.CharRight();
         }
 
-        /// <summary>
-        /// Sorts the text within the specified text selection.
-        /// </summary>
-        /// <param name="textSelection">The text selection.</param>
-        private void SortText(TextSelection textSelection)
+        // Capture the selected text.
+        var selectedText = start.GetText(end);
+
+        // Create the sorted text lines.
+        var splitText = selectedText.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        var orderedText = splitText.OrderBy(x => x);
+
+        var sb = new StringBuilder();
+        foreach (var line in orderedText)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
+            sb.AppendLine(line);
+        }
 
-            // If the selection has no length, try to pick up the next line.
-            if (textSelection.IsEmpty)
-            {
-                textSelection.LineDown(true);
-                textSelection.EndOfLine(true);
-            }
+        var sortedText = sb.ToString();
 
-            // Start of selection should always be at the beginning of the line.
-            var start = textSelection.TopPoint.CreateEditPoint();
-            start.StartOfLine();
+        // If the selected and sorted text do not match, delete and insert the replacement.
+        if (!selectedText.Equals(sortedText, StringComparison.CurrentCulture))
+        {
+            start.Delete(end);
 
-            // End of selection should always be at the start of the following line (i.e. extend past the last line's newline character).
-            var end = textSelection.BottomPoint.CreateEditPoint();
-            if (!end.AtStartOfLine)
-            {
-                end.EndOfLine();
-                end.CharRight();
-            }
+            var insertCursor = start.CreateEditPoint();
+            insertCursor.Insert(sortedText);
 
-            // Capture the selected text.
-            var selectedText = start.GetText(end);
-
-            // Create the sorted text lines.
-            var splitText = selectedText.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-            var orderedText = splitText.OrderBy(x => x);
-
-            var sb = new StringBuilder();
-            foreach (var line in orderedText)
-            {
-                sb.AppendLine(line);
-            }
-
-            var sortedText = sb.ToString();
-
-            // If the selected and sorted text do not match, delete and insert the replacement.
-            if (!selectedText.Equals(sortedText, StringComparison.CurrentCulture))
-            {
-                start.Delete(end);
-
-                var insertCursor = start.CreateEditPoint();
-                insertCursor.Insert(sortedText);
-
-                textSelection.MoveToPoint(start, false);
-                textSelection.MoveToPoint(insertCursor, true);
-            }
+            textSelection.MoveToPoint(start, false);
+            textSelection.MoveToPoint(insertCursor, true);
         }
     }
 }

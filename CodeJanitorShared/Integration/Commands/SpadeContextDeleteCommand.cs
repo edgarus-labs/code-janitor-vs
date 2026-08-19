@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
@@ -8,97 +8,102 @@ using System.Linq;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for deleting a member within Spade.
+/// </summary>
+
+internal sealed class SpadeContextDeleteCommand : BaseCommand
 {
+    private readonly UndoTransactionHelper _undoTransactionHelper;
+
     /// <summary>
-    /// A command that provides for deleting a member within Spade.
+    /// Initializes a new instance of the <see cref="SpadeContextDeleteCommand" /> class.
     /// </summary>
-    internal sealed class SpadeContextDeleteCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal SpadeContextDeleteCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextDelete)
     {
-        private readonly UndoTransactionHelper _undoTransactionHelper;
+        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorDeleteItems);
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SpadeContextDeleteCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal SpadeContextDeleteCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextDelete)
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static SpadeContextDeleteCommand Instance { get; private set; }
+
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new SpadeContextDeleteCommand(package);
+        await Instance.SwitchAsync(on: true);
+    }
+
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
+
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        bool visible = false;
+
+        var spade = Package.Spade;
+        if (spade != null)
         {
-            _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorDeleteItems);
+            visible = spade.SelectedItems.Any(IsDeletable);
         }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static SpadeContextDeleteCommand Instance { get; private set; }
+        Visible = visible;
+    }
 
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
+
+        var spade = Package.Spade;
+        if (spade != null)
         {
-            Instance = new SpadeContextDeleteCommand(package);
-            await Instance.SwitchAsync(on: true);
-        }
+            // Delay the check of start/end points until execution time, to avoid an intermediate state issue.
+            var items = spade.SelectedItems.Where(IsDeletable).Where(x => x.StartPoint != null && x.EndPoint != null);
 
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            bool visible = false;
-
-            var spade = Package.Spade;
-            if (spade != null)
+            _undoTransactionHelper.Run(() =>
             {
-                visible = spade.SelectedItems.Any(IsDeletable);
-            }
-
-            Visible = visible;
-        }
-
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            base.OnExecute();
-
-            var spade = Package.Spade;
-            if (spade != null)
-            {
-                // Delay the check of start/end points until execution time, to avoid an intermediate state issue.
-                var items = spade.SelectedItems.Where(IsDeletable).Where(x => x.StartPoint != null && x.EndPoint != null);
-
-                _undoTransactionHelper.Run(() =>
+                // Iterate through items in reverse order (reduces line number updates during removal).
+                foreach (var item in items.OrderByDescending(x => x.StartLine))
                 {
-                    // Iterate through items in reverse order (reduces line number updates during removal).
-                    foreach (var item in items.OrderByDescending(x => x.StartLine))
-                    {
-                        var start = item.StartPoint.CreateEditPoint();
+                    var start = item.StartPoint.CreateEditPoint();
 
-                        start.Delete(item.EndPoint);
-                        start.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
-                        start.Insert(Environment.NewLine);
-                    }
-                });
+                    start.Delete(item.EndPoint);
+                    start.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
+                    start.Insert(Environment.NewLine);
+                }
+            });
 
-                spade.Refresh();
-            }
+            spade.Refresh();
         }
+    }
 
-        /// <summary>
-        /// Determines if the specified item is a candidate for deletion.
-        /// </summary>
-        /// <param name="codeItem">The code item.</param>
-        /// <returns>True if the code item can be deleted, otherwise false.</returns>
-        private static bool IsDeletable(BaseCodeItem codeItem)
-        {
-            return !(codeItem is CodeItemRegion) || !((CodeItemRegion)codeItem).IsPseudoGroup;
-        }
+    /// <summary>
+    /// Determines if the specified item is a candidate for deletion.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>True if the code item can be deleted, otherwise false.</returns>
+
+    private static bool IsDeletable(BaseCodeItem codeItem)
+    {
+        return !(codeItem is CodeItemRegion) || !((CodeItemRegion)codeItem).IsPseudoGroup;
     }
 }

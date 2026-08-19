@@ -1,85 +1,91 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Events
+namespace CodeJanitor.Integration.Events;
+
+/// <summary>
+/// A class that encapsulates listening for document events.
+/// </summary>
+
+internal sealed class DocumentEventListener : BaseEventListener
 {
     /// <summary>
-    /// A class that encapsulates listening for document events.
+    /// Initializes a new instance of the <see cref="DocumentEventListener" /> class.
     /// </summary>
-    internal sealed class DocumentEventListener : BaseEventListener
+    /// <param name="package">The package hosting the event listener.</param>
+
+    private DocumentEventListener(CodeJanitorPackage package)
+        : base(package)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DocumentEventListener" /> class.
-        /// </summary>
-        /// <param name="package">The package hosting the event listener.</param>
-        private DocumentEventListener(CodeJanitorPackage package)
-            : base(package)
+        // Store access to the document events, otherwise events will not register properly via DTE.
+        DocumentEvents = Package.IDE.Events.DocumentEvents;
+    }
+
+    /// <summary>
+    /// An event raised when a document is closing.
+    /// </summary>
+
+    internal event Action<Document> OnDocumentClosing;
+
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static DocumentEventListener Instance { get; private set; }
+
+    /// <summary>
+    /// Gets or sets a pointer to the IDE document events.
+    /// </summary>
+    private DocumentEvents DocumentEvents { get; }
+
+    /// <summary>
+    /// Initializes a singleton instance of this event listener.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new DocumentEventListener(package);
+        await Instance.SwitchAsync(on: true);
+    }
+
+    /// <summary>
+    /// Registers event handlers with the IDE.
+    /// </summary>
+
+    protected override void RegisterListeners()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        DocumentEvents.DocumentClosing += DocumentEvents_DocumentClosing;
+    }
+
+    /// <summary>
+    /// Unregisters event handlers with the IDE.
+    /// </summary>
+
+    protected override void UnRegisterListeners()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        DocumentEvents.DocumentClosing -= DocumentEvents_DocumentClosing;
+    }
+
+    /// <summary>
+    /// An event handler for a document closing.
+    /// </summary>
+    /// <param name="document">The document that is closing.</param>
+
+    private void DocumentEvents_DocumentClosing(Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var onDocumentClosing = OnDocumentClosing;
+        if (onDocumentClosing != null)
         {
-            // Store access to the document events, otherwise events will not register properly via DTE.
-            DocumentEvents = Package.IDE.Events.DocumentEvents;
-        }
+            OutputWindowHelper.DiagnosticWriteLine($"DocumentEventListener.OnDocumentClosing raised for '{(document != null ? document.FullName : "(null)")}'");
 
-        /// <summary>
-        /// An event raised when a document is closing.
-        /// </summary>
-        internal event Action<Document> OnDocumentClosing;
-
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static DocumentEventListener Instance { get; private set; }
-
-        /// <summary>
-        /// Gets or sets a pointer to the IDE document events.
-        /// </summary>
-        private DocumentEvents DocumentEvents { get; }
-
-        /// <summary>
-        /// Initializes a singleton instance of this event listener.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
-        {
-            Instance = new DocumentEventListener(package);
-            await Instance.SwitchAsync(on: true);
-        }
-
-        /// <summary>
-        /// Registers event handlers with the IDE.
-        /// </summary>
-        protected override void RegisterListeners()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            DocumentEvents.DocumentClosing += DocumentEvents_DocumentClosing;
-        }
-
-        /// <summary>
-        /// Unregisters event handlers with the IDE.
-        /// </summary>
-        protected override void UnRegisterListeners()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            DocumentEvents.DocumentClosing -= DocumentEvents_DocumentClosing;
-        }
-
-        /// <summary>
-        /// An event handler for a document closing.
-        /// </summary>
-        /// <param name="document">The document that is closing.</param>
-        private void DocumentEvents_DocumentClosing(Document document)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var onDocumentClosing = OnDocumentClosing;
-            if (onDocumentClosing != null)
-            {
-                OutputWindowHelper.DiagnosticWriteLine($"DocumentEventListener.OnDocumentClosing raised for '{(document != null ? document.FullName : "(null)")}'");
-
-                onDocumentClosing(document);
-            }
+            onDocumentClosing(document);
         }
     }
 }

@@ -1,98 +1,90 @@
-using EnvDTE;
+﻿using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System.Collections.Generic;
 
-namespace CodeJanitor.Model
+namespace CodeJanitor.Model;
+
+/// <summary>
+/// A class for encapsulating a cache of code models.
+/// </summary>
+
+internal sealed class CodeModelCache
 {
+    private readonly Dictionary<string, CodeModel> _cache;
+
     /// <summary>
-    /// A class for encapsulating a cache of code models.
+    /// Initializes a new instance of the <see cref="CodeModelCache" /> class.
     /// </summary>
-    internal class CodeModelCache
+
+    internal CodeModelCache()
     {
-        #region Fields
+        _cache = new Dictionary<string, CodeModel>();
+    }
 
-        private readonly Dictionary<string, CodeModel> _cache;
+    /// <summary>
+    /// Gets a code model for the specified document. If the code model is not present in the
+    /// cache, a new code model will be generated and added to the cache.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>A code model representing the document.</returns>
 
-        #endregion Fields
+    internal CodeModel GetCodeModel(Document document)
+    {
+        CodeModel codeModel;
 
-        #region Constructors
+        OutputWindowHelper.DiagnosticWriteLine($"CodeModelCache.GetCodeModel for '{document.FullName}'");
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CodeModelCache" /> class.
-        /// </summary>
-        internal CodeModelCache()
+        lock (_cache)
         {
-            _cache = new Dictionary<string, CodeModel>();
-        }
-
-        #endregion Constructors
-
-        #region Internal Methods
-
-        /// <summary>
-        /// Gets a code model for the specified document. If the code model is not present in the
-        /// cache, a new code model will be generated and added to the cache.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        /// <returns>A code model representing the document.</returns>
-        internal CodeModel GetCodeModel(Document document)
-        {
-            CodeModel codeModel;
-
-            OutputWindowHelper.DiagnosticWriteLine($"CodeModelCache.GetCodeModel for '{document.FullName}'");
-
-            lock (_cache)
+            if (!_cache.TryGetValue(document.FullName, out codeModel))
             {
-                if (!_cache.TryGetValue(document.FullName, out codeModel))
-                {
-                    codeModel = new CodeModel(document) { IsStale = true };
+                codeModel = new CodeModel(document) { IsStale = true };
 
-                    if (Settings.Default.General_CacheFiles)
-                    {
-                        _cache.Add(document.FullName, codeModel);
-                        OutputWindowHelper.DiagnosticWriteLine("  --added to cache (stale).");
-                    }
-                }
-                else
+                if (Settings.Default.General_CacheFiles)
                 {
-                    OutputWindowHelper.DiagnosticWriteLine(codeModel.IsStale
-                        ? "  --retrieved from cache (stale)."
-                        : "  --retrieved from cache (not stale).");
+                    _cache.Add(document.FullName, codeModel);
+                    OutputWindowHelper.DiagnosticWriteLine("  --added to cache (stale).");
                 }
             }
-
-            return codeModel;
-        }
-
-        /// <summary>
-        /// Removes the code model associated with the specified document if it exists.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        internal void RemoveCodeModel(Document document)
-        {
-            lock (_cache)
+            else
             {
-                if (_cache.Remove(document.FullName))
-                {
-                    OutputWindowHelper.DiagnosticWriteLine($"CodeModelCache.RemoveCodeModel from cache for '{document.FullName}'");
-                }
+                OutputWindowHelper.DiagnosticWriteLine(codeModel.IsStale
+                    ? "  --retrieved from cache (stale)."
+                    : "  --retrieved from cache (not stale).");
             }
         }
 
-        /// <summary>
-        /// Marks the code model associated with the specified document as stale if it exists.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        internal void StaleCodeModel(Document document)
+        return codeModel;
+    }
+
+    /// <summary>
+    /// Removes the code model associated with the specified document if it exists.
+    /// </summary>
+    /// <param name="document">The document.</param>
+
+    internal void RemoveCodeModel(Document document)
+    {
+        lock (_cache)
         {
-            if (_cache.TryGetValue(document.FullName, out CodeModel codeModel))
+            if (_cache.Remove(document.FullName))
             {
-                codeModel.IsStale = true;
-                OutputWindowHelper.DiagnosticWriteLine($"CodeModelCache.StaleCodeModel in cache for '{document.FullName}'");
+                OutputWindowHelper.DiagnosticWriteLine($"CodeModelCache.RemoveCodeModel from cache for '{document.FullName}'");
             }
         }
+    }
 
-        #endregion Internal Methods
+    /// <summary>
+    /// Marks the code model associated with the specified document as stale if it exists.
+    /// </summary>
+    /// <param name="document">The document.</param>
+
+    internal void StaleCodeModel(Document document)
+    {
+        if (_cache.TryGetValue(document.FullName, out CodeModel codeModel))
+        {
+            codeModel.IsStale = true;
+            OutputWindowHelper.DiagnosticWriteLine($"CodeModelCache.StaleCodeModel in cache for '{document.FullName}'");
+        }
     }
 }

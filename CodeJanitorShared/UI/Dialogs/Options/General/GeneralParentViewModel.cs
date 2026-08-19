@@ -1,37 +1,30 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
-namespace CodeJanitor.UI.Dialogs.Options.General
+namespace CodeJanitor.UI.Dialogs.Options.General;
+
+/// <summary>
+/// The view model for the General category - hosts the general and features view models as tabs.
+/// </summary>
+
+public class GeneralParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
-    /// The view model for the General category - hosts the general and features view models as tabs.
+    /// Initializes a new instance of the <see cref="GeneralParentViewModel" /> class.
     /// </summary>
-    public class GeneralParentViewModel : CompositeOptionsPageViewModel
-    {
-        #region Constructors
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GeneralParentViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public GeneralParentViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings, new OptionsPageViewModel[]
-            {
-                new GeneralViewModel(package, activeSettings),
-                new FeaturesViewModel(package, activeSettings),
-            })
+    public GeneralParentViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings, new OptionsPageViewModel[]
         {
-        }
-
-        #endregion Constructors
-
-        #region Overrides of OptionsPageViewModel
-
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.General;
-
-        #endregion Overrides of OptionsPageViewModel
+            new GeneralViewModel(package, activeSettings),
+            new FeaturesViewModel(package, activeSettings),
+        })
+    {
     }
+
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.General;
 }

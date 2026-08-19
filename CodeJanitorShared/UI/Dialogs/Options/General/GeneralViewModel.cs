@@ -1,101 +1,96 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
-namespace CodeJanitor.UI.Dialogs.Options.General
+namespace CodeJanitor.UI.Dialogs.Options.General;
+
+/// <summary>
+/// The view model for general options.
+/// </summary>
+
+public class GeneralViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// The view model for general options.
+    /// Initializes a new instance of the <see cref="GeneralViewModel" /> class.
     /// </summary>
-    public class GeneralViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    public GeneralViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings)
     {
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GeneralViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public GeneralViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings)
+        Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
-            Mappings = new SettingsToOptionsList(ActiveSettings, this)
-            {
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_CacheFiles, x => CacheFiles),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_DiagnosticsMode, x => DiagnosticsMode),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_LoadModelsAsynchronously, x => LoadModelsAsynchronously),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_ShowStartPageOnSolutionClose, x => ShowStartPageOnSolutionClose),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_SkipUndoTransactionsDuringAutoCleanupOnSave, x => SkipUndoTransactionsDuringAutoCleanupOnSave),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_UseUndoTransactions, x => UseUndoTransactions)
-            };
-        }
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_CacheFiles, x => CacheFiles),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_DiagnosticsMode, x => DiagnosticsMode),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_LoadModelsAsynchronously, x => LoadModelsAsynchronously),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_ShowStartPageOnSolutionClose, x => ShowStartPageOnSolutionClose),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_SkipUndoTransactionsDuringAutoCleanupOnSave, x => SkipUndoTransactionsDuringAutoCleanupOnSave),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.General_UseUndoTransactions, x => UseUndoTransactions)
+        };
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.General;
 
-        #region Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets the flag indicating if files should be cached.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.General;
+    public bool CacheFiles
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        #endregion Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets the flag indicating if diagnostics mode should be enabled.
+    /// </summary>
 
-        #region Options
+    public bool DiagnosticsMode
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        /// <summary>
-        /// Gets or sets the flag indicating if files should be cached.
-        /// </summary>
-        public bool CacheFiles
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    /// <summary>
+    /// Gets or sets the flag indicating if models can be loaded asynchronously.
+    /// </summary>
 
-        /// <summary>
-        /// Gets or sets the flag indicating if diagnostics mode should be enabled.
-        /// </summary>
-        public bool DiagnosticsMode
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    public bool LoadModelsAsynchronously
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        /// <summary>
-        /// Gets or sets the flag indicating if models can be loaded asynchronously.
-        /// </summary>
-        public bool LoadModelsAsynchronously
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    /// <summary>
+    /// Gets or sets the flag indicating if the start page should be shown when the solution is closed.
+    /// </summary>
 
-        /// <summary>
-        /// Gets or sets the flag indicating if the start page should be shown when the solution is closed.
-        /// </summary>
-        public bool ShowStartPageOnSolutionClose
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    public bool ShowStartPageOnSolutionClose
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        /// <summary>
-        /// Gets or sets the flag indicating if undo transactions should not be used during auto
-        /// cleanup on save.
-        /// </summary>
-        public bool SkipUndoTransactionsDuringAutoCleanupOnSave
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    /// <summary>
+    /// Gets or sets the flag indicating if undo transactions should not be used during auto
+    /// cleanup on save.
+    /// </summary>
 
-        /// <summary>
-        /// Gets or sets a flag indicating if undo transactions should be utilized.
-        /// </summary>
-        public bool UseUndoTransactions
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    public bool SkipUndoTransactionsDuringAutoCleanupOnSave
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        #endregion Options
+    /// <summary>
+    /// Gets or sets a flag indicating if undo transactions should be utilized.
+    /// </summary>
+
+    public bool UseUndoTransactions
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
     }
 }

@@ -22,7 +22,6 @@
                         <ToggleButton Content="{x:Static p:Resources.BeforeClosingAngleBrackets}" IsChecked="{Binding RemoveBlankSpacesBeforeClosingAngleBrackets}" />
                     </WrapPanel>
 
-                    <CheckBox Content="{x:Static p:Resources.RemoveEndOfFileTrailingNewLine}" IsChecked="{Binding RemoveEndOfFileTrailingNewLine}" />
                     <CheckBox Content="{x:Static p:Resources.RemoveEndOfLineWhitespace}" IsChecked="{Binding RemoveEndOfLineWhitespace}" />
                     <CheckBox Content="{x:Static p:Resources.RemoveMultipleConsecutiveBlankLines}" IsChecked="{Binding RemoveMultipleConsecutiveBlankLines}" />
                 </StackPanel>

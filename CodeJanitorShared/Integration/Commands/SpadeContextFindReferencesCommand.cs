@@ -1,79 +1,83 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Model.CodeItems;
 using System.Linq;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for finding references of a member within Spade.
+/// </summary>
+
+internal sealed class SpadeContextFindReferencesCommand : BaseCommand
 {
     /// <summary>
-    /// A command that provides for finding references of a member within Spade.
+    /// Initializes a new instance of the <see cref="SpadeContextFindReferencesCommand" /> class.
     /// </summary>
-    internal sealed class SpadeContextFindReferencesCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal SpadeContextFindReferencesCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextFindReferences)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SpadeContextFindReferencesCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal SpadeContextFindReferencesCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextFindReferences)
-        {
-        }
+    }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static SpadeContextFindReferencesCommand Instance { get; private set; }
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static SpadeContextFindReferencesCommand Instance { get; private set; }
 
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
-        {
-            Instance = new SpadeContextFindReferencesCommand(package);
-            await Instance.SwitchAsync(on: true);
-        }
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
 
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var spade = Package.Spade;
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new SpadeContextFindReferencesCommand(package);
+        await Instance.SwitchAsync(on: true);
+    }
 
-            Visible = spade != null && spade.SelectedItems.OfType<BaseCodeItemElement>().Count() == 1;
-        }
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
 
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            base.OnExecute();
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var spade = Package.Spade;
 
-            var spade = Package.Spade;
+        Visible = spade != null && spade.SelectedItems.OfType<BaseCodeItemElement>().Count() == 1;
+    }
 
-            var item = spade?.SelectedItems.OfType<BaseCodeItemElement>().FirstOrDefault();
-            if (item == null) return;
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
 
-            var document = spade.Document;
-            if (document == null) return;
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
 
-            var selection = ((TextSelection)document.Selection);
+        var spade = Package.Spade;
 
-            // Activate the document and set the cursor position to set the command context.
-            document.Activate();
-            selection.MoveToPoint(item.CodeElement.StartPoint);
-            selection.FindText(item.Name, (int)vsFindOptions.vsFindOptionsMatchInHiddenText);
-            selection.MoveToPoint(selection.AnchorPoint);
+        var item = spade?.SelectedItems.OfType<BaseCodeItemElement>().FirstOrDefault();
+        if (item == null) return;
 
-            // Invoke the command.
-            Package.IDE.ExecuteCommand("Edit.FindAllReferences");
-        }
+        var document = spade.Document;
+        if (document == null) return;
+
+        var selection = ((TextSelection)document.Selection);
+
+        // Activate the document and set the cursor position to set the command context.
+        document.Activate();
+        selection.MoveToPoint(item.CodeElement.StartPoint);
+        selection.FindText(item.Name, (int)vsFindOptions.vsFindOptionsMatchInHiddenText);
+        selection.MoveToPoint(selection.AnchorPoint);
+
+        // Invoke the command.
+        Package.IDE.ExecuteCommand("Edit.FindAllReferences");
     }
 }

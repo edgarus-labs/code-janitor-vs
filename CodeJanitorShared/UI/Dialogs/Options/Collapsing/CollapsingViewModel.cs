@@ -1,60 +1,51 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
-namespace CodeJanitor.UI.Dialogs.Options.Collapsing
+namespace CodeJanitor.UI.Dialogs.Options.Collapsing;
+
+/// <summary>
+/// The view model for collapsing options.
+/// </summary>
+
+public class CollapsingViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// The view model for collapsing options.
+    /// Initializes a new instance of the <see cref="CollapsingViewModel" /> class.
     /// </summary>
-    public class CollapsingViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    public CollapsingViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings)
     {
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CollapsingViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public CollapsingViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings)
+        Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
-            Mappings = new SettingsToOptionsList(ActiveSettings, this)
-            {
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Collapsing_CollapseSolutionWhenOpened, x => CollapseSolutionWhenOpened),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Collapsing_KeepSoloProjectExpanded, x => KeepSoloProjectExpanded)
-            };
-        }
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Collapsing_CollapseSolutionWhenOpened, x => CollapseSolutionWhenOpened),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Collapsing_KeepSoloProjectExpanded, x => KeepSoloProjectExpanded)
+        };
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.CollapsingViewModel_Collapsing;
 
-        #region Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets a flag indicating if the solution should be collapsed when it is opened.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.CollapsingViewModel_Collapsing;
+    public bool CollapseSolutionWhenOpened
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        #endregion Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets a flag indicating if a solo project should be kept expanded.
+    /// </summary>
 
-        #region Options
-
-        /// <summary>
-        /// Gets or sets a flag indicating if the solution should be collapsed when it is opened.
-        /// </summary>
-        public bool CollapseSolutionWhenOpened
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if a solo project should be kept expanded.
-        /// </summary>
-        public bool KeepSoloProjectExpanded
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        #endregion Options
+    public bool KeepSoloProjectExpanded
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
     }
 }

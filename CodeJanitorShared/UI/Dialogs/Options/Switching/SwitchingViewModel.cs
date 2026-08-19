@@ -1,50 +1,40 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
-namespace CodeJanitor.UI.Dialogs.Options.Switching
+namespace CodeJanitor.UI.Dialogs.Options.Switching;
+
+/// <summary>
+/// The view model for switching options.
+/// </summary>
+
+public class SwitchingViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// The view model for switching options.
+    /// Initializes a new instance of the <see cref="SwitchingViewModel" /> class.
     /// </summary>
-    public class SwitchingViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    public SwitchingViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings)
     {
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SwitchingViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public SwitchingViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings)
+        Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
-            Mappings = new SettingsToOptionsList(ActiveSettings, this)
-            {
-                new SettingToOptionMapping<string, string>(x => ActiveSettings.Switching_RelatedFileExtensionsExpression, x => RelatedFileExtensionsExpression)
-            };
-        }
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Switching_RelatedFileExtensionsExpression, x => RelatedFileExtensionsExpression)
+        };
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.SwitchingViewModel_Switching;
 
-        #region Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets the expression for related file extensions.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.SwitchingViewModel_Switching;
-
-        #endregion Overrides of OptionsPageViewModel
-
-        #region Options
-
-        /// <summary>
-        /// Gets or sets the expression for related file extensions.
-        /// </summary>
-        public string RelatedFileExtensionsExpression
-        {
-            get { return GetPropertyValue<string>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        #endregion Options
+    public string RelatedFileExtensionsExpression
+    {
+        get { return GetPropertyValue<string>(); }
+        set { SetPropertyValue(value); }
     }
 }

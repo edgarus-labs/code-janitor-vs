@@ -1,13 +1,13 @@
-namespace CodeJanitor.Model.CodeItems
+﻿namespace CodeJanitor.Model.CodeItems;
+
+/// <summary>
+/// Represents an item that can implement an interface member.
+/// </summary>
+
+public interface IInterfaceItem
 {
     /// <summary>
-    /// Represents an item that can implement an interface member.
+    /// Gets a flag indicating if this is an explicit interface implementation.
     /// </summary>
-    public interface IInterfaceItem
-    {
-        /// <summary>
-        /// Gets a flag indicating if this is an explicit interface implementation.
-        /// </summary>
-        bool IsExplicitInterfaceImplementation { get; }
-    }
+    bool IsExplicitInterfaceImplementation { get; }
 }

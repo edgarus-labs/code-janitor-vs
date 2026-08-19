@@ -1,88 +1,93 @@
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model.CodeItems;
 using System.Linq;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for removing a region within Spade.
+/// </summary>
+
+internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
 {
+    private readonly RemoveRegionLogic _removeRegionLogic;
+
     /// <summary>
-    /// A command that provides for removing a region within Spade.
+    /// Initializes a new instance of the <see cref="SpadeContextRemoveRegionCommand" /> class.
     /// </summary>
-    internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal SpadeContextRemoveRegionCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextRemoveRegion)
     {
-        private readonly RemoveRegionLogic _removeRegionLogic;
+        _removeRegionLogic = RemoveRegionLogic.GetInstance(package);
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SpadeContextRemoveRegionCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal SpadeContextRemoveRegionCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextRemoveRegion)
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static SpadeContextRemoveRegionCommand Instance { get; private set; }
+
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new SpadeContextRemoveRegionCommand(package);
+        await Instance.SwitchAsync(on: true);
+    }
+
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
+
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        bool visible = false;
+
+        var spade = Package.Spade;
+        if (spade != null)
         {
-            _removeRegionLogic = RemoveRegionLogic.GetInstance(package);
+            visible = spade.SelectedItems.OfType<CodeItemRegion>().Any(IsRemoveableRegion);
         }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static SpadeContextRemoveRegionCommand Instance { get; private set; }
+        Visible = visible;
+    }
 
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
+
+        var spade = Package.Spade;
+        if (spade != null)
         {
-            Instance = new SpadeContextRemoveRegionCommand(package);
-            await Instance.SwitchAsync(on: true);
+            var regions = spade.SelectedItems.OfType<CodeItemRegion>().Where(IsRemoveableRegion);
+            _removeRegionLogic.RemoveRegions(regions);
+
+            spade.Refresh();
         }
+    }
 
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            bool visible = false;
+    /// <summary>
+    /// Determines if the specified region is a candidate for removal.
+    /// </summary>
+    /// <param name="region">The region.</param>
+    /// <returns>True if the region can be removed, otherwise false.</returns>
 
-            var spade = Package.Spade;
-            if (spade != null)
-            {
-                visible = spade.SelectedItems.OfType<CodeItemRegion>().Any(IsRemoveableRegion);
-            }
-
-            Visible = visible;
-        }
-
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            base.OnExecute();
-
-            var spade = Package.Spade;
-            if (spade != null)
-            {
-                var regions = spade.SelectedItems.OfType<CodeItemRegion>().Where(IsRemoveableRegion);
-                _removeRegionLogic.RemoveRegions(regions);
-
-                spade.Refresh();
-            }
-        }
-
-        /// <summary>
-        /// Determines if the specified region is a candidate for removal.
-        /// </summary>
-        /// <param name="region">The region.</param>
-        /// <returns>True if the region can be removed, otherwise false.</returns>
-        private static bool IsRemoveableRegion(CodeItemRegion region)
-        {
-            return !region.IsPseudoGroup && region.StartLine > 0 && region.EndLine > 0;
-        }
+    private static bool IsRemoveableRegion(CodeItemRegion region)
+    {
+        return !region.IsPseudoGroup && region.StartLine > 0 && region.EndLine > 0;
     }
 }

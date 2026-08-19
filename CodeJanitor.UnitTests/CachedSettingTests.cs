@@ -1,83 +1,84 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 
-namespace CodeJanitor.UnitTests
+namespace CodeJanitor.UnitTests;
+
+[TestClass]
+public class CachedSettingTests
 {
-    [TestClass]
-    public class CachedSettingTests
+    private int _lookupCount;
+    private int _parseCount;
+    private CachedSetting<MemberTypeSetting> _cachedSetting;
+
+    [TestInitialize]
+    public void TestInitialize()
     {
-        private int _lookupCount;
-        private int _parseCount;
-        private CachedSetting<MemberTypeSetting> _cachedSetting;
+        Settings.Default.Reset();
 
-        [TestInitialize]
-        public void TestInitialize()
-        {
-            Settings.Default.Reset();
+        _lookupCount = 0;
+        _parseCount = 0;
+        _cachedSetting = new CachedSetting<MemberTypeSetting>(
+           () =>
+           {
+               _lookupCount++;
 
-            _lookupCount = 0;
-            _parseCount = 0;
-            _cachedSetting = new CachedSetting<MemberTypeSetting>(
-               () =>
-               {
-                   _lookupCount++;
-                   return Settings.Default.Reorganizing_MemberTypeFields;
-               },
-               x =>
-               {
-                   _parseCount++;
-                   return (MemberTypeSetting)x;
-               });
+               return Settings.Default.Reorganizing_MemberTypeFields;
+           },
+           x =>
+           {
+               _parseCount++;
 
-            Assert.AreEqual(0, _lookupCount);
-            Assert.AreEqual(0, _parseCount);
-            Assert.IsNotNull(_cachedSetting);
-        }
+               return (MemberTypeSetting)x;
+           });
 
-        [TestMethod]
-        public void CachedSettingCanLookupAndParse()
-        {
-            var memberTypeSetting = _cachedSetting.Value;
+        Assert.AreEqual(0, _lookupCount);
+        Assert.AreEqual(0, _parseCount);
+        Assert.IsNotNull(_cachedSetting);
+    }
 
-            Assert.IsNotNull(memberTypeSetting);
-            Assert.AreEqual(1, _lookupCount);
-            Assert.AreEqual(1, _parseCount);
-        }
+    [TestMethod]
+    public void CachedSettingCanLookupAndParse()
+    {
+        var memberTypeSetting = _cachedSetting.Value;
 
-        [TestMethod]
-        public void CachedSettingUsesCacheOnSecondLookup()
-        {
-            var memberTypeSetting = _cachedSetting.Value;
+        Assert.IsNotNull(memberTypeSetting);
+        Assert.AreEqual(1, _lookupCount);
+        Assert.AreEqual(1, _parseCount);
+    }
 
-            Assert.IsNotNull(memberTypeSetting);
-            Assert.AreEqual(1, _lookupCount);
-            Assert.AreEqual(1, _parseCount);
+    [TestMethod]
+    public void CachedSettingUsesCacheOnSecondLookup()
+    {
+        var memberTypeSetting = _cachedSetting.Value;
 
-            var memberTypeSetting2 = _cachedSetting.Value;
+        Assert.IsNotNull(memberTypeSetting);
+        Assert.AreEqual(1, _lookupCount);
+        Assert.AreEqual(1, _parseCount);
 
-            Assert.IsNotNull(memberTypeSetting2);
-            Assert.AreEqual(2, _lookupCount);
-            Assert.AreEqual(1, _parseCount);
-        }
+        var memberTypeSetting2 = _cachedSetting.Value;
 
-        [TestMethod]
-        public void CachedSettingReParsesOnChange()
-        {
-            var memberTypeSetting = _cachedSetting.Value;
+        Assert.IsNotNull(memberTypeSetting2);
+        Assert.AreEqual(2, _lookupCount);
+        Assert.AreEqual(1, _parseCount);
+    }
 
-            Assert.IsNotNull(memberTypeSetting);
-            Assert.AreEqual(1, _lookupCount);
-            Assert.AreEqual(1, _parseCount);
+    [TestMethod]
+    public void CachedSettingReParsesOnChange()
+    {
+        var memberTypeSetting = _cachedSetting.Value;
 
-            memberTypeSetting.EffectiveName = "Member Variables";
-            Settings.Default.Reorganizing_MemberTypeFields = (string)memberTypeSetting;
+        Assert.IsNotNull(memberTypeSetting);
+        Assert.AreEqual(1, _lookupCount);
+        Assert.AreEqual(1, _parseCount);
 
-            var memberTypeSetting2 = _cachedSetting.Value;
+        memberTypeSetting.EffectiveName = "Member Variables";
+        Settings.Default.Reorganizing_MemberTypeFields = (string)memberTypeSetting;
 
-            Assert.IsNotNull(memberTypeSetting2);
-            Assert.AreEqual(2, _lookupCount);
-            Assert.AreEqual(2, _parseCount);
-        }
+        var memberTypeSetting2 = _cachedSetting.Value;
+
+        Assert.IsNotNull(memberTypeSetting2);
+        Assert.AreEqual(2, _lookupCount);
+        Assert.AreEqual(2, _parseCount);
     }
 }

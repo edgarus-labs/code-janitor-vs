@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System.Collections.Generic;
@@ -6,64 +6,68 @@ using System.Linq;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for collapsing selected nodes in the solution explorer tool window.
+/// </summary>
+
+internal sealed class CollapseSelectedSolutionExplorerCommand : BaseCommand
 {
     /// <summary>
-    /// A command that provides for collapsing selected nodes in the solution explorer tool window.
+    /// Initializes a new instance of the <see cref="CollapseSelectedSolutionExplorerCommand" /> class.
     /// </summary>
-    internal sealed class CollapseSelectedSolutionExplorerCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal CollapseSelectedSolutionExplorerCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCollapseSelectedSolutionExplorer)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CollapseSelectedSolutionExplorerCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal CollapseSelectedSolutionExplorerCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCollapseSelectedSolutionExplorer)
+    }
+
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static CollapseSelectedSolutionExplorerCommand Instance { get; private set; }
+
+    /// <summary>
+    /// Gets an enumerable collection of the selected UI hierarchy items.
+    /// </summary>
+    private IEnumerable<UIHierarchyItem> SelectedUIHierarchyItems => UIHierarchyHelper.GetSelectedUIHierarchyItems(Package);
+
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new CollapseSelectedSolutionExplorerCommand(package);
+        await package.SettingsMonitor.WatchAsync(s => s.Feature_CollapseSelectedSolutionExplorer, Instance.SwitchAsync);
+    }
+
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
+
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        Enabled = SelectedUIHierarchyItems.Any(x => x.UIHierarchyItems.Expanded);
+    }
+
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
+
+        foreach (UIHierarchyItem item in SelectedUIHierarchyItems)
         {
-        }
-
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static CollapseSelectedSolutionExplorerCommand Instance { get; private set; }
-
-        /// <summary>
-        /// Gets an enumerable collection of the selected UI hierarchy items.
-        /// </summary>
-        private IEnumerable<UIHierarchyItem> SelectedUIHierarchyItems => UIHierarchyHelper.GetSelectedUIHierarchyItems(Package);
-
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
-        {
-            Instance = new CollapseSelectedSolutionExplorerCommand(package);
-            await package.SettingsMonitor.WatchAsync(s => s.Feature_CollapseSelectedSolutionExplorer, Instance.SwitchAsync);
-        }
-
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            Enabled = SelectedUIHierarchyItems.Any(x => x.UIHierarchyItems.Expanded);
-        }
-
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            base.OnExecute();
-
-            foreach (UIHierarchyItem item in SelectedUIHierarchyItems)
-            {
-                UIHierarchyHelper.CollapseRecursively(item);
-            }
+            UIHierarchyHelper.CollapseRecursively(item);
         }
     }
 }

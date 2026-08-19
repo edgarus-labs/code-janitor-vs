@@ -1,34 +1,35 @@
-using CodeJanitor.Model.CodeItems;
+﻿using CodeJanitor.Model.CodeItems;
 
-namespace CodeJanitor.Helpers
+namespace CodeJanitor.Helpers;
+
+/// <summary>
+/// A set of extension methods for <see cref="ICodeItemParent" />.
+/// </summary>
+
+public static class CodeItemParentExtensions
 {
     /// <summary>
-    /// A set of extension methods for <see cref="ICodeItemParent" />.
+    /// Recursively gets the children in a depth-first fashion for the specified parent without
+    /// delving into nested element parents.
     /// </summary>
-    public static class CodeItemParentExtensions
+    /// <param name="parent">The parent.</param>
+    /// <returns>The recursive set of children.</returns>
+
+    public static SetCodeItems GetChildrenRecursive(this ICodeItemParent parent)
     {
-        /// <summary>
-        /// Recursively gets the children in a depth-first fashion for the specified parent without
-        /// delving into nested element parents.
-        /// </summary>
-        /// <param name="parent">The parent.</param>
-        /// <returns>The recursive set of children.</returns>
-        public static SetCodeItems GetChildrenRecursive(this ICodeItemParent parent)
+        var children = new SetCodeItems();
+
+        foreach (var child in parent.Children)
         {
-            var children = new SetCodeItems();
+            children.Add(child);
 
-            foreach (var child in parent.Children)
+            var childAsParent = child as ICodeItemParent;
+            if (childAsParent != null && !(child is BaseCodeItemElementParent))
             {
-                children.Add(child);
-
-                var childAsParent = child as ICodeItemParent;
-                if (childAsParent != null && !(child is BaseCodeItemElementParent))
-                {
-                    children.AddRange(childAsParent.GetChildrenRecursive());
-                }
+                children.AddRange(childAsParent.GetChildrenRecursive());
             }
-
-            return children;
         }
+
+        return children;
     }
 }

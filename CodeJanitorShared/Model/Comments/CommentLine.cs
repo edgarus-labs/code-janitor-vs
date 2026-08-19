@@ -1,17 +1,16 @@
-namespace CodeJanitor.Model.Comments
+﻿namespace CodeJanitor.Model.Comments;
+
+internal class CommentLine : ICommentLine
 {
-    internal class CommentLine : ICommentLine
+    public CommentLine(string content)
     {
-        public CommentLine(string content)
+        if (!string.IsNullOrWhiteSpace(content))
         {
-            if (!string.IsNullOrWhiteSpace(content))
-            {
-                this.Content = content;
-            }
+            this.Content = content;
         }
-
-        public string Content { get; protected set; }
-
-        public bool IsLast { get; internal set; }
     }
+
+    public string Content { get; protected set; }
+
+    public bool IsLast { get; internal set; }
 }

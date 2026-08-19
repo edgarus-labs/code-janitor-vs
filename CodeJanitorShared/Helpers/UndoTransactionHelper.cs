@@ -1,85 +1,75 @@
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
 using System;
 
-namespace CodeJanitor.Helpers
+namespace CodeJanitor.Helpers;
+
+/// <summary>
+/// A helper class for performing actions within the context of an undo transaction.
+/// </summary>
+
+public class UndoTransactionHelper
 {
+    private readonly CodeJanitorPackage _package;
+    private readonly string _transactionName;
+
     /// <summary>
-    /// A helper class for performing actions within the context of an undo transaction.
+    /// Initializes a new instance of the <see cref="UndoTransactionHelper" /> class.
     /// </summary>
-    public class UndoTransactionHelper
+    /// <param name="package">The hosting package.</param>
+    /// <param name="transactionName">The name of the transaction.</param>
+
+    public UndoTransactionHelper(CodeJanitorPackage package, string transactionName)
     {
-        #region Fields
+        _package = package;
+        _transactionName = transactionName;
+    }
 
-        private readonly CodeJanitorPackage _package;
-        private readonly string _transactionName;
+    /// <summary>
+    /// Runs the specified try action within a try block, and conditionally the catch action
+    /// within a catch block all conditionally within the context of an undo transaction.
+    /// </summary>
+    /// <param name="tryAction">The action to be performed within a try block.</param>
+    /// <param name="catchAction">The action to be performed wihin a catch block.</param>
 
-        #endregion Fields
+    public void Run(Action tryAction, Action<Exception> catchAction = null)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        bool shouldCloseUndoContext = false;
 
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UndoTransactionHelper" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="transactionName">The name of the transaction.</param>
-        public UndoTransactionHelper(CodeJanitorPackage package, string transactionName)
+        // Start an undo transaction (unless inside one already or within an auto save context).
+        if (Settings.Default.General_UseUndoTransactions && !_package.IDE.UndoContext.IsOpen &&
+            !(_package.IsAutoSaveContext && Settings.Default.General_SkipUndoTransactionsDuringAutoCleanupOnSave))
         {
-            _package = package;
-            _transactionName = transactionName;
+            _package.IDE.UndoContext.Open(_transactionName);
+            shouldCloseUndoContext = true;
         }
 
-        #endregion Constructors
-
-        #region Methods
-
-        /// <summary>
-        /// Runs the specified try action within a try block, and conditionally the catch action
-        /// within a catch block all conditionally within the context of an undo transaction.
-        /// </summary>
-        /// <param name="tryAction">The action to be performed within a try block.</param>
-        /// <param name="catchAction">The action to be performed wihin a catch block.</param>
-        public void Run(Action tryAction, Action<Exception> catchAction = null)
+        try
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            bool shouldCloseUndoContext = false;
+            tryAction();
+        }
+        catch (Exception ex)
+        {
+            var message = $"{_transactionName}{Resources.WasStopped}";
+            OutputWindowHelper.ExceptionWriteLine(message, ex);
+            _package.IDE.StatusBar.Text = $"{message}{Resources.SeeOutputWindowForMoreDetails}";
 
-            // Start an undo transaction (unless inside one already or within an auto save context).
-            if (Settings.Default.General_UseUndoTransactions && !_package.IDE.UndoContext.IsOpen &&
-                !(_package.IsAutoSaveContext && Settings.Default.General_SkipUndoTransactionsDuringAutoCleanupOnSave))
-            {
-                _package.IDE.UndoContext.Open(_transactionName);
-                shouldCloseUndoContext = true;
-            }
+            catchAction?.Invoke(ex);
 
-            try
+            if (shouldCloseUndoContext)
             {
-                tryAction();
-            }
-            catch (Exception ex)
-            {
-                var message = $"{_transactionName}{Resources.WasStopped}";
-                OutputWindowHelper.ExceptionWriteLine(message, ex);
-                _package.IDE.StatusBar.Text = $"{message}{Resources.SeeOutputWindowForMoreDetails}";
-
-                catchAction?.Invoke(ex);
-
-                if (shouldCloseUndoContext)
-                {
-                    _package.IDE.UndoContext.SetAborted();
-                    shouldCloseUndoContext = false;
-                }
-            }
-            finally
-            {
-                // Always close the undo transaction to prevent ongoing interference with the IDE.
-                if (shouldCloseUndoContext)
-                {
-                    _package.IDE.UndoContext.Close();
-                }
+                _package.IDE.UndoContext.SetAborted();
+                shouldCloseUndoContext = false;
             }
         }
-
-        #endregion Methods
+        finally
+        {
+            // Always close the undo transaction to prevent ongoing interference with the IDE.
+            if (shouldCloseUndoContext)
+            {
+                _package.IDE.UndoContext.Close();
+            }
+        }
     }
 }

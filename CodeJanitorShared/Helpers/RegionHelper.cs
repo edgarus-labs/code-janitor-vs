@@ -1,87 +1,83 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 
-namespace CodeJanitor.Helpers
+namespace CodeJanitor.Helpers;
+
+/// <summary>
+/// A static helper class for working with regions.
+/// </summary>
+
+internal static class RegionHelper
 {
-    /// <summary>
-    /// A static helper class for working with regions.
-    /// </summary>
-    internal static class RegionHelper
+    internal static string GetRegionName(EditPoint editPoint, string regionText)
     {
-        #region Internal Methods
-
-        internal static string GetRegionName(EditPoint editPoint, string regionText)
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var codeLanguage = editPoint.GetCodeLanguage();
+        switch (codeLanguage)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var codeLanguage = editPoint.GetCodeLanguage();
-            switch (codeLanguage)
-            {
-                case CodeLanguage.CSharp:
-                    return regionText.Substring(8).Trim();
+            case CodeLanguage.CSharp:
+                return regionText.Substring(8).Trim();
 
-                case CodeLanguage.VisualBasic:
-                    // Remove the leading/trailing double quote character.
-                    var text = regionText.Substring(8).Trim();
-                    text = text.Substring(1, text.Length - 2);
-                    return text;
+            case CodeLanguage.VisualBasic:
+                // Remove the leading/trailing double quote character.
+                var text = regionText.Substring(8).Trim();
+                text = text.Substring(1, text.Length - 2);
+                return text;
 
-                default:
-                    throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");
-            }
+            default:
+                throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");
         }
+    }
 
-        internal static string GetRegionTagText(EditPoint editPoint, string name = null)
+    internal static string GetRegionTagText(EditPoint editPoint, string name = null)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var codeLanguage = editPoint.GetCodeLanguage();
+        switch (codeLanguage)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var codeLanguage = editPoint.GetCodeLanguage();
-            switch (codeLanguage)
-            {
-                case CodeLanguage.CSharp:
-                    return "#region " +
-                           (name ?? string.Empty);
+            case CodeLanguage.CSharp:
+                return "#region " +
+                       (name ?? string.Empty);
 
-                case CodeLanguage.VisualBasic:
-                    return "#Region " +
-                           (name != null ? $"\"{name}\"" : string.Empty);
+            case CodeLanguage.VisualBasic:
+                return "#Region " +
+                       (name != null ? $"\"{name}\"" : string.Empty);
 
-                default:
-                    throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");
-            }
+            default:
+                throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");
         }
+    }
 
-        internal static string GetEndRegionTagText(EditPoint editPoint)
+    internal static string GetEndRegionTagText(EditPoint editPoint)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var codeLanguage = editPoint.GetCodeLanguage();
+        switch (codeLanguage)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var codeLanguage = editPoint.GetCodeLanguage();
-            switch (codeLanguage)
-            {
-                case CodeLanguage.CSharp:
-                    return "#endregion";
+            case CodeLanguage.CSharp:
+                return "#endregion";
 
-                case CodeLanguage.VisualBasic:
-                    return "#End Region";
+            case CodeLanguage.VisualBasic:
+                return "#End Region";
 
-                default:
-                    throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");
-            }
+            default:
+                throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");
         }
+    }
 
-        internal static bool LanguageSupportsUpdatingEndRegionDirectives(EditPoint editPoint)
+    internal static bool LanguageSupportsUpdatingEndRegionDirectives(EditPoint editPoint)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var codeLanguage = editPoint.GetCodeLanguage();
+
+        switch (codeLanguage)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var codeLanguage = editPoint.GetCodeLanguage();
+            case CodeLanguage.CSharp:
+                return true;
 
-            switch (codeLanguage)
-            {
-                case CodeLanguage.CSharp:
-                    return true;
-
-                default:
-                    return false;
-            }
+            default:
+                return false;
         }
-
-        #endregion Internal Methods
     }
 }

@@ -1,72 +1,64 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 
-namespace CodeJanitor.UI.Dialogs.Options.Cleaning
+namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
+
+/// <summary>
+/// The view model for cleaning general options.
+/// </summary>
+
+public class CleaningGeneralViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// The view model for cleaning general options.
+    /// Initializes a new instance of the <see cref="CleaningGeneralViewModel" /> class.
     /// </summary>
-    public class CleaningGeneralViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    public CleaningGeneralViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings)
     {
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CleaningGeneralViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public CleaningGeneralViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings)
+        Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
-            Mappings = new SettingsToOptionsList(ActiveSettings, this)
-            {
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AutoCleanupOnFileSave, x => AutoCleanupOnFileSave),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AutoSaveAndCloseIfOpenedByCleanup, x => AutoSaveAndCloseIfOpenedByCleanup),
-                new SettingToOptionMapping<int, AskYesNo>(x => ActiveSettings.Cleaning_PerformPartialCleanupOnExternal, x => PerformPartialCleanupOnExternal)
-            };
-        }
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AutoCleanupOnFileSave, x => AutoCleanupOnFileSave),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AutoSaveAndCloseIfOpenedByCleanup, x => AutoSaveAndCloseIfOpenedByCleanup),
+            new SettingToOptionMapping<int, AskYesNo>(x => ActiveSettings.Cleaning_PerformPartialCleanupOnExternal, x => PerformPartialCleanupOnExternal)
+        };
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.General;
 
-        #region Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets the flag indicating if cleanup should run automatically on file save.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.General;
+    public bool AutoCleanupOnFileSave
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        #endregion Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets the flag indicating if files should be automatically saved and closed if
+    /// opened by cleanup.
+    /// </summary>
 
-        #region Options
+    public bool AutoSaveAndCloseIfOpenedByCleanup
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        /// <summary>
-        /// Gets or sets the flag indicating if cleanup should run automatically on file save.
-        /// </summary>
-        public bool AutoCleanupOnFileSave
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    /// <summary>
+    /// Gets or sets the options for performing partial cleanup on external files.
+    /// </summary>
 
-        /// <summary>
-        /// Gets or sets the flag indicating if files should be automatically saved and closed if
-        /// opened by cleanup.
-        /// </summary>
-        public bool AutoSaveAndCloseIfOpenedByCleanup
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the options for performing partial cleanup on external files.
-        /// </summary>
-        public AskYesNo PerformPartialCleanupOnExternal
-        {
-            get { return GetPropertyValue<AskYesNo>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        #endregion Options
+    public AskYesNo PerformPartialCleanupOnExternal
+    {
+        get { return GetPropertyValue<AskYesNo>(); }
+        set { SetPropertyValue(value); }
     }
 }

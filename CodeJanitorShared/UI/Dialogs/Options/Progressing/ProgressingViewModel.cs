@@ -1,70 +1,62 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
-namespace CodeJanitor.UI.Dialogs.Options.Progressing
+namespace CodeJanitor.UI.Dialogs.Options.Progressing;
+
+/// <summary>
+/// The view model for progressing options.
+/// </summary>
+
+public class ProgressingViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// The view model for progressing options.
+    /// Initializes a new instance of the <see cref="ProgressingViewModel" /> class.
     /// </summary>
-    public class ProgressingViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    public ProgressingViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings)
     {
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProgressingViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public ProgressingViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings)
+        Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
-            Mappings = new SettingsToOptionsList(ActiveSettings, this)
-            {
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Progressing_HideBuildProgressOnBuildStop, x => HideBuildProgressOnBuildStop),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Progressing_ShowBuildProgressOnBuildStart, x => ShowBuildProgressOnBuildStart),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Progressing_ShowProgressOnWindowsTaskbar, x => ShowProgressOnWindowsTaskbar)
-            };
-        }
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Progressing_HideBuildProgressOnBuildStop, x => HideBuildProgressOnBuildStop),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Progressing_ShowBuildProgressOnBuildStart, x => ShowBuildProgressOnBuildStart),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Progressing_ShowProgressOnWindowsTaskbar, x => ShowProgressOnWindowsTaskbar)
+        };
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.ProgressingViewModel_Progressing;
 
-        #region Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets a flag indicating if build progress should be hidden when a build stops.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.ProgressingViewModel_Progressing;
+    public bool HideBuildProgressOnBuildStop
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        #endregion Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets a flag indicating if build progress should be shown when a build starts.
+    /// </summary>
 
-        #region Options
+    public bool ShowBuildProgressOnBuildStart
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        /// <summary>
-        /// Gets or sets a flag indicating if build progress should be hidden when a build stops.
-        /// </summary>
-        public bool HideBuildProgressOnBuildStop
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
+    /// <summary>
+    /// Gets or sets a flag indicating if build progress should be shown on the windows taskbar.
+    /// </summary>
 
-        /// <summary>
-        /// Gets or sets a flag indicating if build progress should be shown when a build starts.
-        /// </summary>
-        public bool ShowBuildProgressOnBuildStart
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if build progress should be shown on the windows taskbar.
-        /// </summary>
-        public bool ShowProgressOnWindowsTaskbar
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        #endregion Options
+    public bool ShowProgressOnWindowsTaskbar
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
     }
 }

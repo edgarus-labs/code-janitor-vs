@@ -1,108 +1,96 @@
-using CodeJanitor.Model.CodeItems;
+﻿using CodeJanitor.Model.CodeItems;
 using System;
 using System.ComponentModel;
 
-namespace CodeJanitor.Model.CodeTree
+namespace CodeJanitor.Model.CodeTree;
+
+/// <summary>
+/// A helper class for performing code tree building in an asynchronous context.
+/// </summary>
+
+internal sealed class CodeTreeBuilderAsync
 {
+    private readonly BackgroundWorker _bw;
+    private readonly Action<SnapshotCodeItems> _callback;
+    private CodeTreeRequest _pendingRequest;
+
     /// <summary>
-    /// A helper class for performing code tree building in an asynchronous context.
+    /// Initializes a new instance of the <see cref="CodeTreeBuilderAsync" /> class.
     /// </summary>
-    internal class CodeTreeBuilderAsync
+    /// <param name="callback">The callback for results.</param>
+
+    internal CodeTreeBuilderAsync(Action<SnapshotCodeItems> callback)
     {
-        #region Fields
+        _bw = new BackgroundWorker { WorkerSupportsCancellation = true };
+        _bw.DoWork += OnDoWork;
+        _bw.RunWorkerCompleted += OnRunWorkerCompleted;
 
-        private readonly BackgroundWorker _bw;
-        private readonly Action<SnapshotCodeItems> _callback;
-        private CodeTreeRequest _pendingRequest;
+        _callback = callback;
+    }
 
-        #endregion Fields
+    /// <summary>
+    /// Builds a code tree asynchronously from the specified request.
+    /// </summary>
+    /// <param name="request">The request.</param>
 
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CodeTreeBuilderAsync" /> class.
-        /// </summary>
-        /// <param name="callback">The callback for results.</param>
-        internal CodeTreeBuilderAsync(Action<SnapshotCodeItems> callback)
+    internal void RetrieveCodeTreeAsync(CodeTreeRequest request)
+    {
+        if (_bw.IsBusy)
         {
-            _bw = new BackgroundWorker { WorkerSupportsCancellation = true };
-            _bw.DoWork += OnDoWork;
-            _bw.RunWorkerCompleted += OnRunWorkerCompleted;
+            _pendingRequest = request;
+            _bw.CancelAsync();
+        }
+        else
+        {
+            _pendingRequest = null;
+            _bw.RunWorkerAsync(request);
+        }
+    }
 
-            _callback = callback;
+    /// <summary>
+    /// Called when the background worker should perform its work.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">
+    /// The <see cref="System.ComponentModel.DoWorkEventArgs" /> instance containing the event data.
+    /// </param>
+
+    private static void OnDoWork(object sender, DoWorkEventArgs e)
+    {
+        if (!(e.Argument is CodeTreeRequest request) || request.RawCodeItems == null)
+        {
+            return;
         }
 
-        #endregion Constructors
+        var codeItems = CodeTreeBuilder.RetrieveCodeTree(request);
 
-        #region Internal Methods
-
-        /// <summary>
-        /// Builds a code tree asynchronously from the specified request.
-        /// </summary>
-        /// <param name="request">The request.</param>
-        internal void RetrieveCodeTreeAsync(CodeTreeRequest request)
+        if (!e.Cancel)
         {
-            if (_bw.IsBusy)
+            e.Result = new SnapshotCodeItems(request.Document, codeItems);
+        }
+    }
+
+    /// <summary>
+    /// Called when the background worker has completed.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">
+    /// The <see cref="System.ComponentModel.RunWorkerCompletedEventArgs" /> instance containing
+    /// the event data.
+    /// </param>
+
+    private void OnRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    {
+        if (_pendingRequest != null)
+        {
+            RetrieveCodeTreeAsync(_pendingRequest);
+        }
+        else if (e.Error == null)
+        {
+            if (e.Result is SnapshotCodeItems snapshot)
             {
-                _pendingRequest = request;
-                _bw.CancelAsync();
-            }
-            else
-            {
-                _pendingRequest = null;
-                _bw.RunWorkerAsync(request);
+                _callback(snapshot);
             }
         }
-
-        #endregion Internal Methods
-
-        #region Private Methods
-
-        /// <summary>
-        /// Called when the background worker should perform its work.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="e">
-        /// The <see cref="System.ComponentModel.DoWorkEventArgs" /> instance containing the event data.
-        /// </param>
-        private static void OnDoWork(object sender, DoWorkEventArgs e)
-        {
-            if (!(e.Argument is CodeTreeRequest request) || request.RawCodeItems == null)
-            {
-                return;
-            }
-
-            var codeItems = CodeTreeBuilder.RetrieveCodeTree(request);
-
-            if (!e.Cancel)
-            {
-                e.Result = new SnapshotCodeItems(request.Document, codeItems);
-            }
-        }
-
-        /// <summary>
-        /// Called when the background worker has completed.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="e">
-        /// The <see cref="System.ComponentModel.RunWorkerCompletedEventArgs" /> instance containing
-        /// the event data.
-        /// </param>
-        private void OnRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            if (_pendingRequest != null)
-            {
-                RetrieveCodeTreeAsync(_pendingRequest);
-            }
-            else if (e.Error == null)
-            {
-                if (e.Result is SnapshotCodeItems snapshot)
-                {
-                    _callback(snapshot);
-                }
-            }
-        }
-
-        #endregion Private Methods
     }
 }

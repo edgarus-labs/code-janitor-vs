@@ -1,9 +1,8 @@
-namespace CodeJanitor.Model.Comments
-{
-    internal interface ICommentLine
-    {
-        string Content { get; }
+﻿namespace CodeJanitor.Model.Comments;
 
-        bool IsLast { get; }
-    }
+internal interface ICommentLine
+{
+    string Content { get; }
+
+    bool IsLast { get; }
 }

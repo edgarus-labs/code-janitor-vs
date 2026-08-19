@@ -1,12 +1,11 @@
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 
-namespace CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options;
+
+public partial class SectionPageHost : UserControl
 {
-    public partial class SectionPageHost : UserControl
+    public SectionPageHost()
     {
-        public SectionPageHost()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

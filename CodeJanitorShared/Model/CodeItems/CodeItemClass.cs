@@ -1,58 +1,47 @@
-using EnvDTE;
+﻿using EnvDTE;
 using EnvDTE80;
 using System;
 
-namespace CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems;
+
+/// <summary>
+/// The representation of a code class.
+/// </summary>
+
+public class CodeItemClass : BaseCodeItemElementParent
 {
     /// <summary>
-    /// The representation of a code class.
+    /// Initializes a new instance of the <see cref="CodeItemClass" /> class.
     /// </summary>
-    public class CodeItemClass : BaseCodeItemElementParent
+
+    public CodeItemClass()
     {
-        #region Constructors
+        _Access = LazyTryDefault(
+            () => CodeClass?.Access ?? vsCMAccess.vsCMAccessPublic);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CodeItemClass" /> class.
-        /// </summary>
-        public CodeItemClass()
-        {
-            _Access = LazyTryDefault(
-                () => CodeClass?.Access ?? vsCMAccess.vsCMAccessPublic);
+        _Attributes = LazyTryDefault(
+            () => CodeClass?.Attributes);
 
-            _Attributes = LazyTryDefault(
-                () => CodeClass?.Attributes);
+        _DocComment = LazyTryDefault(
+            () => CodeClass?.DocComment);
 
-            _DocComment = LazyTryDefault(
-                () => CodeClass?.DocComment);
+        _IsStatic = LazyTryDefault(
+            () => CodeClass != null && CodeClass.IsShared);
 
-            _IsStatic = LazyTryDefault(
-                () => CodeClass != null && CodeClass.IsShared);
+        _Namespace = LazyTryDefault(
+            () => CodeClass?.Namespace?.Name);
 
-            _Namespace = LazyTryDefault(
-                () => CodeClass?.Namespace?.Name);
-
-            _TypeString = new Lazy<string>(
-                () => "class");
-        }
-
-        #endregion Constructors
-
-        #region BaseCodeItem Overrides
-
-        /// <summary>
-        /// Gets the kind.
-        /// </summary>
-        public override KindCodeItem Kind => KindCodeItem.Class;
-
-        #endregion BaseCodeItem Overrides
-
-        #region Properties
-
-        /// <summary>
-        /// Gets or sets the underlying VSX CodeClass.
-        /// </summary>
-        public CodeClass2 CodeClass { get; set; }
-
-        #endregion Properties
+        _TypeString = new Lazy<string>(
+            () => "class");
     }
+
+    /// <summary>
+    /// Gets the kind.
+    /// </summary>
+    public override KindCodeItem Kind => KindCodeItem.Class;
+
+    /// <summary>
+    /// Gets or sets the underlying VSX CodeClass.
+    /// </summary>
+    public CodeClass2 CodeClass { get; set; }
 }

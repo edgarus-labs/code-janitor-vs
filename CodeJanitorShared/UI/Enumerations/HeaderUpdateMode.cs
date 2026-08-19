@@ -1,8 +1,7 @@
-namespace CodeJanitor.UI.Enumerations
+﻿namespace CodeJanitor.UI.Enumerations;
+
+public enum HeaderUpdateMode
 {
-    public enum HeaderUpdateMode
-    {
-        Insert = 0,
-        Replace = 1,
-    }
+    Insert = 0,
+    Replace = 1,
 }

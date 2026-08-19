@@ -286,9 +286,6 @@
     </CommandPlacement>
 
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSolutionNodeGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSolutionFolderGroup" />
     </CommandPlacement>
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
@@ -300,74 +297,11 @@
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextItemNodeGroup" />
     </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectSolutionProjectGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectSolutionItemGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectProjectItemGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiProjectGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiItemGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiSolutionFolderGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCleanupSelectedCode" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiProjectFolderGroup" />
-    </CommandPlacement>
-
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCloseAllReadOnly" priority="0x0200">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuDocumentGroup" />
     </CommandPlacement>
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCloseAllReadOnly" priority="0x0600">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextDocumentTabGroup" />
-    </CommandPlacement>
-
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseAllSolutionExplorer" priority="0x0200">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuSolutionExplorerGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseAllSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSolutionNodeGroup" />
-    </CommandPlacement>
-
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSolutionFolderGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextProjectNodeGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextFolderNodeGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextItemNodeGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectSolutionProjectGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectSolutionItemGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectProjectItemGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiProjectGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiItemGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiSolutionFolderGroup" />
-    </CommandPlacement>
-    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCollapseSelectedSolutionExplorer" priority="0x0400">
-      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiProjectFolderGroup" />
     </CommandPlacement>
 
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorCommentFormat" priority="0x0200">

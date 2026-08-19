@@ -1,141 +1,140 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CodeJanitor.UnitTests.Helpers
+namespace CodeJanitor.UnitTests.Helpers;
+
+[TestClass]
+public class SettingsMonitorTests
 {
-    [TestClass]
-    public class SettingsMonitorTests
+    [TestInitialize]
+    public void TestInitialize()
     {
-        [TestInitialize]
-        public void TestInitialize()
+        Settings.Default.Reset();
+    }
+
+    [TestMethod]
+    public async Task CallbackShouldBeCalledAtOnce()
+    {
+        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+
+        int callbackTimes = 0;
+        await monitor.WatchAsync(s => s.Feature_CleanupAllCode, _ =>
         {
-            Settings.Default.Reset();
-        }
+            callbackTimes++;
 
-        [TestMethod]
-        public async Task CallbackShouldBeCalledAtOnce()
+            return Task.CompletedTask;
+        });
+
+        Assert.AreEqual(/*Initial Call Times*/1, callbackTimes);
+    }
+
+    [TestMethod]
+    public async Task CallbackShouldNotBeCalledIfSettingNotChanged()
+    {
+        Settings.Default.Feature_CleanupAllCode = false;
+        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+
+        bool? value = null;
+        int callbackTimes = 0;
+        await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
         {
-            var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+            value = v;
+            callbackTimes++;
 
-            int callbackTimes = 0;
-            await monitor.WatchAsync(s => s.Feature_CleanupAllCode, _ =>
-            {
-                callbackTimes++;
+            return Task.CompletedTask;
+        });
 
-                return Task.CompletedTask;
-            });
+        Settings.Default.Feature_CleanupAllCode = false;
+        Settings.Default.Save();
 
-            Assert.AreEqual(/*Initial Call Times*/1, callbackTimes);
-        }
+        Assert.AreEqual(/*Initial Call Times*/1 + 0, callbackTimes);
+        Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value);
+    }
 
-        [TestMethod]
-        public async Task CallbackShouldNotBeCalledIfSettingNotChanged()
+    [TestMethod]
+    public async Task CallbackShouldBeCalledOnceSettingChanged()
+    {
+        Settings.Default.Feature_CleanupAllCode = false;
+        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+
+        bool? value = null;
+        int callbackTimes = 0;
+        await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
         {
-            Settings.Default.Feature_CleanupAllCode = false;
-            var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+            value = v;
+            callbackTimes++;
 
-            bool? value = null;
-            int callbackTimes = 0;
-            await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
-            {
-                value = v;
-                callbackTimes++;
+            return Task.CompletedTask;
+        });
 
-                return Task.CompletedTask;
-            });
+        Settings.Default.Feature_CleanupAllCode = true;
+        Settings.Default.Save();
 
-            Settings.Default.Feature_CleanupAllCode = false;
-            Settings.Default.Save();
+        Assert.AreEqual(/*Initial Call Times*/ 1 + 1, callbackTimes);
+        Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value);
+    }
 
-            Assert.AreEqual(/*Initial Call Times*/1 + 0, callbackTimes);
-            Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value);
-        }
+    [TestMethod]
+    public async Task AllCallbacksShouldBeCalledOnceSettingChanged()
+    {
+        Settings.Default.Feature_CleanupAllCode = false;
+        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
-        [TestMethod]
-        public async Task CallbackShouldBeCalledOnceSettingChanged()
+        bool? value1 = null, value2 = null;
+        int callbackTimes1 = 0, callbackTimes2 = 0;
+        await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
         {
-            Settings.Default.Feature_CleanupAllCode = false;
-            var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+            value1 = v;
+            callbackTimes1++;
 
-            bool? value = null;
-            int callbackTimes = 0;
-            await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
-            {
-                value = v;
-                callbackTimes++;
-
-                return Task.CompletedTask;
-            });
-
-            Settings.Default.Feature_CleanupAllCode = true;
-            Settings.Default.Save();
-
-            Assert.AreEqual(/*Initial Call Times*/ 1 + 1, callbackTimes);
-            Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value);
-        }
-
-        [TestMethod]
-        public async Task AllCallbacksShouldBeCalledOnceSettingChanged()
+            return Task.CompletedTask;
+        });
+        await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
         {
-            Settings.Default.Feature_CleanupAllCode = false;
-            var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+            value2 = v;
+            callbackTimes2++;
 
-            bool? value1 = null, value2 = null;
-            int callbackTimes1 = 0, callbackTimes2 = 0;
-            await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
-            {
-                value1 = v;
-                callbackTimes1++;
+            return Task.CompletedTask;
+        });
 
-                return Task.CompletedTask;
-            });
-            await monitor.WatchAsync(s => s.Feature_CleanupAllCode, v =>
-            {
-                value2 = v;
-                callbackTimes2++;
+        Settings.Default.Feature_CleanupAllCode = true;
+        Settings.Default.Save();
 
-                return Task.CompletedTask;
-            });
+        Assert.AreEqual(/*Initial Call Times*/1 + 1, callbackTimes1);
+        Assert.AreEqual(/*Initial Call Times*/1 + 1, callbackTimes2);
+        Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value1);
+        Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value2);
+    }
 
-            Settings.Default.Feature_CleanupAllCode = true;
-            Settings.Default.Save();
+    [TestMethod]
+    public async Task CallbackShouldBeCalledOnceAnyWatchedSettingChanged()
+    {
+        Settings.Default.Feature_CleanupAllCode = false;
+        Settings.Default.Feature_CleanupOpenCode = false;
+        Settings.Default.Feature_CleanupSelectedCode = true;
+        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
-            Assert.AreEqual(/*Initial Call Times*/1 + 1, callbackTimes1);
-            Assert.AreEqual(/*Initial Call Times*/1 + 1, callbackTimes2);
-            Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value1);
-            Assert.AreEqual(Settings.Default.Feature_CleanupAllCode, value2);
-        }
-
-        [TestMethod]
-        public async Task CallbackShouldBeCalledOnceAnyWatchedSettingChanged()
+        bool[] values = null;
+        int callbackTimes = 0;
+        await monitor.WatchAsync<bool>(new[]{
+            nameof(Settings.Default.Feature_CleanupAllCode),
+            nameof(Settings.Default.Feature_CleanupOpenCode),
+            nameof(Settings.Default.Feature_CleanupSelectedCode)
+        }, v =>
         {
-            Settings.Default.Feature_CleanupAllCode = false;
-            Settings.Default.Feature_CleanupOpenCode = false;
-            Settings.Default.Feature_CleanupSelectedCode = true;
-            var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+            values = v;
+            callbackTimes++;
 
-            bool[] values = null;
-            int callbackTimes = 0;
-            await monitor.WatchAsync<bool>(new[]{
-                nameof(Settings.Default.Feature_CleanupAllCode),
-                nameof(Settings.Default.Feature_CleanupOpenCode),
-                nameof(Settings.Default.Feature_CleanupSelectedCode)
-            }, v =>
-            {
-                values = v;
-                callbackTimes++;
+            return Task.CompletedTask;
+        });
 
-                return Task.CompletedTask;
-            });
+        Settings.Default.Feature_CleanupSelectedCode = false;
+        Settings.Default.Save();
 
-            Settings.Default.Feature_CleanupSelectedCode = false;
-            Settings.Default.Save();
-
-            Assert.AreEqual(/*Initial Call Times*/1 + 1, callbackTimes);
-            Assert.IsTrue(values.All(v => v == false));
-        }
+        Assert.AreEqual(/*Initial Call Times*/1 + 1, callbackTimes);
+        Assert.IsTrue(values.All(v => v == false));
     }
 }

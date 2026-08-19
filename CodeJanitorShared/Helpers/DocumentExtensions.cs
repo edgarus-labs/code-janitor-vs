@@ -1,46 +1,51 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 
-namespace CodeJanitor.Helpers
+namespace CodeJanitor.Helpers;
+
+/// <summary>
+/// A set of extension methods for <see cref="Document" />.
+/// </summary>
+
+internal static class DocumentExtensions
 {
     /// <summary>
-    /// A set of extension methods for <see cref="Document" />.
+    /// Gets the <see cref="CodeLanguage"/> for this document.
     /// </summary>
-    internal static class DocumentExtensions
+    /// <param name="document">The document.</param>
+    /// <returns>A <see cref="CodeLanguage"/>.</returns>
+
+    internal static CodeLanguage GetCodeLanguage(this Document document)
     {
-        /// <summary>
-        /// Gets the <see cref="CodeLanguage"/> for this document.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        /// <returns>A <see cref="CodeLanguage"/>.</returns>
-        internal static CodeLanguage GetCodeLanguage(this Document document)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            return CodeLanguageHelper.GetCodeLanguage(document.Language);
-        }
+        ThreadHelper.ThrowIfNotOnUIThread();
 
-        /// <summary>
-        /// Attempts to get the TextDocument associated with the specified document.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        /// <returns>The associated text document, otherwise null.</returns>
-        internal static TextDocument GetTextDocument(this Document document)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            return document.Object("TextDocument") as TextDocument;
-        }
+        return CodeLanguageHelper.GetCodeLanguage(document.Language);
+    }
 
-        /// <summary>
-        /// Determines if the specified document is external to the solution.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        /// <returns>True if the document is external, otherwise false.</returns>
-        internal static bool IsExternal(this Document document)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var projectItem = document.ProjectItem;
+    /// <summary>
+    /// Attempts to get the TextDocument associated with the specified document.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>The associated text document, otherwise null.</returns>
 
-            return projectItem == null || projectItem.IsExternal();
-        }
+    internal static TextDocument GetTextDocument(this Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return document.Object("TextDocument") as TextDocument;
+    }
+
+    /// <summary>
+    /// Determines if the specified document is external to the solution.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>True if the document is external, otherwise false.</returns>
+
+    internal static bool IsExternal(this Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var projectItem = document.ProjectItem;
+
+        return projectItem == null || projectItem.IsExternal();
     }
 }

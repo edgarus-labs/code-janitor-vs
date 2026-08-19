@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments;
@@ -6,114 +6,106 @@ using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
 using System.Linq;
 
-namespace CodeJanitor.Logic.Formatting
+namespace CodeJanitor.Logic.Formatting;
+
+/// <summary>
+/// A class for encapsulating comment formatting logic.
+/// </summary>
+
+internal sealed class CommentFormatLogic
 {
     /// <summary>
-    /// A class for encapsulating comment formatting logic.
+    /// The singleton instance of the <see cref="CommentFormatLogic" /> class.
     /// </summary>
-    internal class CommentFormatLogic
+    private static CommentFormatLogic _instance;
+
+    private readonly CodeJanitorPackage _package;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CommentFormatLogic" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+
+    private CommentFormatLogic(CodeJanitorPackage package)
     {
-        #region Fields
+        _package = package;
+    }
 
-        /// <summary>
-        /// The singleton instance of the <see cref="CommentFormatLogic" /> class.
-        /// </summary>
-        private static CommentFormatLogic _instance;
+    /// <summary>
+    /// Reformat all comments in the specified document.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
 
-        private readonly CodeJanitorPackage _package;
+    public void FormatComments(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        if (!Settings.Default.Formatting_CommentRunDuringCleanup) return;
 
-        #endregion Fields
+        FormatComments(textDocument, textDocument.StartPoint.CreateEditPoint(), textDocument.EndPoint.CreateEditPoint());
+    }
 
-        #region Constructors
+    /// <summary>
+    /// Reformat all comments between the specified start and end point. Comments that start
+    /// within the range, even if they overlap the end are included.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="start">The start point.</param>
+    /// <param name="end">The end point.</param>
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CommentFormatLogic" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        private CommentFormatLogic(CodeJanitorPackage package)
-        {
-            _package = package;
-        }
+    public bool FormatComments(TextDocument textDocument, EditPoint start, EditPoint end)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        bool foundComments = false;
 
-        #endregion Constructors
-
-        #region Methods
-
-        /// <summary>
-        /// Reformat all comments in the specified document.
-        /// </summary>
-        /// <param name="textDocument">The text document.</param>
-        public void FormatComments(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            if (!Settings.Default.Formatting_CommentRunDuringCleanup) return;
-
-            FormatComments(textDocument, textDocument.StartPoint.CreateEditPoint(), textDocument.EndPoint.CreateEditPoint());
-        }
-
-        /// <summary>
-        /// Reformat all comments between the specified start and end point. Comments that start
-        /// within the range, even if they overlap the end are included.
-        /// </summary>
-        /// <param name="textDocument">The text document.</param>
-        /// <param name="start">The start point.</param>
-        /// <param name="end">The end point.</param>
-        public bool FormatComments(TextDocument textDocument, EditPoint start, EditPoint end)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            bool foundComments = false;
-
-            var options = FormatterOptions
-                .FromSettings(Settings.Default)
-                .Set(o =>
-                {
-                    o.TabSize = textDocument.TabSize;
-                    o.IgnoreTokens = CodeCommentHelper
-                        .GetTaskListTokens(_package)
-                        .Concat(Settings.Default.Formatting_IgnoreLinesStartingWith.Cast<string>())
-                        .ToArray();
-                });
-
-            while (start.Line <= end.Line)
+        var options = FormatterOptions
+            .FromSettings(Settings.Default)
+            .Set(o =>
             {
-                if (CodeCommentHelper.IsCommentLine(start))
+                o.TabSize = textDocument.TabSize;
+                o.IgnoreTokens = CodeCommentHelper
+                    .GetTaskListTokens(_package)
+                    .Concat(Settings.Default.Formatting_IgnoreLinesStartingWith.Cast<string>())
+                    .ToArray();
+            });
+
+        while (start.Line <= end.Line)
+        {
+            if (CodeCommentHelper.IsCommentLine(start))
+            {
+                var comment = new CodeComment(start, options);
+
+                if (comment.IsValid)
                 {
-                    var comment = new CodeComment(start, options);
-
-                    if (comment.IsValid)
-                    {
-                        comment.Format();
-                        foundComments = true;
-                    }
-
-                    if (comment.EndPoint != null)
-                    {
-                        start = comment.EndPoint.CreateEditPoint();
-                    }
+                    comment.Format();
+                    foundComments = true;
                 }
 
-                if (start.Line == textDocument.EndPoint.Line)
+                if (comment.EndPoint != null)
                 {
-                    break;
+                    start = comment.EndPoint.CreateEditPoint();
                 }
-
-                start.LineDown();
-                start.StartOfLine();
             }
 
-            return foundComments;
+            if (start.Line == textDocument.EndPoint.Line)
+            {
+                break;
+            }
+
+            start.LineDown();
+            start.StartOfLine();
         }
 
-        /// <summary>
-        /// Gets an instance of the <see cref="CommentFormatLogic"/> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>An instance of the <see cref="CommentFormatLogic"/> class.</returns>
-        internal static CommentFormatLogic GetInstance(CodeJanitorPackage package)
-        {
-            return _instance ?? (_instance = new CommentFormatLogic(package));
-        }
+        return foundComments;
+    }
 
-        #endregion Methods
+    /// <summary>
+    /// Gets an instance of the <see cref="CommentFormatLogic"/> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>An instance of the <see cref="CommentFormatLogic"/> class.</returns>
+
+    internal static CommentFormatLogic GetInstance(CodeJanitorPackage package)
+    {
+        return _instance ?? (_instance = new CommentFormatLogic(package));
     }
 }

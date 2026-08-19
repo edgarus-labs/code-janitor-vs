@@ -1,54 +1,49 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 using System.Collections.Generic;
 
-namespace CodeJanitor.UI.Dialogs.Options
+namespace CodeJanitor.UI.Dialogs.Options;
+
+/// <summary>
+/// Base class for an option page that hosts a set of child option pages as tabs, instead of
+/// each child being its own separate node in the Tools&gt;Options tree.
+/// </summary>
+
+public abstract class CompositeOptionsPageViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// Base class for an option page that hosts a set of child option pages as tabs, instead of
-    /// each child being its own separate node in the Tools&gt;Options tree.
+    /// Initializes a new instance of the <see cref="CompositeOptionsPageViewModel" /> class.
     /// </summary>
-    public abstract class CompositeOptionsPageViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+    /// <param name="children">The child pages to show as tabs.</param>
+
+    protected CompositeOptionsPageViewModel(CodeJanitorPackage package, Settings activeSettings, IEnumerable<OptionsPageViewModel> children)
+        : base(package, activeSettings)
     {
-        #region Constructors
+        Children = children;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompositeOptionsPageViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        /// <param name="children">The child pages to show as tabs.</param>
-        protected CompositeOptionsPageViewModel(CodeJanitorPackage package, Settings activeSettings, IEnumerable<OptionsPageViewModel> children)
-            : base(package, activeSettings)
+    /// <inheritdoc />
+
+    public override void LoadSettings()
+    {
+        base.LoadSettings();
+
+        foreach (var child in Children)
         {
-            Children = children;
+            child.LoadSettings();
         }
+    }
 
-        #endregion Constructors
+    /// <inheritdoc />
 
-        #region Overrides of OptionsPageViewModel
+    public override void SaveSettings()
+    {
+        base.SaveSettings();
 
-        /// <inheritdoc />
-        public override void LoadSettings()
+        foreach (var child in Children)
         {
-            base.LoadSettings();
-
-            foreach (var child in Children)
-            {
-                child.LoadSettings();
-            }
+            child.SaveSettings();
         }
-
-        /// <inheritdoc />
-        public override void SaveSettings()
-        {
-            base.SaveSettings();
-
-            foreach (var child in Children)
-            {
-                child.SaveSettings();
-            }
-        }
-
-        #endregion Overrides of OptionsPageViewModel
     }
 }

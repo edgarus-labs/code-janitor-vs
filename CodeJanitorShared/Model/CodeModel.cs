@@ -1,97 +1,88 @@
-using EnvDTE;
+﻿using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using System.Threading;
 
-namespace CodeJanitor.Model
+namespace CodeJanitor.Model;
+
+/// <summary>
+/// This class encapsulates the representation of a document, including its code items and
+/// current state.
+/// </summary>
+
+internal sealed class CodeModel
 {
+    private bool _isBuilding;
+    private bool _isStale;
+
     /// <summary>
-    /// This class encapsulates the representation of a document, including its code items and
-    /// current state.
+    /// Initializes a new instance of the <see cref="CodeModel" /> class.
     /// </summary>
-    internal class CodeModel
+    /// <param name="document">The document.</param>
+
+    internal CodeModel(Document document)
     {
-        #region Fields
+        CodeItems = new SetCodeItems();
+        Document = document;
+        IsBuiltWaitHandle = new ManualResetEvent(false);
+    }
 
-        private bool _isBuilding;
-        private bool _isStale;
+    /// <summary>
+    /// Gets the document.
+    /// </summary>
+    internal Document Document { get; }
 
-        #endregion Fields
+    /// <summary>
+    /// Gets or sets the code items.
+    /// </summary>
+    internal SetCodeItems CodeItems { get; set; }
 
-        #region Constructors
+    /// <summary>
+    /// Gets or sets a flag indicating if this model is currently being built.
+    /// </summary>
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CodeModel" /> class.
-        /// </summary>
-        /// <param name="document">The document.</param>
-        internal CodeModel(Document document)
+    internal bool IsBuilding
+    {
+        get { return _isBuilding; }
+        set
         {
-            CodeItems = new SetCodeItems();
-            Document = document;
-            IsBuiltWaitHandle = new ManualResetEvent(false);
-        }
-
-        #endregion Constructors
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the document.
-        /// </summary>
-        internal Document Document { get; }
-
-        /// <summary>
-        /// Gets or sets the code items.
-        /// </summary>
-        internal SetCodeItems CodeItems { get; set; }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if this model is currently being built.
-        /// </summary>
-        internal bool IsBuilding
-        {
-            get { return _isBuilding; }
-            set
+            if (_isBuilding != value)
             {
-                if (_isBuilding != value)
-                {
-                    OutputWindowHelper.DiagnosticWriteLine($"CodeModel.IsBuilding changing to '{value}' for '{Document.FullName}'");
+                OutputWindowHelper.DiagnosticWriteLine($"CodeModel.IsBuilding changing to '{value}' for '{Document.FullName}'");
 
-                    _isBuilding = value;
-                    if (_isBuilding)
-                    {
-                        IsBuiltWaitHandle.Reset();
-                    }
-                    else
-                    {
-                        IsBuiltWaitHandle.Set();
-                    }
+                _isBuilding = value;
+                if (_isBuilding)
+                {
+                    IsBuiltWaitHandle.Reset();
+                }
+                else
+                {
+                    IsBuiltWaitHandle.Set();
                 }
             }
         }
+    }
 
-        /// <summary>
-        /// Gets a wait handle that will be signaled when building is complete.
-        /// </summary>
-        internal ManualResetEvent IsBuiltWaitHandle { get; }
+    /// <summary>
+    /// Gets a wait handle that will be signaled when building is complete.
+    /// </summary>
+    internal ManualResetEvent IsBuiltWaitHandle { get; }
 
-        /// <summary>
-        /// Gets or sets a flag indicating if this model is stale.
-        /// </summary>
-        internal bool IsStale
+    /// <summary>
+    /// Gets or sets a flag indicating if this model is stale.
+    /// </summary>
+
+    internal bool IsStale
+    {
+        get { return _isStale; }
+        set
         {
-            get { return _isStale; }
-            set
+            if (_isStale != value)
             {
-                if (_isStale != value)
-                {
-                    OutputWindowHelper.DiagnosticWriteLine($"CodeModel.IsStale changing to '{value}' for '{Document.FullName}'");
+                OutputWindowHelper.DiagnosticWriteLine($"CodeModel.IsStale changing to '{value}' for '{Document.FullName}'");
 
-                    _isStale = value;
-                }
+                _isStale = value;
             }
         }
-
-        #endregion Properties
     }
 }

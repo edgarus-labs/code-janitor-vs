@@ -1,60 +1,51 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
-namespace CodeJanitor.UI.Dialogs.Options.Finding
+namespace CodeJanitor.UI.Dialogs.Options.Finding;
+
+/// <summary>
+/// The view model for finding options.
+/// </summary>
+
+public class FindingViewModel : OptionsPageViewModel
 {
     /// <summary>
-    /// The view model for finding options.
+    /// Initializes a new instance of the <see cref="FindingViewModel" /> class.
     /// </summary>
-    public class FindingViewModel : OptionsPageViewModel
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    public FindingViewModel(CodeJanitorPackage package, Settings activeSettings)
+        : base(package, activeSettings)
     {
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FindingViewModel" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <param name="activeSettings">The active settings.</param>
-        public FindingViewModel(CodeJanitorPackage package, Settings activeSettings)
-            : base(package, activeSettings)
+        Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
-            Mappings = new SettingsToOptionsList(ActiveSettings, this)
-            {
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Finding_ClearSolutionExplorerSearch, x => ClearSolutionExplorerSearch),
-                new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Finding_TemporarilyOpenSolutionFolders, x => TemporarilyOpenSolutionFolders)
-            };
-        }
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Finding_ClearSolutionExplorerSearch, x => ClearSolutionExplorerSearch),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Finding_TemporarilyOpenSolutionFolders, x => TemporarilyOpenSolutionFolders)
+        };
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public override string Header => Resources.FindingViewModel_Finding;
 
-        #region Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets a flag indicating if Solution Explorer search should be cleared.
+    /// </summary>
 
-        /// <summary>
-        /// Gets the header.
-        /// </summary>
-        public override string Header => Resources.FindingViewModel_Finding;
+    public bool ClearSolutionExplorerSearch
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
 
-        #endregion Overrides of OptionsPageViewModel
+    /// <summary>
+    /// Gets or sets a flag indicating if solution folders should be temporarily opened.
+    /// </summary>
 
-        #region Options
-
-        /// <summary>
-        /// Gets or sets a flag indicating if Solution Explorer search should be cleared.
-        /// </summary>
-        public bool ClearSolutionExplorerSearch
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if solution folders should be temporarily opened.
-        /// </summary>
-        public bool TemporarilyOpenSolutionFolders
-        {
-            get { return GetPropertyValue<bool>(); }
-            set { SetPropertyValue(value); }
-        }
-
-        #endregion Options
+    public bool TemporarilyOpenSolutionFolders
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
     }
 }

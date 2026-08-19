@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
@@ -6,146 +6,144 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CodeJanitor.Helpers
+namespace CodeJanitor.Helpers;
+
+/// <summary>
+/// A static helper class for working with the UI hierarchies.
+/// </summary>
+
+internal static class UIHierarchyHelper
 {
     /// <summary>
-    /// A static helper class for working with the UI hierarchies.
+    /// Causes the given item and all of its expanded children to be collapsed. This may cause
+    /// selections to change.
     /// </summary>
-    internal static class UIHierarchyHelper
+    /// <param name="parentItem">The parent item to collapse from.</param>
+
+    internal static void CollapseRecursively(UIHierarchyItem parentItem)
     {
-        #region Internal Methods
+        ThreadHelper.ThrowIfNotOnUIThread();
 
-        /// <summary>
-        /// Causes the given item and all of its expanded children to be collapsed. This may cause
-        /// selections to change.
-        /// </summary>
-        /// <param name="parentItem">The parent item to collapse from.</param>
-        internal static void CollapseRecursively(UIHierarchyItem parentItem)
+        if (parentItem == null)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
+            throw new ArgumentNullException(nameof(parentItem));
+        }
 
-            if (parentItem == null)
+        if (!parentItem.UIHierarchyItems.Expanded) return;
+
+        // Recurse to all children first.
+        foreach (UIHierarchyItem childItem in parentItem.UIHierarchyItems)
+        {
+            CollapseRecursively(childItem);
+        }
+
+        if (ShouldCollapseItem(parentItem))
+        {
+            // Attempt the direct collapse first.
+            parentItem.UIHierarchyItems.Expanded = false;
+
+            // If failed, solution folder oddity may be at play. Try an alternate path.
+            if (parentItem.UIHierarchyItems.Expanded)
             {
-                throw new ArgumentNullException(nameof(parentItem));
-            }
-
-            if (!parentItem.UIHierarchyItems.Expanded) return;
-
-            // Recurse to all children first.
-            foreach (UIHierarchyItem childItem in parentItem.UIHierarchyItems)
-            {
-                CollapseRecursively(childItem);
-            }
-
-            if (ShouldCollapseItem(parentItem))
-            {
-                // Attempt the direct collapse first.
-                parentItem.UIHierarchyItems.Expanded = false;
-
-                // If failed, solution folder oddity may be at play. Try an alternate path.
-                if (parentItem.UIHierarchyItems.Expanded)
-                {
-                    parentItem.Select(vsUISelectionType.vsUISelectionTypeSelect);
-                    ((DTE2)parentItem.DTE).ToolWindows.SolutionExplorer.DoDefaultAction();
-                }
+                parentItem.Select(vsUISelectionType.vsUISelectionTypeSelect);
+                ((DTE2)parentItem.DTE).ToolWindows.SolutionExplorer.DoDefaultAction();
             }
         }
+    }
 
-        /// <summary>
-        /// Gets an enumerable set of the selected UI hierarchy items.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>The enumerable set of selected UI hierarchy items.</returns>
-        internal static IEnumerable<UIHierarchyItem> GetSelectedUIHierarchyItems(CodeJanitorPackage package)
+    /// <summary>
+    /// Gets an enumerable set of the selected UI hierarchy items.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>The enumerable set of selected UI hierarchy items.</returns>
+
+    internal static IEnumerable<UIHierarchyItem> GetSelectedUIHierarchyItems(CodeJanitorPackage package)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var solutionExplorer = GetSolutionExplorer(package);
+
+        return ((object[])solutionExplorer.SelectedItems).Cast<UIHierarchyItem>().ToList();
+    }
+
+    /// <summary>
+    /// Gets the solution explorer for the specified hosting package.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>The solution explorer.</returns>
+
+    internal static UIHierarchy GetSolutionExplorer(CodeJanitorPackage package)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return package.IDE.ToolWindows.SolutionExplorer;
+    }
+
+    /// <summary>
+    /// Gets the top level (solution) UI hierarchy item.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>The top level (solution) UI hierarchy item, otherwise null.</returns>
+
+    internal static UIHierarchyItem GetTopUIHierarchyItem(CodeJanitorPackage package)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var solutionExplorer = GetSolutionExplorer(package);
+
+        return solutionExplorer.UIHierarchyItems.Count > 0
+            ? solutionExplorer.UIHierarchyItems.Item(1)
+            : null;
+    }
+
+    /// <summary>
+    /// Determines whether the specified item has any expanded children.
+    /// </summary>
+    /// <param name="parentItem">The parent item.</param>
+    /// <returns>True if there are expanded children, false otherwise.</returns>
+
+    internal static bool HasExpandedChildren(UIHierarchyItem parentItem)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (parentItem == null)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            var solutionExplorer = GetSolutionExplorer(package);
-
-            return ((object[])solutionExplorer.SelectedItems).Cast<UIHierarchyItem>().ToList();
+            throw new ArgumentNullException(nameof(parentItem));
         }
 
-        /// <summary>
-        /// Gets the solution explorer for the specified hosting package.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>The solution explorer.</returns>
-        internal static UIHierarchy GetSolutionExplorer(CodeJanitorPackage package)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
+        return parentItem.UIHierarchyItems.Cast<UIHierarchyItem>().Any(
+            childItem => childItem.UIHierarchyItems.Expanded || HasExpandedChildren(childItem));
+    }
 
-            return package.IDE.ToolWindows.SolutionExplorer;
+    /// <summary>
+    /// Determines if the specified parent item should be collapsed.
+    /// </summary>
+    /// <param name="parentItem">The parent item.</param>
+    /// <returns>True if the item should be collapsed, otherwise false.</returns>
+
+    private static bool ShouldCollapseItem(UIHierarchyItem parentItem)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        // Make sure not to collapse the solution, causes odd behavior.
+        if (parentItem.Object is Solution)
+        {
+            return false;
         }
 
-        /// <summary>
-        /// Gets the top level (solution) UI hierarchy item.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>The top level (solution) UI hierarchy item, otherwise null.</returns>
-        internal static UIHierarchyItem GetTopUIHierarchyItem(CodeJanitorPackage package)
+        // Conditionally skip collapsing the only project in a solution.
+        // Note: Visual Studio automatically creates a second invisible project called
+        //       "Miscellaneous files".
+        if (Settings.Default.Collapsing_KeepSoloProjectExpanded && parentItem.Object is Project)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
+            var solution = parentItem.DTE.Solution;
 
-            var solutionExplorer = GetSolutionExplorer(package);
-
-            return solutionExplorer.UIHierarchyItems.Count > 0
-                ? solutionExplorer.UIHierarchyItems.Item(1)
-                : null;
-        }
-
-        /// <summary>
-        /// Determines whether the specified item has any expanded children.
-        /// </summary>
-        /// <param name="parentItem">The parent item.</param>
-        /// <returns>True if there are expanded children, false otherwise.</returns>
-        internal static bool HasExpandedChildren(UIHierarchyItem parentItem)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (parentItem == null)
-            {
-                throw new ArgumentNullException(nameof(parentItem));
-            }
-
-            return parentItem.UIHierarchyItems.Cast<UIHierarchyItem>().Any(
-                childItem => childItem.UIHierarchyItems.Expanded || HasExpandedChildren(childItem));
-        }
-
-        #endregion Internal Methods
-
-        #region Private Methods
-
-        /// <summary>
-        /// Determines if the specified parent item should be collapsed.
-        /// </summary>
-        /// <param name="parentItem">The parent item.</param>
-        /// <returns>True if the item should be collapsed, otherwise false.</returns>
-        private static bool ShouldCollapseItem(UIHierarchyItem parentItem)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            // Make sure not to collapse the solution, causes odd behavior.
-            if (parentItem.Object is Solution)
+            if (solution != null && solution.Projects.OfType<Project>().All(x => x == parentItem.Object || x.Name == "Miscellaneous Files"))
             {
                 return false;
             }
-
-            // Conditionally skip collapsing the only project in a solution.
-            // Note: Visual Studio automatically creates a second invisible project called
-            //       "Miscellaneous files".
-            if (Settings.Default.Collapsing_KeepSoloProjectExpanded && parentItem.Object is Project)
-            {
-                var solution = parentItem.DTE.Solution;
-
-                if (solution != null && solution.Projects.OfType<Project>().All(x => x == parentItem.Object || x.Name == "Miscellaneous Files"))
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
-        #endregion Private Methods
+        return true;
     }
 }

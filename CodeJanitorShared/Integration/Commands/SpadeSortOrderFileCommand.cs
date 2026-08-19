@@ -1,66 +1,70 @@
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Model.CodeTree;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for setting Spade to file sort order.
+/// </summary>
+
+internal sealed class SpadeSortOrderFileCommand : BaseCommand
 {
     /// <summary>
-    /// A command that provides for setting Spade to file sort order.
+    /// Initializes a new instance of the <see cref="SpadeSortOrderFileCommand" /> class.
     /// </summary>
-    internal sealed class SpadeSortOrderFileCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal SpadeSortOrderFileCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeSortOrderFile)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SpadeSortOrderFileCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal SpadeSortOrderFileCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeSortOrderFile)
+    }
+
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static SpadeSortOrderFileCommand Instance { get; private set; }
+
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new SpadeSortOrderFileCommand(package);
+        await Instance.SwitchAsync(on: true);
+    }
+
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
+
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var spade = Package.Spade;
+        if (spade != null)
         {
+            Checked = spade.SortOrder == CodeSortOrder.File;
         }
+    }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static SpadeSortOrderFileCommand Instance { get; private set; }
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
 
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
+
+        var spade = Package.Spade;
+        if (spade != null)
         {
-            Instance = new SpadeSortOrderFileCommand(package);
-            await Instance.SwitchAsync(on: true);
-        }
-
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            var spade = Package.Spade;
-            if (spade != null)
-            {
-                Checked = spade.SortOrder == CodeSortOrder.File;
-            }
-        }
-
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            base.OnExecute();
-
-            var spade = Package.Spade;
-            if (spade != null)
-            {
-                spade.SortOrder = CodeSortOrder.File;
-            }
+            spade.SortOrder = CodeSortOrder.File;
         }
     }
 }

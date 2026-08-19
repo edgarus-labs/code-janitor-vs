@@ -1,12 +1,12 @@
-namespace CodeJanitor.UI.Enumerations
+﻿namespace CodeJanitor.UI.Enumerations;
+
+/// <summary>
+/// A user prompt enumeration.
+/// </summary>
+
+public enum AskYesNo
 {
-    /// <summary>
-    /// A user prompt enumeration.
-    /// </summary>
-    public enum AskYesNo
-    {
-        Ask = 0,
-        Yes = 1,
-        No = 2
-    }
+    Ask = 0,
+    Yes = 1,
+    No = 2
 }

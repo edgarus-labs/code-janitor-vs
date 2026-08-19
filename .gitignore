@@ -24,6 +24,7 @@ bld/
 
 # Visual Studio 2015 cache/options directory
 .vs/
+.vscode/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
@@ -177,6 +178,9 @@ _pkginfo.txt
 
 # Others
 ClientBin/
+*_output.txt
+tmp-*.ps1
+scratch/
 ~$*
 *~
 *.dbmdl

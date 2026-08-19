@@ -1,69 +1,73 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Reorganizing;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
-namespace CodeJanitor.Integration.Commands
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for reorganizing code in the active document.
+/// </summary>
+
+internal sealed class ReorganizeActiveCodeCommand : BaseCommand
 {
+    private readonly CodeReorganizationAvailabilityLogic _codeReorganizationAvailabilityLogic;
+
     /// <summary>
-    /// A command that provides for reorganizing code in the active document.
+    /// Initializes a new instance of the <see cref="ReorganizeActiveCodeCommand" /> class.
     /// </summary>
-    internal sealed class ReorganizeActiveCodeCommand : BaseCommand
+    /// <param name="package">The hosting package.</param>
+
+    internal ReorganizeActiveCodeCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorReorganizeActiveCode)
     {
-        private readonly CodeReorganizationAvailabilityLogic _codeReorganizationAvailabilityLogic;
+        CodeReorganizationManager = CodeReorganizationManager.GetInstance(Package);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ReorganizeActiveCodeCommand" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        internal ReorganizeActiveCodeCommand(CodeJanitorPackage package)
-            : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorReorganizeActiveCode)
-        {
-            CodeReorganizationManager = CodeReorganizationManager.GetInstance(Package);
+        _codeReorganizationAvailabilityLogic = CodeReorganizationAvailabilityLogic.GetInstance(Package);
+    }
 
-            _codeReorganizationAvailabilityLogic = CodeReorganizationAvailabilityLogic.GetInstance(Package);
-        }
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static ReorganizeActiveCodeCommand Instance { get; private set; }
 
-        /// <summary>
-        /// A singleton instance of this command.
-        /// </summary>
-        public static ReorganizeActiveCodeCommand Instance { get; private set; }
+    /// <summary>
+    /// Gets the code reorganization manager.
+    /// </summary>
+    private CodeReorganizationManager CodeReorganizationManager { get; }
 
-        /// <summary>
-        /// Gets the code reorganization manager.
-        /// </summary>
-        private CodeReorganizationManager CodeReorganizationManager { get; }
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
 
-        /// <summary>
-        /// Initializes a singleton instance of this command.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>A task.</returns>
-        public static async Task InitializeAsync(CodeJanitorPackage package)
-        {
-            Instance = new ReorganizeActiveCodeCommand(package);
-            await package.SettingsMonitor.WatchAsync(s => s.Feature_ReorganizeActiveCode, Instance.SwitchAsync);
-        }
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new ReorganizeActiveCodeCommand(package);
+        await package.SettingsMonitor.WatchAsync(s => s.Feature_ReorganizeActiveCode, Instance.SwitchAsync);
+    }
 
-        /// <summary>
-        /// Called to update the current status of the command.
-        /// </summary>
-        protected override void OnBeforeQueryStatus()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            Enabled = Package.ActiveDocument != null;
-        }
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
 
-        /// <summary>
-        /// Called to execute the command.
-        /// </summary>
-        protected override void OnExecute()
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            base.OnExecute();
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        Enabled = Package.ActiveDocument != null;
+    }
 
-            CodeReorganizationManager.Reorganize(Package.ActiveDocument);
-        }
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
+
+        CodeReorganizationManager.Reorganize(Package.ActiveDocument);
     }
 }

@@ -1,252 +1,225 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System;
 
-namespace CodeJanitor.Logic.Cleaning
+namespace CodeJanitor.Logic.Cleaning;
+
+/// <summary>
+/// A class for encapsulating the logic of removing whitespace.
+/// </summary>
+
+internal sealed class RemoveWhitespaceLogic
 {
+    private readonly CodeJanitorPackage _package;
+
     /// <summary>
-    /// A class for encapsulating the logic of removing whitespace.
+    /// The singleton instance of the <see cref="RemoveWhitespaceLogic" /> class.
     /// </summary>
-    internal class RemoveWhitespaceLogic
+    private static RemoveWhitespaceLogic _instance;
+
+    /// <summary>
+    /// Gets an instance of the <see cref="RemoveWhitespaceLogic" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>An instance of the <see cref="RemoveWhitespaceLogic" /> class.</returns>
+
+    internal static RemoveWhitespaceLogic GetInstance(CodeJanitorPackage package)
     {
-        #region Fields
+        return _instance ?? (_instance = new RemoveWhitespaceLogic(package));
+    }
 
-        private readonly CodeJanitorPackage _package;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RemoveWhitespaceLogic" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
 
-        #endregion Fields
+    private RemoveWhitespaceLogic(CodeJanitorPackage package)
+    {
+        _package = package;
+    }
 
-        #region Constructors
+    /// <summary>
+    /// Removes blank lines from the bottom of the specified text document.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
 
-        /// <summary>
-        /// The singleton instance of the <see cref="RemoveWhitespaceLogic" /> class.
-        /// </summary>
-        private static RemoveWhitespaceLogic _instance;
+    internal void RemoveBlankLinesAtBottom(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
 
-        /// <summary>
-        /// Gets an instance of the <see cref="RemoveWhitespaceLogic" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        /// <returns>An instance of the <see cref="RemoveWhitespaceLogic" /> class.</returns>
-        internal static RemoveWhitespaceLogic GetInstance(CodeJanitorPackage package)
+        if (!Settings.Default.Cleaning_RemoveBlankLinesAtBottom) return;
+
+        EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
+        cursor.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
+    }
+
+    /// <summary>
+    /// Removes blank lines from the top of the specified text document.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankLinesAtTop(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankLinesAtTop) return;
+
+        EditPoint cursor = textDocument.StartPoint.CreateEditPoint();
+        cursor.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
+    }
+
+    /// <summary>
+    /// Removes blank lines after attributes.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankLinesAfterAttributes(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankLinesAfterAttributes) return;
+
+        const string pattern = @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)";
+        string replacement = @"$1" + Environment.NewLine;
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
+
+    /// <summary>
+    /// Removes blank lines after an opening brace.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankLinesAfterOpeningBrace(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace) return;
+
+        const string pattern = @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}";
+        string replacement = @"{$1" + Environment.NewLine;
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
+
+    /// <summary>
+    /// Removes blank lines before a closing brace.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankLinesBeforeClosingBrace(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace) return;
+
+        const string pattern = @"(\r?\n){2,}([ \t]*)\}";
+        string replacement = Environment.NewLine + @"$2}";
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
+
+    /// <summary>
+    /// Removes blank lines before a closing tag.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankLinesBeforeClosingTag(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingTags) return;
+
+        const string pattern = @"(\r?\n){2,}([ \t]*)</";
+        string replacement = Environment.NewLine + @"$2</";
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
+
+    /// <summary>
+    /// Removes blank lines between chained statements.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankLinesBetweenChainedStatements(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankLinesBetweenChainedStatements) return;
+
+        const string pattern = @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)";
+        string replacement = Environment.NewLine + @"$2$3$4";
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
+
+    /// <summary>
+    /// Removes blank spaces before a closing angle bracket.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+
+    internal void RemoveBlankSpacesBeforeClosingAngleBracket(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!Settings.Default.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets) return;
+
+        // Remove blank spaces before regular closing angle brackets.
+        const string pattern = @"(\r?\n)*[ \t]+>\r?\n";
+        string replacement = @">" + Environment.NewLine;
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+
+        // Handle blank spaces before self closing angle brackets based on insert blank space setting.
+        if (Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets)
         {
-            return _instance ?? (_instance = new RemoveWhitespaceLogic(package));
-        }
+            const string oneSpacePattern = @"(\r?\n)*[ \t]{2,}/>\r?\n";
+            string oneSpaceReplacement = @" />" + Environment.NewLine;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RemoveWhitespaceLogic" /> class.
-        /// </summary>
-        /// <param name="package">The hosting package.</param>
-        private RemoveWhitespaceLogic(CodeJanitorPackage package)
+            TextDocumentHelper.SubstituteAllStringMatches(textDocument, oneSpacePattern, oneSpaceReplacement);
+        }
+        else
         {
-            _package = package;
+            const string noSpacePattern = @"(\r?\n)*[ \t]+/>\r?\n";
+            string noSpaceReplacement = @"/>" + Environment.NewLine;
+
+            TextDocumentHelper.SubstituteAllStringMatches(textDocument, noSpacePattern, noSpaceReplacement);
         }
+    }
 
-        #endregion Constructors
+    /// <summary>
+    /// Removes all end of line whitespace from the specified text document.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
 
-        #region Methods
+    internal void RemoveEOLWhitespace(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
 
-        /// <summary>
-        /// Removes blank lines from the bottom of the specified text document.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesAtBottom(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
+        if (!Settings.Default.Cleaning_RemoveEndOfLineWhitespace) return;
 
-            if (!Settings.Default.Cleaning_RemoveBlankLinesAtBottom) return;
+        const string pattern = @"[ \t]+\r?\n";
+        string replacement = Environment.NewLine;
 
-            EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
-            cursor.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
-        }
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
+    }
 
-        /// <summary>
-        /// Removes blank lines from the top of the specified text document.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesAtTop(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
+    /// <summary>
+    /// Removes multiple consecutive blank lines from the specified text document.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
 
-            if (!Settings.Default.Cleaning_RemoveBlankLinesAtTop) return;
+    internal void RemoveMultipleConsecutiveBlankLines(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
 
-            EditPoint cursor = textDocument.StartPoint.CreateEditPoint();
-            cursor.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
-        }
+        if (!Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines) return;
 
-        /// <summary>
-        /// Removes blank lines after attributes.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesAfterAttributes(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
+        const string pattern = @"(\r?\n){3,}";
+        string replacement = Environment.NewLine + Environment.NewLine;
 
-            if (!Settings.Default.Cleaning_RemoveBlankLinesAfterAttributes) return;
-
-            const string pattern = @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)";
-            string replacement = @"$1" + Environment.NewLine;
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Removes blank lines after an opening brace.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesAfterOpeningBrace(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace) return;
-
-            const string pattern = @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}";
-            string replacement = @"{$1" + Environment.NewLine;
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Removes blank lines before a closing brace.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesBeforeClosingBrace(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace) return;
-
-            const string pattern = @"(\r?\n){2,}([ \t]*)\}";
-            string replacement = Environment.NewLine + @"$2}";
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Removes blank lines before a closing tag.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesBeforeClosingTag(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingTags) return;
-
-            const string pattern = @"(\r?\n){2,}([ \t]*)</";
-            string replacement = Environment.NewLine + @"$2</";
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Removes blank lines between chained statements.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankLinesBetweenChainedStatements(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveBlankLinesBetweenChainedStatements) return;
-
-            const string pattern = @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)";
-            string replacement = Environment.NewLine + @"$2$3$4";
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Removes blank spaces before a closing angle bracket.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveBlankSpacesBeforeClosingAngleBracket(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets) return;
-
-            // Remove blank spaces before regular closing angle brackets.
-            const string pattern = @"(\r?\n)*[ \t]+>\r?\n";
-            string replacement = @">" + Environment.NewLine;
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-
-            // Handle blank spaces before self closing angle brackets based on insert blank space setting.
-            if (Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets)
-            {
-                const string oneSpacePattern = @"(\r?\n)*[ \t]{2,}/>\r?\n";
-                string oneSpaceReplacement = @" />" + Environment.NewLine;
-
-                TextDocumentHelper.SubstituteAllStringMatches(textDocument, oneSpacePattern, oneSpaceReplacement);
-            }
-            else
-            {
-                const string noSpacePattern = @"(\r?\n)*[ \t]+/>\r?\n";
-                string noSpaceReplacement = @"/>" + Environment.NewLine;
-
-                TextDocumentHelper.SubstituteAllStringMatches(textDocument, noSpacePattern, noSpaceReplacement);
-            }
-        }
-
-        /// <summary>
-        /// Removes the trailing newline from the end of the specified text document.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveEOFTrailingNewLine(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveEndOfFileTrailingNewLine) return;
-
-            EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
-
-            if (cursor.AtEndOfDocument && cursor.AtStartOfLine && cursor.AtEndOfLine)
-            {
-                // Make an exception for C++ resource files to work-around known EOF issue: http://connect.microsoft.com/VisualStudio/feedback/details/173903/resource-compiler-returns-a-rc1004-unexpected-eof-found-error#details
-                if (textDocument.GetCodeLanguage() == CodeLanguage.CPlusPlus &&
-                    (textDocument.Parent.FullName.EndsWith(".h") || textDocument.Parent.FullName.EndsWith(".rc2")))
-                {
-                    return;
-                }
-
-                var backCursor = cursor.CreateEditPoint();
-                backCursor.CharLeft();
-                backCursor.Delete(cursor);
-            }
-        }
-
-        /// <summary>
-        /// Removes all end of line whitespace from the specified text document.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveEOLWhitespace(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveEndOfLineWhitespace) return;
-
-            const string pattern = @"[ \t]+\r?\n";
-            string replacement = Environment.NewLine;
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        /// <summary>
-        /// Removes multiple consecutive blank lines from the specified text document.
-        /// </summary>
-        /// <param name="textDocument">The text document to cleanup.</param>
-        internal void RemoveMultipleConsecutiveBlankLines(TextDocument textDocument)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            if (!Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines) return;
-
-            const string pattern = @"(\r?\n){3,}";
-            string replacement = Environment.NewLine + Environment.NewLine;
-
-            TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
-        }
-
-        #endregion Methods
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
 }

@@ -1,99 +1,85 @@
-using EnvDTE;
+﻿using EnvDTE;
 using EnvDTE80;
 using System;
 
-namespace CodeJanitor.Model.CodeItems
+namespace CodeJanitor.Model.CodeItems;
+
+/// <summary>
+/// The representation of a code field.
+/// </summary>
+
+public class CodeItemField : BaseCodeItemElement
 {
+    private readonly Lazy<bool> _isConstant;
+    private readonly Lazy<bool> _isEnumItem;
+    private readonly Lazy<bool> _isReadOnly;
+
     /// <summary>
-    /// The representation of a code field.
+    /// Initializes a new instance of the <see cref="CodeItemField" /> class.
     /// </summary>
-    public class CodeItemField : BaseCodeItemElement
+
+    public CodeItemField()
     {
-        #region Fields
+        _Access = LazyTryDefault(
+            () => CodeVariable?.Access ?? vsCMAccess.vsCMAccessPublic);
 
-        private readonly Lazy<bool> _isConstant;
-        private readonly Lazy<bool> _isEnumItem;
-        private readonly Lazy<bool> _isReadOnly;
+        _Attributes = LazyTryDefault(
+            () => CodeVariable?.Attributes);
 
-        #endregion Fields
+        _DocComment = LazyTryDefault(
+            () => CodeVariable?.DocComment);
 
-        #region Constructors
+        _isConstant = LazyTryDefault(
+            () => CodeVariable != null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindConst);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CodeItemField" /> class.
-        /// </summary>
-        public CodeItemField()
-        {
-            _Access = LazyTryDefault(
-                () => CodeVariable?.Access ?? vsCMAccess.vsCMAccessPublic);
+        _isEnumItem = LazyTryDefault(
+            () => CodeVariable?.Parent is CodeEnum);
 
-            _Attributes = LazyTryDefault(
-                () => CodeVariable?.Attributes);
+        _isReadOnly = LazyTryDefault(
+            () => CodeVariable != null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindReadOnly);
 
-            _DocComment = LazyTryDefault(
-                () => CodeVariable?.DocComment);
+        _IsStatic = LazyTryDefault(
+            () => CodeVariable != null && CodeVariable.IsShared);
 
-            _isConstant = LazyTryDefault(
-                () => CodeVariable != null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindConst);
-
-            _isEnumItem = LazyTryDefault(
-                () => CodeVariable?.Parent is CodeEnum);
-
-            _isReadOnly = LazyTryDefault(
-                () => CodeVariable != null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindReadOnly);
-
-            _IsStatic = LazyTryDefault(
-                () => CodeVariable != null && CodeVariable.IsShared);
-
-            _TypeString = LazyTryDefault(
-                () => CodeVariable?.Type?.AsString);
-        }
-
-        #endregion Constructors
-
-        #region BaseCodeItem Overrides
-
-        /// <summary>
-        /// Gets the kind.
-        /// </summary>
-        public override KindCodeItem Kind => KindCodeItem.Field;
-
-        /// <summary>
-        /// Loads all lazy initialized values immediately.
-        /// </summary>
-        public override void LoadLazyInitializedValues()
-        {
-            base.LoadLazyInitializedValues();
-
-            var ic = IsConstant;
-            var ie = IsEnumItem;
-            var isro = IsReadOnly;
-        }
-
-        #endregion BaseCodeItem Overrides
-
-        #region Properties
-
-        /// <summary>
-        /// Gets or sets the underlying VSX CodeVariable.
-        /// </summary>
-        public CodeVariable2 CodeVariable { get; set; }
-
-        /// <summary>
-        /// Gets a flag indicating if this field is a constant.
-        /// </summary>
-        public bool IsConstant => _isConstant.Value;
-
-        /// <summary>
-        /// Gets a flag indicating if this field is an enumeration item.
-        /// </summary>
-        public bool IsEnumItem => _isEnumItem.Value;
-
-        /// <summary>
-        /// Gets a flag indicating if this field is read-only.
-        /// </summary>
-        public bool IsReadOnly => _isReadOnly.Value;
-
-        #endregion Properties
+        _TypeString = LazyTryDefault(
+            () => CodeVariable?.Type?.AsString);
     }
+
+    /// <summary>
+    /// Gets the kind.
+    /// </summary>
+    public override KindCodeItem Kind => KindCodeItem.Field;
+
+    /// <summary>
+    /// Loads all lazy initialized values immediately.
+    /// </summary>
+
+    public override void LoadLazyInitializedValues()
+    {
+        base.LoadLazyInitializedValues();
+
+        var ic = IsConstant;
+        var ie = IsEnumItem;
+        var isro = IsReadOnly;
+    }
+
+    /// <summary>
+    /// Gets or sets the underlying VSX CodeVariable.
+    /// </summary>
+    public CodeVariable2 CodeVariable { get; set; }
+
+    /// <summary>
+    /// Gets a flag indicating if this field is a constant.
+    /// </summary>
+    public bool IsConstant => _isConstant.Value;
+
+    /// <summary>
+    /// Gets a flag indicating if this field is an enumeration item.
+    /// </summary>
+    public bool IsEnumItem => _isEnumItem.Value;
+
+    /// <summary>
+    /// Gets a flag indicating if this field is read-only.
+    /// </summary>
+    public bool IsReadOnly => _isReadOnly.Value;
 }
