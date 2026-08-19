@@ -314,114 +314,151 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\About\AboutWindow.xaml">
+      <Link>UI\Dialogs\About\AboutWindow.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml">
+      <Link>UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml">
+      <Link>UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningFileTypesDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Cleaning\CleaningFileTypesDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningGeneralDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Cleaning\CleaningGeneralDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningInsertDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Cleaning\CleaningInsertDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningRemoveDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Cleaning\CleaningRemoveDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningUpdateDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Cleaning\CleaningUpdateDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningVisualStudioDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Cleaning\CleaningVisualStudioDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Collapsing\CollapsingDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Collapsing\CollapsingDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Digging\DiggingDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Digging\DiggingDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Finding\FindingDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Finding\FindingDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Formatting\FormattingDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Formatting\FormattingDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\FeaturesDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\General\FeaturesDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\GeneralDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\General\GeneralDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\CompositeOptionsPageDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\CompositeOptionsPageDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsLayoutStyles.xaml">
+      <Link>UI\Dialogs\Options\OptionsLayoutStyles.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SectionPageHost.xaml">
+      <Link>UI\Dialogs\Options\SectionPageHost.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Progressing\ProgressingDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Progressing\ProgressingDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingGeneralDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Reorganizing\ReorganizingGeneralDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Reorganizing\ReorganizingTypesDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Reorganizing\ReorganizingTypesDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Switching\SwitchingDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\Switching\SwitchingDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ThirdParty\ThirdPartyDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\ThirdParty\ThirdPartyDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptWindow.xaml">
+      <Link>UI\Dialogs\Prompts\YesNoPromptWindow.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\EditableTextBlock.xaml">
+      <Link>UI\EditableTextBlock.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Themes\Buttons.xaml">
+      <Link>UI\Themes\Buttons.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Themes\CodeJanitorCoreTheme.xaml">
+      <Link>UI\Themes\CodeJanitorCoreTheme.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Themes\CodeJanitorDarkTheme.xaml">
+      <Link>UI\Themes\CodeJanitorDarkTheme.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Themes\CodeJanitorLightTheme.xaml">
+      <Link>UI\Themes\CodeJanitorLightTheme.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Themes\Colors.xaml">
+      <Link>UI\Themes\Colors.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Themes\TreeViews.xaml">
+      <Link>UI\Themes\TreeViews.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\ToolWindows\BuildProgress\BuildProgressView.xaml">
+      <Link>UI\ToolWindows\BuildProgress\BuildProgressView.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\ToolWindows\Spade\CodeItemBaseTemplates.xaml">
+      <Link>UI\ToolWindows\Spade\CodeItemBaseTemplates.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\ToolWindows\Spade\CodeItemTemplates.xaml">
+      <Link>UI\ToolWindows\Spade\CodeItemTemplates.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\ToolWindows\Spade\CodeItemToolTipTemplates.xaml">
+      <Link>UI\ToolWindows\Spade\CodeItemToolTipTemplates.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\ToolWindows\Spade\RadialProgressBar.xaml">
+      <Link>UI\ToolWindows\Spade\RadialProgressBar.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\ToolWindows\Spade\SpadeView.xaml">
+      <Link>UI\ToolWindows\Spade\SpadeView.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
