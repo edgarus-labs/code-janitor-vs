@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using System;
@@ -15,6 +15,7 @@ public class HeadlessCSharpCleanupTests
     public void TestInitialize()
     {
         Settings.Default.Reset();
+        Settings.Default.Cleaning_AiXmlDocumentationEnabled = false;
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
     }

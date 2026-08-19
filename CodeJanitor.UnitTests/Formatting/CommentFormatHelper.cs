@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Model.Comments;
 using CodeJanitor.Model.Comments.Options;
 using System;
@@ -29,6 +29,8 @@ internal sealed class CommentFormatHelper
         Action<FormatterOptions> options = null)
     {
         var result = CodeComment.Format(text, prefix, options);
+        var fOptions = FormatterOptions.FromSettings(Properties.Settings.Default);
+        options?.Invoke(fOptions);
         Assert.AreEqual(expected ?? text, result);
 
         return result;

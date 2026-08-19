@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.Shell;
@@ -461,7 +461,7 @@ internal sealed class CodeCleanupManager
             !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
             AiXmlDocumentationLogic.IsConfigurationPresent())
         {
-            var aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_instance._package);
+            var aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_instance?._package);
             transformations.Add(new DelegateSourceTransformation("Apply AI XML documentation", aiXmlDocumentationLogic.ApplyXmlDocumentationToSource));
         }
 

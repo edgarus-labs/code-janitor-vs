@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
 using System;
@@ -17,6 +17,7 @@ public class XmlFormattingTests
     public void TestInitialize()
     {
         Settings.Default.Reset();
+        Settings.Default.Formatting_CommentXmlSplitAllTags = false;
     }
 
     [TestMethod]
@@ -453,8 +454,7 @@ public class XmlFormattingTests
     public void XmlFormattingTests_TagCase_Keep()
     {
         var input = "<Xml></Xml>";
-
-        CommentFormatHelper.AssertEqualAfterFormat(input, o => o.Xml.Default.Case = XmlTagCase.Keep);
+        var res = CommentFormatHelper.AssertEqualAfterFormat(input, o => o.Xml.Default.Case = XmlTagCase.Keep);
     }
 
     [TestMethod]

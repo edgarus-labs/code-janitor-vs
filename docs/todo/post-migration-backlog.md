@@ -41,10 +41,10 @@ TODO
   - Obszar: docs + release process
   - Kryterium done: raport release zawiera wynik smoke test i ActivityLog.
 
-- BL-005 Ujednolicenie strategii testow (MSTest/NUnit)
+- BL-005 Ujednolicenie strategii testow (MSTest/xUnit)
   - Priorytet: Low
-  - Status: TODO
-  - Obszar: CodeMaid.UnitTests
+  - Status: IN PROGRESS (zmigrowano testy NUnit do xUnit v3)
+  - Obszar: CodeJanitor.UnitTests
   - Kryterium done: uproszczony pipeline test i mniejsza zlozonosc adapterow.
 
 - BL-006 Spojnosc wygladu UI (WPF) z Visual Studio
