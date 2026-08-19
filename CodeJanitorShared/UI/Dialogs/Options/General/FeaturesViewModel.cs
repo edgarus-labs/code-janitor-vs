@@ -12,10 +12,8 @@ public class FeaturesViewModel : OptionsPageViewModel
         {
             new Mapping(x => ActiveSettings.Feature_BuildProgressToolWindow, x => BuildProgressToolWindow),
             new Mapping(x => ActiveSettings.Feature_CleanupActiveCode, x => CleanupActiveCode),
-            new Mapping(x => ActiveSettings.Feature_CleanupAllCode, x => CleanupAllCode),
             new Mapping(x => ActiveSettings.Feature_CleanupChangedFiles, x => CleanupChangedFiles),
             new Mapping(x => ActiveSettings.Feature_CleanupOpenCode, x => CleanupOpenCode),
-            new Mapping(x => ActiveSettings.Feature_CleanupSelectedCode, x => CleanupSelectedCode),
             new Mapping(x => ActiveSettings.Feature_CloseAllReadOnly, x => CloseAllReadOnly),
             new Mapping(x => ActiveSettings.Feature_CollapseAllSolutionExplorer, x => CollapseAllSolutionExplorer),
             new Mapping(x => ActiveSettings.Feature_CollapseSelectedSolutionExplorer, x => CollapseSelectedSolutionExplorer),
@@ -54,12 +52,6 @@ public class FeaturesViewModel : OptionsPageViewModel
         }
     }
 
-    public bool CleanupAllCode
-    {
-        get => GetPropertyValue<bool>();
-        set => SetPropertyValue(value);
-    }
-
     public bool CleanupChangedFiles
     {
         get => GetPropertyValue<bool>();
@@ -67,12 +59,6 @@ public class FeaturesViewModel : OptionsPageViewModel
     }
 
     public bool CleanupOpenCode
-    {
-        get => GetPropertyValue<bool>();
-        set => SetPropertyValue(value);
-    }
-
-    public bool CleanupSelectedCode
     {
         get => GetPropertyValue<bool>();
         set => SetPropertyValue(value);

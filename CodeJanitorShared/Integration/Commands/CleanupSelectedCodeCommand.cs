@@ -58,7 +58,7 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CleanupSelectedCodeCommand(package);
-        await package.SettingsMonitor.WatchAsync(s => s.Feature_CleanupSelectedCode, Instance.SwitchAsync);
+        await Instance.SwitchAsync(true);
     }
 
     /// <summary>
