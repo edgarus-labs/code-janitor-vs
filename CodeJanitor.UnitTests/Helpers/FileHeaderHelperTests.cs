@@ -1,4 +1,3 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NUnit.Framework;
 using CodeJanitor.Helpers;
 using System;
@@ -10,7 +9,7 @@ namespace CodeJanitor.UnitTests.Helpers;
 
 // remark: EnvDTE only counts 1 character per newline
 
-[TestClass]
+[TestFixture]
 public class FileHeaderHelperTests
 {
     [TestCase(CodeLanguage.CSharp, "// some CSharp test header\r\n")]
