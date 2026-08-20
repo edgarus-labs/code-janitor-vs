@@ -58,7 +58,6 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SealClassesWhenSafe, x => SealClassesWhenSafe),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements, x => InsertBlankLineBeforeReturnAndThrowStatements),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_FormatRazorComponents, x => FormatRazorComponents),
-            new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_RazorAttributeWrapThreshold, x => RazorAttributeWrapThreshold),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationEnabled, x => AiXmlDocumentationEnabled),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl, x => AiXmlDocumentationEndpointUrl),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationApiKeyEncrypted, x => AiXmlDocumentationApiKeyEncryptedStore),
@@ -407,22 +406,6 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the number of attributes a Razor tag may keep inline before it is wrapped.
-    /// </summary>
-
-    public int RazorAttributeWrapThreshold
-    {
-        get { return GetPropertyValue<int>(); }
-        set
-        {
-            if (value >= 0)
-            {
-                SetPropertyValue(value);
-            }
-        }
     }
 
     /// <summary>

@@ -23,11 +23,6 @@
                     <CheckBox Content="Add 'sealed' to classes not derived from in the same file (single-file heuristic)" IsChecked="{Binding SealClassesWhenSafe}" />
                     <CheckBox Content="Insert a blank line before 'return' and 'throw' statements that end a block of logic" IsChecked="{Binding InsertBlankLineBeforeReturnAndThrowStatements}" />
                     <CheckBox Content="Format Razor components (.razor) in safe mode" IsChecked="{Binding FormatRazorComponents}" />
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Razor attribute inline threshold" VerticalAlignment="Center" />
-                        <TextBox Text="{Binding RazorAttributeWrapThreshold, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right" Width="40" />
-                        <TextBlock Text="(0 = use default 2)" VerticalAlignment="Center" Margin="6,0,0,0" />
-                    </StackPanel>
 
                     <Separator Margin="0,8,0,8" />
                     <TextBlock Text="AI-assisted XML documentation (C# methods)" FontWeight="SemiBold" />
