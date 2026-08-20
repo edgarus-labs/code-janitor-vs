@@ -42,7 +42,8 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
         string filePath,
         Encoding encoding,
         Func<string, string, string> transformSource,
-        bool transformUpdatedSource = true)
+        bool transformUpdatedSource = true,
+        Func<string, string, string> transformCreatedFile = null)
     {
         var splitPlan = _planner.CreatePlan(source, filePath);
         if (!splitPlan.HasChanges)
@@ -50,11 +51,12 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
             return new ApplyResult(false, source, Array.Empty<string>(), splitPlan.SkipReason);
         }
 
+        var createdFileTransform = transformCreatedFile ?? transformSource;
         var createdFiles = new List<string>();
         foreach (var plannedFile in splitPlan.NewFiles)
         {
-            var transformedSource = transformSource != null
-                ? transformSource(plannedFile.Content, plannedFile.FilePath)
+            var transformedSource = createdFileTransform != null
+                ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
                 : plannedFile.Content;
 
             WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding);

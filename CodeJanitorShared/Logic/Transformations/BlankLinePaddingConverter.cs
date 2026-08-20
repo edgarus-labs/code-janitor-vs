@@ -147,7 +147,7 @@ public class BlankLinePaddingConverter : ISourceTransformation
             if (!padBefore && !padAfter) continue;
 
             var lineSpan = tree.GetLineSpan(node.Span);
-            int startLine = lineSpan.StartLinePosition.Line;
+            int startLine = GetPaddingStartLine(node, tree);
             int endLine = lineSpan.EndLinePosition.Line;
 
             if (padBefore && startLine > 0)
@@ -156,6 +156,25 @@ public class BlankLinePaddingConverter : ISourceTransformation
             if (padAfter && endLine + 1 < lines.Count)
                 wantBlankBefore.Add(endLine + 1);
         }
+    }
+
+    /// <summary>
+    /// A documentation comment belongs to the member below it, so padding has to go above the
+    /// comment rather than between the comment and the declaration.
+    /// </summary>
+
+    private static int GetPaddingStartLine(SyntaxNode node, SyntaxTree tree)
+    {
+        foreach (var trivia in node.GetLeadingTrivia())
+        {
+            if (trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+            {
+                return tree.GetLineSpan(trivia.Span).StartLinePosition.Line;
+            }
+        }
+
+        return tree.GetLineSpan(node.Span).StartLinePosition.Line;
     }
 
     private void CollectRegionDirectivePadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)

@@ -424,7 +424,8 @@ internal sealed class CodeCleanupManager
                         projectItemFileName,
                         encoding,
                         ApplyHeadlessCSharpTransformations,
-                        transformUpdatedSource: false);
+                        transformUpdatedSource: false,
+                        transformCreatedFile: ApplyHeadlessCSharpTransformationsForCreatedFile);
                     if (splitResult.Changed)
                     {
                         splitChanged = true;
@@ -685,6 +686,39 @@ internal sealed class CodeCleanupManager
         var pipeline = new SourceTransformationPipeline(transformations);
 
         return pipeline.Run(source);
+    }
+
+    /// <summary>
+    /// Transformations for a file produced by the top-level type split. Such a file is never
+    /// opened by the editor path, so the AI documentation step has to run here even when preview
+    /// mode keeps it out of the headless pipeline.
+    /// </summary>
+
+    internal static string ApplyHeadlessCSharpTransformationsForCreatedFile(string source, string filePath)
+    {
+        var transformed = ApplyHeadlessCSharpTransformations(source, filePath);
+
+        var enabled = Settings.Default.Cleaning_AiXmlDocumentationEnabled;
+        var configured = AiXmlDocumentationLogic.IsConfigurationPresent();
+        var fileName = Path.GetFileName(filePath);
+
+        if (!enabled || !configured)
+        {
+            OutputWindowHelper.InfoWriteLine(
+                $"AI XMLDoc skipped for split file '{fileName}': enabled={enabled}, configured={configured}.");
+
+            return transformed;
+        }
+
+        // Already-documented members are skipped, so this is a no-op when the pipeline above
+        // has run the AI step itself.
+        var documented = AiXmlDocumentationLogic.GetInstance(_instance?._package)
+            .ApplyXmlDocumentationToSourceIgnoringPreview(transformed);
+
+        OutputWindowHelper.InfoWriteLine(
+            $"AI XMLDoc for split file '{fileName}': changed={!string.Equals(documented, transformed, StringComparison.Ordinal)}.");
+
+        return documented;
     }
 
     /// <summary>
@@ -1069,7 +1103,8 @@ internal sealed class CodeCleanupManager
             originalSource,
             filePath,
             encoding,
-            ApplyHeadlessCSharpTransformations);
+            ApplyHeadlessCSharpTransformations,
+            transformCreatedFile: ApplyHeadlessCSharpTransformationsForCreatedFile);
         if (!splitResult.Changed)
         {
             return;

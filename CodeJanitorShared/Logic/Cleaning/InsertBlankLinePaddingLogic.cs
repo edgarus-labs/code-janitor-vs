@@ -260,8 +260,37 @@ internal sealed class InsertBlankLinePaddingLogic
 
         foreach (T codeElement in codeElements.Where(ShouldBePrecededByBlankLine))
         {
-            TextDocumentHelper.InsertBlankLineBeforePoint(codeElement.StartPoint);
+            TextDocumentHelper.InsertBlankLineBeforePoint(GetPointAboveDocumentationComment(codeElement.StartPoint));
         }
+    }
+
+    /// <summary>
+    /// DTE reports a member's start below its documentation comment, so padding has to be placed
+    /// above the comment instead of between the comment and the member it documents.
+    /// </summary>
+
+    private static EnvDTE.EditPoint GetPointAboveDocumentationComment(EnvDTE.TextPoint startPoint)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var point = startPoint.CreateEditPoint();
+
+        while (point.Line > 1)
+        {
+            var probe = point.CreateEditPoint();
+            probe.LineUp();
+            probe.StartOfLine();
+
+            var lineText = probe.GetText(probe.LineLength);
+            if (lineText == null || !lineText.TrimStart().StartsWith("///", System.StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            point = probe;
+        }
+
+        return point;
     }
 
     /// <summary>

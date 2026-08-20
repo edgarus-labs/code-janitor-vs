@@ -1,8 +1,11 @@
 ﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
+using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace CodeJanitor.Integration.Options;
 
@@ -32,7 +35,13 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
         {
             EnsureInitialized();
 
-            return _host;
+            return (UIElement)_host ?? new TextBlock
+            {
+                Text = "Code Janitor could not load its package, so these settings are unavailable. "
+                    + "Restart Visual Studio, and check ActivityLog.xml if the problem persists.",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(11)
+            };
         }
     }
 
@@ -58,11 +67,29 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
     {
         if (_host != null) return;
 
-        var package = CodeJanitorPackage.Instance;
+        var package = CodeJanitorPackage.Instance ?? ForceLoadPackage();
         if (package == null) return;
 
         _viewModel = CreateViewModel(package, Settings.Default);
         _viewModel.LoadSettings();
         _host = new SectionPageHost { DataContext = _viewModel };
+    }
+
+    /// <summary>
+    /// The package only auto-loads once a solution is fully loaded, so Tools &gt; Options opened
+    /// without a solution has to request the load explicitly.
+    /// </summary>
+
+    private static CodeJanitorPackage ForceLoadPackage()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var shell = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShell)) as IVsShell;
+        if (shell == null) return null;
+
+        var packageGuid = new Guid(PackageGuids.GuidCodeJanitorPackageString);
+        shell.LoadPackage(ref packageGuid, out _);
+
+        return CodeJanitorPackage.Instance;
     }
 }

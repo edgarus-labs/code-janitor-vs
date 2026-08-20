@@ -191,14 +191,14 @@ internal sealed class OpenAiCompatibleClient
         }
     }
 
-    internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256)
+    internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256, CancellationToken cancellationToken = default(CancellationToken))
     {
         var safeMaxTokens = maxTokens > 0 ? maxTokens : 256;
 
-        return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage);
+        return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage, MaxAttempts, cancellationToken);
     }
 
-    private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage, int maxAttempts = MaxAttempts)
+    private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage, int maxAttempts = MaxAttempts, CancellationToken cancellationToken = default(CancellationToken))
     {
         completionText = null;
         errorMessage = null;
@@ -216,6 +216,13 @@ internal sealed class OpenAiCompatibleClient
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                errorMessage = "AI request canceled.";
+
+                return false;
+            }
+
             try
             {
                 using (var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(TimeoutSeconds) })
@@ -225,7 +232,7 @@ internal sealed class OpenAiCompatibleClient
 
                     message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
-                    var response = httpClient.SendAsync(message).GetAwaiter().GetResult();
+                    var response = httpClient.SendAsync(message, cancellationToken).GetAwaiter().GetResult();
                     var responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
                     if (!response.IsSuccessStatusCode)
@@ -253,6 +260,12 @@ internal sealed class OpenAiCompatibleClient
 
                     return true;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                errorMessage = "AI request canceled.";
+
+                return false;
             }
             catch (Exception ex)
             {
@@ -308,7 +321,8 @@ internal sealed class OpenAiCompatibleClient
                 }
             },
             ["temperature"] = 0.2,
-            ["max_tokens"] = maxTokens
+            ["max_tokens"] = maxTokens,
+            ["stream"] = false
         };
 
         if (!string.IsNullOrWhiteSpace(Model))
@@ -316,15 +330,15 @@ internal sealed class OpenAiCompatibleClient
             request["model"] = Model;
         }
 
-            // Best-effort context window hint for local OpenAI-compatible servers (e.g. llama.cpp,
-            // text-generation-webui, LM Studio) that accept a "num_ctx" field. Real Ollama servers
-            // ignore this field on the OpenAI-compatible endpoint (context size must be configured
-            // server-side via a Modelfile), and hosted/cloud OpenAI-compatible APIs often reject
-            // unrecognized fields outright, so this is only ever sent for endpoints that look local.
-            if (ContextWindowTokens > 0 && IsLocalEndpoint(EndpointUrl))
-            {
-                request["num_ctx"] = ContextWindowTokens;
-            }
+        // Best-effort context window hint for local OpenAI-compatible servers (e.g. llama.cpp,
+        // text-generation-webui, LM Studio) that accept a "num_ctx" field. Real Ollama servers
+        // ignore this field on the OpenAI-compatible endpoint (context size must be configured
+        // server-side via a Modelfile), and hosted/cloud OpenAI-compatible APIs often reject
+        // unrecognized fields outright, so this is only ever sent for endpoints that look local.
+        if (ContextWindowTokens > 0 && IsLocalEndpoint(EndpointUrl))
+        {
+            request["num_ctx"] = ContextWindowTokens;
+        }
 
         var serializer = new JavaScriptSerializer();
 
@@ -338,11 +352,10 @@ internal sealed class OpenAiCompatibleClient
             return null;
         }
 
-        var serializer = new JavaScriptSerializer();
-        var payload = serializer.DeserializeObject(responseText) as IDictionary;
+        var payload = TryDeserializeObject(responseText);
         if (payload == null)
         {
-            return null;
+            return TryExtractContentFromEventStream(responseText);
         }
 
         var choices = payload["choices"] as IList;
@@ -354,32 +367,10 @@ internal sealed class OpenAiCompatibleClient
                 var message = firstChoice["message"] as IDictionary;
                 if (message != null)
                 {
-                    if (message["content"] != null)
+                    var content = ReadContentField(message);
+                    if (content != null)
                     {
-                        var content = Convert.ToString(message["content"]);
-                        if (!string.IsNullOrWhiteSpace(content))
-                        {
-                            return content;
-                        }
-                    }
-
-                    // Fallback for reasoning models (e.g. DeepSeek-R1 / deepseek-reasoner) when content is empty or omitted
-                    if (message["reasoning_content"] != null)
-                    {
-                        var reasoning = Convert.ToString(message["reasoning_content"]);
-                        if (!string.IsNullOrWhiteSpace(reasoning))
-                        {
-                            return reasoning;
-                        }
-                    }
-
-                    if (message["reasoning"] != null)
-                    {
-                        var reasoning = Convert.ToString(message["reasoning"]);
-                        if (!string.IsNullOrWhiteSpace(reasoning))
-                        {
-                            return reasoning;
-                        }
+                        return content;
                     }
                 }
 
@@ -414,6 +405,101 @@ internal sealed class OpenAiCompatibleClient
         }
 
         return null;
+    }
+
+    private static IDictionary TryDeserializeObject(string text)
+    {
+        try
+        {
+            return new JavaScriptSerializer().DeserializeObject(text) as IDictionary;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads the assistant text from a message or delta object, falling back to the reasoning
+    /// fields used by DeepSeek-R1 style models when the content is empty.
+    /// </summary>
+
+    private static string ReadContentField(IDictionary source)
+    {
+        foreach (var key in new[] { "content", "reasoning_content", "reasoning" })
+        {
+            if (source[key] == null)
+            {
+                continue;
+            }
+
+            var value = Convert.ToString(source[key]);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Reassembles a server-sent event response, which local servers may return even when the
+    /// request asked for a non-streaming completion.
+    /// </summary>
+
+    private static string TryExtractContentFromEventStream(string responseText)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var rawLine in responseText.Split('\n'))
+        {
+            var line = rawLine.Trim();
+            if (!line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var chunkText = line.Substring("data:".Length).Trim();
+            if (chunkText.Length == 0 || string.Equals(chunkText, "[DONE]", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var chunk = TryDeserializeObject(chunkText);
+            var choices = chunk?["choices"] as IList;
+            if (choices == null || choices.Count == 0)
+            {
+                continue;
+            }
+
+            if (!(choices[0] is IDictionary firstChoice))
+            {
+                continue;
+            }
+
+            var piece = firstChoice["delta"] is IDictionary delta ? ReadContentField(delta) : null;
+
+            if (piece == null && firstChoice["message"] is IDictionary message)
+            {
+                piece = ReadContentField(message);
+            }
+
+            if (piece == null && firstChoice["text"] != null)
+            {
+                piece = Convert.ToString(firstChoice["text"]);
+            }
+
+            builder.Append(piece);
+        }
+
+        var result = builder.ToString();
+
+        return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 
     private static string Truncate(string text, int length)

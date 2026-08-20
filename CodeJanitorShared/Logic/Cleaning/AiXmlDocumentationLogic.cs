@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -27,6 +28,26 @@ internal sealed class AiXmlDocumentationLogic
     private readonly CodeJanitorPackage _package;
 
     private static AiXmlDocumentationLogic _instance;
+
+    private static CancellationTokenSource _runCancellation = new CancellationTokenSource();
+
+    /// <summary>
+    /// Cancels the AI work of the current cleanup batch. Without this a single file can hold the
+    /// batch for minutes, because one request may run until its own timeout.
+    /// </summary>
+
+    internal static CancellationToken RunToken => _runCancellation.Token;
+
+    internal static void BeginRun()
+    {
+        var previous = Interlocked.Exchange(ref _runCancellation, new CancellationTokenSource());
+        previous?.Dispose();
+    }
+
+    internal static void CancelRun()
+    {
+        _runCancellation?.Cancel();
+    }
 
     internal static AiXmlDocumentationLogic GetInstance(CodeJanitorPackage package)
     {
@@ -164,6 +185,23 @@ internal sealed class AiXmlDocumentationLogic
         return client == null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
     }
 
+    /// <summary>
+    /// Applies documentation regardless of the preview setting, for sources that never reach the
+    /// editor path where the preview prompt lives.
+    /// </summary>
+
+    internal string ApplyXmlDocumentationToSourceIgnoringPreview(string source)
+    {
+        if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled)
+        {
+            return source;
+        }
+
+        var client = CreateClientFromSettings();
+
+        return client == null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
+    }
+
     private void ApplyXmlDocumentationWithPreview(TextDocument textDocument, OpenAiCompatibleClient client)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -235,7 +273,7 @@ internal sealed class AiXmlDocumentationLogic
         return updatedText;
     }
 
-    internal static string GenerateXmlDocumentationForSource(string source, Func<MethodDeclarationSyntax, string> summaryProvider, int maxMethodsPerFile)
+    internal static string GenerateXmlDocumentationForSource(string source, Func<MemberDeclarationSyntax, string> summaryProvider, int maxMethodsPerFile)
     {
         var options = new AiXmlDocumentationRunOptions
         {
@@ -256,7 +294,7 @@ internal sealed class AiXmlDocumentationLogic
         return GenerateXmlDocumentationForSourceInternal(source, summaryProvider, options, new AiXmlDocumentationRunStats());
     }
 
-    private static string GenerateXmlDocumentationForSourceInternal(string source, Func<MethodDeclarationSyntax, string> summaryProvider, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
+    private static string GenerateXmlDocumentationForSourceInternal(string source, Func<MemberDeclarationSyntax, string> summaryProvider, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
     {
         if (string.IsNullOrWhiteSpace(source) || summaryProvider == null)
         {
@@ -268,8 +306,8 @@ internal sealed class AiXmlDocumentationLogic
 
         var skippedByFilter = 0;
         var eligibleMethods = root.DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .Where(x => CanDocumentMethod(x, options, ref skippedByFilter))
+            .OfType<MemberDeclarationSyntax>()
+            .Where(x => CanDocumentMember(x, options, ref skippedByFilter))
             .OrderBy(x => x.GetFirstToken().SpanStart)
             .ToList();
 
@@ -293,13 +331,18 @@ internal sealed class AiXmlDocumentationLogic
         var deadlineUtc = DateTime.UtcNow.AddSeconds(options.GlobalTimeoutSeconds > 0 ? options.GlobalTimeoutSeconds : 60);
         foreach (var method in eligibleMethods.OrderByDescending(x => x.GetFirstToken().SpanStart))
         {
+            if (RunToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             if (DateTime.UtcNow > deadlineUtc)
             {
                 stats.SkippedByBudget++;
                 continue;
             }
 
-            var insertPosition = method.GetFirstToken().SpanStart;
+            var insertPosition = GetLineStart(builder.ToString(), method.GetFirstToken().SpanStart);
             var indent = GetLineIndent(builder.ToString(), insertPosition);
 
             var rawSummary = summaryProvider(method);
@@ -311,7 +354,9 @@ internal sealed class AiXmlDocumentationLogic
 
             var summary = NormalizeSentence(rawSummary);
 
-            var exceptions = DetectThrownExceptions(method).ToList();
+            var exceptions = method is MethodDeclarationSyntax methodForExceptions
+                ? DetectThrownExceptions(methodForExceptions).ToList()
+                : new List<string>();
             var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions);
 
             builder.Insert(insertPosition, xmlBlock);
@@ -385,6 +430,67 @@ internal sealed class AiXmlDocumentationLogic
         // Backward compatibility with the initial plain-text settings approach.
 
         return Settings.Default.Cleaning_AiXmlDocumentationApiKey;
+    }
+
+    /// <summary>
+    /// Types and properties carry no parameters or exceptions, so they only need the shared
+    /// attribute and existing-documentation filters.
+    /// </summary>
+
+    private static bool CanDocumentMember(MemberDeclarationSyntax member, AiXmlDocumentationRunOptions options, ref int filteredCounter)
+    {
+        if (member == null)
+        {
+            return false;
+        }
+
+        if (member is MethodDeclarationSyntax method)
+        {
+            return CanDocumentMethod(method, options, ref filteredCounter);
+        }
+
+        if (!(member is BaseTypeDeclarationSyntax) && !(member is PropertyDeclarationSyntax))
+        {
+            return false;
+        }
+
+        if (member is PropertyDeclarationSyntax && member.Parent is InterfaceDeclarationSyntax)
+        {
+            return false;
+        }
+
+        if (options.IgnoreTestMethods && member is BaseTypeDeclarationSyntax testType &&
+            (testType.Identifier.ValueText.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
+             testType.Identifier.ValueText.EndsWith("Test", StringComparison.OrdinalIgnoreCase)))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (HasDocumentationComment(member))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (options.IgnoreObsolete && HasAnyAttribute(member, "Obsolete"))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (options.IgnoreGeneratedCode && (HasAnyAttribute(member, "GeneratedCode", "CompilerGenerated") ||
+                                            HasAnyAttribute(member.Parent as MemberDeclarationSyntax, "GeneratedCode", "CompilerGenerated")))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        return true;
     }
 
     private static bool CanDocumentMethod(MethodDeclarationSyntax method, AiXmlDocumentationRunOptions options, ref int filteredCounter)
@@ -513,9 +619,9 @@ internal sealed class AiXmlDocumentationLogic
         }
     }
 
-    private static bool HasDocumentationComment(MethodDeclarationSyntax method)
+    private static bool HasDocumentationComment(SyntaxNode member)
     {
-        return method.GetLeadingTrivia().Any(trivia =>
+        return member.GetLeadingTrivia().Any(trivia =>
         {
             var structure = trivia.GetStructure();
 
@@ -523,13 +629,52 @@ internal sealed class AiXmlDocumentationLogic
         });
     }
 
-    private static string CreateSummary(OpenAiCompatibleClient client, MethodDeclarationSyntax method, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
+    private static string CreateSummary(OpenAiCompatibleClient client, MemberDeclarationSyntax member, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
     {
-        if (stats.AttemptedMethods >= options.MaxRequestsPerCleanup)
+        // Property wording is formulaic, so spending a request on it buys nothing.
+        if (member is PropertyDeclarationSyntax property)
+        {
+            return BuildPropertySummary(property);
+        }
+
+        if (stats.AttemptedMethods >= options.MaxRequestsPerCleanup || RunToken.IsCancellationRequested)
         {
             return null;
         }
 
+        var prompt = member is MethodDeclarationSyntax method
+            ? BuildMethodPrompt(method, options)
+            : BuildTypePrompt((BaseTypeDeclarationSyntax)member, options);
+
+        var estimatedTokens = EstimateRequestTokens(prompt, options.MaxTokensPerRequest);
+        if (stats.EstimatedTokensUsed + estimatedTokens > options.MaxEstimatedTokensPerCleanup)
+        {
+            return null;
+        }
+
+        stats.EstimatedTokensUsed += estimatedTokens;
+        stats.AttemptedMethods++;
+
+        string completion;
+        string error;
+        if (!client.TryGenerateDocumentation(prompt, out completion, out error, options.MaxTokensPerRequest, RunToken) || string.IsNullOrWhiteSpace(completion))
+        {
+            stats.AiFailures++;
+            if (!options.AllowDeterministicFallback)
+            {
+                return null;
+            }
+
+            stats.FallbacksUsed++;
+
+            return BuildFallbackSummary(member);
+        }
+
+        return NormalizeSentence(completion);
+    }
+
+    private static string BuildMethodPrompt(MethodDeclarationSyntax method, AiXmlDocumentationRunOptions options)
+    {
         var signature = method.WithBody(null)
             .WithExpressionBody(null)
             .WithSemicolonToken(default(SyntaxToken))
@@ -546,38 +691,62 @@ internal sealed class AiXmlDocumentationLogic
             exceptionList = "none detected";
         }
 
-        var prompt =
+        return
             "Analyze this C# method and produce exactly one concise summary sentence (plain text only, no XML, no quotes). " +
             "Mention key behavior and side effects.\n" +
             "Signature:\n" + signature + "\n" +
             "Method body:\n" + Truncate(bodyText, options.MaxInputCharsPerMethod) + "\n" +
             "Detected thrown exceptions: " + exceptionList;
+    }
 
-        var estimatedTokens = EstimateRequestTokens(prompt, options.MaxTokensPerRequest);
-        if (stats.EstimatedTokensUsed + estimatedTokens > options.MaxEstimatedTokensPerCleanup)
+    /// <summary>
+    /// Describes a type by its declaration header and member names only - including member bodies
+    /// would blow up the context for little gain.
+    /// </summary>
+
+    private static string BuildTypePrompt(BaseTypeDeclarationSyntax type, AiXmlDocumentationRunOptions options)
+    {
+        var header = type.Identifier.ValueText;
+        var kind = type is InterfaceDeclarationSyntax ? "interface"
+            : type is EnumDeclarationSyntax ? "enum"
+            : type is StructDeclarationSyntax ? "struct"
+            : type is RecordDeclarationSyntax ? "record"
+            : "class";
+
+        var memberNames = new List<string>();
+        if (type is TypeDeclarationSyntax typeDeclaration)
         {
-            return null;
-        }
-
-        stats.EstimatedTokensUsed += estimatedTokens;
-        stats.AttemptedMethods++;
-
-        string completion;
-        string error;
-        if (!client.TryGenerateDocumentation(prompt, out completion, out error, options.MaxTokensPerRequest) || string.IsNullOrWhiteSpace(completion))
-        {
-            stats.AiFailures++;
-            if (!options.AllowDeterministicFallback)
+            foreach (var member in typeDeclaration.Members)
             {
-                return null;
+                if (member is PropertyDeclarationSyntax p) memberNames.Add(p.Identifier.ValueText);
+                else if (member is MethodDeclarationSyntax m) memberNames.Add(m.Identifier.ValueText + "()");
+                else if (member is FieldDeclarationSyntax f) memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
             }
-
-            stats.FallbacksUsed++;
-
-            return BuildFallbackSummary(method);
+        }
+        else if (type is EnumDeclarationSyntax enumDeclaration)
+        {
+            memberNames.AddRange(enumDeclaration.Members.Select(x => x.Identifier.ValueText));
         }
 
-        return NormalizeSentence(completion);
+        var members = memberNames.Count == 0 ? "none" : string.Join(", ", memberNames);
+
+        return
+            "Analyze this C# type and produce exactly one concise summary sentence (plain text only, no XML, no quotes). " +
+            "Describe what the type represents, not how it is implemented.\n" +
+            "Kind: " + kind + "\n" +
+            "Name: " + header + "\n" +
+            "Members: " + Truncate(members, options.MaxInputCharsPerMethod);
+    }
+
+    private static string BuildPropertySummary(PropertyDeclarationSyntax property)
+    {
+        var accessors = property.AccessorList?.Accessors;
+        var hasGet = accessors?.Any(x => x.IsKind(SyntaxKind.GetAccessorDeclaration)) ?? property.ExpressionBody != null;
+        var hasSet = accessors?.Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration) || x.IsKind(SyntaxKind.InitAccessorDeclaration)) ?? false;
+
+        var verb = hasGet && hasSet ? "Gets or sets" : hasSet ? "Sets" : "Gets";
+
+        return verb + " the " + SplitIdentifier(property.Identifier.ValueText).ToLowerInvariant() + ".";
     }
 
     private static int EstimateRequestTokens(string prompt, int maxOutputTokens)
@@ -641,13 +810,31 @@ internal sealed class AiXmlDocumentationLogic
         return null;
     }
 
-    private static string BuildXmlCommentBlock(string indent, MethodDeclarationSyntax method, string summary, IEnumerable<string> exceptionTypes)
+    /// <summary>
+    /// The member's own line already carries its indentation, so the block is inserted at the
+    /// start of that line rather than at the declaration token.
+    /// </summary>
+
+    private static int GetLineStart(string text, int index)
+    {
+        var lineStart = text.LastIndexOf('\n', Math.Max(0, Math.Min(index, text.Length) - 1));
+
+        return lineStart < 0 ? 0 : lineStart + 1;
+    }
+
+    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes)
     {
         var sb = new StringBuilder();
 
         sb.Append(indent).AppendLine("/// <summary>");
         sb.Append(indent).Append("/// ").AppendLine(XmlEscape(summary));
         sb.Append(indent).AppendLine("/// </summary>");
+
+        var method = member as MethodDeclarationSyntax;
+        if (method == null)
+        {
+            return sb.ToString();
+        }
 
         foreach (var parameter in method.ParameterList.Parameters)
         {
@@ -700,8 +887,20 @@ internal sealed class AiXmlDocumentationLogic
         return "A " + returnType + " value produced by this method.";
     }
 
-    private static string BuildFallbackSummary(MethodDeclarationSyntax method)
+    private static string BuildFallbackSummary(MemberDeclarationSyntax member)
     {
+        if (member is BaseTypeDeclarationSyntax type)
+        {
+            return "Represents " + SplitIdentifier(type.Identifier.ValueText).ToLowerInvariant() + ".";
+        }
+
+        if (member is PropertyDeclarationSyntax property)
+        {
+            return BuildPropertySummary(property);
+        }
+
+        var method = (MethodDeclarationSyntax)member;
+
         return "Performs " + SplitIdentifier(method.Identifier.ValueText).ToLowerInvariant() + ".";
     }
 

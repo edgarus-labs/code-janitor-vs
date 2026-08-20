@@ -47,6 +47,26 @@ public class TopLevelTypeToFileSplitFileProcessorTests
     }
 
     [TestMethod]
+    public void Apply_UsesDedicatedTransformForCreatedFiles()
+    {
+        var source =
+            "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\n";
+        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+        var result = _processor.Apply(
+            source,
+            filePath,
+            Encoding.UTF8,
+            (text, path) => "// updated\r\n" + text,
+            transformUpdatedSource: true,
+            transformCreatedFile: (text, path) => "// created\r\n" + text);
+
+        Assert.IsTrue(result.Changed);
+        StringAssert.StartsWith(result.UpdatedSource, "// updated");
+        StringAssert.StartsWith(File.ReadAllText(Path.Combine(_tempDirectory, "Bar.cs")), "// created");
+    }
+
+    [TestMethod]
     public void Apply_PassesGeneratedAndUpdatedSourcesThroughTransformer()
     {
         var source =

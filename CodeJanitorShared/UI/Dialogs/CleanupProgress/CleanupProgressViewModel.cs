@@ -29,6 +29,7 @@ public class CleanupProgressViewModel : Bindable
     {
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
+        AiXmlDocumentationLogic.BeginRun();
         _batchStopwatch = Stopwatch.StartNew();
 
         var cleanupItems = items.ToList();
@@ -164,6 +165,7 @@ public class CleanupProgressViewModel : Bindable
         IsCanceling = true;
         CancelCommand.RaiseCanExecuteChanged();
 
+        AiXmlDocumentationLogic.CancelRun();
         _backgroundWorker.CancelAsync();
     }
 
