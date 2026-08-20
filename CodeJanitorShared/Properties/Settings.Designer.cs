@@ -1475,6 +1475,18 @@ namespace CodeJanitor.Properties {
             }
         }
 
+            [global::System.Configuration.UserScopedSettingAttribute()]
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.Configuration.DefaultSettingValueAttribute("131072")]
+            public int Cleaning_AiXmlDocumentationContextWindowTokens {
+                get {
+                    return ((int)(this["Cleaning_AiXmlDocumentationContextWindowTokens"]));
+                }
+                set {
+                    this["Cleaning_AiXmlDocumentationContextWindowTokens"] = value;
+                }
+            }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("8000")]

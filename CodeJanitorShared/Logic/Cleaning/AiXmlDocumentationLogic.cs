@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace CodeJanitor.Logic.Cleaning;
@@ -46,6 +47,8 @@ internal sealed class AiXmlDocumentationLogic
         public int MaxInputCharsPerMethod { get; set; }
 
         public int MaxTokensPerRequest { get; set; }
+
+            public int ContextWindowTokens { get; set; }
 
         public int MaxEstimatedTokensPerCleanup { get; set; }
 
@@ -94,32 +97,23 @@ internal sealed class AiXmlDocumentationLogic
             apiKey);
     }
 
-    internal static bool TryValidateConnection(out string message)
-    {
-        return TryValidateConnection(
-            Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl,
-            GetConfiguredApiKey(),
-            Settings.Default.Cleaning_AiXmlDocumentationApiKeyHeader,
-            Settings.Default.Cleaning_AiXmlDocumentationModel,
-            Settings.Default.Cleaning_AiXmlDocumentationTimeoutSeconds,
-            out message);
-    }
-
-    internal static bool TryValidateConnection(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, out string message)
+    internal static async Task<OpenAiCompatibleClient.ConnectionTestResult> ValidateConnectionAsync(
+        string endpointUrl,
+        string apiKey,
+        string apiKeyHeader,
+        string model,
+        int timeoutSeconds)
     {
         var client = CreateClient(endpointUrl, apiKey, apiKeyHeader, model, timeoutSeconds);
         if (client == null)
         {
-            message = "AI XML documentation endpoint URL or API key is missing/invalid.";
-
-            return false;
+            return new OpenAiCompatibleClient.ConnectionTestResult
+            {
+                ErrorMessage = "AI XML documentation endpoint URL or API key is missing/invalid."
+            };
         }
 
-        string error;
-        var ok = client.TryTestConnection(out error);
-        message = ok ? "Connection successful." : error;
-
-        return ok;
+        return await client.TestConnectionAsync().ConfigureAwait(false);
     }
 
     internal void ApplyXmlDocumentation(TextDocument textDocument)
@@ -335,6 +329,7 @@ internal sealed class AiXmlDocumentationLogic
             MaxRequestsPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, 25),
             MaxInputCharsPerMethod = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, 2500),
             MaxTokensPerRequest = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxTokensPerRequest, 256),
+                ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
             MaxEstimatedTokensPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, 8000),
             GlobalTimeoutSeconds = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, 60),
             AllowDeterministicFallback = Settings.Default.Cleaning_AiXmlDocumentationAllowDeterministicFallback,
@@ -358,10 +353,11 @@ internal sealed class AiXmlDocumentationLogic
             GetConfiguredApiKey(),
             Settings.Default.Cleaning_AiXmlDocumentationApiKeyHeader,
             Settings.Default.Cleaning_AiXmlDocumentationModel,
-            Settings.Default.Cleaning_AiXmlDocumentationTimeoutSeconds);
+                Settings.Default.Cleaning_AiXmlDocumentationTimeoutSeconds,
+                PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072));
     }
 
-    private static OpenAiCompatibleClient CreateClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds)
+        private static OpenAiCompatibleClient CreateClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens = 0)
     {
         if (!OpenAiCompatibleClient.IsEndpointConfigured(endpointUrl, apiKey))
         {
@@ -373,7 +369,8 @@ internal sealed class AiXmlDocumentationLogic
             apiKey,
             apiKeyHeader,
             model,
-            timeoutSeconds);
+                timeoutSeconds,
+                contextWindowTokens);
     }
 
     private static string GetConfiguredApiKey()

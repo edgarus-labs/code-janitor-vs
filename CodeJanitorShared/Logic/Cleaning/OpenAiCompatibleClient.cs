@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
 namespace CodeJanitor.Logic.Cleaning;
@@ -16,6 +18,13 @@ internal sealed class OpenAiCompatibleClient
 {
     private const int MaxAttempts = 3;
 
+    internal sealed class ConnectionTestResult
+    {
+        internal bool Succeeded { get; set; }
+
+        internal string ErrorMessage { get; set; }
+    }
+
     internal OpenAiCompatibleClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds)
     {
         EndpointUrl = GetNormalizedEndpointUrl(endpointUrl);
@@ -23,6 +32,12 @@ internal sealed class OpenAiCompatibleClient
         ApiKeyHeader = string.IsNullOrWhiteSpace(apiKeyHeader) ? "Authorization" : apiKeyHeader.Trim();
         Model = model?.Trim();
         TimeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : 30;
+    }
+
+    internal OpenAiCompatibleClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens)
+        : this(endpointUrl, apiKey, apiKeyHeader, model, timeoutSeconds)
+    {
+        ContextWindowTokens = contextWindowTokens > 0 ? contextWindowTokens : 0;
     }
 
     internal string EndpointUrl { get; }
@@ -34,6 +49,47 @@ internal sealed class OpenAiCompatibleClient
     internal string Model { get; }
 
     internal int TimeoutSeconds { get; }
+
+    /// <summary>
+    /// Gets the configured minimum context window (in tokens), or 0 if not configured. This is
+    /// only ever sent to the endpoint (as a best-effort "num_ctx" field) when the endpoint looks
+    /// like a local server, since hosted OpenAI-compatible APIs commonly reject unrecognized
+    /// request fields with a validation error.
+    /// </summary>
+    internal int ContextWindowTokens { get; }
+
+    internal static bool IsLocalEndpoint(string endpointUrl)
+    {
+        if (!Uri.TryCreate(endpointUrl, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        if (uri.IsLoopback)
+        {
+            return true;
+        }
+
+        var host = uri.Host;
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (System.Net.IPAddress.TryParse(host, out var ipAddress))
+        {
+            var bytes = ipAddress.GetAddressBytes();
+            if (ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && bytes.Length == 4)
+            {
+                // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+                if (bytes[0] == 10) return true;
+                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+                if (bytes[0] == 192 && bytes[1] == 168) return true;
+            }
+        }
+
+        return false;
+    }
 
     internal static string GetNormalizedEndpointUrl(string endpointUrl)
     {
@@ -81,15 +137,58 @@ internal sealed class OpenAiCompatibleClient
         return endpoint.Scheme == Uri.UriSchemeHttp || endpoint.Scheme == Uri.UriSchemeHttps;
     }
 
-    internal bool TryTestConnection(out string errorMessage)
+    internal async Task<ConnectionTestResult> TestConnectionAsync()
     {
-        string content;
+        if (!IsEndpointConfigured(EndpointUrl, ApiKey))
+        {
+            return new ConnectionTestResult { ErrorMessage = "AI XML documentation endpoint is not configured." };
+        }
 
-        return TrySendChatCompletion(
-            "Reply with exactly: OK",
-            512,
-            out content,
-            out errorMessage);
+        var requestJson = BuildRequestJson("Reply with exactly: OK", 512);
+        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
+        using (var httpClient = new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan })
+        using (var message = new HttpRequestMessage(HttpMethod.Post, EndpointUrl))
+        {
+            ApplyAuthentication(message.Headers);
+            message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+            try
+            {
+                using (var response = await httpClient.SendAsync(message, timeout.Token).ConfigureAwait(false))
+                {
+                    var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return new ConnectionTestResult
+                        {
+                            ErrorMessage = $"AI endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}. {Truncate(responseText, 512)}"
+                        };
+                    }
+
+                    var content = TryExtractContentFromChatResponse(responseText);
+                    if (string.IsNullOrWhiteSpace(content))
+                    {
+                        return new ConnectionTestResult
+                        {
+                            ErrorMessage = $"AI endpoint response did not contain message content. Response: {Truncate(responseText, 512)}"
+                        };
+                    }
+
+                    return new ConnectionTestResult { Succeeded = true };
+                }
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                return new ConnectionTestResult
+                {
+                    ErrorMessage = $"Connection test timed out after {TimeoutSeconds} seconds."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ConnectionTestResult { ErrorMessage = ex.Message };
+            }
+        }
     }
 
     internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256)
@@ -99,7 +198,7 @@ internal sealed class OpenAiCompatibleClient
         return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage);
     }
 
-    private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage)
+    private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage, int maxAttempts = MaxAttempts)
     {
         completionText = null;
         errorMessage = null;
@@ -115,7 +214,7 @@ internal sealed class OpenAiCompatibleClient
         string lastError = null;
         Exception lastException = null;
 
-        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
@@ -132,7 +231,7 @@ internal sealed class OpenAiCompatibleClient
                     if (!response.IsSuccessStatusCode)
                     {
                         lastError = $"AI endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}. {Truncate(responseText, 512)}";
-                        if (attempt < MaxAttempts && IsTransientStatusCode((int)response.StatusCode))
+                        if (attempt < maxAttempts && IsTransientStatusCode((int)response.StatusCode))
                         {
                             continue;
                         }
@@ -158,7 +257,7 @@ internal sealed class OpenAiCompatibleClient
             catch (Exception ex)
             {
                 lastException = ex;
-                if (attempt >= MaxAttempts)
+                if (attempt >= maxAttempts)
                 {
                     break;
                 }
@@ -216,6 +315,16 @@ internal sealed class OpenAiCompatibleClient
         {
             request["model"] = Model;
         }
+
+            // Best-effort context window hint for local OpenAI-compatible servers (e.g. llama.cpp,
+            // text-generation-webui, LM Studio) that accept a "num_ctx" field. Real Ollama servers
+            // ignore this field on the OpenAI-compatible endpoint (context size must be configured
+            // server-side via a Modelfile), and hosted/cloud OpenAI-compatible APIs often reject
+            // unrecognized fields outright, so this is only ever sent for endpoints that look local.
+            if (ContextWindowTokens > 0 && IsLocalEndpoint(EndpointUrl))
+            {
+                request["num_ctx"] = ContextWindowTokens;
+            }
 
         var serializer = new JavaScriptSerializer();
 

@@ -32,8 +32,8 @@
                     <Separator Margin="0,8,0,8" />
                     <TextBlock Text="AI-assisted XML documentation (C# methods)" FontWeight="SemiBold" />
                     <CheckBox Content="Enable AI-assisted XML documentation during cleanup"
-                              IsChecked="{Binding AiXmlDocumentationEnabled}"
-                              IsEnabled="{Binding IsEnabledAiXmlDocumentationEnabled}" />
+                                  IsChecked="{Binding AiXmlDocumentationEnabled}"
+                                  ToolTip="Requires a successful 'Test Connection' before it can be turned on; can always be turned off." />
 
                     <TextBlock Text="Endpoint URL" Margin="0,4,0,0" />
                     <TextBox Text="{Binding AiXmlDocumentationEndpointUrl, UpdateSourceTrigger=PropertyChanged}" />
@@ -56,6 +56,12 @@
                         <TextBox Text="{Binding AiXmlDocumentationMaxMethodsPerFile, UpdateSourceTrigger=PropertyChanged}" Width="48" Margin="8,0,0,0" TextAlignment="Right" />
                         <Button Content="Test Connection" Command="{Binding TestAiXmlDocumentationConnectionCommand}" Margin="12,0,0,0" Padding="10,2" />
                     </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="Minimum context window (tokens)" VerticalAlignment="Center"
+                                       ToolTip="Recommended context size for the model to reliably process a full method's context (default 131072). For local endpoints (e.g. Ollama, llama.cpp), the actual context size must usually still be configured on the server itself (e.g. Ollama Modelfile 'PARAMETER num_ctx'); the OpenAI-compatible chat API does not let clients set it directly." />
+                            <TextBox Text="{Binding AiXmlDocumentationContextWindowTokens, UpdateSourceTrigger=PropertyChanged}" Width="64" Margin="8,0,0,0" TextAlignment="Right" />
+                        </StackPanel>
 
                     <CheckBox Content="Preview AI XMLDoc changes before applying per file" IsChecked="{Binding AiXmlDocumentationPreviewChanges}" Margin="0,4,0,0" />
                     <CheckBox Content="Allow deterministic fallback when AI response fails" IsChecked="{Binding AiXmlDocumentationAllowDeterministicFallback}" />

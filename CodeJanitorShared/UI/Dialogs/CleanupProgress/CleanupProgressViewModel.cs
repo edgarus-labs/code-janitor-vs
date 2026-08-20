@@ -196,7 +196,16 @@ public class CleanupProgressViewModel : Bindable
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 try
                 {
-                    CodeCleanupManager.Cleanup(item);
+                        if (item is EnvDTE.ProjectItem projectItem)
+                        {
+                            // Runs the file/Roslyn/AI-network portion off the UI thread so the IDE
+                            // (and this dialog's Cancel button) stay responsive during cleanup.
+                            await CodeCleanupManager.CleanupAsync(projectItem);
+                        }
+                        else
+                        {
+                            CodeCleanupManager.Cleanup(item);
+                        }
                 }
                 catch (Exception ex)
                 {

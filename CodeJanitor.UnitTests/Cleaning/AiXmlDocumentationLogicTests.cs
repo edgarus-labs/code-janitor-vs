@@ -1,8 +1,13 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -304,6 +309,67 @@ public int Second(int y)
         Assert.AreEqual("https://api.openai.com/v1/chat/completions", method.Invoke(null, new object[] { "https://api.openai.com/v1/" }));
         Assert.AreEqual("https://api.openai.com/v1/chat/completions", method.Invoke(null, new object[] { "https://api.openai.com/v1/chat/completions" }));
         Assert.AreEqual("http://localhost:11434/v1/chat/completions", method.Invoke(null, new object[] { "http://localhost:11434/v1" }));
+    }
+
+    [TestMethod]
+    public async Task OpenAiCompatibleClient_TestConnectionAsync_TimesOutWithoutBlocking()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var serverCancellation = new CancellationTokenSource();
+        var serverTask = Task.Run(async () =>
+        {
+            try
+            {
+                using (var connection = await listener.AcceptTcpClientAsync())
+                using (var stream = connection.GetStream())
+                {
+                    var buffer = new byte[4096];
+                    await stream.ReadAsync(buffer, 0, buffer.Length);
+                    await Task.Delay(TimeSpan.FromSeconds(10), serverCancellation.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        });
+
+        try
+        {
+            var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+            var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+            var client = Activator.CreateInstance(
+                clientType,
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { $"http://127.0.0.1:{port}/v1", "test-key", "Authorization", "test-model", 1 },
+                culture: null);
+            var method = clientType.GetMethod("TestConnectionAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.IsNotNull(method);
+
+            var stopwatch = Stopwatch.StartNew();
+            var testTask = (Task)method.Invoke(client, null);
+            await testTask;
+            stopwatch.Stop();
+
+            var result = testTask.GetType().GetProperty("Result").GetValue(testTask);
+            var resultType = result.GetType();
+            var succeeded = (bool)resultType.GetProperty("Succeeded", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(result);
+            var errorMessage = (string)resultType.GetProperty("ErrorMessage", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(result);
+
+            Assert.IsFalse(succeeded);
+            StringAssert.Contains(errorMessage, "timed out after 1 seconds");
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Connection test took {stopwatch.Elapsed}.");
+        }
+        finally
+        {
+            serverCancellation.Cancel();
+            listener.Stop();
+            await serverTask;
+            serverCancellation.Dispose();
+        }
     }
 
     [TestMethod]
