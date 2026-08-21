@@ -1282,18 +1282,6 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_FormatRazorComponents"] = value;
             }
         }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("2")]
-        public int Cleaning_RazorAttributeWrapThreshold {
-            get {
-                return ((int)(this["Cleaning_RazorAttributeWrapThreshold"]));
-            }
-            set {
-                this["Cleaning_RazorAttributeWrapThreshold"] = value;
-            }
-        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -1486,6 +1474,18 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_AiXmlDocumentationMaxTokensPerRequest"] = value;
             }
         }
+
+            [global::System.Configuration.UserScopedSettingAttribute()]
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.Configuration.DefaultSettingValueAttribute("131072")]
+            public int Cleaning_AiXmlDocumentationContextWindowTokens {
+                get {
+                    return ((int)(this["Cleaning_AiXmlDocumentationContextWindowTokens"]));
+                }
+                set {
+                    this["Cleaning_AiXmlDocumentationContextWindowTokens"] = value;
+                }
+            }
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

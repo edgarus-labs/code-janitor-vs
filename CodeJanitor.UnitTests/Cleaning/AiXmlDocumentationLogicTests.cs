@@ -1,8 +1,13 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -40,6 +45,22 @@ public string BuildName(string firstName, string lastName)
     }
 
     [TestMethod]
+    public void GenerateXmlDocumentationForSource_PlacesBlockDirectlyAboveMemberKeepingIndent()
+    {
+        var source = "namespace Demo;\r\n\r\npublic class Sample\r\n{\r\n    public int Get(int x)\r\n    {\r\n        return x;\r\n    }\r\n}\r\n";
+
+        var updated = InvokeGenerateXmlDocumentation(source, _ => "Gets a value.", 10);
+
+        var lines = updated.Replace("\r\n", "\n").Split('\n');
+        var memberIndex = Array.FindIndex(lines, x => x.Contains("public int Get"));
+
+        Assert.IsTrue(memberIndex > 0, "Method declaration not found.");
+        StringAssert.Contains(lines[memberIndex - 1], "///", "A blank line separates the documentation from the member.");
+        Assert.AreEqual("    public int Get(int x)", lines[memberIndex], "The member lost its original indentation.");
+        StringAssert.StartsWith(lines[memberIndex - 1], "    ///", "The documentation block is not aligned with the member.");
+    }
+
+    [TestMethod]
     public void GenerateXmlDocumentationForSource_RespectsMethodLimit()
     {
         var source = @"
@@ -59,12 +80,25 @@ public int Second(int y)
 }
 ";
 
-        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + m.Identifier.ValueText + ".", 1);
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 1);
 
         var summaryCount = CountOccurrences(updated, "/// <summary>");
-        Assert.AreEqual(1, summaryCount, "Only one method should be documented when maxMethodsPerFile=1.");
-        StringAssert.Contains(updated, "Summary for First.");
+        Assert.AreEqual(1, summaryCount, "Only one member should be documented when the limit is 1.");
+        StringAssert.Contains(updated, "Summary for Sample.");
         Assert.IsFalse(updated.Contains("Summary for Second."));
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsTypesAndPropertiesWithoutMethods()
+    {
+        var source = "namespace Demo;\r\n\r\npublic class WriteRelationsRequest\r\n{\r\n    public string Name { get; set; }\r\n\r\n    public int Count { get; }\r\n}\r\n";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 10);
+
+        Assert.AreEqual(3, CountOccurrences(updated, "/// <summary>"), "The type and both properties should be documented.");
+        StringAssert.Contains(updated, "Summary for WriteRelationsRequest.");
+        StringAssert.Contains(updated, "Summary for Name.");
+        StringAssert.Contains(updated, "Summary for Count.");
     }
 
     [TestMethod]
@@ -92,7 +126,7 @@ public int Missing(int y)
 
         var updated = InvokeGenerateXmlDocumentation(source, _ => "Generated docs.", 10);
 
-        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"));
+        Assert.AreEqual(3, CountOccurrences(updated, "/// <summary>"));
         StringAssert.Contains(updated, "Existing docs.");
         StringAssert.Contains(updated, "Generated docs.");
     }
@@ -123,7 +157,7 @@ public int Active(int y)
             _ => "Generated docs.",
             (options, optionsType) => SetProperty(optionsType, options, "IgnoreObsolete", true));
 
-        Assert.AreEqual(1, CountOccurrences(updated, "/// <summary>"));
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"));
         StringAssert.Contains(updated, "public int Active");
         StringAssert.Contains(updated, "Generated docs.");
     }
@@ -163,7 +197,7 @@ public void DoWork()
             _ => "Generated docs.",
             (options, optionsType) => SetProperty(optionsType, options, "IgnoreTestMethods", true));
 
-        Assert.AreEqual(1, CountOccurrences(updated, "/// <summary>"));
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"));
         StringAssert.Contains(updated, "public void DoWork()");
     }
 
@@ -190,7 +224,7 @@ public void SkipThisOne()
             _ => "Generated docs.",
             (options, optionsType) => SetProperty(optionsType, options, "IgnorePattern", "SkipThisOne$"));
 
-        Assert.AreEqual(1, CountOccurrences(updated, "/// <summary>"));
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"));
         Assert.IsTrue(updated.Contains("public void KeepThis()"));
         Assert.IsTrue(updated.Contains("public void SkipThisOne()"));
     }
@@ -223,7 +257,7 @@ public int Second(int y)
         Assert.AreEqual(0, CountOccurrences(updated, "/// <summary>"));
     }
 
-    private static string InvokeGenerateXmlDocumentation(string source, Func<MethodDeclarationSyntax, string> summaryProvider, int maxMethodsPerFile)
+    private static string InvokeGenerateXmlDocumentation(string source, Func<MemberDeclarationSyntax, string> summaryProvider, int maxMethodsPerFile)
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
         var type = assembly.GetType("CodeJanitor.Logic.Cleaning.AiXmlDocumentationLogic", throwOnError: true);
@@ -236,7 +270,7 @@ public int Second(int y)
         return result as string;
     }
 
-    private static string InvokeGenerateXmlDocumentationInternal(string source, Func<MethodDeclarationSyntax, string> summaryProvider, Action<object, Type> configureOptions)
+    private static string InvokeGenerateXmlDocumentationInternal(string source, Func<MemberDeclarationSyntax, string> summaryProvider, Action<object, Type> configureOptions)
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
         var logicType = assembly.GetType("CodeJanitor.Logic.Cleaning.AiXmlDocumentationLogic", throwOnError: true);
@@ -307,6 +341,67 @@ public int Second(int y)
     }
 
     [TestMethod]
+    public async Task OpenAiCompatibleClient_TestConnectionAsync_TimesOutWithoutBlocking()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var serverCancellation = new CancellationTokenSource();
+        var serverTask = Task.Run(async () =>
+        {
+            try
+            {
+                using (var connection = await listener.AcceptTcpClientAsync())
+                using (var stream = connection.GetStream())
+                {
+                    var buffer = new byte[4096];
+                    await stream.ReadAsync(buffer, 0, buffer.Length);
+                    await Task.Delay(TimeSpan.FromSeconds(10), serverCancellation.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        });
+
+        try
+        {
+            var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+            var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+            var client = Activator.CreateInstance(
+                clientType,
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { $"http://127.0.0.1:{port}/v1", "test-key", "Authorization", "test-model", 1 },
+                culture: null);
+            var method = clientType.GetMethod("TestConnectionAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.IsNotNull(method);
+
+            var stopwatch = Stopwatch.StartNew();
+            var testTask = (Task)method.Invoke(client, null);
+            await testTask;
+            stopwatch.Stop();
+
+            var result = testTask.GetType().GetProperty("Result").GetValue(testTask);
+            var resultType = result.GetType();
+            var succeeded = (bool)resultType.GetProperty("Succeeded", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(result);
+            var errorMessage = (string)resultType.GetProperty("ErrorMessage", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(result);
+
+            Assert.IsFalse(succeeded);
+            StringAssert.Contains(errorMessage, "timed out after 1 seconds");
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Connection test took {stopwatch.Elapsed}.");
+        }
+        finally
+        {
+            serverCancellation.Cancel();
+            listener.Stop();
+            await serverTask;
+            serverCancellation.Dispose();
+        }
+    }
+
+    [TestMethod]
     public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_HandlesOpenAiAndDeepSeekFormats()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
@@ -338,6 +433,7 @@ public int Second(int y)
     }
 
     [TestMethod]
+<<<<<<< HEAD
     public void Settings_Defaults_IncludeAiXmlDocSeparationAndFeature()
     {
         var settings = new CodeJanitor.Properties.Settings();
@@ -371,6 +467,65 @@ public int Second(int y)
 
         viewModel.AddXmlDoc = false;
         Assert.IsFalse(viewModel.AddXmlDoc);
+=======
+    public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_ReassemblesServerSentEventStream()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        var stream = "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Builds \"}}]}\n"
+            + "\n"
+            + "data: {\"choices\":[{\"delta\":{\"content\":\"a name.\"}}]}\n"
+            + "\n"
+            + "data: [DONE]\n";
+
+        Assert.AreEqual("Builds a name.", method.Invoke(null, new object[] { stream }));
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_ReturnsNullForUnparseableText()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        Assert.IsNull(method.Invoke(null, new object[] { "data: not-json" }));
+        Assert.IsNull(method.Invoke(null, new object[] { "<html>gateway error</html>" }));
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_BuildRequestJson_RequestsNonStreamingResponse()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var client = Activator.CreateInstance(
+            clientType,
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            args: new object[] { "http://127.0.0.1:1234/v1", "test-key", "Authorization", "test-model", 30 },
+            culture: null);
+        var method = clientType.GetMethod("BuildRequestJson", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.IsNotNull(method);
+
+        var json = (string)method.Invoke(client, new object[] { "prompt", 128 });
+
+        StringAssert.Contains(json, "\"stream\":false");
+    }
+
+    private static string GetMemberName(MemberDeclarationSyntax member)
+    {
+        if (member is BaseTypeDeclarationSyntax type) return type.Identifier.ValueText;
+        if (member is MethodDeclarationSyntax method) return method.Identifier.ValueText;
+        if (member is PropertyDeclarationSyntax property) return property.Identifier.ValueText;
+
+        return member.Kind().ToString();
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     }
 
     private static int CountOccurrences(string text, string value)

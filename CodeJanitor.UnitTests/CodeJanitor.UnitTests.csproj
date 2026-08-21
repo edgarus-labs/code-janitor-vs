@@ -81,6 +81,7 @@
     <Compile Include="Helpers\NamespacePathHelperTests.cs" />
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
+    <Compile Include="SettingsConfigurationSyncTests.cs" />
     <Compile Include="Transformations\CollectionExpressionConverterTests.cs" />
     <Compile Include="Transformations\JsonSerializerOptionsReuseConverterTests.cs" />
     <Compile Include="Transformations\SingleStatementLambdaConverterTests.cs" />

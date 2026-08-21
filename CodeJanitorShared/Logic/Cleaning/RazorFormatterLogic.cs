@@ -12,12 +12,12 @@ using System.Text;
 namespace CodeJanitor.Logic.Cleaning;
 
 /// <summary>
-/// Applies safe formatting to Razor component files. Scope is limited to .razor files.
+/// Applies safe formatting to Razor component files. Scope is limited to .razor files and to
+/// C# inside code and control blocks - markup tags and attributes are left exactly as authored.
 /// </summary>
 
 internal sealed class RazorFormatterLogic
 {
-    private const int DefaultAttributeInlineThreshold = 2;
     private const string IndentUnit = "    ";
 
     private readonly CodeJanitorPackage _package;
@@ -58,18 +58,13 @@ internal sealed class RazorFormatterLogic
         var original = start.GetText(end);
         if (string.IsNullOrWhiteSpace(original)) return;
 
-        var attributeInlineThreshold = Math.Max(0, Settings.Default.Cleaning_RazorAttributeWrapThreshold);
-        if (attributeInlineThreshold == 0)
-        {
-            attributeInlineThreshold = DefaultAttributeInlineThreshold;
-        }
-
-        var formatted = FormatRazorText(original, attributeInlineThreshold);
+        var formatted = FormatRazorText(original);
         if (string.Equals(original, formatted, StringComparison.Ordinal)) return;
 
         start.ReplaceText(end, formatted, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Formats Razor text by sequentially applying code block, control block, and tag attribute formatting with.
     /// </summary>
@@ -78,15 +73,16 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
 
     internal static string FormatRazorText(string input, int attributeInlineThreshold)
+=======
+    internal static string FormatRazorText(string input)
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         if (string.IsNullOrEmpty(input)) return input;
 
         var lineEnding = DetectLineEnding(input);
         var withFormattedCode = FormatCodeBlocks(input, lineEnding);
-        var withFormattedControlBlocks = FormatControlBlocks(withFormattedCode, attributeInlineThreshold, lineEnding);
-        var protectedRanges = FindProtectedRanges(withFormattedControlBlocks);
 
-        return FormatTagAttributes(withFormattedControlBlocks, protectedRanges, attributeInlineThreshold, lineEnding);
+        return FormatControlBlocks(withFormattedCode, lineEnding);
     }
 
     /// <summary>
@@ -131,6 +127,7 @@ internal sealed class RazorFormatterLogic
         return buffer;
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Finds control block ranges in the input text and, for each range in reverse order, replaces the block with its formatted version (skipping if unchanged or failed) while inserting a lineEnding separator when the following character is non-whitespace, returning the modified string without mutating the original.
     /// </summary>
@@ -140,6 +137,9 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
 
     private static string FormatControlBlocks(string text, int threshold, string lineEnding)
+=======
+    private static string FormatControlBlocks(string text, string lineEnding)
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         var ranges = FindControlBlockRanges(text);
         if (ranges.Count == 0) return text;
@@ -148,7 +148,7 @@ internal sealed class RazorFormatterLogic
         foreach (var range in ranges.OrderByDescending(x => x.Start))
         {
             var rawBlock = buffer.Substring(range.Start, range.End - range.Start + 1);
-            var formatted = TryFormatControlBlock(rawBlock, GetLineIndent(buffer, range.Start), threshold, lineEnding);
+            var formatted = TryFormatControlBlock(rawBlock, GetLineIndent(buffer, range.Start), lineEnding);
             if (string.IsNullOrEmpty(formatted) || string.Equals(rawBlock, formatted, StringComparison.Ordinal))
             {
                 continue;
@@ -242,6 +242,7 @@ internal sealed class RazorFormatterLogic
         return builder.ToString();
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Returns a formatted control block with indented inner content inserted between braces, or null if the input is null/whitespace or lacks a valid &apos;@&apos; and &apos;{&apos;, with no side effects.
     /// </summary>
@@ -252,6 +253,9 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
 
     private static string TryFormatControlBlock(string rawBlock, string baseIndent, int threshold, string lineEnding)
+=======
+    private static string TryFormatControlBlock(string rawBlock, string baseIndent, string lineEnding)
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         if (string.IsNullOrWhiteSpace(rawBlock) || rawBlock[0] != '@') return null;
 
@@ -269,7 +273,7 @@ internal sealed class RazorFormatterLogic
 
         var inner = rawBlock.Substring(braceIndex + 1, rawBlock.Length - braceIndex - 2);
         var childIndent = baseIndent + IndentUnit;
-        var formattedInner = FormatMixedBlockInner(inner, childIndent, threshold, lineEnding);
+        var formattedInner = FormatMixedBlockInner(inner, childIndent, lineEnding);
 
         var builder = new StringBuilder();
         builder.Append(baseIndent).Append(header).Append(lineEnding);
@@ -385,6 +389,7 @@ internal sealed class RazorFormatterLogic
         return "@" + statement.Substring(0, braceIndex).TrimEnd();
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Splits mixed Razor content into markup and code segments, trims and formats each segment using tag or C# statement formatters with indentation, skips blank code segments, and joins the non-empty formatted results with the specified line ending without throwing exceptions.
     /// </summary>
@@ -395,6 +400,9 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
 
     private static string FormatMixedBlockInner(string content, string indent, int threshold, string lineEnding)
+=======
+    private static string FormatMixedBlockInner(string content, string indent, string lineEnding)
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         var segments = SplitMarkupAndCodeSegments(content);
         if (segments.Count == 0) return string.Empty;
@@ -404,8 +412,7 @@ internal sealed class RazorFormatterLogic
         {
             if (segment.Kind == RazorSegmentKind.Markup)
             {
-                var formattedTag = TryFormatTag(segment.Content.Trim(), threshold, lineEnding) ?? segment.Content.Trim();
-                formattedSegments.Add(IndentLines(formattedTag, indent, lineEnding));
+                formattedSegments.Add(IndentLines(segment.Content.Trim(), indent, lineEnding));
                 continue;
             }
 
@@ -656,6 +663,7 @@ internal sealed class RazorFormatterLogic
         }
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Scans text for HTML tags outside protected ranges, formats eligible tags via TryFormatTag, and returns a new string with replacements applied from the end, or the original text if no changes.
     /// </summary>
@@ -774,6 +782,8 @@ internal sealed class RazorFormatterLogic
     /// <param name="start">The start.</param>
     /// <returns>A int value produced by this method.</returns>
 
+=======
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     private static int FindTagEnd(string text, int start)
     {
         var quote = '\0';
@@ -781,6 +791,12 @@ internal sealed class RazorFormatterLogic
         for (var i = start + 1; i < text.Length; i++)
         {
             var c = text[i];
+
+            if (c == '@' && TrySkipRazorExpression(text, i, out var afterExpression))
+            {
+                i = afterExpression - 1;
+                continue;
+            }
 
             if (quote != '\0')
             {
@@ -808,6 +824,7 @@ internal sealed class RazorFormatterLogic
     }
 
     /// <summary>
+<<<<<<< HEAD
     /// Normalizes a valid HTML/XML tag by trimming its content, rejecting empty, closing, or invalid tags, and returns a compact single-line form when the attribute count is within the threshold, otherwise a multi-line aligned form using the provided line ending, with no side effects.
     /// </summary>
     /// <param name="rawTag">The raw tag.</param>
@@ -816,48 +833,42 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
 
     private static string TryFormatTag(string rawTag, int threshold, string lineEnding)
+=======
+    /// Skips a Razor transition so quotes belonging to C# code - such as the inner quotes in
+    /// <c>href="@Assets["app.css"]"</c> - are not mistaken for HTML attribute delimiters.
+    /// </summary>
+
+    private static bool TrySkipRazorExpression(string text, int index, out int nextIndex)
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
-        if (string.IsNullOrWhiteSpace(rawTag)) return null;
-        if (!rawTag.StartsWith("<", StringComparison.Ordinal) || !rawTag.EndsWith(">", StringComparison.Ordinal)) return null;
+        nextIndex = index;
 
-        var inner = rawTag.Substring(1, rawTag.Length - 2).Trim();
-        if (string.IsNullOrWhiteSpace(inner) || inner.StartsWith("/", StringComparison.Ordinal)) return null;
+        if (index >= text.Length || text[index] != '@') return false;
 
-        var selfClosing = inner.EndsWith("/", StringComparison.Ordinal);
-        if (selfClosing)
+        var i = index + 1;
+        if (i >= text.Length)
         {
-            inner = inner.Substring(0, inner.Length - 1).TrimEnd();
+            nextIndex = i;
+
+            return true;
         }
 
-        var nameEnd = FindNameEnd(inner);
-        if (nameEnd <= 0) return null;
-
-        var tagName = inner.Substring(0, nameEnd);
-        if (tagName.Contains("@")) return null;
-
-        var rest = inner.Substring(nameEnd);
-        var attributes = ParseAttributes(rest);
-        if (attributes.Count == 0)
+        if (text[i] == '@')
         {
-            return selfClosing ? "<" + tagName + " />" : "<" + tagName + ">";
+            nextIndex = i + 1;
+
+            return true;
         }
 
-        if (attributes.Count <= threshold)
+        if (text[i] == '(')
         {
-            var compact = "<" + tagName + " " + string.Join(" ", attributes);
-            compact += selfClosing ? " />" : ">";
-
-            return compact;
+            if (!TrySkipBalanced(text, i, '(', ')', out i)) return false;
         }
-
-        var alignPrefix = new string(' ', tagName.Length + 2);
-        var builder = new StringBuilder();
-        builder.Append('<').Append(tagName).Append(' ').Append(attributes[0]);
-
-        for (var i = 1; i < attributes.Count; i++)
+        else if (IsIdentifierStart(text[i]))
         {
-            builder.Append(lineEnding).Append(alignPrefix).Append(attributes[i]);
+            while (i < text.Length && IsIdentifierPart(text[i])) i++;
         }
+<<<<<<< HEAD
 
         builder.Append(selfClosing ? " />" : ">");
 
@@ -873,10 +884,16 @@ internal sealed class RazorFormatterLogic
     private static int FindNameEnd(string inner)
     {
         for (var i = 0; i < inner.Length; i++)
+=======
+        else
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         {
-            if (char.IsWhiteSpace(inner[i])) return i;
+            nextIndex = i;
+
+            return true;
         }
 
+<<<<<<< HEAD
         return inner.Length;
     }
 
@@ -891,52 +908,146 @@ internal sealed class RazorFormatterLogic
         var result = new List<string>();
         var i = 0;
 
+=======
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         while (i < text.Length)
         {
-            while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
-            if (i >= text.Length) break;
-
-            var start = i;
-            while (i < text.Length && !char.IsWhiteSpace(text[i]) && text[i] != '=') i++;
-            if (i <= start) break;
-
-            while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
-
-            if (i < text.Length && text[i] == '=')
+            if (text[i] == '[')
             {
-                i++;
-                while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+                if (!TrySkipBalanced(text, i, '[', ']', out i)) return false;
 
-                if (i < text.Length && (text[i] == '"' || text[i] == '\''))
-                {
-                    var quote = text[i];
-                    i++;
-
-                    while (i < text.Length)
-                    {
-                        if (text[i] == quote)
-                        {
-                            i++;
-                            break;
-                        }
-
-                        i++;
-                    }
-                }
-                else
-                {
-                    while (i < text.Length && !char.IsWhiteSpace(text[i])) i++;
-                }
+                continue;
             }
 
-            var attribute = text.Substring(start, i - start).Trim();
-            if (!string.IsNullOrWhiteSpace(attribute))
+            if (text[i] == '(')
             {
-                result.Add(attribute);
+                if (!TrySkipBalanced(text, i, '(', ')', out i)) return false;
+
+                continue;
             }
+
+            if (text[i] == '.' && i + 1 < text.Length && IsIdentifierStart(text[i + 1]))
+            {
+                i += 2;
+                while (i < text.Length && IsIdentifierPart(text[i])) i++;
+
+                continue;
+            }
+
+            break;
         }
 
-        return result;
+        nextIndex = i;
+
+        return true;
+    }
+
+    private static bool TrySkipBalanced(string text, int index, char open, char close, out int nextIndex)
+    {
+        nextIndex = index;
+
+        if (index >= text.Length || text[index] != open) return false;
+
+        var depth = 0;
+        var i = index;
+
+        while (i < text.Length)
+        {
+            var c = text[i];
+
+            if (c == '"' || c == '\'')
+            {
+                if (!TrySkipCSharpLiteral(text, i, out i)) return false;
+
+                continue;
+            }
+
+            if (c == open)
+            {
+                depth++;
+            }
+            else if (c == close)
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    nextIndex = i + 1;
+
+                    return true;
+                }
+            }
+
+            i++;
+        }
+
+        return false;
+    }
+
+    private static bool TrySkipCSharpLiteral(string text, int index, out int nextIndex)
+    {
+        nextIndex = index;
+
+        if (index >= text.Length) return false;
+
+        var quote = text[index];
+        if (quote != '"' && quote != '\'') return false;
+
+        var verbatim = quote == '"' && index > 0 && text[index - 1] == '@';
+        var i = index + 1;
+
+        while (i < text.Length)
+        {
+            var c = text[i];
+
+            if (verbatim)
+            {
+                if (c == quote)
+                {
+                    if (i + 1 < text.Length && text[i + 1] == quote)
+                    {
+                        i += 2;
+
+                        continue;
+                    }
+
+                    nextIndex = i + 1;
+
+                    return true;
+                }
+
+                i++;
+
+                continue;
+            }
+
+            if (c == '\\')
+            {
+                i += 2;
+
+                continue;
+            }
+
+            if (c == quote)
+            {
+                nextIndex = i + 1;
+
+                return true;
+            }
+
+            i++;
+        }
+
+        return false;
+    }
+
+    private static bool IsIdentifierStart(char c)
+    {
+        return char.IsLetter(c) || c == '_';
+    }
+
+    private static bool IsIdentifierPart(char c)
+    {
+        return char.IsLetterOrDigit(c) || c == '_';
     }
 
     /// <summary>
@@ -957,6 +1068,7 @@ internal sealed class RazorFormatterLogic
         return text.Substring(lineStart, i - lineStart);
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Combines directive and control block ranges from the text into a single list ordered by start position, with no side effects.
     /// </summary>
@@ -977,6 +1089,8 @@ internal sealed class RazorFormatterLogic
     /// <param name="text">The text.</param>
     /// <returns>A List&lt;RazorCodeBlockRange&gt; value produced by this method.</returns>
 
+=======
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     private static List<RazorCodeBlockRange> FindDirectiveCodeBlockRanges(string text)
     {
         var ranges = new List<RazorCodeBlockRange>();
@@ -1345,6 +1459,7 @@ internal sealed class RazorFormatterLogic
         StringLiteral,
         VerbatimStringLiteral
     }
+<<<<<<< HEAD
 
     private readonly struct TagReplacement
     {
@@ -1362,3 +1477,6 @@ internal sealed class RazorFormatterLogic
         internal string Replacement { get; }
     }
 }
+=======
+}
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52

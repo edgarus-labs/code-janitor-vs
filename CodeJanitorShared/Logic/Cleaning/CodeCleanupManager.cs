@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -61,6 +62,15 @@ internal sealed class CodeCleanupManager
         NoChanges,
         Changed
     }
+
+        private struct HeadlessPreCleanupOutcome
+        {
+            internal HeadlessCleanupResult Result;
+
+            internal List<string> CreatedFiles;
+
+            internal bool SplitOperationOccurred;
+        }
 
     internal struct CleanupExecutionStats
     {
@@ -249,6 +259,109 @@ internal sealed class CodeCleanupManager
             $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: {!wasOpen})");
     }
 
+        /// <summary>
+        /// Attempts to run code cleanup on the specified project item without blocking the calling
+        /// thread (typically the UI thread) for the duration of any slow headless work, most
+        /// notably AI-assisted XML documentation HTTP requests. The small EnvDTE-dependent checks
+        /// still run on the main thread, but the file I/O, Roslyn transformations and AI network
+        /// calls run on a background thread so the IDE stays responsive and can be canceled.
+        /// </summary>
+        /// <param name="projectItem">The project item for cleanup.</param>
+
+        internal async Task CleanupAsync(ProjectItem projectItem)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem)) return;
+
+            // Instrumentation for BL-018: measure per-item cleanup cost and whether the document
+            // had to be opened by cleanup (opening documents is the primary performance concern).
+            var stopwatch = Stopwatch.StartNew();
+
+            var projectItemFileName = projectItem.GetFileName();
+
+            // Skip the disk-based headless path for documents that are already open - the editor
+            // buffer is then the source of truth and cleanup must operate on the live document.
+            bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
+
+            var headlessResult = HeadlessCleanupResult.NotApplicable;
+
+            if (!wasOpen)
+            {
+                // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
+                // calls) on a background thread so the main thread's message pump keeps running
+                // and the cleanup progress dialog's Cancel button remains responsive.
+                var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName));
+
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                headlessResult = outcome.Result;
+
+                if (outcome.SplitOperationOccurred)
+                {
+                    foreach (var createdFile in outcome.CreatedFiles)
+                    {
+                        AddGeneratedFileToProject(projectItem, createdFile);
+                    }
+
+                    _cleanupExecutionStats.SplitOperations++;
+                    _cleanupExecutionStats.SplitCreatedFiles += outcome.CreatedFiles.Count;
+                }
+            }
+
+            if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
+            {
+                if (headlessResult == HeadlessCleanupResult.Changed)
+                {
+                    _cleanupExecutionStats.HeadlessChangedItems++;
+                }
+                else
+                {
+                    _cleanupExecutionStats.HeadlessNoOpItems++;
+                }
+
+                stopwatch.Stop();
+                OutputWindowHelper.DiagnosticWriteLine(
+                    $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: False, headlessOnly: True, changed: {headlessResult == HeadlessCleanupResult.Changed})");
+
+                return;
+            }
+
+            // Attempt to open the document if not already opened.
+            if (!wasOpen)
+            {
+                try
+                {
+                    projectItem.Open(Constants.vsViewKindTextView);
+                }
+                catch (Exception ex)
+                {
+                    OutputWindowHelper.WarningWriteLine(
+                        $"Unable to open '{projectItemFileName}' for editor cleanup: {ex.Message}");
+                }
+            }
+
+            if (projectItem.Document != null)
+            {
+                Cleanup(projectItem.Document);
+
+                // Close the document if it was opened for cleanup.
+                if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
+                {
+                    projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
+                }
+            }
+            else
+            {
+                RecordCleanupFailure(
+                    projectItemFileName,
+                    new InvalidOperationException("The project item did not expose an open document."));
+            }
+
+            stopwatch.Stop();
+            OutputWindowHelper.DiagnosticWriteLine(
+                $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: {!wasOpen})");
+        }
     /// <summary>
     /// Runs the subset of C# cleanup steps that can safely execute on raw file text without
     /// opening the document in the editor.
@@ -261,73 +374,108 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var projectItemFileName = projectItem.GetFileName();
-        if (string.IsNullOrEmpty(projectItemFileName) ||
-            !projectItemFileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
-            !File.Exists(projectItemFileName))
-        {
-            return HeadlessCleanupResult.NotApplicable;
-        }
+            var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName);
 
-        try
-        {
-            string originalSource;
-            Encoding encoding;
-
-            using (var reader = new StreamReader(projectItemFileName, detectEncodingFromByteOrderMarks: true))
+            if (outcome.SplitOperationOccurred)
             {
-                originalSource = reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
+                foreach (var createdFile in outcome.CreatedFiles)
+                {
+                    AddGeneratedFileToProject(projectItem, createdFile);
+                }
+
+                _cleanupExecutionStats.SplitOperations++;
+                _cleanupExecutionStats.SplitCreatedFiles += outcome.CreatedFiles.Count;
             }
 
-            bool splitChanged = false;
-            if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles)
-            {
-                var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
-                    originalSource,
-                    projectItemFileName,
-                    encoding,
-                    ApplyHeadlessCSharpTransformations,
-                    transformUpdatedSource: false);
-                if (splitResult.Changed)
-                {
-                    splitChanged = true;
-                    originalSource = splitResult.UpdatedSource;
+            return outcome.Result;
+        }
 
-                    foreach (var createdFile in splitResult.CreatedFiles)
+        /// <summary>
+        /// Runs the file I/O, Roslyn transformation and AI-assisted documentation portion of the
+        /// headless pre-cleanup without touching any EnvDTE/COM objects, so it can safely run on a
+        /// background thread. Any files created by the top-level-type-to-file split feature are
+        /// returned to the caller, which must register them with the project on the main thread.
+        /// </summary>
+        /// <param name="projectItemFileName">The full path of the C# file to clean up.</param>
+        /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
+
+        private HeadlessPreCleanupOutcome TryRunHeadlessPreCleanupForCSharpCore(string projectItemFileName)
+        {
+            var createdFiles = new List<string>();
+
+            if (string.IsNullOrEmpty(projectItemFileName) ||
+                !projectItemFileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+                !File.Exists(projectItemFileName))
+            {
+                return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
+            }
+
+            try
+            {
+                string originalSource;
+                Encoding encoding;
+
+                using (var reader = new StreamReader(projectItemFileName, detectEncodingFromByteOrderMarks: true))
+                {
+                    originalSource = reader.ReadToEnd();
+                    encoding = reader.CurrentEncoding;
+                }
+
+                bool splitChanged = false;
+                bool splitOperationOccurred = false;
+                if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles)
+                {
+                    var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
+                        originalSource,
+                        projectItemFileName,
+                        encoding,
+                        ApplyHeadlessCSharpTransformations,
+                        transformUpdatedSource: false,
+                        transformCreatedFile: ApplyHeadlessCSharpTransformationsForCreatedFile);
+                    if (splitResult.Changed)
                     {
-                        AddGeneratedFileToProject(projectItem, createdFile);
+                        splitChanged = true;
+                        splitOperationOccurred = true;
+                        originalSource = splitResult.UpdatedSource;
+                        createdFiles.AddRange(splitResult.CreatedFiles);
+
+                        OutputWindowHelper.DiagnosticWriteLine(
+                            $"Headless top-level type split for '{projectItemFileName}' created {splitResult.CreatedFiles.Count} file(s).");
                     }
-
-                    _cleanupExecutionStats.SplitOperations++;
-                    _cleanupExecutionStats.SplitCreatedFiles += splitResult.CreatedFiles.Count;
-
-                    OutputWindowHelper.DiagnosticWriteLine(
-                        $"Headless top-level type split for '{projectItemFileName}' created {splitResult.CreatedFiles.Count} file(s).");
+                    else
+                    {
+                        OutputWindowHelper.DiagnosticWriteLine(
+                            $"Headless top-level type split skipped for '{projectItemFileName}': {splitResult.SkipReason}.");
+                    }
                 }
-                else
+
+                var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
+                if (splitChanged || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
                 {
-                    OutputWindowHelper.DiagnosticWriteLine(
-                        $"Headless top-level type split skipped for '{projectItemFileName}': {splitResult.SkipReason}.");
+                    File.WriteAllText(projectItemFileName, transformedSource, encoding);
+
+                    return new HeadlessPreCleanupOutcome
+                    {
+                        Result = HeadlessCleanupResult.Changed,
+                        CreatedFiles = createdFiles,
+                        SplitOperationOccurred = splitOperationOccurred
+                    };
                 }
-            }
 
-            var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
-            if (splitChanged || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
+                return new HeadlessPreCleanupOutcome
+                {
+                    Result = HeadlessCleanupResult.NoChanges,
+                    CreatedFiles = createdFiles,
+                    SplitOperationOccurred = splitOperationOccurred
+                };
+            }
+            catch (Exception ex)
             {
-                File.WriteAllText(projectItemFileName, transformedSource, encoding);
+                OutputWindowHelper.WarningWriteLine(
+                    $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}");
 
-                return HeadlessCleanupResult.Changed;
+                return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
             }
-
-            return HeadlessCleanupResult.NoChanges;
-        }
-        catch (Exception ex)
-        {
-            OutputWindowHelper.WarningWriteLine(
-                $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}");
-
-            return HeadlessCleanupResult.NotApplicable;
-        }
     }
 
     /// <summary>
@@ -402,6 +550,20 @@ internal sealed class CodeCleanupManager
             transformations.Add(new ExplicitAccessModifierConverter());
         }
 
+            // Apply AI-assisted XML documentation before any of the formatting-normalization steps
+            // below (blank line padding, single-line/accessor normalization, comment formatting,
+            // blank line trimming, etc.) so those steps run *after* the new doc comments have been
+            // inserted and can consistently format the final result. Running the AI step later (as
+            // this used to) left newly inserted comments un-normalized and could cause the already
+            // applied formatting to look inconsistent.
+            if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
+                !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
+                AiXmlDocumentationLogic.IsConfigurationPresent())
+            {
+                var aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_instance?._package);
+                transformations.Add(new DelegateSourceTransformation("Apply AI XML documentation", aiXmlDocumentationLogic.ApplyXmlDocumentationToSource));
+            }
+
         if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
             Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
             Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
@@ -463,6 +625,7 @@ internal sealed class CodeCleanupManager
             transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
         }
 
+<<<<<<< HEAD
         if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
             Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup &&
             !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
@@ -472,6 +635,8 @@ internal sealed class CodeCleanupManager
             transformations.Add(new DelegateSourceTransformation("Apply AI XML documentation", aiXmlDocumentationLogic.ApplyXmlDocumentationToSource));
         }
 
+=======
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         if (string.Equals(editorConfig.IndentStyle, "space", StringComparison.OrdinalIgnoreCase))
         {
             var tabSize = editorConfig.TabWidth ?? editorConfig.IndentSize ?? 4;
@@ -539,6 +704,39 @@ internal sealed class CodeCleanupManager
         var pipeline = new SourceTransformationPipeline(transformations);
 
         return pipeline.Run(source);
+    }
+
+    /// <summary>
+    /// Transformations for a file produced by the top-level type split. Such a file is never
+    /// opened by the editor path, so the AI documentation step has to run here even when preview
+    /// mode keeps it out of the headless pipeline.
+    /// </summary>
+
+    internal static string ApplyHeadlessCSharpTransformationsForCreatedFile(string source, string filePath)
+    {
+        var transformed = ApplyHeadlessCSharpTransformations(source, filePath);
+
+        var enabled = Settings.Default.Cleaning_AiXmlDocumentationEnabled;
+        var configured = AiXmlDocumentationLogic.IsConfigurationPresent();
+        var fileName = Path.GetFileName(filePath);
+
+        if (!enabled || !configured)
+        {
+            OutputWindowHelper.InfoWriteLine(
+                $"AI XMLDoc skipped for split file '{fileName}': enabled={enabled}, configured={configured}.");
+
+            return transformed;
+        }
+
+        // Already-documented members are skipped, so this is a no-op when the pipeline above
+        // has run the AI step itself.
+        var documented = AiXmlDocumentationLogic.GetInstance(_instance?._package)
+            .ApplyXmlDocumentationToSourceIgnoringPreview(transformed);
+
+        OutputWindowHelper.InfoWriteLine(
+            $"AI XMLDoc for split file '{fileName}': changed={!string.Equals(documented, transformed, StringComparison.Ordinal)}.");
+
+        return documented;
     }
 
     /// <summary>
@@ -1034,7 +1232,8 @@ internal sealed class CodeCleanupManager
             originalSource,
             filePath,
             encoding,
-            ApplyHeadlessCSharpTransformations);
+            ApplyHeadlessCSharpTransformations,
+            transformCreatedFile: ApplyHeadlessCSharpTransformationsForCreatedFile);
         if (!splitResult.Changed)
         {
             return;
@@ -1120,6 +1319,12 @@ internal sealed class CodeCleanupManager
 
         // Simplify single-statement lambda blocks to expression-bodied lambdas, when enabled.
         _singleStatementLambdaLogic.SimplifySingleStatementLambdas(textDocument);
+
+            // Add AI-assisted XML documentation before any of the formatting-normalization steps
+            // below (blank line padding, explicit access modifiers, single-line/accessor updates,
+            // comment formatting, etc.), so those steps run *after* the new doc comments have been
+            // inserted and can consistently format the final result.
+            _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
 
         // Perform any actions that can modify the file code model first.
         RunExternalFormatting(textDocument);
@@ -1227,6 +1432,7 @@ internal sealed class CodeCleanupManager
         _updateLogic.UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(properties);
         _updateLogic.UpdateSingleLineMethods(methods);
 
+<<<<<<< HEAD
         // Add AI-assisted XML documentation before comment formatting so normal formatter can
         // align and wrap newly inserted tags consistently.
         if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
@@ -1235,6 +1441,8 @@ internal sealed class CodeCleanupManager
             _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
         }
 
+=======
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         // Perform comment cleaning.
         _commentFormatLogic.FormatComments(textDocument);
     }

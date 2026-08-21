@@ -58,7 +58,6 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SealClassesWhenSafe, x => SealClassesWhenSafe),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements, x => InsertBlankLineBeforeReturnAndThrowStatements),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_FormatRazorComponents, x => FormatRazorComponents),
-            new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_RazorAttributeWrapThreshold, x => RazorAttributeWrapThreshold),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationEnabled, x => AiXmlDocumentationEnabled),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationRunDuringCleanup, x => AiXmlDocumentationRunDuringCleanup),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl, x => AiXmlDocumentationEndpointUrl),
@@ -71,6 +70,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, x => AiXmlDocumentationMaxRequestsPerCleanup),
             new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, x => AiXmlDocumentationMaxInputCharsPerMethod),
             new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxTokensPerRequest, x => AiXmlDocumentationMaxTokensPerRequest),
+                new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationContextWindowTokens, x => AiXmlDocumentationContextWindowTokens),
             new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, x => AiXmlDocumentationMaxEstimatedTokensPerCleanup),
             new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, x => AiXmlDocumentationGlobalTimeoutSeconds),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationAllowDeterministicFallback, x => AiXmlDocumentationAllowDeterministicFallback),
@@ -410,6 +410,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
+<<<<<<< HEAD
     /// Gets or sets the number of attributes a Razor tag may keep inline before it is wrapped.
     /// </summary>
 
@@ -429,6 +430,8 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
+=======
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     /// Gets or sets the flag indicating if AI-assisted XML documentation generation should run
     /// during C# cleanup.
     /// </summary>
@@ -441,6 +444,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
         }
         set
         {
+<<<<<<< HEAD
             if (IsEnabledAiXmlDocumentationEnabled)
             {
                 SetPropertyValue(value);
@@ -451,6 +455,19 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             }
 
             RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
+=======
+                // Always allow disabling, even when the connection has not been validated yet
+                // (e.g. after a VS restart, since connection-success state is not persisted).
+                // Only gate turning the feature *on* behind a validated connection.
+                if (!value || IsEnabledAiXmlDocumentationEnabled)
+                {
+                    SetPropertyValue(value);
+                }
+                else
+                {
+                    SetPropertyValue(false);
+                }
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         }
     }
 
@@ -594,6 +611,26 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
         }
     }
 
+        /// <summary>
+        /// Gets or sets the minimum model context window (in tokens) the configured AI endpoint is
+        /// expected to support. This is used for guidance/validation only - for local endpoints
+        /// (e.g. Ollama/llama.cpp) that support an out-of-band "num_ctx"-style parameter it may also
+        /// be sent opportunistically; it is never sent to endpoints that do not look local, since
+        /// hosted OpenAI-compatible APIs commonly reject unrecognized request fields.
+        /// </summary>
+
+        public int AiXmlDocumentationContextWindowTokens
+        {
+            get { return GetPropertyValue<int>(); }
+            set
+            {
+                if (value > 0)
+                {
+                    SetPropertyValue(value);
+                }
+            }
+        }
+
     public int AiXmlDocumentationMaxEstimatedTokensPerCleanup
     {
         get
@@ -703,6 +740,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     private bool _aiXmlDocumentationConnectionSucceeded;
+    private bool _isTestingAiXmlDocumentationConnection;
     private DelegateCommand _testAiXmlDocumentationConnectionCommand;
 
     /// <summary>
@@ -710,7 +748,9 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     /// </summary>
 
     public DelegateCommand TestAiXmlDocumentationConnectionCommand => _testAiXmlDocumentationConnectionCommand
-        ?? (_testAiXmlDocumentationConnectionCommand = new DelegateCommand(OnTestAiXmlDocumentationConnectionCommandExecuted));
+        ?? (_testAiXmlDocumentationConnectionCommand = new DelegateCommand(
+            OnTestAiXmlDocumentationConnectionCommandExecuted,
+            parameter => !_isTestingAiXmlDocumentationConnection));
 
     /// <summary>
     /// Gets a short status text for the endpoint connectivity test.
@@ -781,6 +821,11 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             AiXmlDocumentationMaxTokensPerRequest = 256;
         }
 
+        if (AiXmlDocumentationContextWindowTokens <= 0)
+        {
+            AiXmlDocumentationContextWindowTokens = 131072;
+        }
+
         if (AiXmlDocumentationMaxEstimatedTokensPerCleanup <= 0)
         {
             AiXmlDocumentationMaxEstimatedTokensPerCleanup = 8000;
@@ -830,31 +875,51 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             return;
         }
 
-        string message;
-        _aiXmlDocumentationConnectionSucceeded = AiXmlDocumentationLogic.TryValidateConnection(
-            AiXmlDocumentationEndpointUrl,
-            AiXmlDocumentationApiKey,
-            AiXmlDocumentationApiKeyHeader,
-            AiXmlDocumentationModel,
-            AiXmlDocumentationTimeoutSeconds,
-            out message);
+        _isTestingAiXmlDocumentationConnection = true;
+        TestAiXmlDocumentationConnectionCommand.RaiseCanExecuteChanged();
+        AiXmlDocumentationConnectionStatus = $"Testing connection (timeout: {AiXmlDocumentationTimeoutSeconds}s)...";
 
-        if (!_aiXmlDocumentationConnectionSucceeded)
+        var endpointUrl = AiXmlDocumentationEndpointUrl;
+        var apiKey = AiXmlDocumentationApiKey;
+        var apiKeyHeader = AiXmlDocumentationApiKeyHeader;
+        var model = AiXmlDocumentationModel;
+        var timeoutSeconds = AiXmlDocumentationTimeoutSeconds;
+
+        Package.JoinableTaskFactory.RunAsync(async delegate
         {
-            AiXmlDocumentationEnabled = false;
-            ClearCachedConnectionSuccess();
-        }
-        else
-        {
-            CacheSuccessfulConnection();
-        }
+            var result = await AiXmlDocumentationLogic.ValidateConnectionAsync(
+                endpointUrl,
+                apiKey,
+                apiKeyHeader,
+                model,
+                timeoutSeconds);
 
-        AiXmlDocumentationConnectionStatus = _aiXmlDocumentationConnectionSucceeded
-            ? "Connection successful."
-            : $"Connection failed: {message}";
+            await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
 
+<<<<<<< HEAD
         RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
         RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
+=======
+            _aiXmlDocumentationConnectionSucceeded = result.Succeeded;
+            if (!_aiXmlDocumentationConnectionSucceeded)
+            {
+                AiXmlDocumentationEnabled = false;
+                ClearCachedConnectionSuccess();
+            }
+            else
+            {
+                CacheSuccessfulConnection();
+            }
+
+            AiXmlDocumentationConnectionStatus = _aiXmlDocumentationConnectionSucceeded
+                ? "Connection successful."
+                : $"Connection failed: {result.ErrorMessage}";
+
+            _isTestingAiXmlDocumentationConnection = false;
+            TestAiXmlDocumentationConnectionCommand.RaiseCanExecuteChanged();
+            RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
+        });
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     }
 
     /// <summary>

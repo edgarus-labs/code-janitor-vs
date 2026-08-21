@@ -317,9 +317,6 @@
     <Setting Name="Cleaning_FormatRazorComponents" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="Cleaning_RazorAttributeWrapThreshold" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">2</Value>
-    </Setting>
     <Setting Name="Cleaning_MakeFieldsReadonlyWhenSafe" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
@@ -368,6 +365,9 @@
     <Setting Name="Cleaning_AiXmlDocumentationMaxTokensPerRequest" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">256</Value>
     </Setting>
+      <Setting Name="Cleaning_AiXmlDocumentationContextWindowTokens" Type="System.Int32" Scope="User">
+        <Value Profile="(Default)">131072</Value>
+      </Setting>
     <Setting Name="Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">8000</Value>
     </Setting>

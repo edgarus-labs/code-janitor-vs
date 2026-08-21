@@ -22,6 +22,19 @@ public class BlankLinePaddingConverterTests
         DisableAllSettings();
     }
 
+    [TestMethod]
+    public void DoesNotSeparateDocumentationCommentFromItsMember()
+    {
+        Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
+
+        var source = "class C\r\n{\r\n    int _x;\r\n    /// <summary>\r\n    /// Does a thing.\r\n    /// </summary>\r\n    void M() { }\r\n}\r\n";
+
+        var result = _converter.Apply(source);
+
+        Assert.IsFalse(result.Contains("/// </summary>\r\n\r\n    void M()"), "A blank line was inserted between the doc comment and the method.");
+        StringAssert.Contains(result, "int _x;\r\n\r\n    /// <summary>");
+    }
+
     private static void DisableAllSettings()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses = false;

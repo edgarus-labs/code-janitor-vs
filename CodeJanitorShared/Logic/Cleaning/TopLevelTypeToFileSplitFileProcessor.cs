@@ -48,11 +48,20 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     /// <returns>A ApplyResult value produced by this method.</returns>
 
     internal ApplyResult Apply(
+<<<<<<< HEAD
             string source,
             string filePath,
             Encoding encoding,
             Func<string, string, string> transformSource,
             bool transformUpdatedSource = true)
+=======
+        string source,
+        string filePath,
+        Encoding encoding,
+        Func<string, string, string> transformSource,
+        bool transformUpdatedSource = true,
+        Func<string, string, string> transformCreatedFile = null)
+>>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         var splitPlan = _planner.CreatePlan(source, filePath);
         if (!splitPlan.HasChanges)
@@ -60,11 +69,12 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
             return new ApplyResult(false, source, Array.Empty<string>(), splitPlan.SkipReason);
         }
 
+        var createdFileTransform = transformCreatedFile ?? transformSource;
         var createdFiles = new List<string>();
         foreach (var plannedFile in splitPlan.NewFiles)
         {
-            var transformedSource = transformSource != null
-                ? transformSource(plannedFile.Content, plannedFile.FilePath)
+            var transformedSource = createdFileTransform != null
+                ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
                 : plannedFile.Content;
 
             WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding);
