@@ -58,6 +58,7 @@
     <Compile Include="Cleaning\RazorFormatterLogicTests.cs" />
     <Compile Include="Cleaning\AiXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
+    <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitFileProcessorTests.cs" />
     <Compile Include="Cleaning\BlankLinePaddingConverterTests.cs" />
@@ -82,6 +83,12 @@
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="SettingsConfigurationSyncTests.cs" />
+    <Compile Include="Cleaning\RemoveByteOrderMarkLogicTests.cs" />
+    <Compile Include="Transformations\ByteOrderMarkConverterTests.cs" />
+    <Compile Include="Transformations\NullCheckPatternMatchingConverterTests.cs" />
+    <Compile Include="Transformations\StringInterpolationConverterTests.cs" />
+    <Compile Include="Transformations\NameOfOperatorConverterTests.cs" />
+    <Compile Include="Transformations\OutVarInliningConverterTests.cs" />
     <Compile Include="Transformations\CollectionExpressionConverterTests.cs" />
     <Compile Include="Transformations\JsonSerializerOptionsReuseConverterTests.cs" />
     <Compile Include="Transformations\SingleStatementLambdaConverterTests.cs" />

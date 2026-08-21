@@ -159,6 +159,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NormalizeBlankLinesConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\RegionDirectiveRemover.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ByteOrderMarkConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NullCheckPatternMatchingConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\StringInterpolationConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\NameOfOperatorConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\OutVarInliningConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\IGitStatusParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\GitStatusParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\SourceControl\IProcessRunner.cs" />

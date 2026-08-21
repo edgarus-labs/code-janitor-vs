@@ -1318,6 +1318,54 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_SealClassesWhenSafe"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_ConvertToPatternMatchingNullChecks {
+            get {
+                return ((bool)(this["Cleaning_ConvertToPatternMatchingNullChecks"]));
+            }
+            set {
+                this["Cleaning_ConvertToPatternMatchingNullChecks"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_ConvertStringFormatToInterpolation {
+            get {
+                return ((bool)(this["Cleaning_ConvertStringFormatToInterpolation"]));
+            }
+            set {
+                this["Cleaning_ConvertStringFormatToInterpolation"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_ConvertToStringNameOf {
+            get {
+                return ((bool)(this["Cleaning_ConvertToStringNameOf"]));
+            }
+            set {
+                this["Cleaning_ConvertToStringNameOf"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_InlineOutVariableDeclarations {
+            get {
+                return ((bool)(this["Cleaning_InlineOutVariableDeclarations"]));
+            }
+            set {
+                this["Cleaning_InlineOutVariableDeclarations"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

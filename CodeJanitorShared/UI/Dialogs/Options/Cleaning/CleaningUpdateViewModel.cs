@@ -56,6 +56,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SimplifySingleStatementLambdas, x => SimplifySingleStatementLambdas),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_MakeFieldsReadonlyWhenSafe, x => MakeFieldsReadonlyWhenSafe),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_SealClassesWhenSafe, x => SealClassesWhenSafe),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToPatternMatchingNullChecks, x => ConvertToPatternMatchingNullChecks),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertStringFormatToInterpolation, x => ConvertStringFormatToInterpolation),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToStringNameOf, x => ConvertToStringNameOf),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InlineOutVariableDeclarations, x => InlineOutVariableDeclarations),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements, x => InsertBlankLineBeforeReturnAndThrowStatements),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_FormatRazorComponents, x => FormatRazorComponents),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationEnabled, x => AiXmlDocumentationEnabled),
@@ -381,6 +385,42 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     /// </summary>
 
     public bool SealClassesWhenSafe
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if traditional null checks (== null, != null) should be converted to pattern matching (is null, is not null).
+    /// </summary>
+    public bool ConvertToPatternMatchingNullChecks
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if string.Format calls should be converted to modern string interpolation ($"...").
+    /// </summary>
+    public bool ConvertStringFormatToInterpolation
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if string literals matching parameter names in argument exceptions should be converted to nameof(...).
+    /// </summary>
+    public bool ConvertToStringNameOf
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if separate uninitialized out variable declarations should be inlined into out var expressions.
+    /// </summary>
+    public bool InlineOutVariableDeclarations
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }

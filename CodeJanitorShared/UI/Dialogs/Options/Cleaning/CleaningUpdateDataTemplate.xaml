@@ -22,6 +22,10 @@
 					<CheckBox Content="Simplify single-statement lambda blocks to expression lambdas (remove braces/return)" IsChecked="{Binding SimplifySingleStatementLambdas}" />
 					<CheckBox Content="Add 'readonly' to fields never written outside their constructor" IsChecked="{Binding MakeFieldsReadonlyWhenSafe}" />
 					<CheckBox Content="Add 'sealed' to classes not derived from in the same file (single-file heuristic)" IsChecked="{Binding SealClassesWhenSafe}" />
+					<CheckBox Content="{x:Static p:Resources.ConvertToPatternMatchingNullChecks}" IsChecked="{Binding ConvertToPatternMatchingNullChecks}" ToolTip="{x:Static p:Resources.ConvertToPatternMatchingNullChecksToolTip}" />
+					<CheckBox Content="{x:Static p:Resources.ConvertStringFormatToInterpolation}" IsChecked="{Binding ConvertStringFormatToInterpolation}" ToolTip="{x:Static p:Resources.ConvertStringFormatToInterpolationToolTip}" />
+					<CheckBox Content="{x:Static p:Resources.ConvertToStringNameOf}" IsChecked="{Binding ConvertToStringNameOf}" ToolTip="{x:Static p:Resources.ConvertToStringNameOfToolTip}" />
+					<CheckBox Content="{x:Static p:Resources.InlineOutVariableDeclarations}" IsChecked="{Binding InlineOutVariableDeclarations}" ToolTip="{x:Static p:Resources.InlineOutVariableDeclarationsToolTip}" />
 					<CheckBox Content="Insert a blank line before 'return' and 'throw' statements that end a block of logic" IsChecked="{Binding InsertBlankLineBeforeReturnAndThrowStatements}" />
 					<CheckBox Content="Format Razor components (.razor) in safe mode" IsChecked="{Binding FormatRazorComponents}" />
 

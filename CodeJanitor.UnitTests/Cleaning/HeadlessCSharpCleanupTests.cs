@@ -193,4 +193,56 @@ public class HeadlessCSharpCleanupTests
 
         Assert.IsTrue(output.StartsWith("\uFEFF", StringComparison.Ordinal), "BOM should be preserved when RemoveByteOrderMark is false.");
     }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_AppliesPatternMatchingNullChecks_WhenEnabled()
+    {
+        Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleNullChecks.cs");
+        var input = "namespace Demo;\r\n\r\npublic class C { public void M(object x) { if (x != null) { } } }\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsTrue(output.Contains("if (x is not null)"));
+    }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_AppliesStringInterpolation_WhenEnabled()
+    {
+        Settings.Default.Cleaning_ConvertStringFormatToInterpolation = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleStringFormat.cs");
+        var input = "namespace Demo;\r\n\r\npublic class C { public string M(string n) { return string.Format(\"Hello {0}\", n); } }\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsTrue(output.Contains("return $\"Hello {n}\";"));
+    }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_AppliesNameOfOperator_WhenEnabled()
+    {
+        Settings.Default.Cleaning_ConvertToStringNameOf = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleNameOf.cs");
+        var input = "using System;\r\nnamespace Demo;\r\n\r\npublic class C { public void M(string p) { throw new ArgumentNullException(\"p\"); } }\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsTrue(output.Contains("throw new ArgumentNullException(nameof(p));"));
+    }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_AppliesOutVarInlining_WhenEnabled()
+    {
+        Settings.Default.Cleaning_InlineOutVariableDeclarations = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleOutVar.cs");
+        var input = "namespace Demo;\r\n\r\npublic class C { public void M(string s) { int res;\r\nif (int.TryParse(s, out res)) { } } }\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsTrue(output.Contains("if (int.TryParse(s, out var res))"));
+    }
 }

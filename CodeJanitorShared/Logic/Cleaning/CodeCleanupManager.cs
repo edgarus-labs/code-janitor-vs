@@ -11,12 +11,14 @@ using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CodeJanitor.Logic.Cleaning;
@@ -487,6 +489,128 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
+    /// Progress information for parallel headless cleanup operations.
+    /// </summary>
+    public sealed class ParallelCleanupProgress
+    {
+        public string FilePath { get; set; }
+        public int ProcessedCount { get; set; }
+        public int TotalCount { get; set; }
+        public bool Changed { get; set; }
+        public Exception Error { get; set; }
+    }
+
+    /// <summary>
+    /// Aggregate result of a parallel headless cleanup batch operation.
+    /// </summary>
+    public sealed class ParallelCleanupResult
+    {
+        public int TotalFiles { get; set; }
+        public int ChangedFiles { get; set; }
+        public int UnchangedFiles { get; set; }
+        public int FailedFiles { get; set; }
+        public IReadOnlyList<string> ModifiedFilePaths { get; set; }
+        public IReadOnlyDictionary<string, Exception> Failures { get; set; }
+    }
+
+    /// <summary>
+    /// Processes a collection of C# source files in parallel using the headless cleanup transformation pipeline.
+    /// </summary>
+    /// <param name="filePaths">The collection of file paths to clean.</param>
+    /// <param name="maxDegreeOfParallelism">The maximum degree of parallelism (defaults to processor count).</param>
+    /// <param name="progress">Optional progress reporter.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>A summary of the parallel cleanup operation.</returns>
+    public static ParallelCleanupResult ApplyHeadlessCSharpTransformationsToFiles(
+        IEnumerable<string> filePaths,
+        int? maxDegreeOfParallelism = null,
+        IProgress<ParallelCleanupProgress> progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (filePaths == null)
+        {
+            return new ParallelCleanupResult
+            {
+                ModifiedFilePaths = new List<string>(),
+                Failures = new Dictionary<string, Exception>()
+            };
+        }
+
+        var filesList = filePaths.Where(f => !string.IsNullOrWhiteSpace(f) && File.Exists(f)).ToList();
+        var total = filesList.Count;
+        var processed = 0;
+        var changedCount = 0;
+        var unchangedCount = 0;
+        var failedCount = 0;
+
+        var modifiedPaths = new ConcurrentBag<string>();
+        var failures = new ConcurrentDictionary<string, Exception>();
+
+        var options = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = maxDegreeOfParallelism ?? Math.Max(1, Environment.ProcessorCount),
+            CancellationToken = cancellationToken
+        };
+
+        var manager = GetInstance(null);
+
+        Parallel.ForEach(filesList, options, file =>
+        {
+            options.CancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                var outcome = manager.TryRunHeadlessPreCleanupForCSharpCore(file);
+                var isChanged = outcome.Result == HeadlessCleanupResult.Changed;
+
+                if (isChanged)
+                {
+                    Interlocked.Increment(ref changedCount);
+                    modifiedPaths.Add(file);
+                }
+                else
+                {
+                    Interlocked.Increment(ref unchangedCount);
+                }
+
+                var currentProcessed = Interlocked.Increment(ref processed);
+                progress?.Report(new ParallelCleanupProgress
+                {
+                    FilePath = file,
+                    ProcessedCount = currentProcessed,
+                    TotalCount = total,
+                    Changed = isChanged
+                });
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Increment(ref failedCount);
+                failures.TryAdd(file, ex);
+
+                var currentProcessed = Interlocked.Increment(ref processed);
+                progress?.Report(new ParallelCleanupProgress
+                {
+                    FilePath = file,
+                    ProcessedCount = currentProcessed,
+                    TotalCount = total,
+                    Changed = false,
+                    Error = ex
+                });
+            }
+        });
+
+        return new ParallelCleanupResult
+        {
+            TotalFiles = total,
+            ChangedFiles = changedCount,
+            UnchangedFiles = unchangedCount,
+            FailedFiles = failedCount,
+            ModifiedFilePaths = modifiedPaths.ToList(),
+            Failures = failures
+        };
+    }
+
+    /// <summary>
     /// Applies enabled, Roslyn-based C# source transformations in the same order used by the
     /// in-editor cleanup path.
     /// </summary>
@@ -548,6 +672,26 @@ internal sealed class CodeCleanupManager
         if (Settings.Default.Cleaning_SimplifySingleStatementLambdas)
         {
             transformations.Add(new SingleStatementLambdaConverter());
+        }
+
+        if (Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks)
+        {
+            transformations.Add(new NullCheckPatternMatchingConverter());
+        }
+
+        if (Settings.Default.Cleaning_ConvertStringFormatToInterpolation)
+        {
+            transformations.Add(new StringInterpolationConverter());
+        }
+
+        if (Settings.Default.Cleaning_ConvertToStringNameOf)
+        {
+            transformations.Add(new NameOfOperatorConverter());
+        }
+
+        if (Settings.Default.Cleaning_InlineOutVariableDeclarations)
+        {
+            transformations.Add(new OutVarInliningConverter());
         }
 
         if (Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses ||

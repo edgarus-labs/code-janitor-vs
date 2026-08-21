@@ -725,6 +725,78 @@ namespace CodeJanitor.Properties {
                 return ResourceManager.GetString("CodeJanitorSkippedFileScopedNamespaceConversion0", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Convert null checks to pattern matching (&apos;is null&apos; / &apos;is not null&apos;).
+        /// </summary>
+        public static string ConvertToPatternMatchingNullChecks {
+            get {
+                return ResourceManager.GetString("ConvertToPatternMatchingNullChecks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Modernizes traditional null checks (== null, != null) to modern C# pattern matching expressions..
+        /// </summary>
+        public static string ConvertToPatternMatchingNullChecksToolTip {
+            get {
+                return ResourceManager.GetString("ConvertToPatternMatchingNullChecksToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Convert string.Format to string interpolation ($&quot;...&quot;).
+        /// </summary>
+        public static string ConvertStringFormatToInterpolation {
+            get {
+                return ResourceManager.GetString("ConvertStringFormatToInterpolation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replaces string.Format calls that use literal format strings with modern C# interpolated strings..
+        /// </summary>
+        public static string ConvertStringFormatToInterpolationToolTip {
+            get {
+                return ResourceManager.GetString("ConvertStringFormatToInterpolationToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Convert string literals to nameof(...).
+        /// </summary>
+        public static string ConvertToStringNameOf {
+            get {
+                return ResourceManager.GetString("ConvertToStringNameOf", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Converts hardcoded parameter name strings in argument exceptions and methods to nameof(...) expressions..
+        /// </summary>
+        public static string ConvertToStringNameOfToolTip {
+            get {
+                return ResourceManager.GetString("ConvertToStringNameOfToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Inline &apos;out&apos; variable declarations (&apos;out var ...&apos;).
+        /// </summary>
+        public static string InlineOutVariableDeclarations {
+            get {
+                return ResourceManager.GetString("InlineOutVariableDeclarations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Inlines separate uninitialized local variable declarations directly into out arguments..
+        /// </summary>
+        public static string InlineOutVariableDeclarationsToolTip {
+            get {
+                return ResourceManager.GetString("InlineOutVariableDeclarationsToolTip", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to CodeJanitor Join.

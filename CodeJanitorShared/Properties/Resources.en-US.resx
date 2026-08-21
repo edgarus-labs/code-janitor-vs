@@ -962,4 +962,28 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   <data name="OnlyForMethods" xml:space="preserve">
     <value>Only for methods</value>
   </data>
+  <data name="ConvertToPatternMatchingNullChecks" xml:space="preserve">
+    <value>Convert null checks to pattern matching ('is null' / 'is not null')</value>
+  </data>
+  <data name="ConvertToPatternMatchingNullChecksToolTip" xml:space="preserve">
+    <value>Modernizes traditional null checks (== null, != null) to modern C# pattern matching expressions.</value>
+  </data>
+  <data name="ConvertStringFormatToInterpolation" xml:space="preserve">
+    <value>Convert string.Format to string interpolation ($&quot;...&quot;)</value>
+  </data>
+  <data name="ConvertStringFormatToInterpolationToolTip" xml:space="preserve">
+    <value>Replaces string.Format calls that use literal format strings with modern C# interpolated strings.</value>
+  </data>
+  <data name="ConvertToStringNameOf" xml:space="preserve">
+    <value>Convert string literals to nameof(...)</value>
+  </data>
+  <data name="ConvertToStringNameOfToolTip" xml:space="preserve">
+    <value>Converts hardcoded parameter name strings in argument exceptions and methods to nameof(...) expressions.</value>
+  </data>
+  <data name="InlineOutVariableDeclarations" xml:space="preserve">
+    <value>Inline 'out' variable declarations ('out var ...')</value>
+  </data>
+  <data name="InlineOutVariableDeclarationsToolTip" xml:space="preserve">
+    <value>Inlines separate uninitialized local variable declarations directly into out arguments.</value>
+  </data>
 </root>

@@ -326,6 +326,18 @@
     <Setting Name="Cleaning_SealClassesWhenSafe" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="Cleaning_ConvertToPatternMatchingNullChecks" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_ConvertStringFormatToInterpolation" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_ConvertToStringNameOf" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_InlineOutVariableDeclarations" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
     <Setting Name="Cleaning_UpdateSingleLineMethods" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
