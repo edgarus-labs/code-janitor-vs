@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -48,20 +49,12 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     /// <returns>A ApplyResult value produced by this method.</returns>
 
     internal ApplyResult Apply(
-<<<<<<< HEAD
-            string source,
-            string filePath,
-            Encoding encoding,
-            Func<string, string, string> transformSource,
-            bool transformUpdatedSource = true)
-=======
         string source,
         string filePath,
         Encoding encoding,
         Func<string, string, string> transformSource,
         bool transformUpdatedSource = true,
         Func<string, string, string> transformCreatedFile = null)
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         var splitPlan = _planner.CreatePlan(source, filePath);
         if (!splitPlan.HasChanges)
@@ -97,6 +90,10 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
 
     private static void WriteAllTextAtomically(string targetFilePath, string content, Encoding encoding)
     {
+        var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark
+            ? new UTF8Encoding(false)
+            : encoding;
+
         var directoryPath = Path.GetDirectoryName(targetFilePath);
         if (!string.IsNullOrWhiteSpace(directoryPath))
         {
@@ -107,7 +104,7 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
 
         try
         {
-            File.WriteAllText(tempFilePath, content, encoding);
+            File.WriteAllText(tempFilePath, content, targetEncoding);
 
             if (File.Exists(targetFilePath))
             {

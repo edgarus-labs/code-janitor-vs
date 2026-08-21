@@ -926,6 +926,18 @@ namespace CodeJanitor.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_RemoveByteOrderMark {
+            get {
+                return ((bool)(this["Cleaning_RemoveByteOrderMark"]));
+            }
+            set {
+                this["Cleaning_RemoveByteOrderMark"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool Cleaning_RemoveRegions {
             get {
                 return ((bool)(this["Cleaning_RemoveRegions"]));

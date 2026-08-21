@@ -716,6 +716,15 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   <data name="AlwaysRemoveRegionsToolTip" xml:space="preserve">
     <value>Removes all #region/#endregion tags (keeping their contents' code) from C# and VB files during cleanup.</value>
   </data>
+  <data name="RemoveByteOrderMark" xml:space="preserve">
+    <value>Remove Byte Order Mark (BOM)</value>
+  </data>
+  <data name="RemoveByteOrderMarkToolTip" xml:space="preserve">
+    <value>Removes the Byte Order Mark (BOM) from source files during cleanup to save them as clean UTF-8 without BOM.</value>
+  </data>
+  <data name="ByteOrderMark" xml:space="preserve">
+    <value>Byte Order Mark (BOM)</value>
+  </data>
   <data name="RemoveRegions" xml:space="preserve">
     <value>Remove regions</value>
   </data>

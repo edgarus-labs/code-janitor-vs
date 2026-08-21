@@ -33,6 +33,12 @@
 					IsChecked="{Binding RemoveRegions}"
 					ToolTip="{x:Static p:Resources.AlwaysRemoveRegionsToolTip}" />
 			</GroupBox>
+			<GroupBox Header="{x:Static p:Resources.ByteOrderMark}">
+				<CheckBox
+					Content="{x:Static p:Resources.RemoveByteOrderMark}"
+					IsChecked="{Binding RemoveByteOrderMark}"
+					ToolTip="{x:Static p:Resources.RemoveByteOrderMarkToolTip}" />
+			</GroupBox>
 		</StackPanel>
 	</DataTemplate>
 </ResourceDictionary>

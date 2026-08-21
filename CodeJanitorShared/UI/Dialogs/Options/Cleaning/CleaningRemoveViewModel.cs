@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 
@@ -29,6 +29,7 @@ public class CleaningRemoveViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets, x => RemoveBlankSpacesBeforeClosingAngleBrackets),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_RemoveEndOfLineWhitespace, x => RemoveEndOfLineWhitespace),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_RemoveMultipleConsecutiveBlankLines, x => RemoveMultipleConsecutiveBlankLines),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_RemoveByteOrderMark, x => RemoveByteOrderMark),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_RemoveRegions, x => RemoveRegions)
         };
     }
@@ -134,6 +135,15 @@ public class CleaningRemoveViewModel : OptionsPageViewModel
     /// </summary>
 
     public bool RemoveMultipleConsecutiveBlankLines
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if Byte Order Mark (BOM) should be removed.
+    /// </summary>
+    public bool RemoveByteOrderMark
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }

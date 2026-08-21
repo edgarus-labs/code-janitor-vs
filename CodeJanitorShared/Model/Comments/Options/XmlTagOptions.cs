@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.Model.Comments.Options;
 
@@ -49,7 +49,7 @@ public class XmlTagOptions : IXmlTagOptions
             Literal = false,
             SpaceContent = settings.Formatting_CommentXmlSpaceTags,
             SpaceSelfClosing = settings.Formatting_CommentXmlSpaceSingleTags,
-            Split = settings.Formatting_CommentXmlSplitAllTags ? XmlTagNewLine.Always : XmlTagNewLine.Content
+            Split = settings.Formatting_CommentXmlSplitAllTags ? XmlTagNewLine.Always : XmlTagNewLine.Default
         };
     }
 }

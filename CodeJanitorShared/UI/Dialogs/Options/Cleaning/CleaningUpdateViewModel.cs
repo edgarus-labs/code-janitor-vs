@@ -410,28 +410,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-<<<<<<< HEAD
-    /// Gets or sets the number of attributes a Razor tag may keep inline before it is wrapped.
-    /// </summary>
-
-    public int RazorAttributeWrapThreshold
-    {
-        get
-        {
-            return GetPropertyValue<int>();
-        }
-        set
-        {
-            if (value >= 0)
-            {
-                SetPropertyValue(value);
-            }
-        }
-    }
-
     /// <summary>
-=======
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     /// Gets or sets the flag indicating if AI-assisted XML documentation generation should run
     /// during C# cleanup.
     /// </summary>
@@ -444,30 +423,17 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
         }
         set
         {
-<<<<<<< HEAD
-            if (IsEnabledAiXmlDocumentationEnabled)
+            // Always allow disabling, even when the connection has not been validated yet
+            // (e.g. after a VS restart, since connection-success state is not persisted).
+            // Only gate turning the feature *on* behind a validated connection.
+            if (!value || IsEnabledAiXmlDocumentationEnabled)
             {
                 SetPropertyValue(value);
             }
-            else if (value)
+            else
             {
                 SetPropertyValue(false);
             }
-
-            RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
-=======
-                // Always allow disabling, even when the connection has not been validated yet
-                // (e.g. after a VS restart, since connection-success state is not persisted).
-                // Only gate turning the feature *on* behind a validated connection.
-                if (!value || IsEnabledAiXmlDocumentationEnabled)
-                {
-                    SetPropertyValue(value);
-                }
-                else
-                {
-                    SetPropertyValue(false);
-                }
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         }
     }
 
@@ -896,10 +862,6 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
             await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-<<<<<<< HEAD
-        RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
-        RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
-=======
             _aiXmlDocumentationConnectionSucceeded = result.Succeeded;
             if (!_aiXmlDocumentationConnectionSucceeded)
             {
@@ -919,7 +881,6 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             TestAiXmlDocumentationConnectionCommand.RaiseCanExecuteChanged();
             RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
         });
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     }
 
     /// <summary>

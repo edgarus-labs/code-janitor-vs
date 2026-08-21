@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
@@ -78,15 +78,10 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
         _viewModel.LoadSettings();
         _host = new SectionPageHost { DataContext = _viewModel };
     }
-<<<<<<< HEAD
-}
-=======
-
     /// <summary>
     /// The package only auto-loads once a solution is fully loaded, so Tools &gt; Options opened
     /// without a solution has to request the load explicitly.
     /// </summary>
-
     private static CodeJanitorPackage ForceLoadPackage()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -100,4 +95,3 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
         return CodeJanitorPackage.Instance;
     }
 }
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52

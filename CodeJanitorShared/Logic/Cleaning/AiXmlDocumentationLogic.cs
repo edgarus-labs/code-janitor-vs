@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,6 +8,7 @@ using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -135,6 +136,116 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         return await client.TestConnectionAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Determines whether the specified project item is an eligible C# file for AI XML documentation.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>True if eligible, otherwise false.</returns>
+    internal bool CanDocumentProjectItem(ProjectItem projectItem)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (projectItem == null || !projectItem.IsPhysicalFile())
+        {
+            return false;
+        }
+
+        if (!string.Equals(Path.GetExtension(projectItem.Name), ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var filePath = projectItem.GetFileName();
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return false;
+        }
+
+        if (NamespacePathHelper.IsInExcludedDirectory(filePath))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Applies AI XML documentation to a project item (either an open document in editor or a file on disk).
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>True if the file was modified, otherwise false.</returns>
+    internal bool ApplyXmlDocumentation(ProjectItem projectItem)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!CanDocumentProjectItem(projectItem))
+        {
+            return false;
+        }
+
+        var client = CreateClientFromSettings();
+        if (client == null)
+        {
+            return false;
+        }
+
+        var document = projectItem.Document;
+        if (document != null)
+        {
+            var textDocument = document.GetTextDocument();
+            if (textDocument != null)
+            {
+                if (Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges)
+                {
+                    var startPt = textDocument.StartPoint.CreateEditPoint();
+                    var before = startPt.GetText(textDocument.EndPoint);
+                    ApplyXmlDocumentationWithPreview(textDocument, client);
+                    var after = textDocument.StartPoint.CreateEditPoint().GetText(textDocument.EndPoint);
+
+                    return before != after;
+                }
+
+                var startPoint = textDocument.StartPoint.CreateEditPoint();
+                var originalText = startPoint.GetText(textDocument.EndPoint);
+                var updatedText = ApplyXmlDocumentationToSourceInternal(originalText, client);
+
+                if (updatedText == originalText)
+                {
+                    return false;
+                }
+
+                var endPoint = textDocument.EndPoint.CreateEditPoint();
+                startPoint.ReplaceText(endPoint, updatedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+
+                return true;
+            }
+        }
+
+        var filePath = projectItem.GetFileName();
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return false;
+        }
+
+        string originalFileText;
+        Encoding encoding;
+
+        using (var reader = new StreamReader(filePath, true))
+        {
+            originalFileText = reader.ReadToEnd();
+            encoding = reader.CurrentEncoding;
+        }
+
+        var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
+        if (updatedFileText == originalFileText)
+        {
+            return false;
+        }
+
+        File.WriteAllText(filePath, updatedFileText, encoding);
+        return true;
     }
 
     internal void ApplyXmlDocumentation(TextDocument textDocument)

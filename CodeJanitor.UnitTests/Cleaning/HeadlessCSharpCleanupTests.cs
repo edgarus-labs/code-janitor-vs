@@ -166,4 +166,31 @@ public class HeadlessCSharpCleanupTests
 
         Assert.IsFalse(output.Contains("/// <summary>"), "AI XML documentation should not run during cleanup when RunDuringCleanup is false.");
     }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_StripsBom_WhenRemoveByteOrderMarkIsTrue()
+    {
+        Settings.Default.Cleaning_RemoveByteOrderMark = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleWithBom.cs");
+        var input = "\uFEFFnamespace Demo;\r\n\r\npublic class C { }\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsFalse(output.StartsWith("\uFEFF", StringComparison.Ordinal), "BOM should be stripped when RemoveByteOrderMark is true.");
+        Assert.IsTrue(output.StartsWith("namespace Demo;", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_PreservesBom_WhenRemoveByteOrderMarkIsFalse()
+    {
+        Settings.Default.Cleaning_RemoveByteOrderMark = false;
+
+        var filePath = Path.Combine(_tempDirectory, "SamplePreserveBom.cs");
+        var input = "\uFEFFnamespace Demo;\r\n\r\npublic class C { }\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsTrue(output.StartsWith("\uFEFF", StringComparison.Ordinal), "BOM should be preserved when RemoveByteOrderMark is false.");
+    }
 }

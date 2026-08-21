@@ -116,6 +116,7 @@ internal sealed class CodeCleanupManager
     private readonly SingleStatementLambdaLogic _singleStatementLambdaLogic;
     private readonly RemoveRegionLogic _removeRegionLogic;
     private readonly RemoveWhitespaceLogic _removeWhitespaceLogic;
+    private readonly RemoveByteOrderMarkLogic _removeByteOrderMarkLogic;
     private readonly UpdateLogic _updateLogic;
     private readonly UsingStatementCleanupLogic _usingStatementCleanupLogic;
 
@@ -179,6 +180,7 @@ internal sealed class CodeCleanupManager
         _singleStatementLambdaLogic = SingleStatementLambdaLogic.GetInstance(_package);
         _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
         _removeWhitespaceLogic = RemoveWhitespaceLogic.GetInstance(_package);
+        _removeByteOrderMarkLogic = RemoveByteOrderMarkLogic.GetInstance(_package);
         _updateLogic = UpdateLogic.GetInstance(_package);
         _usingStatementCleanupLogic = UsingStatementCleanupLogic.GetInstance(_package);
     }
@@ -450,9 +452,15 @@ internal sealed class CodeCleanupManager
                 }
 
                 var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
-                if (splitChanged || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
+                var fileHadBom = Settings.Default.Cleaning_RemoveByteOrderMark &&
+                                 RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
+                var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark
+                    ? new UTF8Encoding(false)
+                    : encoding;
+
+                if (splitChanged || fileHadBom || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
                 {
-                    File.WriteAllText(projectItemFileName, transformedSource, encoding);
+                    File.WriteAllText(projectItemFileName, transformedSource, targetEncoding);
 
                     return new HeadlessPreCleanupOutcome
                     {
@@ -492,6 +500,11 @@ internal sealed class CodeCleanupManager
 
         // Region directives are policy-only structure and should always be removed.
         transformations.Add(new RegionDirectiveRemover());
+
+        if (Settings.Default.Cleaning_RemoveByteOrderMark)
+        {
+            transformations.Add(new ByteOrderMarkConverter());
+        }
 
         if (Settings.Default.Cleaning_ConvertToFileScopedNamespace)
         {
@@ -557,6 +570,7 @@ internal sealed class CodeCleanupManager
             // this used to) left newly inserted comments un-normalized and could cause the already
             // applied formatting to look inconsistent.
             if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
+                Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup &&
                 !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
                 AiXmlDocumentationLogic.IsConfigurationPresent())
             {
@@ -625,18 +639,6 @@ internal sealed class CodeCleanupManager
             transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
         }
 
-<<<<<<< HEAD
-        if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
-            Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup &&
-            !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
-            AiXmlDocumentationLogic.IsConfigurationPresent())
-        {
-            var aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_instance?._package);
-            transformations.Add(new DelegateSourceTransformation("Apply AI XML documentation", aiXmlDocumentationLogic.ApplyXmlDocumentationToSource));
-        }
-
-=======
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         if (string.Equals(editorConfig.IndentStyle, "space", StringComparison.OrdinalIgnoreCase))
         {
             var tabSize = editorConfig.TabWidth ?? editorConfig.IndentSize ?? 4;
@@ -1358,6 +1360,7 @@ internal sealed class CodeCleanupManager
         _fileHeaderLogic.UpdateFileHeader(textDocument);
 
         // Perform removal cleanup.
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
         _removeRegionLogic.RemoveRegions(regions);
         _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
@@ -1432,17 +1435,6 @@ internal sealed class CodeCleanupManager
         _updateLogic.UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(properties);
         _updateLogic.UpdateSingleLineMethods(methods);
 
-<<<<<<< HEAD
-        // Add AI-assisted XML documentation before comment formatting so normal formatter can
-        // align and wrap newly inserted tags consistently.
-        if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
-            Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup)
-        {
-            _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
-        }
-
-=======
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         // Perform comment cleaning.
         _commentFormatLogic.FormatComments(textDocument);
     }
@@ -1490,6 +1482,7 @@ internal sealed class CodeCleanupManager
         _fileHeaderLogic.UpdateFileHeader(textDocument);
 
         // Perform removal cleanup.
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
         _removeRegionLogic.RemoveRegions(regions);
         _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
@@ -1566,6 +1559,7 @@ internal sealed class CodeCleanupManager
         _fileHeaderLogic.UpdateFileHeader(textDocument);
 
         // Perform removal cleanup.
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
         _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
@@ -1605,6 +1599,7 @@ internal sealed class CodeCleanupManager
         _fileHeaderLogic.UpdateFileHeader(textDocument);
 
         // Perform removal cleanup.
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
         _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
@@ -1634,6 +1629,7 @@ internal sealed class CodeCleanupManager
         _fileHeaderLogic.UpdateFileHeader(textDocument);
 
         // Perform removal cleanup.
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
         _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);

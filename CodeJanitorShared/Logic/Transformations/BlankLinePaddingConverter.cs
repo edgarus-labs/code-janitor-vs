@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeJanitor.Properties;
@@ -173,17 +173,9 @@ public class BlankLinePaddingConverter : ISourceTransformation
     }
 
     /// <summary>
-<<<<<<< HEAD
-    /// Collects line numbers of #region/#endregion directives into the provided SortedSet based on blank-line padding settings, mutating the set to indicate where blank lines should be inserted, and returns early if no padding options are enabled.
-    /// </summary>
-    /// <param name="root">The root.</param>
-    /// <param name="tree">The tree.</param>
-    /// <param name="wantBlankBefore">The want blank before.</param>
-=======
     /// A documentation comment belongs to the member below it, so padding has to go above the
     /// comment rather than between the comment and the declaration.
     /// </summary>
-
     private static int GetPaddingStartLine(SyntaxNode node, SyntaxTree tree)
     {
         foreach (var trivia in node.GetLeadingTrivia())
@@ -197,7 +189,13 @@ public class BlankLinePaddingConverter : ISourceTransformation
 
         return tree.GetLineSpan(node.Span).StartLinePosition.Line;
     }
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
+
+    /// <summary>
+    /// Collects line numbers of #region/#endregion directives into the provided SortedSet based on blank-line padding settings, mutating the set to indicate where blank lines should be inserted, and returns early if no padding options are enabled.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="tree">The tree.</param>
+    /// <param name="wantBlankBefore">The want blank before.</param>
 
     private void CollectRegionDirectivePadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {

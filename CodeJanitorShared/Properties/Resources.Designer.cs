@@ -1873,6 +1873,33 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove Byte Order Mark (BOM).
+        /// </summary>
+        public static string RemoveByteOrderMark {
+            get {
+                return ResourceManager.GetString("RemoveByteOrderMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Removes the Byte Order Mark (BOM) from source files during cleanup to save them as clean UTF-8 without BOM..
+        /// </summary>
+        public static string RemoveByteOrderMarkToolTip {
+            get {
+                return ResourceManager.GetString("RemoveByteOrderMarkToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Byte Order Mark (BOM).
+        /// </summary>
+        public static string ByteOrderMark {
+            get {
+                return ResourceManager.GetString("ByteOrderMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove regions.
         /// </summary>
         public static string RemoveRegions {
