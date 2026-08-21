@@ -39,6 +39,12 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
         await package.SettingsMonitor.WatchAsync(s => s.Feature_SpadeToolWindow, Instance.SwitchAsync);
     }
 
+    /// <summary>
+    /// 1. **Analyze the Request**: * Target: C# method `public override async Task SwitchAsync(bool on)`. * Body: awaits base, then if `on` is false, calls `Package.Spade?.Close()`. * Constraint: exactly one concise summary sentence, plain text only, no XML, no quotes. * Mention key behavior and side effects. * Detected thrown exceptions: none detected (so I don&apos;t need to mention exceptions). 2. **Analyze the Code**: * `await base.SwitchAsync(on)` -&gt; calls base implementation, awaits it. * `if (!on)` -&gt; only when turning off. * `Package.Spade?.Close()` -&gt; null-conditional call to close the spade, if it exists. 3. **Draft the Summary**: * Behavior: Overrides SwitchAsync, delegates to base, and conditionally closes the spade when turning off. * Side effect: Closing `Package.Spade` (if not null) when `on` is false. * Combine into one sentence. 4. **Check constraints**: * Exactly.
+    /// </summary>
+    /// <param name="on">The on.</param>
+    /// <returns>A Task value produced by this method.</returns>
+
     public override async Task SwitchAsync(bool on)
     {
         await base.SwitchAsync(on);

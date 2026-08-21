@@ -92,6 +92,10 @@ public class BuildProgressToolWindow : ToolWindowPane
         }
     }
 
+    /// <summary>
+    /// Closes the associated IVsWindowFrame without saving, discarding any pending changes via FRAMECLOSE_NoSave.
+    /// </summary>
+
     public void Close()
     {
         (Frame as IVsWindowFrame).CloseFrame((uint)__FRAMECLOSE.FRAMECLOSE_NoSave);

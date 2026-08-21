@@ -18,6 +18,12 @@ internal sealed class NamespaceFixerLogic
 
     private static NamespaceFixerLogic _instance;
 
+    /// <summary>
+    /// Lazily creates and caches a singleton NamespaceFixerLogic instance using the provided package, returning the existing instance on subsequent calls.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A NamespaceFixerLogic value produced by this method.</returns>
+
     internal static NamespaceFixerLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new NamespaceFixerLogic(package));
@@ -27,6 +33,12 @@ internal sealed class NamespaceFixerLogic
     {
         _converter = new NamespaceFixerConverter();
     }
+
+    /// <summary>
+    /// Returns true only for a non-null, physical, .cs project item with a non-empty file path outside excluded directories, throwing ThreadHelper.ThrowIfNotOnUIThread on non.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     internal bool CanFixNamespaceProjectItem(ProjectItem projectItem)
     {
@@ -55,6 +67,12 @@ internal sealed class NamespaceFixerLogic
 
         return true;
     }
+
+    /// <summary>
+    /// Attempts to fix a project item&apos;s namespace to its expected value, returning false if impossible or unchanged, and otherwise updating the open document or rewriting the file&apos;s encoding-preserved content while logging the change.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     internal bool FixNamespace(ProjectItem projectItem)
     {
@@ -104,12 +122,25 @@ internal sealed class NamespaceFixerLogic
         return true;
     }
 
+    /// <summary>
+    /// Ensures the call is on the UI thread by throwing if not, then delegates to the overloaded FixNamespace with a null second argument and returns its result.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     internal bool FixNamespace(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         return FixNamespace(document, null);
     }
+
+    /// <summary>
+    /// This method verifies prerequisites and, if the expected namespace differs, rewrites the document&apos;s entire text to correct its namespace, logging each skip or update and returning true only when the document is changed.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <param name="expectedNamespace">The expected namespace.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private bool FixNamespace(Document document, string expectedNamespace)
     {

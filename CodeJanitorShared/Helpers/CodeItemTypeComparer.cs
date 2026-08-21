@@ -60,6 +60,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
         return first.CompareTo(second);
     }
 
+    /// <summary>
+    /// Computes a weighted numeric sort key from six category offsets (type, access, explicit interface, constant, static, and read-only), with the relative priority of type versus access offset determined by the Reorganizing_PrimaryOrderByAccessLevel setting, and returns the resulting integer without side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int CalculateNumericRepresentation(BaseCodeItem codeItem)
     {
         int typeOffset = CalculateTypeOffset(codeItem);
@@ -87,6 +93,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
         return calc;
     }
 
+    /// <summary>
+    /// Maps the code item kind to its configured member type order via MemberTypeSettingHelper, returning 0 for unhandled kinds with no side effects or exceptions.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int CalculateTypeOffset(BaseCodeItem codeItem)
     {
         switch (codeItem.Kind)
@@ -106,6 +118,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
             default: return 0;
         }
     }
+
+    /// <summary>
+    /// Returns a nonzero ordering offset based on the item&apos;s access level (or 0 if the code item is not a BaseCodeItemElement), reversing the access-level order when the Reorganizing_ReverseOrderByAccessLevel setting is enabled, with no side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     private static int CalculateAccessOffset(BaseCodeItem codeItem)
     {
@@ -130,6 +148,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
         return itemsOrder.IndexOf(codeItemElement.Access) + 1;
     }
 
+    /// <summary>
+    /// Returns 1 when the setting Reorganizing_ExplicitMembersAtEnd is enabled and the code item is an explicit interface implementation, otherwise returns 0, with no side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int CalculateExplicitInterfaceOffset(BaseCodeItem codeItem)
     {
         if (Settings.Default.Reorganizing_ExplicitMembersAtEnd)
@@ -144,6 +168,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
         return 0;
     }
 
+    /// <summary>
+    /// Returns 0 for non-field or constant field inputs, otherwise returns 1 for non-constant fields, with no side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int CalculateConstantOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
@@ -151,6 +181,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
 
         return codeItemField.IsConstant ? 0 : 1;
     }
+
+    /// <summary>
+    /// Casts the input to BaseCodeItemElement and returns 0 if the cast fails or the item is static, otherwise returns 1, with no exceptions thrown or side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     private static int CalculateStaticOffset(BaseCodeItem codeItem)
     {
@@ -160,6 +196,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
         return codeItemElement.IsStatic ? 0 : 1;
     }
 
+    /// <summary>
+    /// Returns 1 for a non-read-only CodeItemField, or 0 if the item is null, not a CodeItemField, or is read-only, with no side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int CalculateReadOnlyOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
@@ -167,6 +209,12 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
 
         return codeItemField.IsReadOnly ? 0 : 1;
     }
+
+    /// <summary>
+    /// Returns the member name after the last dot for explicit interface implementations, otherwise returns the original name, with no side effects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string NormalizeName(BaseCodeItem codeItem)
     {

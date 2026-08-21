@@ -44,7 +44,10 @@ public class YesNoPromptViewModel : Bindable
 
     public bool CanRemember
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (SetPropertyValue(value) && !CanRemember)
@@ -60,7 +63,10 @@ public class YesNoPromptViewModel : Bindable
 
     public bool Remember
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (CanRemember || !value)

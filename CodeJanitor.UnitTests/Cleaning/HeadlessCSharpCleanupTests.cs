@@ -150,4 +150,20 @@ public class HeadlessCSharpCleanupTests
         Assert.IsTrue(output.Contains("#if DEBUG"), "Cleanup must preserve #if directives.");
         Assert.IsTrue(output.Contains("#endif"), "Cleanup must preserve #endif directives.");
     }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_DoesNotRunAiXmlDoc_WhenRunDuringCleanupIsFalse()
+    {
+        Settings.Default.Cleaning_AiXmlDocumentationEnabled = true;
+        Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup = false;
+        Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl = "https://api.openai.com/v1";
+        Settings.Default.Cleaning_AiXmlDocumentationApiKey = "test-key";
+
+        var filePath = Path.Combine(_tempDirectory, "SampleNoXmlDoc.cs");
+        var input = "namespace Demo;\r\n\r\npublic class C\r\n{\r\n    public void Method1() { }\r\n}\r\n";
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
+
+        Assert.IsFalse(output.Contains("/// <summary>"), "AI XML documentation should not run during cleanup when RunDuringCleanup is false.");
+    }
 }

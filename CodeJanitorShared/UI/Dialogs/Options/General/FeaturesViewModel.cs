@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using Mapping = CodeJanitor.UI.Dialogs.Options.SettingToOptionMapping<bool, bool>;
 
 namespace CodeJanitor.UI.Dialogs.Options.General;
@@ -26,7 +26,8 @@ public class FeaturesViewModel : OptionsPageViewModel
             new Mapping(x => ActiveSettings.Feature_SettingCleanupOnSave, x => SettingCleanupOnSave),
             new Mapping(x => ActiveSettings.Feature_SortLines, x => SortLines),
             new Mapping(x => ActiveSettings.Feature_SpadeToolWindow, x => SpadeToolWindow),
-            new Mapping(x => ActiveSettings.Feature_SwitchFile, x => SwitchFile)
+            new Mapping(x => ActiveSettings.Feature_SwitchFile, x => SwitchFile),
+            new Mapping(x => ActiveSettings.Feature_AddXmlDoc, x => AddXmlDoc)
         };
     }
 
@@ -137,6 +138,12 @@ public class FeaturesViewModel : OptionsPageViewModel
     }
 
     public bool SwitchFile
+    {
+        get => GetPropertyValue<bool>();
+        set => SetPropertyValue(value);
+    }
+
+    public bool AddXmlDoc
     {
         get => GetPropertyValue<bool>();
         set => SetPropertyValue(value);

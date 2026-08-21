@@ -50,7 +50,10 @@ internal sealed class OutliningSynchronizationManager : IDisposable
 
     public Document Document
     {
-        get { return _document; }
+        get
+        {
+            return _document;
+        }
         set
         {
             ThreadHelper.ThrowIfNotOnUIThread();

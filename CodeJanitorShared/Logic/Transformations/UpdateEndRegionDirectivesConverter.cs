@@ -23,6 +23,12 @@ public class UpdateEndRegionDirectivesConverter : ISourceTransformation
 
     public string Name => "Update end region directives";
 
+    /// <summary>
+    /// The method processes C# source text line by line, rewriting each `#endregion` directive to append the name of its matching `#region` based on a stack, preserving indentation and leaving unmatched or non-region lines unchanged, while returning the input unchanged for null/empty strings and having no side effects.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -82,6 +88,12 @@ public class UpdateEndRegionDirectivesConverter : ISourceTransformation
 
         return result.ToString();
     }
+
+    /// <summary>
+    /// Returns the leading whitespace (spaces and tabs) from the input line by counting consecutive whitespace characters until the first non-whitespace character, then extracting that substring with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="line">The line.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string GetIndentation(string line)
     {

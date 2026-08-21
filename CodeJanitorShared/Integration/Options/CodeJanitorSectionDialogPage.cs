@@ -54,6 +54,10 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
         base.SaveSettingsToStorage();
     }
 
+    /// <summary>
+    /// Initializes the view model and host only if not already initialized, loading settings from the default configuration and assigning both to the backing fields.
+    /// </summary>
+
     private void EnsureInitialized()
     {
         if (_host != null) return;

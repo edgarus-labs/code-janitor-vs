@@ -19,6 +19,14 @@ public class GitChangedFilesProviderTests
         public string TopLevel = "C:/repo";
         public string Status = string.Empty;
 
+        /// <summary>
+        /// Returns a predefined constant (TopLevel for &quot;rev-parse&quot;, Status for &quot;status&quot;) based solely on substring checks of the arguments parameter, otherwise an empty string, ignoring the other parameters and producing no side effects.
+        /// </summary>
+        /// <param name="fileName">The file name.</param>
+        /// <param name="arguments">The arguments.</param>
+        /// <param name="workingDirectory">The working directory.</param>
+        /// <returns>A string value produced by this method.</returns>
+
         public string Run(string fileName, string arguments, string workingDirectory)
         {
             if (arguments.Contains("rev-parse"))

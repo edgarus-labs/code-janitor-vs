@@ -337,6 +337,42 @@ public int Second(int y)
         Assert.IsNull(method.Invoke(null, new object[] { (string)null }));
     }
 
+    [TestMethod]
+    public void Settings_Defaults_IncludeAiXmlDocSeparationAndFeature()
+    {
+        var settings = new CodeJanitor.Properties.Settings();
+
+        Assert.IsFalse(settings.Cleaning_AiXmlDocumentationEnabled, "Cleaning_AiXmlDocumentationEnabled default should be false.");
+        Assert.IsFalse(settings.Cleaning_AiXmlDocumentationRunDuringCleanup, "Cleaning_AiXmlDocumentationRunDuringCleanup default should be false.");
+        Assert.IsTrue(settings.Feature_AddXmlDoc, "Feature_AddXmlDoc default should be true.");
+    }
+
+    [TestMethod]
+    public void CleaningUpdateViewModel_ContainsRunDuringCleanupProperty()
+    {
+        var settings = new CodeJanitor.Properties.Settings();
+        var viewModel = new CodeJanitor.UI.Dialogs.Options.Cleaning.CleaningUpdateViewModel(null, settings);
+
+        viewModel.AiXmlDocumentationRunDuringCleanup = true;
+        Assert.IsTrue(viewModel.AiXmlDocumentationRunDuringCleanup);
+
+        viewModel.AiXmlDocumentationRunDuringCleanup = false;
+        Assert.IsFalse(viewModel.AiXmlDocumentationRunDuringCleanup);
+    }
+
+    [TestMethod]
+    public void FeaturesViewModel_ContainsAddXmlDocProperty()
+    {
+        var settings = new CodeJanitor.Properties.Settings();
+        var viewModel = new CodeJanitor.UI.Dialogs.Options.General.FeaturesViewModel(null, settings);
+
+        viewModel.AddXmlDoc = true;
+        Assert.IsTrue(viewModel.AddXmlDoc);
+
+        viewModel.AddXmlDoc = false;
+        Assert.IsFalse(viewModel.AddXmlDoc);
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value))

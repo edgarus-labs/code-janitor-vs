@@ -44,7 +44,10 @@ public abstract class OptionsPageViewModel : Bindable
 
     public IEnumerable<OptionsPageViewModel> Children
     {
-        get { return _children ?? (_children = new OptionsPageViewModel[0]); }
+        get
+        {
+            return _children ?? (_children = new OptionsPageViewModel[0]);
+        }
         set
         {
             if (_children != value)

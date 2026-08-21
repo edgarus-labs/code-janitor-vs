@@ -33,6 +33,12 @@ public class XmlTagOptions : IXmlTagOptions
 
     public XmlTagNewLine Split { get; set; }
 
+    /// <summary>
+    /// Converts a Settings object into a new XmlTagOptions instance by mapping formatting flags and indentation settings, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="settings">The settings.</param>
+    /// <returns>A XmlTagOptions value produced by this method.</returns>
+
     internal static XmlTagOptions FromSettings(Settings settings)
     {
         return new XmlTagOptions

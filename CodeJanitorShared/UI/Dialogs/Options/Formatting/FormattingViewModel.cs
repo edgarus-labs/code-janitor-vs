@@ -95,7 +95,10 @@ public class FormattingViewModel : OptionsPageViewModel
 
     public int CommentWrapColumn
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value >= 0)
@@ -165,7 +168,10 @@ public class FormattingViewModel : OptionsPageViewModel
 
     public int CommentXmlValueIndent
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value >= 0)
@@ -202,6 +208,10 @@ public class FormattingViewModel : OptionsPageViewModel
             return new SolidColorBrush(Color.FromArgb(color.A, color.R, color.G, color.B));
         }
     }
+
+    /// <summary>
+    /// Formats `UnformattedPreviewText` using `CodeComment.Format` with configurable wrapping and XML comment options, then assigns the result to the `CommentPreviewText` property as its only side effect.
+    /// </summary>
 
     private void UpdatePreviewText()
     {

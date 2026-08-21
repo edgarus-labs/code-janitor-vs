@@ -8,14 +8,6 @@ using System.Linq;
 
 namespace CodeJanitor.Logic.Cleaning;
 
-internal enum TopLevelTypeSplitSkipReason
-{
-    None,
-    EmptySource,
-    UnsupportedStructure,
-    NotMultipleEligibleTypes
-}
-
 internal sealed class TopLevelTypeToFileSplitPlanner
 {
     internal sealed class PlannedFile
@@ -51,6 +43,13 @@ internal sealed class TopLevelTypeToFileSplitPlanner
 
         internal bool HasChanges => NewFiles.Count > 0;
     }
+
+    /// <summary>
+    /// Creates a SplitPlan by parsing the C# source, identifying multiple eligible top-level types, keeping one in the original file while generating new planned .cs files for the others with unique file names based on existing files in the target directory, and returns empty plans with skip reasons for empty input, unsupported structures, or fewer than two eligible types.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>A SplitPlan value produced by this method.</returns>
 
     internal SplitPlan CreatePlan(string source, string filePath)
     {
@@ -107,10 +106,22 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         return new SplitPlan(updatedRoot.ToFullString(), plannedFiles);
     }
 
+    /// <summary>
+    /// Builds a C# filename by appending the &quot;.cs&quot; extension to the type file stem derived from the given member declaration syntax, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     internal static string BuildTypeFileName(MemberDeclarationSyntax member)
     {
         return BuildTypeFileStem(member) + ".cs";
     }
+
+    /// <summary>
+    /// Constructs a file stem from a member&apos;s identifier, appending its type parameter names in curly braces when present, with no side effects.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     internal static string BuildTypeFileStem(MemberDeclarationSyntax member)
     {
@@ -121,6 +132,12 @@ internal sealed class TopLevelTypeToFileSplitPlanner
             ? identifier
             : identifier + "{" + string.Join(",", typeParameters) + "}";
     }
+
+    /// <summary>
+    /// Returns true if the compilation unit contains attribute lists, non-region preprocessor directives, multiple namespaces, or a namespace with additional top-level members, otherwise false, with no side effects.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool HasUnsupportedStructure(CompilationUnitSyntax root)
     {
@@ -152,6 +169,13 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         return false;
     }
 
+    /// <summary>
+    /// If the compilation unit contains exactly one member that is a namespace declaration, returns its members via the out parameter; otherwise returns all root members, and always returns true while populating the out parameter.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="members">The members.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool TryGetContainerMembers(CompilationUnitSyntax root, out IReadOnlyList<MemberDeclarationSyntax> members)
     {
         if (root.Members.Count == 1 && root.Members[0] is BaseNamespaceDeclarationSyntax namespaceDeclaration)
@@ -165,6 +189,12 @@ internal sealed class TopLevelTypeToFileSplitPlanner
 
         return true;
     }
+
+    /// <summary>
+    /// Returns true only for class, interface, record, enum, or delegate declarations, excluding partial classes, interfaces, records, and enums, with no side effects.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member)
     {
@@ -191,15 +221,35 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         return member is DelegateDeclarationSyntax;
     }
 
+    /// <summary>
+    /// Returns true if the modifier list contains a partial keyword token, otherwise false, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="modifiers">The modifiers.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool HasPartialModifier(SyntaxTokenList modifiers)
     {
         return modifiers.Any(x => x.IsKind(SyntaxKind.PartialKeyword));
     }
 
+    /// <summary>
+    /// Returns the first eligible member whose generated type file name matches the original file name (case-insensitive), or null if no match is found.
+    /// </summary>
+    /// <param name="eligibleMembers">The eligible members.</param>
+    /// <param name="originalFileName">The original file name.</param>
+    /// <returns>A MemberDeclarationSyntax value produced by this method.</returns>
+
     private static MemberDeclarationSyntax ChooseMemberToKeep(IEnumerable<MemberDeclarationSyntax> eligibleMembers, string originalFileName)
     {
         return eligibleMembers.FirstOrDefault(x => string.Equals(BuildTypeFileName(x), originalFileName, StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>
+    /// Replaces the compilation unit&apos;s members, or the members of a sole file-scoped or regular namespace, with the provided list and returns a new syntax tree without modifying the original.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="members">The members.</param>
+    /// <returns>A CompilationUnitSyntax value produced by this method.</returns>
 
     private static CompilationUnitSyntax ReplaceContainedMembers(CompilationUnitSyntax root, IEnumerable<MemberDeclarationSyntax> members)
     {
@@ -217,6 +267,13 @@ internal sealed class TopLevelTypeToFileSplitPlanner
 
         return root.WithMembers(memberList);
     }
+
+    /// <summary>
+    /// If the desired filename is not reserved it returns it unchanged, otherwise it appends a numeric suffix with a tilde before the extension, incrementing until an unreserved candidate is found, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="desiredFileName">The desired file name.</param>
+    /// <param name="reservedFileNames">The reserved file names.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string MakeFileNameUnique(string desiredFileName, ISet<string> reservedFileNames)
     {
@@ -240,6 +297,13 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         return candidate;
     }
 
+    /// <summary>
+    /// Returns the identifier text for base type and delegate declarations, throwing InvalidOperationException for unsupported member types.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A string value produced by this method.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when method validation or execution fails for this exception type.</exception>
+
     private static string GetIdentifier(MemberDeclarationSyntax member)
     {
         switch (member)
@@ -254,6 +318,12 @@ internal sealed class TopLevelTypeToFileSplitPlanner
                 throw new InvalidOperationException("Unsupported top-level type declaration.");
         }
     }
+
+    /// <summary>
+    /// Returns the list of type parameter names from a type or delegate declaration, or an empty array if none exist, with no side effects.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A IReadOnlyList&lt;string&gt; value produced by this method.</returns>
 
     private static IReadOnlyList<string> GetTypeParameterNames(MemberDeclarationSyntax member)
     {

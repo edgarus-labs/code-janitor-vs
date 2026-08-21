@@ -43,6 +43,12 @@ internal sealed class CodeCleanupManager
 
         public string Name { get; }
 
+        /// <summary>
+        /// Invokes `_apply` on the source and returns its result, falling back to the original source when `_apply` returns null, with no exceptions thrown by this method itself.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <returns>A string value produced by this method.</returns>
+
         public string Apply(string source)
         {
             return _apply(source) ?? source;
@@ -458,6 +464,7 @@ internal sealed class CodeCleanupManager
         }
 
         if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
+            Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup &&
             !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
             AiXmlDocumentationLogic.IsConfigurationPresent())
         {
@@ -554,13 +561,20 @@ internal sealed class CodeCleanupManager
 
         if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
 
-        if (Settings.Default.Cleaning_AiXmlDocumentationEnabled)
+        if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
+            Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup)
         {
             return Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges;
         }
 
         return false;
     }
+
+    /// <summary>
+    /// Applies the configured C# file header to the source by normalizing line endings and inserting or replacing it at the document start or after usings based on settings, returning the source unchanged if the header setting is blank or the position is unsupported.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string ApplyConfiguredCSharpFileHeader(string source)
     {
@@ -597,12 +611,26 @@ internal sealed class CodeCleanupManager
         }
     }
 
+    /// <summary>
+    /// Returns the source unchanged if it already starts with the trimmed header; otherwise prepends the header to the source, with no side effects.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
     {
         return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
             ? source
             : settingsFileHeader + source;
     }
+
+    /// <summary>
+    /// Replaces the leading header in the source with the trimmed settings header if they differ, otherwise returns the original source unchanged.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string ReplaceHeaderAtDocumentStart(string source, string settingsFileHeader)
     {
@@ -612,6 +640,13 @@ internal sealed class CodeCleanupManager
             ? source
             : settingsFileHeader + source.Substring(currentHeaderLength);
     }
+
+    /// <summary>
+    /// Inserts the given header string after any top-level using directives, returning the original source unchanged if the existing header already starts with the trimmed settings.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string InsertHeaderAfterUsings(string source, string settingsFileHeader)
     {
@@ -627,6 +662,13 @@ internal sealed class CodeCleanupManager
 
         return source.Insert(insertionIndex, headerWithLeadingNewline);
     }
+
+    /// <summary>
+    /// Replaces the file header immediately after the top-level using block with the specified settings header, returning the original source unchanged if the existing header already matches, and otherwise reconstructs the source by inserting the new header at the computed insertion index while removing the old header segment.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string ReplaceHeaderAfterUsings(string source, string settingsFileHeader)
     {
@@ -646,6 +688,12 @@ internal sealed class CodeCleanupManager
                suffix.Substring(currentHeaderLength);
     }
 
+    /// <summary>
+    /// Ensures the given header string begins with a newline by detecting CRLF if present otherwise using the environment newline, prepending it if needed and returning the result without modifying state or throwing exceptions.
+    /// </summary>
+    /// <param name="header">The header.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string EnsureHeaderStartsOnNewLine(string header)
     {
         var newline = header.Contains("\r\n") ? "\r\n" : Environment.NewLine;
@@ -653,12 +701,26 @@ internal sealed class CodeCleanupManager
         return header.StartsWith(newline, StringComparison.Ordinal) ? header : newline + header;
     }
 
+    /// <summary>
+    /// Parses the C# source into a syntax tree and returns the end position of the last top-level using directive, or 0 if none exist, to indicate the insertion point for a new using.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int GetTopLevelUsingInsertionIndex(string source)
     {
         var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
 
         return root.Usings.Count == 0 ? 0 : root.Usings.Last().FullSpan.End;
     }
+
+    /// <summary>
+    /// Attempts to match a leading header consisting of optional blank lines followed by either consecutive // line comments or a /* */ block comment, and if successful sets segmentLength and trimmedHeader (trimmed of whitespace/newlines) and returns true, otherwise sets them to 0 and empty and returns false.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="segmentLength">The segment length.</param>
+    /// <param name="trimmedHeader">The trimmed header.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool TryExtractLeadingHeaderSegment(string source, out int segmentLength, out string trimmedHeader)
     {
@@ -696,40 +758,91 @@ internal sealed class CodeCleanupManager
         return false;
     }
 
+    /// <summary>
+    /// Normalizes all line endings in the input string by converting CRLF and CR sequences to LF and then replacing every LF with the specified newline string, returning a new string without modifying the original.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="newline">The newline.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string NormalizeLineEndings(string value, string newline)
     {
         return value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", newline);
     }
+
+    /// <summary>
+    /// Removes all leading lines that contain only spaces or tabs followed by a newline from the start of the string, returning a new string with no side effects.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string RemoveBlankLinesAtTop(string source)
     {
         return Regex.Replace(source, @"\A(?:[ \t]*\r?\n)+", string.Empty);
     }
 
+    /// <summary>
+    /// The method removes all trailing blank lines (consisting of newline characters followed by optional spaces/tabs) from the end of.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string RemoveBlankLinesAtBottom(string source)
     {
         return Regex.Replace(source, @"(?:\r?\n[ \t]*)+\z", string.Empty);
     }
+
+    /// <summary>
+    /// Removes a blank line immediately following an attribute declaration, unless the next non-blank line is a comment, by replacing the double newline with a single newline while preserving the file&apos;s line ending style.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string RemoveBlankLinesAfterAttributes(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
     }
 
+    /// <summary>
+    /// The user asks for exactly one concise summary sentence (plain text only, no XML, no quotes) about the C# method `RemoveBlankLinesAfterOpeningBrace`. The body: `return ReplaceUsingFileLineEnding(source, @&quot;\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}&quot;, &quot;{$1{NL}&quot;);` Let&apos;s analyze. The method calls `ReplaceUsingFileLineEnding(source, pattern, replacement)`. The pattern matches an opening brace `\{`, then captures only whitespace (spaces/tabs) and optional `//` comments (the `[ \t]*(//[^\r\n]*)*` part) but... Actually `([ \t]*(//[^\r\n]*)*)` captures zero or more sequences of optional whitespace followed by a comment. Then `(\r?\n){2,}` matches two or more line endings. Replacement is `{$1{NL}`. Presumably `{NL}` is a placeholder for the file line ending, or the method replaces it. But the replacement is `&quot;{$1{NL}&quot;` — note there&apos;s no newline after the opening brace? Let&apos;s think. `ReplaceUsingFileLineEnding.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string RemoveBlankLinesAfterOpeningBrace(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}", "{$1{NL}");
     }
+
+    /// <summary>
+    /// Replaces two or more newline sequences preceding a closing brace with a single newline, preserving any preceding indentation and using the source file&apos;s line ending, with no exceptions thrown.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string RemoveBlankLinesBeforeClosingBrace(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)\}", "{NL}$2}");
     }
 
+    /// <summary>
+    /// Removes extra blank lines preceding else, catch, or finally clauses by collapsing multiple line endings into one while preserving indentation and the keyword, with no side effects or exceptions detected.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string RemoveBlankLinesBetweenChainedStatements(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)", "{NL}$2$3$4");
     }
+
+    /// <summary>
+    /// Determines whether the source string uses CRLF or LF line endings and performs a multiline regex replacement, substituting any &quot;{NL}&quot; placeholder in the replacement string with that detected newline sequence, without throwing exceptions.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="replacement">The replacement.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string ReplaceUsingFileLineEnding(string source, string pattern, string replacement)
     {
@@ -876,6 +989,11 @@ internal sealed class CodeCleanupManager
         }
     }
 
+    /// <summary>
+    /// Splits top-level C# types in the active document into separate files when enabled, adding generated files to the project, updating execution stats, writing a diagnostic message, and replacing the document&apos;s source with the updated content.
+    /// </summary>
+    /// <param name="document">The document.</param>
+
     private void TrySplitTopLevelTypesToSeparateFiles(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -936,6 +1054,12 @@ internal sealed class CodeCleanupManager
         var endPoint = textDocument.EndPoint.CreateEditPoint();
         startPoint.ReplaceText(endPoint, splitResult.UpdatedSource, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
+
+    /// <summary>
+    /// Adds the generated file to the source project item&apos;s collection if on the UI thread, the file exists, and it isn&apos;t already in the solution, logging a warning if the add fails.
+    /// </summary>
+    /// <param name="sourceProjectItem">The source project item.</param>
+    /// <param name="filePath">The file path.</param>
 
     private void AddGeneratedFileToProject(ProjectItem sourceProjectItem, string filePath)
     {
@@ -1105,7 +1229,11 @@ internal sealed class CodeCleanupManager
 
         // Add AI-assisted XML documentation before comment formatting so normal formatter can
         // align and wrap newly inserted tags consistently.
-        _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
+        if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
+            Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup)
+        {
+            _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
+        }
 
         // Perform comment cleaning.
         _commentFormatLogic.FormatComments(textDocument);

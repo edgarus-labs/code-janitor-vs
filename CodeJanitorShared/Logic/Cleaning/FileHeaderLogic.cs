@@ -79,6 +79,13 @@ internal sealed class FileHeaderLogic
         }
     }
 
+    /// <summary>
+    /// Ensures the caller is on the UI thread, reads the document&apos;s text block and code language, then returns the header length computed by FileHeaderHelper, optionally skipping usings, with a side effect of throwing if not on the UI thread.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="skipUsings">The skip usings.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private int GetHeaderLength(TextDocument textDocument, bool skipUsings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -87,6 +94,13 @@ internal sealed class FileHeaderLogic
 
         return FileHeaderHelper.GetHeaderLength(language, headerBlock, skipUsings);
     }
+
+    /// <summary>
+    /// Retrieves.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="skipUsings">The skip usings.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private string GetCurrentHeader(TextDocument textDocument, bool skipUsings)
     {
@@ -106,6 +120,12 @@ internal sealed class FileHeaderLogic
         return headerBlockStart.GetText(currentHeaderLength + 1).Trim();
     }
 
+    /// <summary>
+    /// This method enforces UI-thread execution, reads the document&apos;s head block, and delegates to FileHeaderHelper to return the number of lines to skip based on &quot;using &quot; prefixes and exclusions for namespace/assembly attributes, with no additional side effects.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private int GetNbLinesToSkip(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -113,6 +133,13 @@ internal sealed class FileHeaderLogic
 
         return FileHeaderHelper.GetNbLinesToSkip("using ", docHeadBlock, new List<string> { "namespace ", "[assembly:" });
     }
+
+    /// <summary>
+    /// Inserts the file header into the given text document at the position determined by settings (document start or after usings), throwing InvalidEnumArgumentException for an invalid position, and requires the UI thread.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <exception cref="InvalidEnumArgumentException">Thrown when method validation or execution fails for this exception type.</exception>
 
     private void InsertFileHeader(TextDocument textDocument, string settingsFileHeader)
     {
@@ -163,6 +190,12 @@ internal sealed class FileHeaderLogic
         headerBlockStart.Insert(settingsFileHeader);
     }
 
+    /// <summary>
+    /// Inserts the specified file header at the start of the document only if the existing text does not already begin with the trimmed header, modifying the document as a side effect.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+
     private void InsertFileHeaderDocumentStart(TextDocument textDocument, string settingsFileHeader)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
@@ -191,6 +224,13 @@ internal sealed class FileHeaderLogic
 
         return blockStart.GetLines(1, maxNbLines);
     }
+
+    /// <summary>
+    /// Replaces the file header at the configured position (document start or after usings) after removing any existing header from the alternate position, throws InvalidEnumArgumentException for invalid settings, and must run on the UI thread.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <exception cref="InvalidEnumArgumentException">Thrown when method validation or execution fails for this exception type.</exception>
 
     private void ReplaceFileHeader(TextDocument textDocument, string settingsFileHeader)
     {
@@ -245,6 +285,12 @@ internal sealed class FileHeaderLogic
 
         headerBlockStart.ReplaceText(currentHeaderLength, settingsFileHeader, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
+
+    /// <summary>
+    /// Replaces the trimmed file header at the document&apos;s start with the provided settings header only if they differ, using a UI-thread check and replacing text while preserving markers.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="settingsFileHeader">The settings file header.</param>
 
     private void ReplaceFileHeaderDocumentStart(TextDocument textDocument, string settingsFileHeader)
     {

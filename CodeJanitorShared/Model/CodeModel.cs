@@ -43,7 +43,10 @@ internal sealed class CodeModel
 
     internal bool IsBuilding
     {
-        get { return _isBuilding; }
+        get
+        {
+            return _isBuilding;
+        }
         set
         {
             if (_isBuilding != value)
@@ -74,7 +77,10 @@ internal sealed class CodeModel
 
     internal bool IsStale
     {
-        get { return _isStale; }
+        get
+        {
+            return _isStale;
+        }
         set
         {
             if (_isStale != value)

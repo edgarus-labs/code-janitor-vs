@@ -5,6 +5,11 @@ namespace CodeJanitor.Helpers;
 
 internal static class UIThread
 {
+    /// <summary>
+    /// Executes the provided action synchronously on the main thread, running it directly if already on the main thread or blocking the calling thread while marshaling to the main thread via JoinableTaskFactory otherwise, with any action exception propagating to the caller.
+    /// </summary>
+    /// <param name="action">The action.</param>
+
     public static void Run(Action action)
     {
         if (ThreadHelper.CheckAccess())
@@ -20,6 +25,12 @@ internal static class UIThread
             });
         }
     }
+
+    /// <summary>
+    /// Executes the provided function on the main thread, invoking it directly if already on the main thread, otherwise switching to the main thread via JoinableTaskFactory and blocking until completion.
+    /// </summary>
+    /// <param name="func">The func.</param>
+    /// <returns>A T value produced by this method.</returns>
 
     public static T Run<T>(Func<T> func)
     {

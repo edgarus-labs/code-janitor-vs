@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -67,6 +67,20 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         return newRoot.ToFullString();
     }
 
+    private enum FieldAccessKind
+    {
+        None,
+        Direct,
+        SubMember
+    }
+
+    /// <summary>
+    /// Checks whether a single private field can be made readonly by rejecting fields with multiple variables, readonly/const/volatile modifiers, or non-private accessibility, and scanning the containing type for any writes via assignments, increment/decrement operations, or ref/out arguments (including across object sub-members), returning true only if no such unsafe writes are found.
+    /// </summary>
+    /// <param name="typeDecl">The type decl.</param>
+    /// <param name="fieldDecl">The field decl.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool IsSafeToMakeReadonly(TypeDeclarationSyntax typeDecl, FieldDeclarationSyntax fieldDecl)
     {
         if (fieldDecl.Declaration.Variables.Count != 1)
@@ -93,14 +107,36 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
 
         var isStatic = modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
         var fieldName = fieldDecl.Declaration.Variables[0].Identifier.Text;
+        var declaringTypeName = typeDecl.Identifier.Text;
 
         var scopeNodes = typeDecl.DescendantNodes(n => n == typeDecl || !(n is TypeDeclarationSyntax));
+
+        // Any ref or out argument (or ref expression) referencing this field or its sub-members
+        // makes it unsafe to add readonly (both in methods and in constructors).
+        foreach (var argument in scopeNodes.OfType<ArgumentSyntax>())
+        {
+            if (argument.RefKindKeyword.IsKind(SyntaxKind.RefKeyword) || argument.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
+            {
+                if (GetFieldAccessKind(argument.Expression, fieldName, declaringTypeName) != FieldAccessKind.None)
+                {
+                    return false;
+                }
+            }
+        }
+
+        foreach (var refExpression in scopeNodes.OfType<RefExpressionSyntax>())
+        {
+            if (GetFieldAccessKind(refExpression.Expression, fieldName, declaringTypeName) != FieldAccessKind.None)
+            {
+                return false;
+            }
+        }
 
         var writeNodes = new List<SyntaxNode>();
 
         foreach (var assignment in scopeNodes.OfType<AssignmentExpressionSyntax>())
         {
-            if (IsFieldReference(assignment.Left, fieldName))
+            if (GetFieldAccessKind(assignment.Left, fieldName, declaringTypeName) != FieldAccessKind.None)
             {
                 writeNodes.Add(assignment);
             }
@@ -109,7 +145,7 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         foreach (var unary in scopeNodes.OfType<PostfixUnaryExpressionSyntax>())
         {
             if ((unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression)) &&
-                IsFieldReference(unary.Operand, fieldName))
+                GetFieldAccessKind(unary.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
             {
                 writeNodes.Add(unary);
             }
@@ -118,26 +154,9 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         foreach (var unary in scopeNodes.OfType<PrefixUnaryExpressionSyntax>())
         {
             if ((unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression)) &&
-                IsFieldReference(unary.Operand, fieldName))
+                GetFieldAccessKind(unary.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
             {
                 writeNodes.Add(unary);
-            }
-        }
-
-        foreach (var argument in scopeNodes.OfType<ArgumentSyntax>())
-        {
-            if ((argument.RefKindKeyword.IsKind(SyntaxKind.RefKeyword) || argument.RefKindKeyword.IsKind(SyntaxKind.OutKeyword)) &&
-                IsFieldReference(argument.Expression, fieldName))
-            {
-                writeNodes.Add(argument);
-            }
-        }
-
-        foreach (var refExpression in scopeNodes.OfType<RefExpressionSyntax>())
-        {
-            if (IsFieldReference(refExpression.Expression, fieldName))
-            {
-                writeNodes.Add(refExpression);
             }
         }
 
@@ -152,20 +171,77 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         return true;
     }
 
-    private static bool IsFieldReference(ExpressionSyntax expression, string fieldName)
+    private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
     {
+        while (expression is ParenthesizedExpressionSyntax paren)
+        {
+            expression = paren.Expression;
+        }
+
+        return expression;
+    }
+
+    private static FieldAccessKind GetFieldAccessKind(ExpressionSyntax expression, string fieldName, string declaringTypeName)
+    {
+        expression = UnwrapParentheses(expression);
+        if (expression == null)
+        {
+            return FieldAccessKind.None;
+        }
+
         if (expression is IdentifierNameSyntax identifier)
         {
-            return identifier.Identifier.Text == fieldName;
+            return identifier.Identifier.Text == fieldName ? FieldAccessKind.Direct : FieldAccessKind.None;
         }
 
         if (expression is MemberAccessExpressionSyntax memberAccess)
         {
-            return memberAccess.Name.Identifier.Text == fieldName;
+            if (memberAccess.Name.Identifier.Text == fieldName)
+            {
+                return FieldAccessKind.Direct;
+            }
+
+            var leftKind = GetFieldAccessKind(memberAccess.Expression, fieldName, declaringTypeName);
+            if (leftKind != FieldAccessKind.None)
+            {
+                return FieldAccessKind.SubMember;
+            }
+
+            return FieldAccessKind.None;
         }
 
-        return false;
+        if (expression is ElementAccessExpressionSyntax elementAccess)
+        {
+            var leftKind = GetFieldAccessKind(elementAccess.Expression, fieldName, declaringTypeName);
+            if (leftKind != FieldAccessKind.None)
+            {
+                return FieldAccessKind.SubMember;
+            }
+
+            return FieldAccessKind.None;
+        }
+
+        if (expression is ConditionalAccessExpressionSyntax conditionalAccess)
+        {
+            var leftKind = GetFieldAccessKind(conditionalAccess.Expression, fieldName, declaringTypeName);
+            if (leftKind != FieldAccessKind.None)
+            {
+                return FieldAccessKind.SubMember;
+            }
+
+            return FieldAccessKind.None;
+        }
+
+        return FieldAccessKind.None;
     }
+
+    /// <summary>
+    /// Determines whether a write occurs inside a constructor of the given type with matching staticness by walking ancestor nodes, returning false if any non-constructor member boundary or type boundary is reached first.
+    /// </summary>
+    /// <param name="writeNode">The write node.</param>
+    /// <param name="typeDecl">The type decl.</param>
+    /// <param name="isStatic">The is static.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool IsWriteInMatchingConstructor(SyntaxNode writeNode, TypeDeclarationSyntax typeDecl, bool isStatic)
     {
@@ -197,6 +273,12 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
 
         return false;
     }
+
+    /// <summary>
+    /// Adds a readonly modifier with trailing space to the field declaration&apos;s modifiers and returns the updated syntax node, with no side effects.
+    /// </summary>
+    /// <param name="fieldDecl">The field decl.</param>
+    /// <returns>A FieldDeclarationSyntax value produced by this method.</returns>
 
     private static FieldDeclarationSyntax WithReadonlyModifier(FieldDeclarationSyntax fieldDecl)
     {

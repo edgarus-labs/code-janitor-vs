@@ -1,56 +1,91 @@
-<platformUI:DialogWindow x:Class="CodeJanitor.UI.Dialogs.CleanupOptions.CleanupOptionsWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" mc:Ignorable="d"
-        xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
-        xmlns:ui="clr-namespace:CodeJanitor.UI"
-        xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
-        xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.CleanupOptions"
-        xmlns:opt="clr-namespace:CodeJanitor.UI.Dialogs.Options"
-        d:DataContext="{d:DesignInstance local:CleanupOptionsViewModel, IsDesignTimeCreatable=False}"
-        Icon="/source.extension.ico" Title="Code Janitor Cleanup Options"
-        Height="740" Width="920" MinHeight="640" MinWidth="800"
-        ShowInTaskbar="False" WindowStartupLocation="CenterScreen"
-        ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}">
-    <platformUI:DialogWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </platformUI:DialogWindow.Resources>
+<platformUI:DialogWindow
+	x:Class="CodeJanitor.UI.Dialogs.CleanupOptions.CleanupOptionsWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.CleanupOptions"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:opt="clr-namespace:CodeJanitor.UI.Dialogs.Options"
+	xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+	xmlns:ui="clr-namespace:CodeJanitor.UI"
+	Title="Code Janitor Cleanup Options"
+	Width="920"
+	Height="740"
+	MinWidth="800"
+	MinHeight="640"
+	d:DataContext="{d:DesignInstance local:CleanupOptionsViewModel,
+	                                 IsDesignTimeCreatable=False}"
+	ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}"
+	Icon="/source.extension.ico"
+	ShowInTaskbar="False"
+	WindowStartupLocation="CenterScreen"
+	mc:Ignorable="d">
+	<platformUI:DialogWindow.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</platformUI:DialogWindow.Resources>
 
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8">
-            <Run Text="Selected scope contains " />
-            <Run Text="{Binding ItemCount, Mode=OneWay}" FontWeight="Bold" />
-            <Run Text=" item(s) to clean." />
-        </TextBlock>
+		<TextBlock
+			Grid.Row="0"
+			Margin="0,0,0,8"
+			TextWrapping="Wrap">
+			<Run Text="Selected scope contains " />
+			<Run FontWeight="Bold" Text="{Binding ItemCount, Mode=OneWay}" />
+			<Run Text=" item(s) to clean." />
+		</TextBlock>
 
-        <GroupBox Grid.Row="1" Header="Execution Mode" Margin="0,0,0,8">
-            <StackPanel Margin="8,6,8,8">
-                <RadioButton GroupName="CleanupMode" IsChecked="{Binding UseConfiguredCleanupSettings}" Content="Use configured cleanup settings" Margin="0,0,0,6" />
-                <RadioButton GroupName="CleanupMode" IsChecked="{Binding UseConfiguredCleanupSettings, Converter={x:Static cnv:BooleanInverseConverter.Default}}" Content="Use temporary settings only for this cleanup run" />
-            </StackPanel>
-        </GroupBox>
+		<GroupBox
+			Grid.Row="1"
+			Margin="0,0,0,8"
+			Header="Execution Mode">
+			<StackPanel Margin="8,6,8,8">
+				<RadioButton
+					Margin="0,0,0,6"
+					Content="Use configured cleanup settings"
+					GroupName="CleanupMode"
+					IsChecked="{Binding UseConfiguredCleanupSettings}" />
+				<RadioButton
+					Content="Use temporary settings only for this cleanup run"
+					GroupName="CleanupMode"
+					IsChecked="{Binding UseConfiguredCleanupSettings, Converter={x:Static cnv:BooleanInverseConverter.Default}}" />
+			</StackPanel>
+		</GroupBox>
 
-        <GroupBox Grid.Row="2" Header="Temporary Cleanup Settings" Visibility="{Binding UseTemporaryCleanupSettings, Converter={x:Static cnv:BooleanToVisibilityConverter.Default}}">
-            <opt:SectionPageHost DataContext="{Binding TemporaryCleaningSettingsViewModel}" />
-        </GroupBox>
+		<GroupBox
+			Grid.Row="2"
+			Header="Temporary Cleanup Settings"
+			Visibility="{Binding UseTemporaryCleanupSettings, Converter={x:Static cnv:BooleanToVisibilityConverter.Default}}">
+			<opt:SectionPageHost DataContext="{Binding TemporaryCleaningSettingsViewModel}" />
+		</GroupBox>
 
-        <Border Grid.Row="3" Background="{StaticResource FCodeJanitorGray}" Margin="0,8,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="_Start Cleanup" Command="{Binding StartCleanupCommand}" Style="{StaticResource ButtonDialog}" IsDefault="True" />
-                <Button Content="_Cancel" Command="{Binding CancelCommand}" Style="{StaticResource ButtonDialog}" IsCancel="True" />
-            </StackPanel>
-        </Border>
-    </Grid>
+		<Border
+			Grid.Row="3"
+			Margin="0,8,0,0"
+			Background="{StaticResource FCodeJanitorGray}">
+			<StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+				<Button
+					Command="{Binding StartCleanupCommand}"
+					Content="_Start Cleanup"
+					IsDefault="True"
+					Style="{StaticResource ButtonDialog}" />
+				<Button
+					Command="{Binding CancelCommand}"
+					Content="_Cancel"
+					IsCancel="True"
+					Style="{StaticResource ButtonDialog}" />
+			</StackPanel>
+		</Border>
+	</Grid>
 </platformUI:DialogWindow>

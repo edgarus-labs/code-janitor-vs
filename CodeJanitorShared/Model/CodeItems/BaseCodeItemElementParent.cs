@@ -58,7 +58,10 @@ public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItem
 
     public bool IsExpanded
     {
-        get { return _isExpanded; }
+        get
+        {
+            return _isExpanded;
+        }
         set
         {
             if (_isExpanded != value)

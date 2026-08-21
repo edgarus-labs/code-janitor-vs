@@ -12,6 +12,12 @@ internal static class SecretProtectionHelper
 {
     private const string ProtectedPrefix = "enc:";
 
+    /// <summary>
+    /// Encodes the input as UTF-8, encrypts it with DPAPI using the current user&apos;s scope and no entropy, then returns a base64 string prefixed with ProtectedPrefix, or an empty string if the input is null or whitespace.
+    /// </summary>
+    /// <param name="plainText">The plain text.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     internal static string ProtectForCurrentUser(string plainText)
     {
         if (string.IsNullOrWhiteSpace(plainText))
@@ -24,6 +30,12 @@ internal static class SecretProtectionHelper
 
         return ProtectedPrefix + Convert.ToBase64String(protectedData);
     }
+
+    /// <summary>
+    /// Attempts to decrypt a prefixed, Base64-encoded protected string for the current user, returning it as UTF-8 text, with empty string for null/whitespace input, an unchanged value for legacy plain-text input, and a silent empty string on any decryption failure (no side effects).
+    /// </summary>
+    /// <param name="protectedValue">The protected value.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     internal static string UnprotectForCurrentUser(string protectedValue)
     {

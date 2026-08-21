@@ -46,7 +46,10 @@ internal sealed class CleanupOptionsViewModel : Bindable
 
     public bool UseConfiguredCleanupSettings
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -94,6 +97,12 @@ internal sealed class CleanupOptionsViewModel : Bindable
     {
         TemporaryCleaningSettingsViewModel.SaveSettings();
     }
+
+    /// <summary>
+    /// Creates a shallow copy of the source Settings object by copying all property values to a new instance, with no detected exceptions or side effects.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A Settings value produced by this method.</returns>
 
     private static Settings CreateSettingsCopy(Settings source)
     {

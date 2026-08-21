@@ -1,70 +1,113 @@
-<platformUI:DialogWindow x:Class="CodeJanitor.UI.Dialogs.About.AboutWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
-        Width="480" Height="220"
-        HasDialogFrame="False" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterScreen" WindowStyle="None"
-        KeyDown="OnKeyDown" MouseLeftButtonDown="OnMouseLeftButtonDown">
-    <platformUI:DialogWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+<platformUI:DialogWindow
+	x:Class="CodeJanitor.UI.Dialogs.About.AboutWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+	Width="480"
+	Height="220"
+	HasDialogFrame="False"
+	KeyDown="OnKeyDown"
+	MouseLeftButtonDown="OnMouseLeftButtonDown"
+	ResizeMode="NoResize"
+	ShowInTaskbar="False"
+	WindowStartupLocation="CenterScreen"
+	WindowStyle="None">
+	<platformUI:DialogWindow.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
+			</ResourceDictionary.MergedDictionaries>
 
-            <Style x:Key="underlineLinkButton" TargetType="{x:Type Button}">
-                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-                <Setter Property="Foreground" Value="{StaticResource FCodeJanitorGray}" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="{x:Type Button}">
-                            <StackPanel>
-                                <ContentPresenter />
-                                <Rectangle x:Name="Underline" Height="1" Margin="0,1,0,0"
-                                        Fill="{TemplateBinding Foreground}" Visibility="Collapsed" />
-                            </StackPanel>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Underline" Property="Visibility" Value="Visible" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-        </ResourceDictionary>
-    </platformUI:DialogWindow.Resources>
+			<Style x:Key="underlineLinkButton" TargetType="{x:Type Button}">
+				<Setter Property="FocusVisualStyle" Value="{x:Null}" />
+				<Setter Property="Foreground" Value="{StaticResource FCodeJanitorGray}" />
+				<Setter Property="Cursor" Value="Hand" />
+				<Setter Property="Template">
+					<Setter.Value>
+						<ControlTemplate TargetType="{x:Type Button}">
+							<StackPanel>
+								<ContentPresenter />
+								<Rectangle
+									x:Name="Underline"
+									Height="1"
+									Margin="0,1,0,0"
+									Fill="{TemplateBinding Foreground}"
+									Visibility="Collapsed" />
+							</StackPanel>
+							<ControlTemplate.Triggers>
+								<Trigger Property="IsMouseOver" Value="True">
+									<Setter TargetName="Underline" Property="Visibility" Value="Visible" />
+								</Trigger>
+							</ControlTemplate.Triggers>
+						</ControlTemplate>
+					</Setter.Value>
+				</Setter>
+			</Style>
+		</ResourceDictionary>
+	</platformUI:DialogWindow.Resources>
 
-    <Border Background="White" BorderBrush="{StaticResource FCodeJanitorGray}" BorderThickness="1">
-        <Grid Margin="20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+	<Border
+		Background="White"
+		BorderBrush="{StaticResource FCodeJanitorGray}"
+		BorderThickness="1">
+		<Grid Margin="20">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto" />
+				<ColumnDefinition Width="*" />
+			</Grid.ColumnDefinitions>
 
-            <Image Grid.Column="0" Source="/Integration/Images/AboutLogo.png" Width="96" Height="96"
-                    VerticalAlignment="Top" Margin="0,0,20,0" />
+			<Image
+				Grid.Column="0"
+				Width="96"
+				Height="96"
+				Margin="0,0,20,0"
+				VerticalAlignment="Top"
+				Source="/Integration/Images/AboutLogo.png" />
 
-            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock Text="CodeJanitor" FontSize="26" FontWeight="Bold"
-                        Foreground="{StaticResource FCodeJanitorGreen}" />
-                <TextBlock x:Name="VersionTextBlock" FontSize="12"
-                        Foreground="{StaticResource FCodeJanitorGray}" Margin="0,2,0,8" />
-                <TextBlock Text="A fork of CodeMaid, doing our developer dirty work." FontSize="12"
-                        Foreground="{StaticResource FCodeJanitorGray}" TextWrapping="Wrap" Margin="0,0,0,12" />
+			<StackPanel Grid.Column="1" VerticalAlignment="Center">
+				<TextBlock
+					FontSize="26"
+					FontWeight="Bold"
+					Foreground="{StaticResource FCodeJanitorGreen}"
+					Text="CodeJanitor" />
+				<TextBlock
+					x:Name="VersionTextBlock"
+					Margin="0,2,0,8"
+					FontSize="12"
+					Foreground="{StaticResource FCodeJanitorGray}" />
+				<TextBlock
+					Margin="0,0,0,12"
+					FontSize="12"
+					Foreground="{StaticResource FCodeJanitorGray}"
+					Text="A fork of CodeMaid, doing our developer dirty work."
+					TextWrapping="Wrap" />
 
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Website" Style="{StaticResource underlineLinkButton}" Margin="0,0,16,0"
-                            Click="OnWebsiteLinkClick" ToolTip="Launch CodeJanitor's website" />
-                    <Button Content="Marketplace" Style="{StaticResource underlineLinkButton}" Margin="0,0,16,0"
-                            Click="OnVisualStudioMarketplaceLinkClick" ToolTip="Download, Reviews - Visual Studio Marketplace" />
-                    <Button Content="GitHub" Style="{StaticResource underlineLinkButton}" Margin="0,0,16,0"
-                            Click="OnGitHubLinkClick" ToolTip="Code, Issues - GitHub" />
-                    <Button Content="Twitter" Style="{StaticResource underlineLinkButton}"
-                            Click="OnTwitterLinkClick" ToolTip="Twitter" />
-                </StackPanel>
-            </StackPanel>
-        </Grid>
-    </Border>
+				<StackPanel Orientation="Horizontal">
+					<Button
+						Margin="0,0,16,0"
+						Click="OnWebsiteLinkClick"
+						Content="Website"
+						Style="{StaticResource underlineLinkButton}"
+						ToolTip="Launch CodeJanitor's website" />
+					<Button
+						Margin="0,0,16,0"
+						Click="OnVisualStudioMarketplaceLinkClick"
+						Content="Marketplace"
+						Style="{StaticResource underlineLinkButton}"
+						ToolTip="Download, Reviews - Visual Studio Marketplace" />
+					<Button
+						Margin="0,0,16,0"
+						Click="OnGitHubLinkClick"
+						Content="GitHub"
+						Style="{StaticResource underlineLinkButton}"
+						ToolTip="Code, Issues - GitHub" />
+					<Button
+						Click="OnTwitterLinkClick"
+						Content="Twitter"
+						Style="{StaticResource underlineLinkButton}"
+						ToolTip="Twitter" />
+				</StackPanel>
+			</StackPanel>
+		</Grid>
+	</Border>
 </platformUI:DialogWindow>

@@ -25,6 +25,12 @@ public class FormatterOptions
 
     public FormatterOptionsXml Xml { get; set; }
 
+    /// <summary>
+    /// Creates a FormatterOptions instance from the given settings by copying comment wrap column and skip-wrap flags, building nested XML options via FormatterOptionsXml.FromSettings, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="settings">The settings.</param>
+    /// <returns>A FormatterOptions value produced by this method.</returns>
+
     internal static FormatterOptions FromSettings(Settings settings)
     {
         return new FormatterOptions
@@ -34,6 +40,12 @@ public class FormatterOptions
             Xml = FormatterOptionsXml.FromSettings(settings)
         };
     }
+
+    /// <summary>
+    /// Invokes the provided action on the current instance if non-null, mutating it, then returns the same instance for fluent chaining, with no-op behavior when the action is null and no thrown exceptions.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    /// <returns>A FormatterOptions value produced by this method.</returns>
 
     internal FormatterOptions Set(Action<FormatterOptions> action)
     {

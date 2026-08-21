@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
@@ -60,6 +60,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_FormatRazorComponents, x => FormatRazorComponents),
             new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_RazorAttributeWrapThreshold, x => RazorAttributeWrapThreshold),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationEnabled, x => AiXmlDocumentationEnabled),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationRunDuringCleanup, x => AiXmlDocumentationRunDuringCleanup),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl, x => AiXmlDocumentationEndpointUrl),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationApiKeyEncrypted, x => AiXmlDocumentationApiKeyEncryptedStore),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationApiKeyHeader, x => AiXmlDocumentationApiKeyHeader),
@@ -414,7 +415,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int RazorAttributeWrapThreshold
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value >= 0)
@@ -431,7 +435,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public bool AiXmlDocumentationEnabled
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (IsEnabledAiXmlDocumentationEnabled)
@@ -442,8 +449,32 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             {
                 SetPropertyValue(false);
             }
+
+            RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
         }
     }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if AI-assisted XML documentation generation should run
+    /// during C# cleanup.
+    /// </summary>
+
+    public bool AiXmlDocumentationRunDuringCleanup
+    {
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
+        set
+        {
+            SetPropertyValue(value);
+        }
+    }
+
+    /// <summary>
+    /// Gets a flag indicating if the run during cleanup option is interactable.
+    /// </summary>
+    public bool IsEnabledAiXmlDocumentationRunDuringCleanup => AiXmlDocumentationEnabled;
 
     /// <summary>
     /// Gets or sets the OpenAI-compatible endpoint URL for XML documentation generation.
@@ -451,7 +482,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public string AiXmlDocumentationEndpointUrl
     {
-        get { return GetPropertyValue<string>(); }
+        get
+        {
+            return GetPropertyValue<string>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -477,7 +511,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public string AiXmlDocumentationApiKey
     {
-        get { return GetPropertyValue<string>(); }
+        get
+        {
+            return GetPropertyValue<string>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -493,7 +530,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationMaxMethodsPerFile
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -511,7 +551,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationMaxRequestsPerCleanup
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -523,7 +566,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationMaxInputCharsPerMethod
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -535,7 +581,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationMaxTokensPerRequest
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -547,7 +596,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationMaxEstimatedTokensPerCleanup
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -559,7 +611,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationGlobalTimeoutSeconds
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -605,7 +660,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public string AiXmlDocumentationApiKeyHeader
     {
-        get { return GetPropertyValue<string>(); }
+        get
+        {
+            return GetPropertyValue<string>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -631,7 +689,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
     public int AiXmlDocumentationTimeoutSeconds
     {
-        get { return GetPropertyValue<int>(); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
         set
         {
             if (value > 0)
@@ -673,6 +734,10 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets a flag indicating if AI XML documentation generation can be enabled.
     /// </summary>
     public bool IsEnabledAiXmlDocumentationEnabled => IsAiXmlDocumentationEndpointConfigured && _aiXmlDocumentationConnectionSucceeded;
+
+    /// <summary>
+    /// LoadSettings calls the base implementation, decrypts and assigns the AI XML documentation API key with a fallback to active settings, applies default values for any invalid or zero configuration properties, restores the cached connection status and status message, and raises property-changed notifications for endpoint and enabled state.
+    /// </summary>
 
     public override void LoadSettings()
     {
@@ -733,7 +798,12 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
 
         RaisePropertyChanged(nameof(IsAiXmlDocumentationEndpointConfigured));
         RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
+        RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
     }
+
+    /// <summary>
+    /// Encrypts the API key for the current user into the encrypted store, clears the active API key setting, and then persists all settings by calling the base SaveSettings method.
+    /// </summary>
 
     public override void SaveSettings()
     {
@@ -741,6 +811,11 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
         ActiveSettings.Cleaning_AiXmlDocumentationApiKey = string.Empty;
         base.SaveSettings();
     }
+
+    /// <summary>
+    /// This command handler validates the AI XML documentation connection using configured endpoint details, updates the success flag, enabled state, connection status message, and property-change notification, caching successful connections or clearing cached success and disabling the feature on failure (also handling missing/invalid configuration by failing early).
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
 
     private void OnTestAiXmlDocumentationConnectionCommandExecuted(object parameter)
     {
@@ -750,6 +825,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             AiXmlDocumentationEnabled = false;
             AiXmlDocumentationConnectionStatus = "Endpoint URL or API key is missing/invalid.";
             RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
+            RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
 
             return;
         }
@@ -778,7 +854,12 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             : $"Connection failed: {message}";
 
         RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
+        RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
     }
+
+    /// <summary>
+    /// Resets cached AI XML documentation connection state, disables the feature, sets a status message based on endpoint configuration, and raises property-changed notifications for dependent UI properties.
+    /// </summary>
 
     private void InvalidateAiXmlDocumentationAvailability()
     {
@@ -790,7 +871,13 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             : "Set endpoint URL and API key to enable test.";
         RaisePropertyChanged(nameof(IsAiXmlDocumentationEndpointConfigured));
         RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationEnabled));
+        RaisePropertyChanged(nameof(IsEnabledAiXmlDocumentationRunDuringCleanup));
     }
+
+    /// <summary>
+    /// Builds a pipe-delimited fingerprint from the endpoint, header, model, timeout, and a hash of the API key, but the hash code is process-dependent and not guaranteed stable across runs.
+    /// </summary>
+    /// <returns>A string value produced by this method.</returns>
 
     private string GetConnectionFingerprint()
     {
@@ -801,6 +888,11 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             AiXmlDocumentationTimeoutSeconds,
             (AiXmlDocumentationApiKey ?? string.Empty).GetHashCode());
     }
+
+    /// <summary>
+    /// Returns true only when the AI XML documentation endpoint is configured, a cached successful connection fingerprint exists and matches the current connection fingerprint, and the time since the last successful connection is within the cache duration; otherwise returns false, with no side effects or exceptions.
+    /// </summary>
+    /// <returns>A bool value produced by this method.</returns>
 
     private bool IsCachedConnectionSuccess()
     {
@@ -822,11 +914,19 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
         return DateTime.UtcNow - _lastSuccessfulConnectionUtc <= SuccessfulConnectionCacheDuration;
     }
 
+    /// <summary>
+    /// Updates the cached connection fingerprint and current UTC timestamp to record the last successful connection, with no exceptions thrown.
+    /// </summary>
+
     private void CacheSuccessfulConnection()
     {
         _lastSuccessfulConnectionFingerprint = GetConnectionFingerprint();
         _lastSuccessfulConnectionUtc = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Clears the cached successful connection fingerprint and timestamp by resetting them to null and DateTime.MinValue, with no thrown exceptions or other side effects.
+    /// </summary>
 
     private void ClearCachedConnectionSuccess()
     {

@@ -39,6 +39,12 @@ public class CollectionExpressionConverter : ISourceTransformation
 
     private sealed class CollectionExpressionRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// This method visits a variable declarator, returns it unchanged unless its parent is a variable declaration with an initializer, and if a collection expression conversion succeeds, returns a new node with the initializer value replaced by that collection expression, otherwise returns the original node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitVariableDeclarator(VariableDeclaratorSyntax node)
         {
             node = (VariableDeclaratorSyntax)base.VisitVariableDeclarator(node);
@@ -55,6 +61,12 @@ public class CollectionExpressionConverter : ISourceTransformation
                 : node.WithInitializer(node.Initializer.WithValue(replacement));
         }
 
+        /// <summary>
+        /// Visits a property declaration, first invoking base traversal, then if the property has an initializer, attempts to convert its value to a collection expression and replaces the initializer with the converted expression when successful, otherwise returns the original node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             node = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
@@ -70,6 +82,13 @@ public class CollectionExpressionConverter : ISourceTransformation
                 ? node
                 : node.WithInitializer(node.Initializer.WithValue(replacement));
         }
+
+        /// <summary>
+        /// Attempts to convert an object creation, array creation, or implicit array creation initializer into a collection expression when compatible with the declared type, returning null otherwise without side effects.
+        /// </summary>
+        /// <param name="declaredType">The declared type.</param>
+        /// <param name="initializer">The initializer.</param>
+        /// <returns>A ExpressionSyntax value produced by this method.</returns>
 
         private static ExpressionSyntax TryConvertToCollectionExpression(TypeSyntax declaredType, ExpressionSyntax initializer)
         {
@@ -91,6 +110,13 @@ public class CollectionExpressionConverter : ISourceTransformation
             }
         }
 
+        /// <summary>
+        /// Attempts to convert an argument-less object creation of a supported list type matching the declared type into a collection expression using its initializer elements, preserving original trivia, and returns null if conversion isn&apos;t applicable.
+        /// </summary>
+        /// <param name="declaredType">The declared type.</param>
+        /// <param name="objectCreation">The object creation.</param>
+        /// <returns>A ExpressionSyntax value produced by this method.</returns>
+
         private static ExpressionSyntax TryConvertObjectCreation(TypeSyntax declaredType, ObjectCreationExpressionSyntax objectCreation)
         {
             if (objectCreation.ArgumentList != null && objectCreation.ArgumentList.Arguments.Count > 0)
@@ -109,6 +135,13 @@ public class CollectionExpressionConverter : ISourceTransformation
 
             return BuildCollectionExpression(elements).WithTriviaFrom(objectCreation);
         }
+
+        /// <summary>
+        /// Attempts to convert an array creation expression to a collection expression only when the declared type is a matching array type and either an initializer is present or the array is explicitly zero-length, otherwise returns null with no side effects.
+        /// </summary>
+        /// <param name="declaredType">The declared type.</param>
+        /// <param name="arrayCreation">The array creation.</param>
+        /// <returns>A ExpressionSyntax value produced by this method.</returns>
 
         private static ExpressionSyntax TryConvertArrayCreation(TypeSyntax declaredType, ArrayCreationExpressionSyntax arrayCreation)
         {
@@ -132,8 +165,20 @@ public class CollectionExpressionConverter : ISourceTransformation
                 : null;
         }
 
+        /// <summary>
+        /// Returns true only if the given type syntax is a generic name (such as `List&lt;T&gt;`) whose base identifier is &quot;List&quot;, performing a pure syntactic check with no side effects or exceptions.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>A bool value produced by this method.</returns>
+
         private static bool IsSupportedListType(TypeSyntax type) =>
-            type is GenericNameSyntax genericName && genericName.Identifier.ValueText == "List";
+                    type is GenericNameSyntax genericName && genericName.Identifier.ValueText == "List";
+
+        /// <summary>
+        /// Builds a collection expression string from the element expressions&apos; text and returns the parsed SyntaxFactory expression, with no side effects.
+        /// </summary>
+        /// <param name="elements">The elements.</param>
+        /// <returns>A ExpressionSyntax value produced by this method.</returns>
 
         private static ExpressionSyntax BuildCollectionExpression(SeparatedSyntaxList<ExpressionSyntax> elements)
         {

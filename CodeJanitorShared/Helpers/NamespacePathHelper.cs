@@ -17,6 +17,12 @@ internal static class NamespacePathHelper
     private static readonly HashSet<string> ExcludedDirectoryNames =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "bin", "obj", "generated" };
 
+    /// <summary>
+    /// Computes the expected namespace for a project item by deriving a root namespace from the project&apos;s settings or name, falling back to null when the project or namespace is unavailable, and enforces a UI-thread requirement via ThreadHelper.ThrowIfNotOnUIThread.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     internal static string GetExpectedNamespace(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -63,6 +69,14 @@ internal static class NamespacePathHelper
         return segments.Any(segment => ExcludedDirectoryNames.Contains(segment));
     }
 
+    /// <summary>
+    /// Builds a dotted namespace by combining the split root namespace with normalized non-empty segments from the file&apos;s directory relative to the project directory, returning the joined string with no side effects.
+    /// </summary>
+    /// <param name="rootNamespace">The root namespace.</param>
+    /// <param name="projectDirectory">The project directory.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     internal static string BuildExpectedNamespace(string rootNamespace, string projectDirectory, string filePath)
     {
         var namespaceSegments = new List<string>();
@@ -80,6 +94,12 @@ internal static class NamespacePathHelper
         return string.Join(".", namespaceSegments.Where(segment => !string.IsNullOrWhiteSpace(segment)));
     }
 
+    /// <summary>
+    /// Splits a namespace string on dots, normalizes each non-empty segment, and lazily yields the normalized segments, returning nothing for null, empty, or whitespace input, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="namespaceName">The namespace name.</param>
+    /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
+
     private static IEnumerable<string> SplitNamespace(string namespaceName)
     {
         if (string.IsNullOrWhiteSpace(namespaceName))
@@ -96,6 +116,12 @@ internal static class NamespacePathHelper
             }
         }
     }
+
+    /// <summary>
+    /// Throws if not on the UI thread, then returns the directory name of the project&apos;s full path if present and non-whitespace, otherwise returns null while silently ignoring any exceptions from accessing the path.
+    /// </summary>
+    /// <param name="project">The project.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string GetProjectDirectory(Project project)
     {
@@ -115,6 +141,12 @@ internal static class NamespacePathHelper
 
         return null;
     }
+
+    /// <summary>
+    /// Attempts to return the project&apos;s RootNamespace or DefaultNamespace property value (whichever is first non-whitespace), returning null for null project/properties or missing/invalid properties, and throws via ThreadHelper if not called on the UI thread.
+    /// </summary>
+    /// <param name="project">The project.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string GetProjectRootNamespace(Project project)
     {
@@ -145,6 +177,13 @@ internal static class NamespacePathHelper
         return null;
     }
 
+    /// <summary>
+    /// Returns the relative directory of a file path under a project directory, or null if inputs are blank, the file is outside the project directory, or path resolution fails, with no side effects.
+    /// </summary>
+    /// <param name="projectDirectory">The project directory.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string GetRelativeDirectory(string projectDirectory, string filePath)
     {
         if (string.IsNullOrWhiteSpace(projectDirectory) || string.IsNullOrWhiteSpace(filePath))
@@ -172,6 +211,12 @@ internal static class NamespacePathHelper
         }
     }
 
+    /// <summary>
+    /// Returns null for null or whitespace input, otherwise trims the segment, replaces every non-alphanumeric or non-underscore character with an underscore, and prefixes an underscore if the result starts with a digit, with no side effects.
+    /// </summary>
+    /// <param name="segment">The segment.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string NormalizeNamespaceSegment(string segment)
     {
         if (string.IsNullOrWhiteSpace(segment))
@@ -187,6 +232,12 @@ internal static class NamespacePathHelper
 
         return normalized;
     }
+
+    /// <summary>
+    /// Returns the input path unchanged if it is null, whitespace, or already ends with either directory separator; otherwise appends the platform-specific directory separator character, with no exceptions thrown.
+    /// </summary>
+    /// <param name="path">The path.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string EnsureTrailingDirectorySeparator(string path)
     {

@@ -1,4 +1,4 @@
-using CodeJanitor.Helpers;
+﻿using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;

@@ -105,10 +105,23 @@ internal sealed class CommentLineXml : CommentLine
         return options.KeepTogether ? CodeCommentHelper.SpaceToFake(result) : result;
     }
 
+    /// <summary>
+    /// Determines whether the input string starts with interpunction by checking if it matches InterpunctionRegex, returning true on match and false otherwise, with no side effects.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool StartsWithInterpunction(string value)
     {
         return InterpunctionRegex.IsMatch(value);
     }
+
+    /// <summary>
+    /// Returns the tag converted to lowercase or uppercase using invariant culture based on tagCase, or the original tag if no case conversion is requested, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="tag">The tag.</param>
+    /// <param name="tagCase">The tag case.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string TagCase(string tag, XmlTagCase tagCase)
     {
@@ -130,6 +143,12 @@ internal sealed class CommentLineXml : CommentLine
         }
     }
 
+    /// <summary>
+    /// Returns true for root-level XML elements or elements whose local name is in a configured special-tags dictionary, indicating they require XML handling, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="e">The e.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private bool NeedsXmlHandling(XElement e)
     {
         // All root level elements are always on their own line.
@@ -142,6 +161,11 @@ internal sealed class CommentLineXml : CommentLine
 
         return false;
     }
+
+    /// <summary>
+    /// Parses an XML element&apos;s children by either reading literal inner XML into `Content` when `TagOptions.Literal` is set, or recursively walking child nodes to append text and tags to `_innerText`, add XML comment lines to `Lines`, and call `CloseInnerText` for handled elements, while trimming and adjusting whitespace based on node context.
+    /// </summary>
+    /// <param name="xml">The xml.</param>
 
     private void ParseChildNodes(XElement xml)
     {

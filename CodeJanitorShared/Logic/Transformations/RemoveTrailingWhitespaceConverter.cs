@@ -51,6 +51,12 @@ public class RemoveTrailingWhitespaceConverter : ISourceTransformation
 
     private sealed class TrailingWhitespaceRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Overrides VisitToken to strip trivia before end-of-line from a token&apos;s leading and trailing trivia, additionally removing trailing whitespace from the end-of-file token&apos;s leading trivia, and returns the token with those modified trivia collections.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <returns>A SyntaxToken value produced by this method.</returns>
+
         public override SyntaxToken VisitToken(SyntaxToken token)
         {
             var leading = StripBeforeEndOfLine(token.LeadingTrivia);
@@ -69,6 +75,12 @@ public class RemoveTrailingWhitespaceConverter : ISourceTransformation
                 .WithLeadingTrivia(leading)
                 .WithTrailingTrivia(trailing);
         }
+
+        /// <summary>
+        /// Removes whitespace trivia that directly precedes an end-of-line trivia from the given list, returning a new list without mutating the original, and returns the original list if it is empty.
+        /// </summary>
+        /// <param name="trivia">The trivia.</param>
+        /// <returns>A SyntaxTriviaList value produced by this method.</returns>
 
         private static SyntaxTriviaList StripBeforeEndOfLine(SyntaxTriviaList trivia)
         {

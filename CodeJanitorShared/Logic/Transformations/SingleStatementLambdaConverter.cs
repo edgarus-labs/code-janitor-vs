@@ -36,6 +36,12 @@ public class SingleStatementLambdaConverter : ISourceTransformation
 
     private sealed class SingleStatementLambdaRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Converts an anonymous method with a single expression body into an equivalent parenthesized lambda expression, preserving async modifier and syntax trivia, while returning the original node if the body cannot be reduced.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node)
         {
             node = (AnonymousMethodExpressionSyntax)base.VisitAnonymousMethodExpression(node);
@@ -72,12 +78,24 @@ public class SingleStatementLambdaConverter : ISourceTransformation
             return lambda.WithTriviaFrom(node);
         }
 
+        /// <summary>
+        /// Overrides the simple lambda expression visitor to first run the base visit and then return the result of attempting to simplify the lambda expression, potentially rewriting the node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
         {
             node = (SimpleLambdaExpressionSyntax)base.VisitSimpleLambdaExpression(node);
 
             return TrySimplifySimpleLambda(node);
         }
+
+        /// <summary>
+        /// Visits a parenthesized lambda expression, then attempts to simplify it and returns the resulting (potentially replaced) syntax node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
 
         public override SyntaxNode VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
         {
@@ -86,6 +104,12 @@ public class SingleStatementLambdaConverter : ISourceTransformation
             return TrySimplifyParenthesizedLambda(node);
         }
 
+        /// <summary>
+        /// Attempts to simplify a simple lambda by replacing its block body with a single extracted expression when possible, preserving trivia, otherwise returns the original node unchanged.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         private static SyntaxNode TrySimplifySimpleLambda(SimpleLambdaExpressionSyntax node)
         {
             var expression = TryExtractSingleExpression(node.Body as BlockSyntax);
@@ -93,12 +117,24 @@ public class SingleStatementLambdaConverter : ISourceTransformation
             return expression == null ? node : node.WithBody(expression.WithTriviaFrom(node.Body));
         }
 
+        /// <summary>
+        /// Attempts to replace a parenthesized lambda&apos;s block body with a single extracted expression when possible, preserving trivia, otherwise returns the original node with no side effects.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         private static SyntaxNode TrySimplifyParenthesizedLambda(ParenthesizedLambdaExpressionSyntax node)
         {
             var expression = TryExtractSingleExpression(node.Body as BlockSyntax);
 
             return expression == null ? node : node.WithBody(expression.WithTriviaFrom(node.Body));
         }
+
+        /// <summary>
+        /// Returns the single expression from a block containing exactly one expression or return statement, or null if the block is null, has multiple statements, or the statement is unsupported, with no side effects.
+        /// </summary>
+        /// <param name="block">The block.</param>
+        /// <returns>A ExpressionSyntax value produced by this method.</returns>
 
         private static ExpressionSyntax TryExtractSingleExpression(BlockSyntax block)
         {

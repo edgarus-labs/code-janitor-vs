@@ -370,6 +370,14 @@ internal static class TextDocumentHelper
         });
     }
 
+    /// <summary>
+    /// We need to analyze the C# method and produce exactly one concise summary sentence. Plain text only, no XML, no quotes. Mention key behavior and side effects. Method: GetEditPointForSnapshotPosition takes TextDocument, ITextSnapshot, int position. It throws ThreadHelper.ThrowIfNotOnUIThread() (so it ensures UI thread). Creates an edit point from textDocument. Gets line from snapshot at position. Moves edit point to line (line number + 1) and offset (position - line start + 1). Returns edit point. Side effects: creates an EditPoint object, moves it, no modifications to document. It&apos;s a helper to convert snapshot position to EditPoint coordinates (1-based line and offset). The method assumes UI thread. We need one concise summary sentence. Mention key behavior and side effects. For example: &quot;Creates a TextDocument edit point and moves it to the 1-based line and offset corresponding to the given snapshot position, requiring UI thread access and returning the positioned edit point without modifying the document.&quot; But need to be concise. Let&apos;s craft. Ensure no XML, no quotes. Plain text. Final: &quot;Creates an EditPoint from the document, moves it to the line and character offset computed from.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="textSnapshot">The text snapshot.</param>
+    /// <param name="position">The position.</param>
+    /// <returns>A EditPoint value produced by this method.</returns>
+
     private static EditPoint GetEditPointForSnapshotPosition(TextDocument textDocument, ITextSnapshot textSnapshot, int position)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -381,6 +389,13 @@ internal static class TextDocumentHelper
         return editPoint;
     }
 
+    /// <summary>
+    /// Creates an IFinder for the given text by obtaining the IFindService, building a finder factory with StandardFindOptions, and returning a finder bound to the buffer&apos;s current snapshot, with no side effects beyond that service retrieval.
+    /// </summary>
+    /// <param name="findWhat">The find what.</param>
+    /// <param name="textBuffer">The text buffer.</param>
+    /// <returns>A IFinder value produced by this method.</returns>
+
     private static IFinder GetFinder(string findWhat, ITextBuffer textBuffer)
     {
         var findService = CodeJanitorPackage.Instance.ComponentModel.GetService<IFindService>();
@@ -389,6 +404,14 @@ internal static class TextDocumentHelper
         return finderFactory.Create(textBuffer.CurrentSnapshot);
     }
 
+    /// <summary>
+    /// Retrieves the shared IFindService from the package&apos;s component model, uses it to create a finder factory with the given find/replace strings and standard options, then returns a finder bound to the buffer&apos;s current snapshot without modifying the buffer or throwing exceptions.
+    /// </summary>
+    /// <param name="findWhat">The find what.</param>
+    /// <param name="replaceWith">The replace with.</param>
+    /// <param name="textBuffer">The text buffer.</param>
+    /// <returns>A IFinder value produced by this method.</returns>
+
     private static IFinder GetFinder(string findWhat, string replaceWith, ITextBuffer textBuffer)
     {
         var findService = CodeJanitorPackage.Instance.ComponentModel.GetService<IFindService>();
@@ -396,6 +419,13 @@ internal static class TextDocumentHelper
 
         return finderFactory.Create(textBuffer.CurrentSnapshot);
     }
+
+    /// <summary>
+    /// Converts the selection&apos;s anchor and active points into snapshot positions and returns a normalized Span covering the text range between them, ordering the start and end by position, while requiring execution on the UI thread via ThreadHelper.ThrowIfNotOnUIThread().
+    /// </summary>
+    /// <param name="textSnapshot">The text snapshot.</param>
+    /// <param name="selection">The selection.</param>
+    /// <returns>A Span value produced by this method.</returns>
 
     private static Span GetSnapshotSpanForTextSelection(ITextSnapshot textSnapshot, TextSelection selection)
     {
@@ -414,6 +444,13 @@ internal static class TextDocumentHelper
         }
     }
 
+    /// <summary>
+    /// Computes the absolute snapshot position for a given text point by subtracting 1 from the line number and character offset, and throws if not called on the UI thread.
+    /// </summary>
+    /// <param name="textSnapshot">The text snapshot.</param>
+    /// <param name="textPoint">The text point.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int GetSnapshotPositionForTextPoint(ITextSnapshot textSnapshot, TextPoint textPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -422,6 +459,14 @@ internal static class TextDocumentHelper
 
         return textSnapshotLine.Start.Position + textPoint.LineCharOffset - 1;
     }
+
+    /// <summary>
+    /// Computes a normalized Span for the given snapshot and edit points, swapping endpoints if needed, and throws if not called on the UI thread.
+    /// </summary>
+    /// <param name="textSnapshot">The text snapshot.</param>
+    /// <param name="startPoint">The start point.</param>
+    /// <param name="endPoint">The end point.</param>
+    /// <returns>A Span value produced by this method.</returns>
 
     private static Span GetSnapshotSpanForExtent(ITextSnapshot textSnapshot, EditPoint startPoint, EditPoint endPoint)
     {
@@ -440,6 +485,12 @@ internal static class TextDocumentHelper
         }
     }
 
+    /// <summary>
+    /// Replaces all specified matches in the given text buffer within a single edit transaction, applying the changes only if replacements are present.
+    /// </summary>
+    /// <param name="textBuffer">The text buffer.</param>
+    /// <param name="replacements">The replacements.</param>
+
     private static void ReplaceAll(ITextBuffer textBuffer, IEnumerable<FinderReplacement> replacements)
     {
         if (replacements.Any())
@@ -455,6 +506,13 @@ internal static class TextDocumentHelper
             }
         }
     }
+
+    /// <summary>
+    /// Attempts to retrieve an open document&apos;s ITextBuffer via the editor adapter factory, returning true and assigning the buffer on success, otherwise setting the out parameter to null and returning false with no exceptions thrown.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="textBuffer">The text buffer.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool TryGetTextBufferAt(string filePath, out ITextBuffer textBuffer)
     {

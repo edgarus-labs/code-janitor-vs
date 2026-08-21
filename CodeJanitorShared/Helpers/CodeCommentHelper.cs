@@ -17,6 +17,12 @@ internal static class CodeCommentHelper
     public const char KeepTogetherSpacer = '\a';
     public const char Spacer = ' ';
 
+    /// <summary>
+    /// Replaces all occurrences of the KeepTogetherSpacer constant with Spacer in the given string and returns the new string without modifying the original.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     internal static string FakeToSpace(string value)
     {
         return value.Replace(KeepTogetherSpacer, Spacer);
@@ -112,10 +118,23 @@ internal static class CodeCommentHelper
         return tokens.Select(t => t.Substring(0, t.LastIndexOf(':') + 1) + " ");
     }
 
+    /// <summary>
+    /// Determines whether the current line at the edit point is a comment by evaluating a language-specific regex match, with no detected exceptions or side effects beyond reading the edit point.
+    /// </summary>
+    /// <param name="point">The point.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     internal static bool IsCommentLine(EditPoint point)
     {
         return LineMatchesRegex(point, GetCommentRegex(point.GetCodeLanguage())).Success;
     }
+
+    /// <summary>
+    /// Gets the current line from the EditPoint, runs the regex match against it, and returns the resulting Match without modifying state or throwing.
+    /// </summary>
+    /// <param name="point">The point.</param>
+    /// <param name="regex">The regex.</param>
+    /// <returns>A Match value produced by this method.</returns>
 
     internal static Match LineMatchesRegex(EditPoint point, Regex regex)
     {
@@ -124,6 +143,12 @@ internal static class CodeCommentHelper
 
         return match;
     }
+
+    /// <summary>
+    /// Replaces every occurrence of the Spacer character/string in the input with KeepTogetherSpacer and returns the resulting new string without modifying the original.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     internal static string SpaceToFake(string value)
     {

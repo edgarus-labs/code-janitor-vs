@@ -16,48 +16,13 @@ namespace CodeJanitor.Integration.Options;
 
 public sealed class CodeJanitorGeneralPage : CodeJanitorSectionDialogPage
 {
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new GeneralParentViewModel(package, settings);
-}
+    /// <summary>
+    /// Creates a new GeneralParentViewModel with the provided package and settings and returns it, with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <param name="settings">The settings.</param>
+    /// <returns>A OptionsPageViewModel value produced by this method.</returns>
 
-public sealed class CodeJanitorCleaningParentPage : CodeJanitorSectionDialogPage
-{
     protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new CleaningParentViewModel(package, settings);
-}
-
-public sealed class CodeJanitorNavigationPage : CodeJanitorSectionDialogPage
-{
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new NavigationParentViewModel(package, settings);
-}
-
-public sealed class CodeJanitorDiggingPage : CodeJanitorSectionDialogPage
-{
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new DiggingViewModel(package, settings);
-}
-
-public sealed class CodeJanitorFormattingPage : CodeJanitorSectionDialogPage
-{
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new FormattingViewModel(package, settings);
-}
-
-public sealed class CodeJanitorProgressingPage : CodeJanitorSectionDialogPage
-{
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new ProgressingViewModel(package, settings);
-}
-
-public sealed class CodeJanitorReorganizingParentPage : CodeJanitorSectionDialogPage
-{
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new ReorganizingParentViewModel(package, settings);
-}
-
-public sealed class CodeJanitorThirdPartyPage : CodeJanitorSectionDialogPage
-{
-    protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
-        new ThirdPartyViewModel(package, settings);
+            new GeneralParentViewModel(package, settings);
 }

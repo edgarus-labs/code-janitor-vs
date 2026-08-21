@@ -79,11 +79,47 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
         await Instance.SwitchAsync(values.Any(v => v)));
     }
 
+    /// <summary>
+    /// This method ignores its parameters and always returns VSConstants.S_OK, indicating success with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="docCookie">The doc cookie.</param>
+    /// <param name="grfAttribs">The grf attribs.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     public int OnAfterAttributeChange(uint docCookie, uint grfAttribs) => VSConstants.S_OK;
+
+    /// <summary>
+    /// Returns S_OK immediately without performing any work, so it has no side effects and effectively ignores attribute change notifications.
+    /// </summary>
+    /// <param name="docCookie">The doc cookie.</param>
+    /// <param name="grfAttribs">The grf attribs.</param>
+    /// <param name="pHierOld">The p hier old.</param>
+    /// <param name="itemidOld">The itemid old.</param>
+    /// <param name="pszMkDocumentOld">The psz mk document old.</param>
+    /// <param name="pHierNew">The p hier new.</param>
+    /// <param name="itemidNew">The itemid new.</param>
+    /// <param name="pszMkDocumentNew">The psz mk document new.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     public int OnAfterAttributeChangeEx(uint docCookie, uint grfAttribs, IVsHierarchy pHierOld, uint itemidOld, string pszMkDocumentOld, IVsHierarchy pHierNew, uint itemidNew, string pszMkDocumentNew) => VSConstants.S_OK;
 
+    /// <summary>
+    /// Returns S_OK unconditionally with no observable behavior, side effects, or exceptions, ignoring both parameters.
+    /// </summary>
+    /// <param name="docCookie">The doc cookie.</param>
+    /// <param name="pFrame">The p frame.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     public int OnAfterDocumentWindowHide(uint docCookie, IVsWindowFrame pFrame) => VSConstants.S_OK;
+
+    /// <summary>
+    /// Always returns S_OK, performing no work and throwing no exceptions.
+    /// </summary>
+    /// <param name="docCookie">The doc cookie.</param>
+    /// <param name="dwRDTLockType">The dw rdtlock type.</param>
+    /// <param name="dwReadLocksRemaining">The dw read locks remaining.</param>
+    /// <param name="dwEditLocksRemaining">The dw edit locks remaining.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     public int OnAfterFirstDocumentLock(uint docCookie, uint dwRDTLockType, uint dwReadLocksRemaining, uint dwEditLocksRemaining) => VSConstants.S_OK;
 
@@ -109,7 +145,24 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
         return VSConstants.S_OK;
     }
 
+    /// <summary>
+    /// This method handles the BeforeDocumentWindowShow notification by doing nothing and always returning S_OK, producing no side effects.
+    /// </summary>
+    /// <param name="docCookie">The doc cookie.</param>
+    /// <param name="fFirstShow">The f first show.</param>
+    /// <param name="pFrame">The p frame.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     public int OnBeforeDocumentWindowShow(uint docCookie, int fFirstShow, IVsWindowFrame pFrame) => VSConstants.S_OK;
+
+    /// <summary>
+    /// Returns S_OK immediately without using any parameters or performing any actions, so it has no side effects and effectively does nothing beyond satisfying the interface contract.
+    /// </summary>
+    /// <param name="docCookie">The doc cookie.</param>
+    /// <param name="dwRDTLockType">The dw rdtlock type.</param>
+    /// <param name="dwReadLocksRemaining">The dw read locks remaining.</param>
+    /// <param name="dwEditLocksRemaining">The dw edit locks remaining.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     public int OnBeforeLastDocumentUnlock(uint docCookie, uint dwRDTLockType, uint dwReadLocksRemaining, uint dwEditLocksRemaining) => VSConstants.S_OK;
 

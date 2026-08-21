@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -35,6 +35,12 @@ internal sealed class OpenAiCompatibleClient
 
     internal int TimeoutSeconds { get; }
 
+    /// <summary>
+    /// Returns the trimmed endpoint URL unchanged if it is null/whitespace, not an absolute URI, or already ends with &quot;/chat/completions&quot; or &quot;/completions&quot;; otherwise trims trailing slashes and appends &quot;/chat/completions&quot;.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     internal static string GetNormalizedEndpointUrl(string endpointUrl)
     {
         if (string.IsNullOrWhiteSpace(endpointUrl))
@@ -59,6 +65,13 @@ internal sealed class OpenAiCompatibleClient
         return url + "/chat/completions";
     }
 
+    /// <summary>
+    /// Returns true only if a non-blank API key (after trimming quotes) and a non-blank endpoint URL are provided, the URL parses as an absolute http/https URI, and the scheme is HTTP or HTTPS; otherwise returns false with no side effects.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <param name="apiKey">The api key.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     internal static bool IsEndpointConfigured(string endpointUrl, string apiKey)
     {
         if (string.IsNullOrWhiteSpace(endpointUrl) || string.IsNullOrWhiteSpace(apiKey))
@@ -81,6 +94,12 @@ internal sealed class OpenAiCompatibleClient
         return endpoint.Scheme == Uri.UriSchemeHttp || endpoint.Scheme == Uri.UriSchemeHttps;
     }
 
+    /// <summary>
+    /// Attempts a chat completion requesting &quot;OK&quot; to test connectivity, returning success and an error message via out parameter while discarding the response content.
+    /// </summary>
+    /// <param name="errorMessage">The error message.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     internal bool TryTestConnection(out string errorMessage)
     {
         string content;
@@ -92,12 +111,30 @@ internal sealed class OpenAiCompatibleClient
             out errorMessage);
     }
 
+    /// <summary>
+    /// Attempts to generate documentation by delegating to TrySendChatCompletion with a sanitized positive token limit (defaulting to 256 for non-positive values) and writes results to the output parameters.
+    /// </summary>
+    /// <param name="prompt">The prompt.</param>
+    /// <param name="completionText">The completion text.</param>
+    /// <param name="errorMessage">The error message.</param>
+    /// <param name="maxTokens">The max tokens.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256)
     {
         var safeMaxTokens = maxTokens > 0 ? maxTokens : 256;
 
         return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage);
     }
+
+    /// <summary>
+    /// Attempts to send a chat completion request with retries, setting completionText on success or errorMessage on failure, and returns false if the endpoint is unconfigured or all attempts fail after transient HTTP statuses and exceptions.
+    /// </summary>
+    /// <param name="userPrompt">The user prompt.</param>
+    /// <param name="maxTokens">The max tokens.</param>
+    /// <param name="completionText">The completion text.</param>
+    /// <param name="errorMessage">The error message.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage)
     {
@@ -170,10 +207,21 @@ internal sealed class OpenAiCompatibleClient
         return false;
     }
 
+    /// <summary>
+    /// Returns true for transient HTTP status codes (408, 429, or any 5xx) and has no side effects.
+    /// </summary>
+    /// <param name="statusCode">The status code.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool IsTransientStatusCode(int statusCode)
     {
         return statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599);
     }
+
+    /// <summary>
+    /// If the configured API key header is &quot;Authorization&quot;, this method adds an Authorization header with the API key prefixed by &quot;Bearer &quot; unless already present; otherwise it adds the API key under the configured header name, mutating the provided headers collection without validation.
+    /// </summary>
+    /// <param name="headers">The headers.</param>
 
     private void ApplyAuthentication(HttpRequestHeaders headers)
     {
@@ -190,6 +238,13 @@ internal sealed class OpenAiCompatibleClient
 
         headers.TryAddWithoutValidation(ApiKeyHeader, ApiKey);
     }
+
+    /// <summary>
+    /// Builds a JSON request payload from a system prompt and user prompt (defaulting null to empty string) with fixed temperature and max tokens, conditionally includes the Model property if non-whitespace, then serializes to JSON with no side effects.
+    /// </summary>
+    /// <param name="userPrompt">The user prompt.</param>
+    /// <param name="maxTokens">The max tokens.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private string BuildRequestJson(string userPrompt, int maxTokens)
     {
@@ -221,6 +276,12 @@ internal sealed class OpenAiCompatibleClient
 
         return serializer.Serialize(request);
     }
+
+    /// <summary>
+    /// Attempts to extract text content from a chat API JSON response by parsing it with JavaScriptSerializer and returning the first non-empty value from content, reasoning_content, reasoning, choice text, or response fields, or null if the input is blank or no extractable content exists.
+    /// </summary>
+    /// <param name="responseText">The response text.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     internal static string TryExtractContentFromChatResponse(string responseText)
     {
@@ -306,6 +367,13 @@ internal sealed class OpenAiCompatibleClient
 
         return null;
     }
+
+    /// <summary>
+    /// Returns the original text if it is null, empty, or within the specified length; otherwise, it returns a substring of the first length characters followed by &quot;...&quot;, with no side effects or exceptions thrown.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="length">The length.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string Truncate(string text, int length)
     {

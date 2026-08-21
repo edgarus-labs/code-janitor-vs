@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
 using System;

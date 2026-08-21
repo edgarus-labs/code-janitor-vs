@@ -74,7 +74,10 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
 
     public Document Document
     {
-        get { return _document; }
+        get
+        {
+            return _document;
+        }
         private set
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -115,7 +118,10 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
 
     public CodeSortOrder SortOrder
     {
-        get { return _viewModel.SortOrder; }
+        get
+        {
+            return _viewModel.SortOrder;
+        }
         set
         {
             if (_viewModel.SortOrder != value)
@@ -132,7 +138,10 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
 
     private bool IsVisible
     {
-        get { return _isVisible; }
+        get
+        {
+            return _isVisible;
+        }
         set
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -145,10 +154,18 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
         }
     }
 
+    /// <summary>
+    /// Clears the search by setting NameFilter to null, which removes any active name-based filtering; no exceptions are thrown.
+    /// </summary>
+
     public override void ClearSearch()
     {
         NameFilter = null;
     }
+
+    /// <summary>
+    /// This method verifies the caller is on the UI thread, then closes the Frame as an IVsWindowFrame using FRAMECLOSE_NoSave, causing the window to close without.
+    /// </summary>
 
     public void Close()
     {
@@ -157,8 +174,16 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
         (Frame as IVsWindowFrame).CloseFrame((uint)__FRAMECLOSE.FRAMECLOSE_NoSave);
     }
 
+    /// <summary>
+    /// Overrides CreateSearch to return a new MemberSearchTask with the given cookie, query, and callback, where the callback sets the NameFilter property to the search result.
+    /// </summary>
+    /// <param name="dwCookie">The dw cookie.</param>
+    /// <param name="pSearchQuery">The p search query.</param>
+    /// <param name="pSearchCallback">The p search callback.</param>
+    /// <returns>A IVsSearchTask value produced by this method.</returns>
+
     public override IVsSearchTask CreateSearch(uint dwCookie, IVsSearchQuery pSearchQuery, IVsSearchCallback pSearchCallback)
-        => new MemberSearchTask(dwCookie, pSearchQuery, pSearchCallback, x => NameFilter = x);
+            => new MemberSearchTask(dwCookie, pSearchQuery, pSearchCallback, x => NameFilter = x);
 
     /// <summary>
     /// A method to be called to notify the tool window about the current active document.
@@ -188,11 +213,42 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
         }
     }
 
+    /// <summary>
+    /// This method always returns VSConstants.S_OK, indicating success, without modifying the pgrfSaveOptions reference or throwing any exceptions, and has no other side effects.
+    /// </summary>
+    /// <param name="pgrfSaveOptions">The pgrf save options.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     public int OnClose(ref uint pgrfSaveOptions) => VSConstants.S_OK;
+
+    /// <summary>
+    /// Always returns VSConstants.S_OK, ignoring all parameters and performing no work or side effects.
+    /// </summary>
+    /// <param name="fDockable">The f dockable.</param>
+    /// <param name="x">The x.</param>
+    /// <param name="y">The y.</param>
+    /// <param name="w">The w.</param>
+    /// <param name="h">The h.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     public int OnDockableChange(int fDockable, int x, int y, int w, int h) => VSConstants.S_OK;
 
+    /// <summary>
+    /// Method always returns VSConstants.S_OK regardless of input parameters, performing no operations, causing no side effects, and throwing no exceptions.
+    /// </summary>
+    /// <param name="x">The x.</param>
+    /// <param name="y">The y.</param>
+    /// <param name="w">The w.</param>
+    /// <param name="h">The h.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     public int OnMove(int x, int y, int w, int h) => VSConstants.S_OK;
+
+    /// <summary>
+    /// Updates the IsVisible property based on the frame show state for shown or hidden events, returns S_OK, and assumes the caller is on the UI thread.
+    /// </summary>
+    /// <param name="fShow">The f show.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     public int OnShow(int fShow)
     {
@@ -212,6 +268,15 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
 
         return VSConstants.S_OK;
     }
+
+    /// <summary>
+    /// Returns S_OK unconditionally to signal successful handling of the size notification, with no side effects or additional logic.
+    /// </summary>
+    /// <param name="x">The x.</param>
+    /// <param name="y">The y.</param>
+    /// <param name="w">The w.</param>
+    /// <param name="h">The h.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     public int OnSize(int x, int y, int w, int h) => VSConstants.S_OK;
 
@@ -276,6 +341,11 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
             }
         }
     }
+
+    /// <summary>
+    /// Overrides search settings by enforcing UI thread execution, delegating to the base implementation, and then setting the search control&apos;s minimum width to 200, maximum width to the maximum unsigned integer value, and watermark text to a localized resource string, thereby mutating the provided search settings data source.
+    /// </summary>
+    /// <param name="pSearchSettings">The p search settings.</param>
 
     public override void ProvideSearchSettings(IVsUIDataSource pSearchSettings)
     {
@@ -370,11 +440,23 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
         Refresh();
     }
 
+    /// <summary>
+    /// This method enforces execution on the UI thread via ThreadHelper.ThrowIfNotOnUIThread and then triggers the OnSettingsChange callback as a side effect.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The e.</param>
+
     private void OnSettingsLoaded(object sender, System.Configuration.SettingsLoadedEventArgs e)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         OnSettingsChange();
     }
+
+    /// <summary>
+    /// This event handler enforces execution on the UI thread via ThreadHelper.ThrowIfNotOnUIThread and then invokes OnSettingsChange to process settings changes.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The e.</param>
 
     private void OnSettingsSaving(object sender, System.ComponentModel.CancelEventArgs e)
     {

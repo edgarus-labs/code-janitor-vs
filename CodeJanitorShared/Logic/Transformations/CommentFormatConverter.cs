@@ -19,6 +19,12 @@ public class CommentFormatConverter : ISourceTransformation
 
     public string Name => "Format comments";
 
+    /// <summary>
+    /// 1. **Analyze the request**: The user wants a single concise summary sentence (plain text, no XML, no quotes) about the provided C# method `Apply(string source)`, mentioning key behavior and side effects. 2. **Analyze the code**: * Method: `public string Apply(string source)` * Behavior: If `source` is null/empty OR setting `Formatting_CommentRunDuringCleanup` is false, returns `source` as-is. * Parses source into lines, preserving original newline style. * Tracks multi-line comments (`/* ... */`). If inside a multi-line comment, normalizes continuation lines using `NormalizeMultiLineCommentLine` (preserving indentation of the start). * Detects single-line comments (`// ...`), formats them to preserve indentation and ensure exactly one space after `//` (unless empty, then just `//`). * Non-comment lines are kept as-is. * Returns the joined, modified string. * Side effects: None externally observable (pure function, no state mutation, no IO). It only modifies the comment formatting in the returned string. 3.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !Settings.Default.Formatting_CommentRunDuringCleanup)
@@ -85,6 +91,13 @@ public class CommentFormatConverter : ISourceTransformation
 
         return string.Join(newline, result);
     }
+
+    /// <summary>
+    /// Trims leading whitespace from a comment line and, if it begins with an asterisk, realigns it under the base indentation; otherwise returns the line unchanged, with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="line">The line.</param>
+    /// <param name="baseIndentation">The base indentation.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private string NormalizeMultiLineCommentLine(string line, string baseIndentation)
     {

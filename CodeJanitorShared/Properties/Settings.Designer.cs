@@ -1345,6 +1345,18 @@ namespace CodeJanitor.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_AiXmlDocumentationRunDuringCleanup {
+            get {
+                return ((bool)(this["Cleaning_AiXmlDocumentationRunDuringCleanup"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationRunDuringCleanup"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string Cleaning_AiXmlDocumentationEndpointUrl {
             get {
@@ -2553,6 +2565,18 @@ namespace CodeJanitor.Properties {
             }
             set {
                 this["Feature_SwitchFile"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_AddXmlDoc {
+            get {
+                return ((bool)(this["Feature_AddXmlDoc"]));
+            }
+            set {
+                this["Feature_AddXmlDoc"] = value;
             }
         }
         

@@ -67,12 +67,25 @@ public class SealedClassConverter : IClassSealingConverter, ISourceTransformatio
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// Determines if a class declaration is top-level by returning true when its parent is a compilation unit, a namespace declaration, or a file-scoped namespace declaration, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="classDecl">The class decl.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool IsTopLevel(ClassDeclarationSyntax classDecl)
     {
         return classDecl.Parent is CompilationUnitSyntax ||
                classDecl.Parent is NamespaceDeclarationSyntax ||
                classDecl.Parent is FileScopedNamespaceDeclarationSyntax;
     }
+
+    /// <summary>
+    /// Determines if a class can be safely sealed by returning false for any class with sealed, abstract, static, or partial modifiers, for public or protected classes, or for classes listed in derivedFromNames, and true otherwise, with no side effects.
+    /// </summary>
+    /// <param name="classDecl">The class decl.</param>
+    /// <param name="derivedFromNames">The derived from names.</param>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool IsSafeToSeal(ClassDeclarationSyntax classDecl, HashSet<string> derivedFromNames)
     {
@@ -96,6 +109,12 @@ public class SealedClassConverter : IClassSealingConverter, ISourceTransformatio
         return !derivedFromNames.Contains(classDecl.Identifier.Text);
     }
 
+    /// <summary>
+    /// Recursively extracts the rightmost simple identifier from a TypeSyntax, falling back to the full type string for other syntax forms, with no side effects.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string GetSimpleName(TypeSyntax type)
     {
         switch (type)
@@ -110,6 +129,12 @@ public class SealedClassConverter : IClassSealingConverter, ISourceTransformatio
                 return type.ToString();
         }
     }
+
+    /// <summary>
+    /// Adds a sealed modifier to the given class declaration, preserving leading trivia by moving it from the class keyword when no modifiers exist, otherwise appending the sealed token to the existing modifier list.
+    /// </summary>
+    /// <param name="classDecl">The class decl.</param>
+    /// <returns>A ClassDeclarationSyntax value produced by this method.</returns>
 
     private static ClassDeclarationSyntax WithSealedModifier(ClassDeclarationSyntax classDecl)
     {

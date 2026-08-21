@@ -58,6 +58,12 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
         await package.SettingsMonitor.WatchAsync(s => s.Feature_BuildProgressToolWindow, Instance.SwitchAsync);
     }
 
+    /// <summary>
+    /// Calls the base SwitchAsync and, when turning off, closes the Package.BuildProgress dialog if present.
+    /// </summary>
+    /// <param name="on">The on.</param>
+    /// <returns>A Task value produced by this method.</returns>
+
     public override async Task SwitchAsync(bool on)
     {
         await base.SwitchAsync(on);

@@ -36,6 +36,12 @@ public class JsonSerializerOptionsReuseConverter : ISourceTransformation
 
     private sealed class JsonSerializerOptionsReuseRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// This method overrides invocation visiting to replace plain JsonSerializerOptions creation arguments with null literals (preserving trivia) in JsonSerializer calls, returning the original node if unchanged or no such arguments exist.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             node = (InvocationExpressionSyntax)base.VisitInvocationExpression(node);
@@ -68,6 +74,12 @@ public class JsonSerializerOptionsReuseConverter : ISourceTransformation
             return changed ? node.WithArgumentList(updatedArgumentList) : node;
         }
 
+        /// <summary>
+        /// Determines whether the given invocation expression is a call to JsonSerializer by checking if its member access receiver is exactly one of the expected fully qualified names, returning false otherwise with no side effects.
+        /// </summary>
+        /// <param name="invocation">The invocation.</param>
+        /// <returns>A bool value produced by this method.</returns>
+
         private static bool IsJsonSerializerCall(InvocationExpressionSyntax invocation)
         {
             if (!(invocation.Expression is MemberAccessExpressionSyntax memberAccess))
@@ -81,6 +93,12 @@ public class JsonSerializerOptionsReuseConverter : ISourceTransformation
                    || receiver == "System.Text.Json.JsonSerializer"
                    || receiver == "global::System.Text.Json.JsonSerializer";
         }
+
+        /// <summary>
+        /// Determines whether the given expression is a parameterless object creation of JsonSerializerOptions (with no initializer or arguments), returning true only for the specified type name variants and false otherwise.
+        /// </summary>
+        /// <param name="expression">The expression.</param>
+        /// <returns>A bool value produced by this method.</returns>
 
         private static bool IsPlainJsonSerializerOptionsCreation(ExpressionSyntax expression)
         {

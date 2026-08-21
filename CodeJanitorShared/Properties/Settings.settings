@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SteveCadwallader.CodeMaid.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
@@ -332,6 +332,9 @@
     <Setting Name="Cleaning_AiXmlDocumentationEnabled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationRunDuringCleanup" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
     <Setting Name="Cleaning_AiXmlDocumentationEndpointUrl" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
@@ -633,6 +636,9 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="Feature_SwitchFile" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Feature_AddXmlDoc" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="Formatting_IgnoreLinesStartingWith" Type="System.Collections.Specialized.StringCollection" Scope="User">

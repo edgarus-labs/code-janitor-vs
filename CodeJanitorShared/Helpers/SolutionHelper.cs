@@ -203,6 +203,12 @@ internal static class SolutionHelper
         return Array.Empty<object>();
     }
 
+    /// <summary>
+    /// Returns the project item&apos;s name or &quot;(unknown)&quot; when null or an exception occurs, while enforcing the UI thread via ThreadHelper.ThrowIfNotOnUIThread.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string GetProjectItemName(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -216,6 +222,12 @@ internal static class SolutionHelper
             return "(unknown)";
         }
     }
+
+    /// <summary>
+    /// Returns the project&apos;s name, or &quot;(unknown)&quot; if the project is null or an exception occurs, and enforces execution on the UI thread via ThreadHelper.ThrowIfNotOnUIThread.
+    /// </summary>
+    /// <param name="project">The project.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string GetProjectName(Project project)
     {

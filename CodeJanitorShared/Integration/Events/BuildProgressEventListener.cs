@@ -161,6 +161,13 @@ internal sealed class BuildProgressEventListener : BaseEventListener
         _onBuildDoneHandler = null;
     }
 
+    /// <summary>
+    /// Creates a delegate for the specified event handler method if the event info and handler type are valid, returning null on invalid input or any delegate creation failure after logging a warning, with no exceptions escaping.
+    /// </summary>
+    /// <param name="eventInfo">The event info.</param>
+    /// <param name="methodName">The method name.</param>
+    /// <returns>A Delegate value produced by this method.</returns>
+
     private Delegate CreateHandler(EventInfo eventInfo, string methodName)
     {
         if (eventInfo?.EventHandlerType == null)

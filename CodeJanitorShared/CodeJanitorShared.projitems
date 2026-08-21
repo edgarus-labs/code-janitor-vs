@@ -24,6 +24,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CommandHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CursorPositionRestorer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\DocumentExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\EditorConfigCSharpOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\EditorConfigHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\EditPointExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\EnumHelper.cs" />
@@ -50,6 +51,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AboutCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\BaseCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\BuildProgressToolWindowCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AddXmlDocCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CleanupActiveCodeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CleanupAllCodeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CleanupChangedFilesCommand.cs" />
@@ -63,6 +65,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\JoinLinesCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FixNamespaceCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\OptionsCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorCleaningParentPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorDiggingPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorFormattingPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorNavigationPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorProgressingPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorReorganizingParentPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorSectionDialogPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorOptionPages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ReadOnlyToggleCommand.cs" />
@@ -90,6 +98,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Events\TextEditorEventListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Events\WindowEventListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\ISwitchableFeature.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorThirdPartyPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupAvailabilityLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />
@@ -100,6 +109,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\AiXmlDocumentationLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\OpenAiCompatibleClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\NamespaceFixerLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeSplitSkipReason.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeToFileSplitFileProcessor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeToFileSplitPlanner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\ReadonlyFieldLogic.cs" />

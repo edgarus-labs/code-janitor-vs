@@ -1,60 +1,90 @@
-<platformUI:DialogWindow x:Class="CodeJanitor.UI.Dialogs.CleanupProgress.CleanupProgressWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" mc:Ignorable="d"
-        xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.CleanupProgress"
-        xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
-        xmlns:ui="clr-namespace:CodeJanitor.UI"
-        xmlns:p="clr-namespace:CodeJanitor.Properties"
-        d:DataContext="{d:DesignInstance local:CleanupProgressViewModel, IsDesignTimeCreatable=False}"
-        Icon="/source.extension.ico" Title="{x:Static p:Resources.CodeJanitorCleanupProgress}"
-        Height="260" Width="640" ShowInTaskbar="False" WindowStartupLocation="CenterScreen"
-        ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}" Closing="OnClosing"
-        FocusManager.FocusedElement="{Binding ElementName=cancelButton}">
-    <platformUI:DialogWindow.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </platformUI:DialogWindow.Resources>
+<platformUI:DialogWindow
+	x:Class="CodeJanitor.UI.Dialogs.CleanupProgress.CleanupProgressWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.CleanupProgress"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+	xmlns:ui="clr-namespace:CodeJanitor.UI"
+	Title="{x:Static p:Resources.CodeJanitorCleanupProgress}"
+	Width="640"
+	Height="260"
+	d:DataContext="{d:DesignInstance local:CleanupProgressViewModel,
+	                                 IsDesignTimeCreatable=False}"
+	ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}"
+	Closing="OnClosing"
+	FocusManager.FocusedElement="{Binding ElementName=cancelButton}"
+	Icon="/source.extension.ico"
+	ShowInTaskbar="False"
+	WindowStartupLocation="CenterScreen"
+	mc:Ignorable="d">
+	<platformUI:DialogWindow.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</platformUI:DialogWindow.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
 
-        <StackPanel Margin="14">
-            <TextBlock FontSize="14" FontWeight="SemiBold" Text="{x:Static p:Resources.Cleaning}" />
-            <TextBlock Margin="0,4,0,0" Text="{Binding CurrentFileName}" TextTrimming="CharacterEllipsis" ToolTip="{Binding CurrentFileName}" />
-            <ProgressBar Height="26" Margin="0,12,0,6" Maximum="{Binding CountTotal}" Value="{Binding ProcessedCount}" />
-            <TextBlock HorizontalAlignment="Center">
-                <TextBlock.Text>
-                    <MultiBinding StringFormat="{}{0} of {1}">
-                        <Binding Path="ProcessedCount" />
-                        <Binding Path="CountTotal" />
-                    </MultiBinding>
-                </TextBlock.Text>
-            </TextBlock>
-            <TextBlock Margin="0,12,0,0" HorizontalAlignment="Center" Text="{Binding ExecutionSummary}" TextWrapping="Wrap" />
-            <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" Text="{Binding ElapsedSummary}" TextWrapping="Wrap" />
-        </StackPanel>
+		<StackPanel Margin="14">
+			<TextBlock
+				FontSize="14"
+				FontWeight="SemiBold"
+				Text="{x:Static p:Resources.Cleaning}" />
+			<TextBlock
+				Margin="0,4,0,0"
+				Text="{Binding CurrentFileName}"
+				TextTrimming="CharacterEllipsis"
+				ToolTip="{Binding CurrentFileName}" />
+			<ProgressBar
+				Height="26"
+				Margin="0,12,0,6"
+				Maximum="{Binding CountTotal}"
+				Value="{Binding ProcessedCount}" />
+			<TextBlock HorizontalAlignment="Center">
+				<TextBlock.Text>
+					<MultiBinding StringFormat="{}{0} of {1}">
+						<Binding Path="ProcessedCount" />
+						<Binding Path="CountTotal" />
+					</MultiBinding>
+				</TextBlock.Text>
+			</TextBlock>
+			<TextBlock
+				Margin="0,12,0,0"
+				HorizontalAlignment="Center"
+				Text="{Binding ExecutionSummary}"
+				TextWrapping="Wrap" />
+			<TextBlock
+				Margin="0,4,0,0"
+				HorizontalAlignment="Center"
+				Text="{Binding ElapsedSummary}"
+				TextWrapping="Wrap" />
+		</StackPanel>
 
-        <Border Grid.Row="1" Background="{StaticResource FCodeJanitorGray}">
-            <Button x:Name="cancelButton" Command="{Binding CancelCommand}" HorizontalAlignment="Right">
-                <Button.Style>
-                    <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ButtonDialog}">
-                        <Setter Property="Content" Value="{x:Static p:Resources.Cancel}" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsCanceling}" Value="True">
-                                <Setter Property="Content" Value="{x:Static p:Resources.Canceling}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </Border>
-    </Grid>
+		<Border Grid.Row="1" Background="{StaticResource FCodeJanitorGray}">
+			<Button
+				x:Name="cancelButton"
+				HorizontalAlignment="Right"
+				Command="{Binding CancelCommand}">
+				<Button.Style>
+					<Style BasedOn="{StaticResource ButtonDialog}" TargetType="{x:Type Button}">
+						<Setter Property="Content" Value="{x:Static p:Resources.Cancel}" />
+						<Style.Triggers>
+							<DataTrigger Binding="{Binding IsCanceling}" Value="True">
+								<Setter Property="Content" Value="{x:Static p:Resources.Canceling}" />
+							</DataTrigger>
+						</Style.Triggers>
+					</Style>
+				</Button.Style>
+			</Button>
+		</Border>
+	</Grid>
 </platformUI:DialogWindow>

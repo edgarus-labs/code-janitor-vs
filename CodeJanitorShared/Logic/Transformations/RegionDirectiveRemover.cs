@@ -14,6 +14,12 @@ public class RegionDirectiveRemover : ISourceTransformation
 
     public string Name => "Remove region directives";
 
+    /// <summary>
+    /// Returns the input unchanged if it is null or empty; otherwise removes all matches of RegionDirectiveRegex from the string, with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))

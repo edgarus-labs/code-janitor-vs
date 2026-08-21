@@ -27,6 +27,12 @@ public class BlankLinePaddingConverter : ISourceTransformation
 
     public string Name => "Insert blank line padding";
 
+    /// <summary>
+    /// Analyzes C# source text and returns a new string with blank-line padding inserted before declarations, regions, using blocks, case statements, and single-line comments based on settings, without modifying the original input.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !AnySettingEnabled())
@@ -68,6 +74,14 @@ public class BlankLinePaddingConverter : ISourceTransformation
 
         return result;
     }
+
+    /// <summary>
+    /// CollectDeclarationPadding traverses all descendant syntax nodes, determines blank-line padding requirements before and after each declaration type (classes, records, delegates, enums, events, fields, interfaces, namespaces, etc.) based on configuration settings (with field declarations additionally distinguished by single-line vs multi-line spans), and records the affected line positions in the provided `wantBlankBefore` set and `lines` list as a side effect, without throwing exceptions.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="tree">The tree.</param>
+    /// <param name="lines">The lines.</param>
+    /// <param name="wantBlankBefore">The want blank before.</param>
 
     private void CollectDeclarationPadding(SyntaxNode root, SyntaxTree tree, List<string> lines, SortedSet<int> wantBlankBefore)
     {
@@ -158,6 +172,13 @@ public class BlankLinePaddingConverter : ISourceTransformation
         }
     }
 
+    /// <summary>
+    /// Collects line numbers of #region/#endregion directives into the provided SortedSet based on blank-line padding settings, mutating the set to indicate where blank lines should be inserted, and returns early if no padding options are enabled.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="tree">The tree.</param>
+    /// <param name="wantBlankBefore">The want blank before.</param>
+
     private void CollectRegionDirectivePadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {
         bool beforeRegion = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags;
@@ -184,6 +205,13 @@ public class BlankLinePaddingConverter : ISourceTransformation
             }
         }
     }
+
+    /// <summary>
+    /// Collects using-directive groups by parent, splits them into consecutive line runs, and mutates the provided SortedSet by adding the first line of each run when blank-line padding before is enabled and the line after each run&apos;s end when padding after is enabled, returning early if neither setting is active.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="tree">The tree.</param>
+    /// <param name="wantBlankBefore">The want blank before.</param>
 
     private void CollectUsingBlockPadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {
@@ -235,6 +263,13 @@ public class BlankLinePaddingConverter : ISourceTransformation
         }
     }
 
+    /// <summary>
+    /// Determines whether to skip inserting a line at a given index by returning true for out-of-range positions, blank previous lines, lines adjacent to opening braces, or lines starting with a closing brace, and otherwise returns false with no side effects.
+    /// </summary>
+    /// <param name="lines">The lines.</param>
+    /// <param name="idx">The idx.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool ShouldSkipInsertion(List<string> lines, int idx)
     {
         if (idx <= 0 || idx >= lines.Count) return true;
@@ -255,6 +290,11 @@ public class BlankLinePaddingConverter : ISourceTransformation
 
         return false;
     }
+
+    /// <summary>
+    /// Returns true if any of the listed blank-line padding settings is enabled, otherwise false, with no side effects and only reading application settings.
+    /// </summary>
+    /// <returns>A bool value produced by this method.</returns>
 
     private static bool AnySettingEnabled()
     {

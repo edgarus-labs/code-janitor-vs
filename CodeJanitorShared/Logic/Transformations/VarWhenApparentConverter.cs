@@ -41,6 +41,12 @@ public class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformati
 
     private sealed class VarRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// This method rewrites a local declaration&apos;s explicit type to `var` when the declaration has a single variable with an initializer and the type is apparent, otherwise delegating to the base visitor.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
         {
             var declaration = node.Declaration;
@@ -70,6 +76,13 @@ public class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformati
 
             return node.WithDeclaration(declaration.WithType(varType));
         }
+
+        /// <summary>
+        /// Determines whether the initializer&apos;s syntactic type matches the declared type by comparing type text for object creation, cast, or array creation, with no side effects.
+        /// </summary>
+        /// <param name="declaredType">The declared type.</param>
+        /// <param name="initializer">The initializer.</param>
+        /// <returns>A bool value produced by this method.</returns>
 
         private static bool IsTypeApparent(TypeSyntax declaredType, ExpressionSyntax initializer)
         {

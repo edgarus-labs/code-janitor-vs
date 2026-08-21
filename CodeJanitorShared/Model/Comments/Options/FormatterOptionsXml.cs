@@ -30,10 +30,22 @@ public class FormatterOptionsXml
     /// </summary>
     public Dictionary<string, FormatterOptionsXmlTag> Tags { get; set; }
 
+    /// <summary>
+    /// Returns the default options if the tag name is not found, otherwise creates and returns a new XmlTagOptions instance combining the tag-specific settings with the default options, without modifying any state or throwing exceptions.
+    /// </summary>
+    /// <param name="tagName">The tag name.</param>
+    /// <returns>A IXmlTagOptions value produced by this method.</returns>
+
     public IXmlTagOptions GetTagOptions(string tagName)
     {
         return !Tags.TryGetValue(tagName, out var tag) ? Default : new XmlTagOptions(tag, Default);
     }
+
+    /// <summary>
+    /// Converts a Settings object into a FormatterOptionsXml instance, configuring XML doc comment formatting rules for tags such as summary, code, and list elements, with no side effects.
+    /// </summary>
+    /// <param name="settings">The settings.</param>
+    /// <returns>A FormatterOptionsXml value produced by this method.</returns>
 
     internal static FormatterOptionsXml FromSettings(Settings settings)
     {

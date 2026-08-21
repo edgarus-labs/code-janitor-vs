@@ -103,6 +103,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
         return SyntaxFactory.List(rebuilt);
     }
 
+    /// <summary>
+    /// Returns true for a UsingDirectiveSyntax if it is global, malformed, or has any directive, comment, documentation, or disabled-text trivia, indicating that reordering it should be avoided; the method has no side effects.
+    /// </summary>
+    /// <param name="u">The u.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     private static bool IsUnsafeToReorder(UsingDirectiveSyntax u)
     {
         if (u.GlobalKeyword.IsKind(SyntaxKind.GlobalKeyword))
@@ -125,6 +131,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
             t.IsKind(SyntaxKind.DisabledTextTrivia));
     }
 
+    /// <summary>
+    /// Returns 2 for using directives with an alias, 1 for static using directives, and 0 otherwise, with no side effects or exceptions thrown.
+    /// </summary>
+    /// <param name="u">The u.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int GroupRank(UsingDirectiveSyntax u)
     {
         if (u.Alias != null)
@@ -134,6 +146,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
 
         return u.StaticKeyword.IsKind(SyntaxKind.StaticKeyword) ? 1 : 0;
     }
+
+    /// <summary>
+    /// Returns 0 for alias usings or usings starting with &quot;System&quot; (exact &quot;System&quot; or &quot;System.&quot;), otherwise 1, with no side effects.
+    /// </summary>
+    /// <param name="u">The u.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     private static int SystemRank(UsingDirectiveSyntax u)
     {
@@ -147,6 +165,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
 
         return name == "System" || name.StartsWith("System.", StringComparison.Ordinal) ? 0 : 1;
     }
+
+    /// <summary>
+    /// Returns the alias name if the using directive has an alias, otherwise returns its namespace/name (or an empty string if null), with no side effects.
+    /// </summary>
+    /// <param name="u">The u.</param>
+    /// <returns>A string value produced by this method.</returns>
 
     private static string SortName(UsingDirectiveSyntax u)
     {
@@ -167,6 +191,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
     {
         public bool Changed { get; private set; }
 
+        /// <summary>
+        /// Overrides compilation unit visiting to sort the using directives, and if their order changed, marks the node as changed and returns a new node with the sorted usings; otherwise returns the visited node unchanged.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
         {
             node = (CompilationUnitSyntax)base.VisitCompilationUnit(node);
@@ -182,6 +212,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
             return node;
         }
 
+        /// <summary>
+        /// Overrides namespace declaration visiting by sorting its using directives and, if any reordering occurred, marks the syntax tree as changed and returns a new node with the sorted usings.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
         {
             node = (NamespaceDeclarationSyntax)base.VisitNamespaceDeclaration(node);
@@ -196,6 +232,12 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
 
             return node;
         }
+
+        /// <summary>
+        /// Visits a file-scoped namespace declaration, sorts its usings, and if the order changed, marks the tree as changed and returns the node with reordered usings; otherwise returns the visited node unchanged.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
 
         public override SyntaxNode VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node)
         {

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
@@ -356,6 +356,7 @@ public sealed class CodeJanitorPackage : AsyncPackage
     {
         // Initialize the individual commands, which internally register for command events.
         await AboutCommand.InitializeAsync(this);
+        await AddXmlDocCommand.InitializeAsync(this);
         await BuildProgressToolWindowCommand.InitializeAsync(this);
         await CleanupActiveCodeCommand.InitializeAsync(this);
         await CleanupAllCodeCommand.InitializeAsync(this);

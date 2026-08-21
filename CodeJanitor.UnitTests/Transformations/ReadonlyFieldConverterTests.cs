@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -56,24 +56,92 @@ public class ReadonlyFieldConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void FieldPassedAsRefArgumentInConstructor_BecomesReadonly()
+    public void FieldPassedAsRefArgumentInConstructor_StaysMutable()
     {
-        // Per the C# language spec, a readonly field may be passed by ref/out within the
-        // constructor of its declaring type (definite-assignment window), so this is safe.
         var input = "class C { private int _x; public C() { Helper(ref _x); } }";
-        var expected = "class C { private readonly int _x; public C() { Helper(ref _x); } }";
 
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void FieldPassedAsOutArgumentInConstructor_BecomesReadonly()
+    public void FieldPassedAsOutArgumentInConstructor_StaysMutable()
     {
         var input = "class C { private int _x; public C() { Helper(out _x); } }";
-        var expected = "class C { private readonly int _x; public C() { Helper(out _x); } }";
 
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldMemberPassedAsRefArgumentInMethod_StaysMutable()
+    {
+        var input = "class C { private Point _pt; void M() { Helper(ref _pt.X); } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldMemberPassedAsOutArgumentInMethod_StaysMutable()
+    {
+        var input = "class C { private Point _pt; void M() { int.TryParse(\"1\", out _pt.X); } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldMemberPassedAsRefArgumentInConstructor_StaysMutable()
+    {
+        var input = "class C { private Point _pt; public C() { Helper(ref _pt.X); } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldMemberPassedAsOutArgumentInConstructor_StaysMutable()
+    {
+        var input = "class C { private Point _pt; public C() { Helper(out _pt.X); } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void DeepObjectFieldMemberPassedAsRefArgument_StaysMutable()
+    {
+        var input = "class C { private Nested _n; void M() { Helper(ref this._n.Deep.Value); } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldMemberAssignedInMethod_StaysMutable()
+    {
+        var input = "class C { private Point _pt; void M() { _pt.X = 10; } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldMemberIncrementedInMethod_StaysMutable()
+    {
+        var input = "class C { private Point _pt; void M() { _pt.X++; } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ObjectFieldElementPassedAsRef_StaysMutable()
+    {
+        var input = "class C { private int[] _arr; void M() { Helper(ref _arr[0]); } }";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
     }
 
     [TestMethod]

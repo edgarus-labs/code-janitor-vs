@@ -14,6 +14,12 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
 {
     public string Name => "Update single-line methods";
 
+    /// <summary>
+    /// Returns the original source unchanged if it is null/empty or the setting is disabled, otherwise parses the source as a C# syntax tree, applies SingleLineMethodRewriter to rewrite single-line methods, and returns the resulting full string.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !Settings.Default.Cleaning_UpdateSingleLineMethods)
@@ -31,6 +37,12 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
 
     private sealed class SingleLineMethodRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Visits a method declaration and, if it has a non-abstract single-line body, rewrites it across multiple lines, otherwise returns the visited node unchanged.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             // First visit children
@@ -53,6 +65,12 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
             return SpreadMethodOntoMultipleLines(visited);
         }
 
+        /// <summary>
+        /// Returns true if the given block body is non-null, has at least one statement, and its full text spans at most two lines (a heuristic for a single-line method body), otherwise false, with no side effects or thrown exceptions.
+        /// </summary>
+        /// <param name="body">The body.</param>
+        /// <returns>A bool value produced by this method.</returns>
+
         private bool IsSingleLineMethodBody(BlockSyntax body)
         {
             if (body == null || body.Statements.Count == 0)
@@ -68,6 +86,12 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
 
             return lineCount <= 2;
         }
+
+        /// <summary>
+        /// This method returns a new MethodDeclarationSyntax with its body reformatted so each statement appears on a new indented line (using hardcoded \r\n and four spaces) and rebuilds the block via SyntaxFactory.ParseStatement, falling back to returning the original method if there is no body or parsing fails.
+        /// </summary>
+        /// <param name="method">The method.</param>
+        /// <returns>A MethodDeclarationSyntax value produced by this method.</returns>
 
         private MethodDeclarationSyntax SpreadMethodOntoMultipleLines(MethodDeclarationSyntax method)
         {

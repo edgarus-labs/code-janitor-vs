@@ -60,15 +60,31 @@ internal sealed class CommentFormatter : IEquatable<string>
         }
     }
 
+    /// <summary>
+    /// Compares the string returned by ToString() to the given string using ordinal string equality, returning true if equal and false otherwise, with no side effects.
+    /// </summary>
+    /// <param name="other">The other.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
     public bool Equals(string other)
     {
         return string.Equals(ToString(), other);
     }
 
+    /// <summary>
+    /// Returns the string representation of the internal builder with trailing whitespace removed, with no side effects or exceptions.
+    /// </summary>
+    /// <returns>A string value produced by this method.</returns>
+
     public override string ToString()
     {
         return _builder.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// Aligns param tag OpenTag strings by padding to the longest param tag length, but only when there are multiple param tags and the first is not split after opening, modifying the OpenTag values in place.
+    /// </summary>
+    /// <param name="xml">The xml.</param>
 
     private static void AlignParamTags(CommentLineXml xml)
     {
@@ -87,6 +103,11 @@ internal sealed class CommentFormatter : IEquatable<string>
             }
         }
     }
+
+    /// <summary>
+    /// Appends the character&apos;s string representation by delegating to the Append(string) overload, modifying the underlying buffer or output state.
+    /// </summary>
+    /// <param name="value">The value.</param>
 
     private void Append(char value)
     {

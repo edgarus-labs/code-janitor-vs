@@ -19,7 +19,10 @@ public class BuildProgressViewModel : Bindable
 
     public bool HasBuildFailed
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -35,7 +38,10 @@ public class BuildProgressViewModel : Bindable
 
     public bool IsBuildActive
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -52,7 +58,10 @@ public class BuildProgressViewModel : Bindable
 
     public bool IsProgressIndeterminate
     {
-        get { return GetPropertyValue<bool>(); }
+        get
+        {
+            return GetPropertyValue<bool>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -73,7 +82,10 @@ public class BuildProgressViewModel : Bindable
 
     public double ProgressPercentage
     {
-        get { return GetPropertyValue<double>(); }
+        get
+        {
+            return GetPropertyValue<double>();
+        }
         set
         {
             if (SetPropertyValue(value))

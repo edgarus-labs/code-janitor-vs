@@ -64,7 +64,10 @@ public class CodeItemRegion : BaseCodeItem, ICodeItemParent
 
     public bool IsExpanded
     {
-        get { return _isExpanded; }
+        get
+        {
+            return _isExpanded;
+        }
         set
         {
             if (_isExpanded != value)

@@ -78,7 +78,10 @@ public class SpadeViewModel : Bindable
 
     public string NameFilter
     {
-        get { return GetPropertyValue<string>(); }
+        get
+        {
+            return GetPropertyValue<string>();
+        }
         set
         {
             if (SetPropertyValue(value))
@@ -94,7 +97,10 @@ public class SpadeViewModel : Bindable
 
     public SetCodeItems OrganizedCodeItems
     {
-        get { return _organizedCodeItems; }
+        get
+        {
+            return _organizedCodeItems;
+        }
         private set
         {
             if (_organizedCodeItems != value)
@@ -119,7 +125,10 @@ public class SpadeViewModel : Bindable
 
     public SetCodeItems RawCodeItems
     {
-        get { return _rawCodeItems; }
+        get
+        {
+            return _rawCodeItems;
+        }
         set
         {
             if (_rawCodeItems != value)

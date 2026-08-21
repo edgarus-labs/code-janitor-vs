@@ -42,6 +42,12 @@ internal static class FileHeaderHelper
         }
     }
 
+    /// <summary>
+    /// Returns the header position based on the document&apos;s code language, using the saved setting only for C# and defaulting to DocumentStart otherwise, while ensuring execution on the UI thread.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <returns>A HeaderPosition value produced by this method.</returns>
+
     internal static HeaderPosition GetFileHeaderPositionFromSettings(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -54,6 +60,14 @@ internal static class FileHeaderHelper
                 return HeaderPosition.DocumentStart;
         }
     }
+
+    /// <summary>
+    /// Returns the total character length of leading comment headers in the given text based on the specified language, summing lengths for each applicable comment syntax, and for C# optionally skipping using directives.
+    /// </summary>
+    /// <param name="language">The language.</param>
+    /// <param name="text">The text.</param>
+    /// <param name="skipUsings">The skip usings.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     internal static int GetHeaderLength(CodeLanguage language, string text, bool skipUsings = false)
     {
@@ -105,6 +119,14 @@ internal static class FileHeaderHelper
         }
     }
 
+    /// <summary>
+    /// Determines the header length in the given text by delegating to a specialized overload that skips usings when skipUsings is true, or to the standard header-length calculation otherwise, with no exceptions thrown.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="commentSyntax">The comment syntax.</param>
+    /// <param name="skipUsings">The skip usings.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     internal static int GetHeaderLength(string text, string commentSyntax, bool skipUsings)
     {
         if (skipUsings)
@@ -114,6 +136,15 @@ internal static class FileHeaderHelper
 
         return GetHeaderLength(text, commentSyntax);
     }
+
+    /// <summary>
+    /// Determines the header length in the given text using the provided comment delimiters, delegating to a variant that skips using directives when skipUsings is true, with no side effects.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="commentSyntaxStart">The comment syntax start.</param>
+    /// <param name="commentSyntaxEnd">The comment syntax end.</param>
+    /// <param name="skipUsings">The skip usings.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     internal static int GetHeaderLength(string text, string commentSyntaxStart, string commentSyntaxEnd, bool skipUsings)
     {
@@ -148,6 +179,13 @@ internal static class FileHeaderHelper
 
         return Regex.Matches(relevantTextBlock, Environment.NewLine).Count + 1;
     }
+
+    /// <summary>
+    /// Returns the sequence of empty or whitespace-only lines encountered after skipping the specified number of lines, stopping at the first non-empty line and producing no side effects.
+    /// </summary>
+    /// <param name="lines">The lines.</param>
+    /// <param name="nbLinesToSkip">The nb lines to skip.</param>
+    /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
 
     private static IEnumerable<string> GetEmptyLines(IEnumerable<string> lines, int nbLinesToSkip)
     {
@@ -242,6 +280,13 @@ internal static class FileHeaderHelper
         return nbChar;
     }
 
+    /// <summary>
+    /// Removes using directives, then computes the total character length of consecutive comment-prefixed lines (including one newline per line) and returns that length plus one, or zero if no such header lines exist.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="commentSyntax">The comment syntax.</param>
+    /// <returns>A int value produced by this method.</returns>
+
     private static int GetHeaderLengthSkipUsings(string text, string commentSyntax)
     {
         text = SkipUsings(text);
@@ -255,6 +300,14 @@ internal static class FileHeaderHelper
 
         return nbChar == 0 ? 0 : nbChar + 1;
     }
+
+    /// <summary>
+    /// We need to produce exactly one concise summary sentence, plain text, no XML, no quotes. Mention key behavior and side effects. The method: skips usings via SkipUsings (side effect? modifies local copy? It reassigns text, but SkipUsings might have side effects? We don&apos;t know, but likely pure. Then finds comment syntax start and end, if missing returns 0. Computes header substring length, counts newlines, returns computed length. We need mention behavior: returns length of header comment after skipping usings, compensating for newlines and end delimiter. Side effects: none (or modifies local text only). We&apos;ll produce a concise sentence. Let&apos;s craft: &quot;After skipping using directives, this method returns the length of the header comment delimited by the given syntax (or 0 if markers are absent or empty), adjusting for newline characters and including the end delimiter length.&quot; But need to be accurate: It returns header.Length + commentSyntaxEnd.Length - nbNewLines + 1. Since endIndex is index of commentSyntaxEnd, substring from startIndex to endIndex-startIndex excludes the end delimiter. Then adds end delimiter length, subtracts newlines, plus 1. Why plus 1? Possibly to include.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="commentSyntaxStart">The comment syntax start.</param>
+    /// <param name="commentSyntaxEnd">The comment syntax end.</param>
+    /// <returns>A int value produced by this method.</returns>
 
     private static int GetHeaderLengthSkipUsings(string text, string commentSyntaxStart, string commentSyntaxEnd)
     {
@@ -278,6 +331,14 @@ internal static class FileHeaderHelper
 
         return header.Length + commentSyntaxEnd.Length - nbNewLines + 1;
     }
+
+    /// <summary>
+    /// Skips the given number of lines and returns a list of consecutive subsequent lines that start with the pattern, stopping at the first non-matching line, with no side effects.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="lines">The lines.</param>
+    /// <param name="nbLinesToSkip">The nb lines to skip.</param>
+    /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
 
     private static IEnumerable<string> GetLinesStartingWith(string pattern, IEnumerable<string> lines, int nbLinesToSkip = 0)
     {
@@ -325,6 +386,12 @@ internal static class FileHeaderHelper
         return indexes.Min();
     }
 
+    /// <summary>
+    /// We need to produce exactly one concise summary sentence, plain text, no XML, no quotes. Mention key behavior and side effects. The method removes using directives from a C# document by locating the last &quot;using &quot; before &quot;namespace &quot; and returning the substring after that, trimming leading whitespace. Potential issue: if no using found, startIndex goes -1 but loop condition? Let&apos;s analyze: namespaceIndex = document.IndexOf(&quot;namespace &quot;). If -1, loop not entered, lastUsingIndex 0, afterUsingIndex 0, returns whole document trim. If namespace found, loop runs. startIndex initially 0. while startIndex &lt; namespaceIndex. lastUsingIndex = startIndex (initially 0). Then startIndex = IndexOf(&quot;using &quot;, startIndex). If found, returns index &gt;=0, then startIndex++ increments to index+1. If not found, returns -1, then startIndex++ increments to 0 (since -1+1=0). Then break. So if no using, lastUsingIndex remains 0. afterUsingIndex = 0 if lastUsingIndex &lt;= 0. Returns document.Substring(0).TrimStart() = whole document. If using found, lastUsingIndex set to previous start.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     private static string SkipUsings(string document)
     {
         // we cannot simply look for the last using since it can be used inside the code
@@ -353,6 +420,12 @@ internal static class FileHeaderHelper
 
         return document.Substring(afterUsingIndex).TrimStart();
     }
+
+    /// <summary>
+    /// Splits the input text on every occurrence of Environment.NewLine and returns all resulting substrings, including empty entries, without altering the original string.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
 
     private static IEnumerable<string> SplitLines(string text)
     {

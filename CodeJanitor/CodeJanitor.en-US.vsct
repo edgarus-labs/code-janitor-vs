@@ -271,6 +271,16 @@
         </Strings>
       </Button>
 
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAddXmlDoc" priority="0x0100" type="Button">
+        <Icon guid="GuidImageCommentFormat" id="IconCommentFormat" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Add XMLDoc</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSettingCleanupOnSave" priority="0x0100" type="Button">
         <Icon guid="GuidImageOptions" id="IconOptions" />
         <CommandFlag>DefaultInvisible</CommandFlag>

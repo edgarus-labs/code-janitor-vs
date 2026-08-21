@@ -153,6 +153,10 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
             }
         }
 
+        /// <summary>
+        /// Restores all original settings values from _originalValues into Settings.Default, thereby reverting any changes made during the object&apos;s lifetime.
+        /// </summary>
+
         public void Dispose()
         {
             foreach (var item in _originalValues)

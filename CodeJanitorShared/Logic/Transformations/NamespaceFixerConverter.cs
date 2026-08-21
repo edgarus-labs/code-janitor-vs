@@ -12,6 +12,13 @@ namespace CodeJanitor.Logic.Transformations;
 
 public class NamespaceFixerConverter
 {
+    /// <summary>
+    /// Parses the C# source and, if it has a top-level namespace whose name differs from expectedNamespace, returns the source with that namespace name replaced by expectedNamespace; otherwise returns the original source unchanged, with no side effects or exceptions thrown.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="expectedNamespace">The expected namespace.</param>
+    /// <returns>A string value produced by this method.</returns>
+
     public string FixNamespace(string source, string expectedNamespace)
     {
         if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(expectedNamespace))
@@ -42,6 +49,12 @@ public class NamespaceFixerConverter
             + expectedNamespace
             + source.Substring(namespaceSpan.End);
     }
+
+    /// <summary>
+    /// Returns the sole top-level namespace declaration from the compilation unit, or null if there are zero or multiple, with no side effects.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <returns>A BaseNamespaceDeclarationSyntax value produced by this method.</returns>
 
     private static BaseNamespaceDeclarationSyntax GetTopLevelNamespace(CompilationUnitSyntax root)
     {
