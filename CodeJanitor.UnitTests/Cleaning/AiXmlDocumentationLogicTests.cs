@@ -433,41 +433,6 @@ public int Second(int y)
     }
 
     [TestMethod]
-<<<<<<< HEAD
-    public void Settings_Defaults_IncludeAiXmlDocSeparationAndFeature()
-    {
-        var settings = new CodeJanitor.Properties.Settings();
-
-        Assert.IsFalse(settings.Cleaning_AiXmlDocumentationEnabled, "Cleaning_AiXmlDocumentationEnabled default should be false.");
-        Assert.IsFalse(settings.Cleaning_AiXmlDocumentationRunDuringCleanup, "Cleaning_AiXmlDocumentationRunDuringCleanup default should be false.");
-        Assert.IsTrue(settings.Feature_AddXmlDoc, "Feature_AddXmlDoc default should be true.");
-    }
-
-    [TestMethod]
-    public void CleaningUpdateViewModel_ContainsRunDuringCleanupProperty()
-    {
-        var settings = new CodeJanitor.Properties.Settings();
-        var viewModel = new CodeJanitor.UI.Dialogs.Options.Cleaning.CleaningUpdateViewModel(null, settings);
-
-        viewModel.AiXmlDocumentationRunDuringCleanup = true;
-        Assert.IsTrue(viewModel.AiXmlDocumentationRunDuringCleanup);
-
-        viewModel.AiXmlDocumentationRunDuringCleanup = false;
-        Assert.IsFalse(viewModel.AiXmlDocumentationRunDuringCleanup);
-    }
-
-    [TestMethod]
-    public void FeaturesViewModel_ContainsAddXmlDocProperty()
-    {
-        var settings = new CodeJanitor.Properties.Settings();
-        var viewModel = new CodeJanitor.UI.Dialogs.Options.General.FeaturesViewModel(null, settings);
-
-        viewModel.AddXmlDoc = true;
-        Assert.IsTrue(viewModel.AddXmlDoc);
-
-        viewModel.AddXmlDoc = false;
-        Assert.IsFalse(viewModel.AddXmlDoc);
-=======
     public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_ReassemblesServerSentEventStream()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
@@ -525,7 +490,6 @@ public int Second(int y)
         if (member is PropertyDeclarationSyntax property) return property.Identifier.ValueText;
 
         return member.Kind().ToString();
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     }
 
     private static int CountOccurrences(string text, string value)

@@ -24,12 +24,6 @@ internal sealed class RazorFormatterLogic
 
     private static RazorFormatterLogic _instance;
 
-    /// <summary>
-    /// Returns a cached singleton RazorFormatterLogic instance, lazily creating and storing it with the given package on first call without thread synchronization.
-    /// </summary>
-    /// <param name="package">The package.</param>
-    /// <returns>A RazorFormatterLogic value produced by this method.</returns>
-
     internal static RazorFormatterLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new RazorFormatterLogic(package));
@@ -39,11 +33,6 @@ internal sealed class RazorFormatterLogic
     {
         _package = package;
     }
-
-    /// <summary>
-    /// Formats a Razor document in place by replacing its entire text with formatted content (preserving markers) only when it is a .razor file, formatting is enabled, and the non-whitespace text differs from the original.
-    /// </summary>
-    /// <param name="textDocument">The text document.</param>
 
     internal void FormatRazorDocument(TextDocument textDocument)
     {
@@ -64,18 +53,7 @@ internal sealed class RazorFormatterLogic
         start.ReplaceText(end, formatted, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
 
-<<<<<<< HEAD
-    /// <summary>
-    /// Formats Razor text by sequentially applying code block, control block, and tag attribute formatting with.
-    /// </summary>
-    /// <param name="input">The input.</param>
-    /// <param name="attributeInlineThreshold">The attribute inline threshold.</param>
-    /// <returns>A string value produced by this method.</returns>
-
-    internal static string FormatRazorText(string input, int attributeInlineThreshold)
-=======
     internal static string FormatRazorText(string input)
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         if (string.IsNullOrEmpty(input)) return input;
 
@@ -85,23 +63,10 @@ internal sealed class RazorFormatterLogic
         return FormatControlBlocks(withFormattedCode, lineEnding);
     }
 
-    /// <summary>
-    /// Returns the string &quot;\r\n&quot; if the input contains a CRLF sequence, otherwise returns &quot;\n&quot;, with no side effects or thrown exceptions.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string DetectLineEnding(string text)
     {
         return text.Contains("\r\n") ? "\r\n" : "\n";
     }
-
-    /// <summary>
-    /// Finds directive-delimited C# code block ranges, formats each block&apos;s content with TryFormatCSharpBlock, applies base indentation, and replaces the original content in the text, returning the original text unchanged if no ranges are found or formatting fails.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
 
     private static string FormatCodeBlocks(string text, string lineEnding)
     {
@@ -127,19 +92,7 @@ internal sealed class RazorFormatterLogic
         return buffer;
     }
 
-<<<<<<< HEAD
-    /// <summary>
-    /// Finds control block ranges in the input text and, for each range in reverse order, replaces the block with its formatted version (skipping if unchanged or failed) while inserting a lineEnding separator when the following character is non-whitespace, returning the modified string without mutating the original.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="threshold">The threshold.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
-    private static string FormatControlBlocks(string text, int threshold, string lineEnding)
-=======
     private static string FormatControlBlocks(string text, string lineEnding)
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         var ranges = FindControlBlockRanges(text);
         if (ranges.Count == 0) return text;
@@ -169,13 +122,6 @@ internal sealed class RazorFormatterLogic
 
         return buffer;
     }
-
-    /// <summary>
-    /// Wraps the input in a dummy C# class, parses it, returns null if there are syntax errors or no class found, otherwise returns the formatted inner code with normalized whitespace using the specified line ending and trimmed of leading/trailing newlines.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
 
     private static string TryFormatCSharpBlock(string content, string lineEnding)
     {
@@ -209,14 +155,6 @@ internal sealed class RazorFormatterLogic
         return inner.Trim('\r', '\n');
     }
 
-    /// <summary>
-    /// Returns the input unchanged if it is null or whitespace; otherwise normalizes line endings to &apos;\n&apos;, splits the content into lines, and produces a new string starting with a line ending, each line prefixed with baseIndent and joined by lineEnding, then ending with another lineEnding and baseIndent.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <param name="baseIndent">The base indent.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string IndentBlock(string content, string baseIndent, string lineEnding)
     {
         if (string.IsNullOrWhiteSpace(content)) return content;
@@ -242,20 +180,7 @@ internal sealed class RazorFormatterLogic
         return builder.ToString();
     }
 
-<<<<<<< HEAD
-    /// <summary>
-    /// Returns a formatted control block with indented inner content inserted between braces, or null if the input is null/whitespace or lacks a valid &apos;@&apos; and &apos;{&apos;, with no side effects.
-    /// </summary>
-    /// <param name="rawBlock">The raw block.</param>
-    /// <param name="baseIndent">The base indent.</param>
-    /// <param name="threshold">The threshold.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
-    private static string TryFormatControlBlock(string rawBlock, string baseIndent, int threshold, string lineEnding)
-=======
     private static string TryFormatControlBlock(string rawBlock, string baseIndent, string lineEnding)
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         if (string.IsNullOrWhiteSpace(rawBlock) || rawBlock[0] != '@') return null;
 
@@ -292,14 +217,6 @@ internal sealed class RazorFormatterLogic
 
         return builder.ToString();
     }
-
-    /// <summary>
-    /// We need to analyze the given C# method and produce exactly one concise summary sentence. The method is private static string TryBuildControlBlockHeader(string rawBlock, int braceIndex, string lineEnding). The body is provided, but it&apos;s truncated at the end (&quot;re...&quot;). However, the key behavior can be inferred: it extracts header text before brace, checks for @try/@finally returns as is, handles @catch with condition normalization, @else with optional &quot;if&quot; condition, and otherwise tries to find a condition range and build header from keyword and raw condition. Side effects: none apparent, just parsing. We need one concise sentence mentioning key behavior and side effects. Since exceptions none, side effects none, likely returns null on invalid. We&apos;ll craft a summary. Need to mention: It trims header before brace, returns unchanged for @try/@finally, normalizes @catch and @else-if conditions, falls back to generic keyword+condition parsing, returns null for malformed headers, no side effects. But exactly one sentence. Keep concise. Let&apos;s produce: &quot;This method parses a control block header preceding a brace, returning the original header for @try/@finally, normalizing @catch and @else-if conditionals via TryNormalizeControl.
-    /// </summary>
-    /// <param name="rawBlock">The raw block.</param>
-    /// <param name="braceIndex">The brace index.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
 
     private static string TryBuildControlBlockHeader(string rawBlock, int braceIndex, string lineEnding)
     {
@@ -366,14 +283,6 @@ internal sealed class RazorFormatterLogic
         return TryNormalizeControlHeader(keyword, rawCondition, lineEnding) ?? ("@" + keyword + " " + rawCondition.Trim());
     }
 
-    /// <summary>
-    /// We need to analyze the method. It takes keyword, condition, lineEnding. It parses a statement by concatenating keyword + condition + &quot;{}&quot;, normalizes whitespace with IndentUnit and lineEnding, gets full string. Then finds index of &apos;{&apos;. If not found, returns null. Otherwise returns &quot;@&quot; + substring before brace, trimmed end. So it normalizes control header like &quot;if (x)&quot; to &quot;@if (x)&quot;? Actually returns string starting with @. Side effects: none obvious, but note that parsing may throw? But detected none. Also it uses SyntaxFactory.ParseStatement which could throw on invalid syntax but method doesn&apos;t catch. But the prompt says &quot;Detected thrown exceptions: none detected&quot; so we ignore. We need one concise summary sentence mentioning key behavior and side effects. Behavior: constructs a statement by appending &quot;{}&quot; to keyword and condition, normalizes whitespace, extracts text before opening brace, trims, prefixes with &quot;@&quot; or returns null if no brace. Side effects: none (no state change). Also note that it assumes keyword and condition form a valid statement. Let&apos;s write a concise summary. Need plain text only, no quotes. Something like: &quot;Parses keyword plus condition plus an empty.
-    /// </summary>
-    /// <param name="keyword">The keyword.</param>
-    /// <param name="condition">The condition.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string TryNormalizeControlHeader(string keyword, string condition, string lineEnding)
     {
         var statement = SyntaxFactory.ParseStatement(keyword + condition + "{}")
@@ -389,20 +298,7 @@ internal sealed class RazorFormatterLogic
         return "@" + statement.Substring(0, braceIndex).TrimEnd();
     }
 
-<<<<<<< HEAD
-    /// <summary>
-    /// Splits mixed Razor content into markup and code segments, trims and formats each segment using tag or C# statement formatters with indentation, skips blank code segments, and joins the non-empty formatted results with the specified line ending without throwing exceptions.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <param name="indent">The indent.</param>
-    /// <param name="threshold">The threshold.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
-    private static string FormatMixedBlockInner(string content, string indent, int threshold, string lineEnding)
-=======
     private static string FormatMixedBlockInner(string content, string indent, string lineEnding)
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         var segments = SplitMarkupAndCodeSegments(content);
         if (segments.Count == 0) return string.Empty;
@@ -428,14 +324,6 @@ internal sealed class RazorFormatterLogic
 
         return string.Join(lineEnding, formattedSegments.Where(x => !string.IsNullOrWhiteSpace(x)));
     }
-
-    /// <summary>
-    /// Wraps the input content in a dummy C# method, parses it, returns null on syntax errors or missing body, otherwise normalizes whitespace, extracts and re-indents the inner statements with the given indent and line ending, with no side effects.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <param name="indent">The indent.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
 
     private static string TryFormatCSharpStatements(string content, string indent, string lineEnding)
     {
@@ -468,13 +356,6 @@ internal sealed class RazorFormatterLogic
         return IndentLines(inner, indent, lineEnding);
     }
 
-    /// <summary>
-    /// Normalizes line endings to LF, trims the specified indent unit from the start of each non-blank line exactly once, and rejoins the lines with LF, with no external side effects.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <param name="indentUnit">The indent unit.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string TrimCommonLeadingIndent(string content, string indentUnit)
     {
         var lines = content.Replace("\r\n", "\n").Split('\n');
@@ -495,14 +376,6 @@ internal sealed class RazorFormatterLogic
         return string.Join("\n", lines);
     }
 
-    /// <summary>
-    /// Normalizes line endings to \n, splits into lines, prepends the indent to every line, and joins them with the specified lineEnding without adding a trailing line ending; it is a pure method with no side effects.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <param name="indent">The indent.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string IndentLines(string content, string indent, string lineEnding)
     {
         var lines = content.Replace("\r\n", "\n").Split('\n');
@@ -519,12 +392,6 @@ internal sealed class RazorFormatterLogic
 
         return builder.ToString();
     }
-
-    /// <summary>
-    /// Splits the input string into a list of RazorSegment objects by identifying HTML-like markup tags, while using a scanner state to skip over code regions and with no side effects beyond building and returning the segment list.
-    /// </summary>
-    /// <param name="content">The content.</param>
-    /// <returns>A List&lt;RazorSegment&gt; value produced by this method.</returns>
 
     private static List<RazorSegment> SplitMarkupAndCodeSegments(string content)
     {
@@ -572,14 +439,6 @@ internal sealed class RazorFormatterLogic
 
         return segments;
     }
-
-    /// <summary>
-    /// Updates the Razor scanner state based on the current and next characters, incrementing the index to skip escaped characters or closing comment/literal delimiters, and transitioning back to Default when a literal or comment ends.
-    /// </summary>
-    /// <param name="current">The current.</param>
-    /// <param name="next">The next.</param>
-    /// <param name="state">The state.</param>
-    /// <param name="index">The index.</param>
 
     private static void UpdateScannerState(char current, char next, ref RazorScannerState state, ref int index)
     {
@@ -663,127 +522,6 @@ internal sealed class RazorFormatterLogic
         }
     }
 
-<<<<<<< HEAD
-    /// <summary>
-    /// Scans text for HTML tags outside protected ranges, formats eligible tags via TryFormatTag, and returns a new string with replacements applied from the end, or the original text if no changes.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="protectedRanges">The protected ranges.</param>
-    /// <param name="threshold">The threshold.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
-    private static string FormatTagAttributes(string text, IReadOnlyList<RazorCodeBlockRange> protectedRanges, int threshold, string lineEnding)
-    {
-        var replacements = new List<TagReplacement>();
-        var index = 0;
-
-        while (index < text.Length)
-        {
-            if (text[index] != '<' || IsInsideProtectedRange(index, protectedRanges))
-            {
-                index++;
-                continue;
-            }
-
-            if (index + 1 >= text.Length)
-            {
-                break;
-            }
-
-            var next = text[index + 1];
-            if (next == '/' || next == '!' || next == '?')
-            {
-                index++;
-                continue;
-            }
-
-            var tagEnd = FindTagEnd(text, index);
-            if (tagEnd < 0)
-            {
-                index++;
-                continue;
-            }
-
-            if (AnyProtectedRangeInside(index, tagEnd, protectedRanges))
-            {
-                index = tagEnd + 1;
-                continue;
-            }
-
-            var rawTag = text.Substring(index, tagEnd - index + 1);
-            var replacement = TryFormatTag(rawTag, threshold, lineEnding);
-            if (replacement != null && !string.Equals(rawTag, replacement, StringComparison.Ordinal))
-            {
-                replacements.Add(new TagReplacement(index, tagEnd, replacement));
-            }
-
-            index = tagEnd + 1;
-        }
-
-        if (replacements.Count == 0) return text;
-
-        var output = text;
-        foreach (var replacement in replacements.OrderByDescending(x => x.Start))
-        {
-            output = output.Substring(0, replacement.Start)
-                + replacement.Replacement
-                + output.Substring(replacement.End + 1);
-        }
-
-        return output;
-    }
-
-    /// <summary>
-    /// Returns true if the index lies within any provided range inclusive of start and end, otherwise false, with no side effects.
-    /// </summary>
-    /// <param name="index">The index.</param>
-    /// <param name="ranges">The ranges.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
-    private static bool IsInsideProtectedRange(int index, IReadOnlyList<RazorCodeBlockRange> ranges)
-    {
-        for (var i = 0; i < ranges.Count; i++)
-        {
-            if (index >= ranges[i].Start && index <= ranges[i].End)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Returns true if any range in the list overlaps the given start-end interval and false otherwise, with no side effects or exceptions thrown.
-    /// </summary>
-    /// <param name="start">The start.</param>
-    /// <param name="end">The end.</param>
-    /// <param name="ranges">The ranges.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
-    private static bool AnyProtectedRangeInside(int start, int end, IReadOnlyList<RazorCodeBlockRange> ranges)
-    {
-        for (var i = 0; i < ranges.Count; i++)
-        {
-            if (ranges[i].Start <= end && ranges[i].End >= start)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Scans from start+1 for the first unquoted &apos;&gt;&apos; (tracking single/double quote state) and returns its index, or -1 if none exists, with no side effects or exceptions.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="start">The start.</param>
-    /// <returns>A int value produced by this method.</returns>
-
-=======
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     private static int FindTagEnd(string text, int start)
     {
         var quote = '\0';
@@ -824,22 +562,11 @@ internal sealed class RazorFormatterLogic
     }
 
     /// <summary>
-<<<<<<< HEAD
-    /// Normalizes a valid HTML/XML tag by trimming its content, rejecting empty, closing, or invalid tags, and returns a compact single-line form when the attribute count is within the threshold, otherwise a multi-line aligned form using the provided line ending, with no side effects.
-    /// </summary>
-    /// <param name="rawTag">The raw tag.</param>
-    /// <param name="threshold">The threshold.</param>
-    /// <param name="lineEnding">The line ending.</param>
-    /// <returns>A string value produced by this method.</returns>
-
-    private static string TryFormatTag(string rawTag, int threshold, string lineEnding)
-=======
     /// Skips a Razor transition so quotes belonging to C# code - such as the inner quotes in
     /// <c>href="@Assets["app.css"]"</c> - are not mistaken for HTML attribute delimiters.
     /// </summary>
 
     private static bool TrySkipRazorExpression(string text, int index, out int nextIndex)
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     {
         nextIndex = index;
 
@@ -868,48 +595,13 @@ internal sealed class RazorFormatterLogic
         {
             while (i < text.Length && IsIdentifierPart(text[i])) i++;
         }
-<<<<<<< HEAD
-
-        builder.Append(selfClosing ? " />" : ">");
-
-        return builder.ToString();
-    }
-
-    /// <summary>
-    /// Returns the index of the first whitespace character in the input string, or the string&apos;s length if none exists, with no side effects.
-    /// </summary>
-    /// <param name="inner">The inner.</param>
-    /// <returns>A int value produced by this method.</returns>
-
-    private static int FindNameEnd(string inner)
-    {
-        for (var i = 0; i < inner.Length; i++)
-=======
         else
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         {
             nextIndex = i;
 
             return true;
         }
 
-<<<<<<< HEAD
-        return inner.Length;
-    }
-
-    /// <summary>
-    /// Parses an attribute string by extracting name and optional =value tokens (skipping whitespace and consuming quoted or unquoted values) into a new List&lt;string&gt; with no side effects or thrown exceptions.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>A List&lt;string&gt; value produced by this method.</returns>
-
-    private static List<string> ParseAttributes(string text)
-    {
-        var result = new List<string>();
-        var i = 0;
-
-=======
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
         while (i < text.Length)
         {
             if (text[i] == '[')
@@ -1050,13 +742,6 @@ internal sealed class RazorFormatterLogic
         return char.IsLetterOrDigit(c) || c == '_';
     }
 
-    /// <summary>
-    /// Returns the leading spaces and tabs of the line containing the specified index by first locating the line start from the previous newline and then scanning forward, with no side effects.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="index">The index.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string GetLineIndent(string text, int index)
     {
         var lineStart = text.LastIndexOf('\n', Math.Max(0, index - 1));
@@ -1068,29 +753,6 @@ internal sealed class RazorFormatterLogic
         return text.Substring(lineStart, i - lineStart);
     }
 
-<<<<<<< HEAD
-    /// <summary>
-    /// Combines directive and control block ranges from the text into a single list ordered by start position, with no side effects.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>A List&lt;RazorCodeBlockRange&gt; value produced by this method.</returns>
-
-    private static List<RazorCodeBlockRange> FindProtectedRanges(string text)
-    {
-        var ranges = FindDirectiveCodeBlockRanges(text);
-        ranges.AddRange(FindControlBlockRanges(text));
-
-        return ranges.OrderBy(x => x.Start).ToList();
-    }
-
-    /// <summary>
-    /// Scans the input text for `@code` and `@functions` directives followed by a `{`, finds each matching closing brace, and returns a list of `RazorCodeBlockRange` objects spanning those blocks, skipping malformed occurrences without throwing exceptions.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>A List&lt;RazorCodeBlockRange&gt; value produced by this method.</returns>
-
-=======
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
     private static List<RazorCodeBlockRange> FindDirectiveCodeBlockRanges(string text)
     {
         var ranges = new List<RazorCodeBlockRange>();
@@ -1135,12 +797,6 @@ internal sealed class RazorFormatterLogic
 
         return ranges;
     }
-
-    /// <summary>
-    /// Scans the input text for Razor control-flow directives (@if, @for, @foreach, @while, @switch, @else, @try, @catch, @finally), skips optional conditions and whitespace, finds the matching opening and closing braces, and returns a list of RazorCodeBlockRange entries for each valid block without throwing exceptions.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <returns>A List&lt;RazorCodeBlockRange&gt; value produced by this method.</returns>
 
     private static List<RazorCodeBlockRange> FindControlBlockRanges(string text)
     {
@@ -1208,15 +864,6 @@ internal sealed class RazorFormatterLogic
         return ranges;
     }
 
-    /// <summary>
-    /// This method scans from directiveStart for the first &apos;(&apos; and then tracks nested parentheses while using scanner state to skip over non-code regions, returning true and setting the matching close-paren index when depth returns to zero, otherwise setting both out parameters to -1 and returning false; its side effects include updating openParenIndex, closeParenIndex, and advancing the inner loop index via UpdateScannerState.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="directiveStart">The directive start.</param>
-    /// <param name="openParenIndex">The open paren index.</param>
-    /// <param name="closeParenIndex">The close paren index.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
     private static bool TryFindConditionRange(string text, int directiveStart, out int openParenIndex, out int closeParenIndex)
     {
         openParenIndex = -1;
@@ -1261,14 +908,6 @@ internal sealed class RazorFormatterLogic
         return false;
     }
 
-    /// <summary>
-    /// Checks whether the given directive appears at the specified index as a whole word using a case-insensitive comparison, returning false for out-of-range or partial matches, with no side effects.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="index">The index.</param>
-    /// <param name="directive">The directive.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
     private static bool IsDirectiveAt(string text, int index, string directive)
     {
         if (index < 0 || index + directive.Length > text.Length) return false;
@@ -1280,13 +919,6 @@ internal sealed class RazorFormatterLogic
 
         return beforeOk && afterOk;
     }
-
-    /// <summary>
-    /// The user wants a concise summary sentence of the C# method `FindMatchingBrace`. The method is presumably scanning from an open brace index and tracking nesting depth while skipping comments, strings, chars, and verbatim strings, returning the index of the matching closing brace. I need to mention key behavior and side effects. Side effects: none apparent (it&apos;s a pure scan, no mutation except local variables). Exceptions: none detected. The body is truncated (ends with `...`), but I can infer the rest: it likely increments depth on `{` and decrements on `}`, returning `i` when depth becomes 0. I&apos;ll phrase it as one plain sentence. Key behavior: - Scans C# text from a given `{` index. - Tracks brace depth. - Ignores braces inside comments (`//`, `/* */`), character literals, regular strings, and verbatim strings (`@&quot;...&quot;` with `&quot;&quot;` escapes). - Handles escape sequences (`\\`). - Returns index of matching `}` (presumably), or maybe -1 if not found? Since the body is truncated, I&apos;ll say it returns the matching brace index when depth reaches zero. Side effects: none; it only reads.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="openBraceIndex">The open brace index.</param>
-    /// <returns>A int value produced by this method.</returns>
 
     private static int FindMatchingBrace(string text, int openBraceIndex)
     {
@@ -1423,11 +1055,8 @@ internal sealed class RazorFormatterLogic
         }
 
         internal int Start { get; }
-
         internal int End { get; }
-
         internal int BraceStart { get; }
-
         internal int BraceEnd { get; }
     }
 
@@ -1440,7 +1069,6 @@ internal sealed class RazorFormatterLogic
         }
 
         internal RazorSegmentKind Kind { get; }
-
         internal string Content { get; }
     }
 
@@ -1459,24 +1087,4 @@ internal sealed class RazorFormatterLogic
         StringLiteral,
         VerbatimStringLiteral
     }
-<<<<<<< HEAD
-
-    private readonly struct TagReplacement
-    {
-        internal TagReplacement(int start, int end, string replacement)
-        {
-            Start = start;
-            End = end;
-            Replacement = replacement;
-        }
-
-        internal int Start { get; }
-
-        internal int End { get; }
-
-        internal string Replacement { get; }
-    }
 }
-=======
-}
->>>>>>> b9e78414af282a58c367e7d5c92e87b209aead52
