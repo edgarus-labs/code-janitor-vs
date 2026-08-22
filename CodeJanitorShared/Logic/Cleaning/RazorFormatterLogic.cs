@@ -123,6 +123,12 @@ internal sealed class RazorFormatterLogic
         return buffer;
     }
 
+    /// <summary>
+    /// Parses the given C# content as the body of a dummy class and, if it contains no syntax errors, returns the whitespace-normalized inner block using the specified indent unit and line ending; otherwise returns null (or the original content if blank).
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TryFormatCSharpBlock(string content, string lineEnding)
     {
         if (string.IsNullOrWhiteSpace(content)) return content;
@@ -155,6 +161,13 @@ internal sealed class RazorFormatterLogic
         return inner.Trim('\r', '\n');
     }
 
+    /// <summary>
+    /// Returns the given content as a multi-line string with every line prefixed by baseIndent and the entire block wrapped between lineEnding separators, normalizing CRLF to LF and returning the input unchanged when null or whitespace.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="baseIndent">The base indent.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string IndentBlock(string content, string baseIndent, string lineEnding)
     {
         if (string.IsNullOrWhiteSpace(content)) return content;
@@ -180,6 +193,13 @@ internal sealed class RazorFormatterLogic
         return builder.ToString();
     }
 
+    /// <summary>
+    /// a control block string beginning with &apos;@&apos;, returning null when the input is blank, missing a brace, or has an unformattable header; otherwise it indents and recursively reformats the inner content between the braces, wrapping it with the header and braces using the provided base indent and line ending.
+    /// </summary>
+    /// <param name="rawBlock">The raw block.</param>
+    /// <param name="baseIndent">The base indent.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TryFormatControlBlock(string rawBlock, string baseIndent, string lineEnding)
     {
         if (string.IsNullOrWhiteSpace(rawBlock) || rawBlock[0] != '@') return null;
@@ -218,6 +238,13 @@ internal sealed class RazorFormatterLogic
         return builder.ToString();
     }
 
+    /// <summary>
+    /// s and normalizes a Razor control block header (handling `@try`, `@finally`, `@catch`, `@else if`, and conditional blocks like `@if`) by trimming the leading keyword, extracting and normalizing the parenthesized condition, and returning `null` for malformed input.
+    /// </summary>
+    /// <param name="rawBlock">The raw block.</param>
+    /// <param name="braceIndex">The brace index.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TryBuildControlBlockHeader(string rawBlock, int braceIndex, string lineEnding)
     {
         var headerText = rawBlock.Substring(0, braceIndex).TrimEnd();
@@ -283,6 +310,13 @@ internal sealed class RazorFormatterLogic
         return TryNormalizeControlHeader(keyword, rawCondition, lineEnding) ?? ("@" + keyword + " " + rawCondition.Trim());
     }
 
+    /// <summary>
+    /// Normalizes a control-flow header (keyword plus condition) into a verbatim-string-compatible prefix by parsing it as a statement and returning the text up to the opening brace prefixed with &quot;@&quot;, or null if no brace is present.
+    /// </summary>
+    /// <param name="keyword">The keyword.</param>
+    /// <param name="condition">The condition.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TryNormalizeControlHeader(string keyword, string condition, string lineEnding)
     {
         var statement = SyntaxFactory.ParseStatement(keyword + condition + "{}")
@@ -298,6 +332,13 @@ internal sealed class RazorFormatterLogic
         return "@" + statement.Substring(0, braceIndex).TrimEnd();
     }
 
+    /// <summary>
+    /// MixedBlockInner splits mixed Razor content into markup and code segments, trims and indents each segment using the provided indent and line ending (attempting C# statement formatting for code segments), then returns the non-empty results joined by the line ending.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="indent">The indent.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string FormatMixedBlockInner(string content, string indent, string lineEnding)
     {
         var segments = SplitMarkupAndCodeSegments(content);
@@ -325,6 +366,13 @@ internal sealed class RazorFormatterLogic
         return string.Join(lineEnding, formattedSegments.Where(x => !string.IsNullOrWhiteSpace(x)));
     }
 
+    /// <summary>
+    /// Wraps the provided C# statements in a dummy class/method, parses and validates them, then returns the inner body normalized to the requested indentation and line ending (assigning the trimmed content to an `Inner` member and returning null on parse errors or missing body).
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="indent">The indent.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TryFormatCSharpStatements(string content, string indent, string lineEnding)
     {
         var wrapped = "class __CodeJanitorRazorDummy__\n{\n    void __M()\n    {\n" + content + "\n    }\n}";
@@ -356,6 +404,12 @@ internal sealed class RazorFormatterLogic
         return IndentLines(inner, indent, lineEnding);
     }
 
+    /// <summary>
+    /// Normalizes line endings, then for each non-blank line that begins with the specified indent unit, strips that prefix before rejoining the lines with newline separators.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="indentUnit">The indent unit.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TrimCommonLeadingIndent(string content, string indentUnit)
     {
         var lines = content.Replace("\r\n", "\n").Split('\n');
@@ -376,6 +430,13 @@ internal sealed class RazorFormatterLogic
         return string.Join("\n", lines);
     }
 
+    /// <summary>
+    /// Indents every line of the supplied content with the given indent string, normalizing line breaks to the provided line ending via a StringBuilder, with no side effects.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="indent">The indent.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string IndentLines(string content, string indent, string lineEnding)
     {
         var lines = content.Replace("\r\n", "\n").Split('\n');
@@ -393,6 +454,11 @@ internal sealed class RazorFormatterLogic
         return builder.ToString();
     }
 
+    /// <summary>
+    /// Scans the input string to partition it into a list of `RazorSegment` entries, marking portions enclosed by non-comment/non-directive `&lt;...&gt;` tags as `Markup` and the remaining text as `Code`, with no side effects.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <returns>A List&lt;RazorSegment&gt; value produced by this method.</returns>
     private static List<RazorSegment> SplitMarkupAndCodeSegments(string content)
     {
         var segments = new List<RazorSegment>();
@@ -440,6 +506,13 @@ internal sealed class RazorFormatterLogic
         return segments;
     }
 
+    /// <summary>
+    /// Updates the Razor scanner state based on the current and next characters, transitioning into or out of line/block comments and character or string literals, and increments the index to skip over paired delimiters or escape sequences.
+    /// </summary>
+    /// <param name="current">The current.</param>
+    /// <param name="next">The next.</param>
+    /// <param name="state">The state.</param>
+    /// <param name="index">The index.</param>
     private static void UpdateScannerState(char current, char next, ref RazorScannerState state, ref int index)
     {
         switch (state)
@@ -522,6 +595,12 @@ internal sealed class RazorFormatterLogic
         }
     }
 
+    /// <summary>
+    /// Scans the text from `start + 1` for the closing `&gt;` of a tag, respecting single- and double-quoted regions and skipping over Razor `@(...)` expressions, returning the index of the `&gt;` or -1 if no closing tag is found.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="start">The start.</param>
+    /// <returns>A int value produced by this method.</returns>
     private static int FindTagEnd(string text, int start)
     {
         var quote = '\0';
@@ -634,6 +713,15 @@ internal sealed class RazorFormatterLogic
         return true;
     }
 
+    /// <summary>
+    /// ips a balanced pair of `open`/`close` delimiters starting at `index`, ignoring delimiters inside C# string and char literals via `TrySkipCSharpLiteral`, and sets `nextIndex` to the position after the matching closing delimiter on success or returns false (with `nextIndex` unchanged from input) if unbalanced or starting on a non-opening character.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="index">The index.</param>
+    /// <param name="open">The open.</param>
+    /// <param name="close">The close.</param>
+    /// <param name="nextIndex">The next index.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool TrySkipBalanced(string text, int index, char open, char close, out int nextIndex)
     {
         nextIndex = index;
@@ -675,6 +763,13 @@ internal sealed class RazorFormatterLogic
         return false;
     }
 
+    /// <summary>
+    /// ips past a C# string or character literal at the given index, supporting both verbatim strings (with doubled-quote escaping) and regular literals (with backslash escapes), returning true and setting nextIndex to the position after the closing quote, or false if no valid literal is found or it is unterminated.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="index">The index.</param>
+    /// <param name="nextIndex">The next index.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool TrySkipCSharpLiteral(string text, int index, out int nextIndex)
     {
         nextIndex = index;
@@ -732,16 +827,32 @@ internal sealed class RazorFormatterLogic
         return false;
     }
 
+    /// <summary>
+    /// IsIdentifierStart returns true when the given character is a letter or underscore, with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="c">The c.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool IsIdentifierStart(char c)
     {
         return char.IsLetter(c) || c == '_';
     }
 
+    /// <summary>
+    /// ines whether the specified character is a valid identifier part by returning true if it is a letter, digit, or underscore.
+    /// </summary>
+    /// <param name="c">The c.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool IsIdentifierPart(char c)
     {
         return char.IsLetterOrDigit(c) || c == '_';
     }
 
+    /// <summary>
+    /// leading whitespace (spaces and tabs) of the line that contains the specified index by locating the previous newline and scanning forward to the first non-whitespace character.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="index">The index.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string GetLineIndent(string text, int index)
     {
         var lineStart = text.LastIndexOf('\n', Math.Max(0, index - 1));
@@ -753,6 +864,11 @@ internal sealed class RazorFormatterLogic
         return text.Substring(lineStart, i - lineStart);
     }
 
+    /// <summary>
+    /// the input text sequentially for `@code` or `@functions` directives, locates their enclosing `{...}` blocks via brace matching, and returns a list of `RazorCodeBlockRange` entries marking each directive&apos;s start, opening brace, and matching closing brace, advancing past each found block to prevent re-processing.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>A List&lt;RazorCodeBlockRange&gt; value produced by this method.</returns>
     private static List<RazorCodeBlockRange> FindDirectiveCodeBlockRanges(string text)
     {
         var ranges = new List<RazorCodeBlockRange>();
@@ -798,6 +914,11 @@ internal sealed class RazorFormatterLogic
         return ranges;
     }
 
+    /// <summary>
+    /// Scans text for Razor control directives (@if, @for, @foreach, @while, @switch, @else, @try, @catch, @finally), locates each directive&apos;s opening brace and matching close brace (handling @else if specially and skipping condition parsing for @try/@finally), and returns a list of RazorCodeBlockRange entries marking their extents.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>A List&lt;RazorCodeBlockRange&gt; value produced by this method.</returns>
     private static List<RazorCodeBlockRange> FindControlBlockRanges(string text)
     {
         var ranges = new List<RazorCodeBlockRange>();
@@ -864,6 +985,14 @@ internal sealed class RazorFormatterLogic
         return ranges;
     }
 
+    /// <summary>
+    /// es for the matching parenthesis pair enclosing a condition starting at `directiveStart`, updating `openParenIndex` and `closeParenIndex` to the outer paren positions and returning true on success, while respecting Razor scanner state to skip characters inside code blocks and returning false (with outputs set to -1) if no matching pair is found.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="directiveStart">The directive start.</param>
+    /// <param name="openParenIndex">The open paren index.</param>
+    /// <param name="closeParenIndex">The close paren index.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool TryFindConditionRange(string text, int directiveStart, out int openParenIndex, out int closeParenIndex)
     {
         openParenIndex = -1;
@@ -908,6 +1037,13 @@ internal sealed class RazorFormatterLogic
         return false;
     }
 
+    /// <summary>
+    /// Checks whether `directive` appears at `index` in `text` as a whole word (case-insensitive, not adjacent to other letter/digit characters).
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="index">The index.</param>
+    /// <param name="directive">The directive.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool IsDirectiveAt(string text, int index, string directive)
     {
         if (index < 0 || index + directive.Length > text.Length) return false;
@@ -920,6 +1056,12 @@ internal sealed class RazorFormatterLogic
         return beforeOk && afterOk;
     }
 
+    /// <summary>
+    /// ans forward from the given opening brace index to locate the matching closing brace, tracking nesting depth while skipping over line comments, block comments, character literals, regular strings, and verbatim strings.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="openBraceIndex">The open brace index.</param>
+    /// <returns>A int value produced by this method.</returns>
     private static int FindMatchingBrace(string text, int openBraceIndex)
     {
         var depth = 0;
@@ -1044,6 +1186,9 @@ internal sealed class RazorFormatterLogic
         return -1;
     }
 
+    /// <summary>
+    /// Represents a range in a Razor code block defined by its start position, end position, and the locations of its opening and closing braces.
+    /// </summary>
     private readonly struct RazorCodeBlockRange
     {
         internal RazorCodeBlockRange(int start, int end, int braceStart, int braceEnd)
@@ -1054,12 +1199,27 @@ internal sealed class RazorFormatterLogic
             BraceEnd = braceEnd;
         }
 
+        /// <summary>
+        /// Gets the start.
+        /// </summary>
         internal int Start { get; }
+        /// <summary>
+        /// Gets the end.
+        /// </summary>
         internal int End { get; }
+        /// <summary>
+        /// Gets the brace start.
+        /// </summary>
         internal int BraceStart { get; }
+        /// <summary>
+        /// Gets the brace end.
+        /// </summary>
         internal int BraceEnd { get; }
     }
 
+    /// <summary>
+    /// presents a parsed segment of Razor template syntax, combining a kind identifier with its associated content.
+    /// </summary>
     private readonly struct RazorSegment
     {
         internal RazorSegment(RazorSegmentKind kind, string content)
@@ -1068,16 +1228,28 @@ internal sealed class RazorFormatterLogic
             Content = content;
         }
 
+        /// <summary>
+        /// Gets the kind.
+        /// </summary>
         internal RazorSegmentKind Kind { get; }
+        /// <summary>
+        /// Gets the content.
+        /// </summary>
         internal string Content { get; }
     }
 
+    /// <summary>
+    /// RazorSegmentKind identifies the type of a Razor template segment, distinguishing between executable code and static markup content.
+    /// </summary>
     private enum RazorSegmentKind
     {
         Code,
         Markup
     }
 
+    /// <summary>
+    /// RazorScannerState is an enumeration that defines the lexical analysis states a Razor parser can be in while tokenizing input, distinguishing between default scanning, comment contexts, and various string and character literal modes.
+    /// </summary>
     private enum RazorScannerState
     {
         Default,

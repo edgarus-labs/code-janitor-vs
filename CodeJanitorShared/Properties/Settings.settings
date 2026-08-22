@@ -404,6 +404,9 @@
     <Setting Name="Cleaning_AiXmlDocumentationIgnorePattern" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="Cleaning_AiXmlDocumentationMaxParallelFiles" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">4</Value>
+    </Setting>
     <Setting Name="Cleaning_UsingStatementsToReinsertWhenRemovedExpression" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
@@ -655,6 +658,33 @@
     </Setting>
     <Setting Name="Feature_AddXmlDoc" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Feature_AiExplainMethod" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Feature_AiGenerateUnitTests" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Feature_AiCleanRefactor" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Feature_AiCodeReview" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Feature_AiTargetCoverage" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Ai_TargetCoveragePercentage" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">90</Value>
+    </Setting>
+    <Setting Name="Ai_MaxCoverageIterations" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">3</Value>
+    </Setting>
+    <Setting Name="Ai_TestFramework" Type="System.String" Scope="User">
+      <Value Profile="(Default)">xUnit</Value>
+    </Setting>
+    <Setting Name="Ai_MockingLibrary" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Moq</Value>
     </Setting>
     <Setting Name="Formatting_IgnoreLinesStartingWith" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;

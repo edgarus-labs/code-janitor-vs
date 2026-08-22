@@ -56,7 +56,9 @@
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
     <Compile Include="Cleaning\RazorFormatterLogicTests.cs" />
-    <Compile Include="Cleaning\AiXmlDocumentationLogicTests.cs" />
+    <Compile Include="Ai\AiXmlDocumentationLogicTests.cs" />
+    <Compile Include="Ai\AiFeaturesLogicTests.cs" />
+    <Compile Include="Ai\AiCoverageTargetLogicTests.cs" />
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />

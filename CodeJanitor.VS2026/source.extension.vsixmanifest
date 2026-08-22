@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Publisher="John Doe" Version="0.1.0.19" Id="b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2" Language="en-US" />
+        <Identity Publisher="John Doe" Version="0.1.0.26" Id="b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2" Language="en-US" />
         <DisplayName>CodeJanitor</DisplayName>
         <Description xml:space="preserve">CodeJanitor (a fork of CodeMaid) is an open source Visual Studio extension to cleanup and simplify our C#, C++, F#, VB, PHP, PowerShell, R, JSON, XAML, XML, ASP, HTML, CSS, LESS, SCSS, JavaScript and TypeScript coding.</Description>
         <MoreInfo>http://www.CodeJanitor.net/</MoreInfo>

@@ -49,6 +49,9 @@ public class RemoveTrailingWhitespaceConverter : ISourceTransformation
         return result == source ? source : result;
     }
 
+    /// <summary>
+    /// ilingWhitespaceRewriter is a class that removes trailing whitespace from tokens before the end of a line.
+    /// </summary>
     private sealed class TrailingWhitespaceRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using CodeJanitor.Properties;
@@ -37,7 +37,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
         get
         {
             var buildProgress = Package.BuildProgressForceLoad;
-            if (buildProgress != null)
+            if (buildProgress is not null)
             {
                 return buildProgress.Frame as IVsWindowFrame;
             }
@@ -84,7 +84,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildProgress = Package.BuildProgressForceLoad;
-        if (buildProgress != null)
+        if (buildProgress is not null)
         {
             buildProgress.NotifyBuildBegin(scope, action);
 
@@ -105,7 +105,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildProgress = Package.BuildProgressForceLoad;
-        if (buildProgress != null)
+        if (buildProgress is not null)
         {
             buildProgress.NotifyBuildDone(scope, action);
 
@@ -128,7 +128,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildProgress = Package.BuildProgressForceLoad;
-        if (buildProgress != null)
+        if (buildProgress is not null)
         {
             buildProgress.NotifyBuildProjConfigBegin(project, projectConfig, platform, solutionConfig);
         }
@@ -147,7 +147,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildProgress = Package.BuildProgressForceLoad;
-        if (buildProgress != null)
+        if (buildProgress is not null)
         {
             buildProgress.NotifyBuildProjConfigDone(project, projectConfig, platform, solutionConfig, success);
         }
@@ -191,7 +191,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var frame = BuildProgressWindowFrame;
-        if (frame != null)
+        if (frame is not null)
         {
             frame.Hide();
         }
@@ -205,7 +205,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var frame = BuildProgressWindowFrame;
-        if (frame != null)
+        if (frame is not null)
         {
             frame.Show();
             DockWindowIfFloating(frame);
@@ -220,7 +220,7 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var frame = BuildProgressWindowFrame;
-        if (frame != null)
+        if (frame is not null)
         {
             frame.ShowNoActivate();
             DockWindowIfFloating(frame);

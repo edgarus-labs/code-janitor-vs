@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.Linq;
@@ -66,7 +66,7 @@ internal static class ProjectItemExtensions
         ThreadHelper.ThrowIfNotOnUIThread();
         try
         {
-            if (projectItem.Collection == null || !projectItem.IsPhysicalFile())
+            if (projectItem.Collection is null || !projectItem.IsPhysicalFile())
             {
                 return true;
             }

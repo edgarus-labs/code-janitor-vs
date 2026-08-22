@@ -79,7 +79,7 @@ public class ParallelHeadlessCleanupTests
         }
 
         var progressCount = 0;
-        var progress = new Progress<ParallelCleanupProgress>(p => Interlocked.Increment(ref progressCount));
+        var progress = new Progress<CodeCleanupManager.ParallelCleanupProgress>(p => Interlocked.Increment(ref progressCount));
 
         var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(filePaths, progress: progress);
 

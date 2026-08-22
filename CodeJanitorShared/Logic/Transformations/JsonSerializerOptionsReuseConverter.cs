@@ -34,6 +34,9 @@ public class JsonSerializerOptionsReuseConverter : ISourceTransformation
         return rewritten.ToFullString();
     }
 
+    /// <summary>
+    /// A syntax rewriter that analyzes and transforms C# code to detect JsonSerializer method invocations and direct JsonSerializerOptions instantiations in order to enable reuse of serializer options.
+    /// </summary>
     private sealed class JsonSerializerOptionsReuseRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

@@ -189,6 +189,9 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
 
     private sealed class UsingSortingRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Gets or sets the changed.
+        /// </summary>
         public bool Changed { get; private set; }
 
         /// <summary>

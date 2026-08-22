@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// CodeJanitorDiggingPage represents a page view in a Code Janitor digging feature that provides functionality to create its associated view model.
+/// </summary>
 public sealed class CodeJanitorDiggingPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

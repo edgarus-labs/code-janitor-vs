@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -136,7 +136,7 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
 
         internal TemporaryCleanupSettingsScope(Settings temporarySettings)
         {
-            if (temporarySettings == null)
+            if (temporarySettings is null)
             {
                 return;
             }

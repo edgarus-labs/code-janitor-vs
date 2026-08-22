@@ -12,6 +12,9 @@ public class RegionDirectiveRemover : ISourceTransformation
         @"^[ \t]*#(?:end)?region\b[^\r\n]*(?:\r?\n)?",
         RegexOptions.Multiline | RegexOptions.Compiled);
 
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Remove region directives";
 
     /// <summary>

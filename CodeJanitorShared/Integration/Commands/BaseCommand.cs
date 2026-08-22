@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
 using System.ComponentModel.Design;
@@ -42,7 +42,7 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
 
         if (await Package.GetServiceAsync(typeof(IMenuCommandService)) is OleMenuCommandService commandService)
         {
-            if (on && commandService.FindCommand(CommandID) == null)
+            if (on && commandService.FindCommand(CommandID) is null)
             {
                 commandService.AddCommand(this);
             }

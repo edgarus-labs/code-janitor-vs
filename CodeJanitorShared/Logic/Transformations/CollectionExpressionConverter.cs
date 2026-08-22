@@ -37,6 +37,9 @@ public class CollectionExpressionConverter : ISourceTransformation
         return rewritten.ToFullString();
     }
 
+    /// <summary>
+    /// ExpressionRewriter is a syntax rewriter that transforms variable declarations and property declarations using collection initializer, object creation, or array creation expressions into equivalent C# 12 collection expressions for supported list types.
+    /// </summary>
     private sealed class CollectionExpressionRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

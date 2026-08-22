@@ -34,6 +34,9 @@ public class SingleStatementLambdaConverter : ISourceTransformation
         return rewritten.ToFullString();
     }
 
+    /// <summary>
+    /// SingleStatementLambdaRewriter is a rewriter that converts single-statement lambdas into expression-bodied equivalents across anonymous methods, simple lambdas, and parenthesized lambdas.
+    /// </summary>
     private sealed class SingleStatementLambdaRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

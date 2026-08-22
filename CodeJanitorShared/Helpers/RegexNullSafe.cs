@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Helpers;
 
@@ -18,7 +18,7 @@ public static class RegexNullSafe
 
     public static bool IsMatch(string input, string pattern)
     {
-        if (input == null || pattern == null)
+        if (input is null || pattern is null)
         {
             OutputWindowHelper.WarningWriteLine("Returned false due to a null input or pattern passed to RegexNullSafe's IsMatch.");
 

@@ -105,6 +105,9 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// </summary>
     private new CodeJanitorPackage Package => base.Package as CodeJanitorPackage;
 
+    /// <summary>
+    /// Gets the search enabled.
+    /// </summary>
     public override bool SearchEnabled => true;
 
     /// <summary>

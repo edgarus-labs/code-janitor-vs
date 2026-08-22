@@ -5,6 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Model.Comments;
 
+/// <summary>
+/// Represents a parsed code comment match containing structural attributes such as indentation, length, and style flags along with its constituent words.
+/// </summary>
 internal sealed class CodeCommentMatch
 {
     public CodeCommentMatch(Match match, FormatterOptions formatterOptions)
@@ -44,14 +47,29 @@ internal sealed class CodeCommentMatch
         }
     }
 
+    /// <summary>
+    /// Gets the indent.
+    /// </summary>
     public int Indent { get; }
 
+    /// <summary>
+    /// Gets or sets the is empty.
+    /// </summary>
     public bool IsEmpty { get; private set; }
 
+    /// <summary>
+    /// Gets the is list.
+    /// </summary>
     public bool IsList { get; }
 
+    /// <summary>
+    /// Gets the is literal.
+    /// </summary>
     public bool IsLiteral { get; }
 
+    /// <summary>
+    /// Gets the length.
+    /// </summary>
     public int Length
     {
         get
@@ -62,8 +80,14 @@ internal sealed class CodeCommentMatch
         }
     }
 
+    /// <summary>
+    /// Gets the list prefix.
+    /// </summary>
     public string ListPrefix { get; }
 
+    /// <summary>
+    /// Gets the words.
+    /// </summary>
     public List<string> Words { get; }
 
     /// <summary>

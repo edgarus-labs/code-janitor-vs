@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -84,17 +84,17 @@ internal static class CodeCommentHelper
         if (includePrefix)
         {
             prefix = GetCommentPrefixForLanguage(codeLanguage);
-            if (prefix == null)
+            if (prefix is null)
             {
                 Debug.Fail("Attempting to create a comment regex for a document that has no comment prefix specified.");
             }
 
             // Be aware of the added space to the prefix. When prefix is added, we should take
             // care not to match code comment lines.
-            prefix = string.Format(@"(?<prefix>[\t ]*{0})(?<initialspacer>( |\t|\r|\n|$))?", prefix);
+            prefix = $"(?<prefix>[\t ]*{prefix})(?<initialspacer>( |\t|\r|\n|$))?";
         }
 
-        var pattern = string.Format(@"^{0}(?<indent>[\t ]*)(?<line>(?<listprefix>[-=\*\+]+[ \t]*|\w+[\):][ \t]+|\d+\.[ \t]+)?((?<words>[^\t\r\n ]+)*[\t ]*)*)\r*\n?$", prefix);
+        var pattern = $@"^{prefix}(?<indent>[\t ]*)(?<line>(?<listprefix>[-=\*\+]+[ \t]*|\w+[\):][ \t]+|\d+\.[ \t]+)?((?<words>[^\t\r\n ]+)*[\t ]*)*)\r*\n?$";
 
         return new Regex(pattern, RegexOptions.ExplicitCapture | RegexOptions.Multiline);
     }
@@ -109,7 +109,7 @@ internal static class CodeCommentHelper
     {
         var settings = package.IDE.Properties["Environment", "TaskList"];
         var tokens = settings.Item("CommentTokens").Value as string[];
-        if (tokens == null || tokens.Length < 1)
+        if (tokens is null || tokens.Length < 1)
             return Enumerable.Empty<string>();
 
         // Tokens values are written like "NAME:PRIORITY". We want only the names, and require

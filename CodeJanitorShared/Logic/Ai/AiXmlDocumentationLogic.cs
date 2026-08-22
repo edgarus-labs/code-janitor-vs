@@ -16,7 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace CodeJanitor.Logic.Cleaning;
+namespace CodeJanitor.Logic.Ai;
 
 /// <summary>
 /// Adds XML documentation comments for C# methods that do not already have them,
@@ -39,17 +39,28 @@ internal sealed class AiXmlDocumentationLogic
 
     internal static CancellationToken RunToken => _runCancellation.Token;
 
+    /// <summary>
+    /// Atomically replaces the shared cancellation token source with a new one and disposes the previous instance.
+    /// </summary>
     internal static void BeginRun()
     {
         var previous = Interlocked.Exchange(ref _runCancellation, new CancellationTokenSource());
         previous?.Dispose();
     }
 
+    /// <summary>
+    /// Cancels the ongoing run by signaling the internal CancellationTokenSource, which propagates cancellation to any awaiting or executing operations.
+    /// </summary>
     internal static void CancelRun()
     {
         _runCancellation?.Cancel();
     }
 
+    /// <summary>
+    /// Returns the existing cached `AiXmlDocumentationLogic` singleton or lazily creates and stores a new instance initialized with the supplied `CodeJanitorPackage` on first call.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A AiXmlDocumentationLogic value produced by this method.</returns>
     internal static AiXmlDocumentationLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new AiXmlDocumentationLogic(package));
@@ -60,49 +71,115 @@ internal sealed class AiXmlDocumentationLogic
         _package = package;
     }
 
+    /// <summary>
+    /// Configuration options that govern an AI-based XML documentation generation run, controlling limits on methods, requests, tokens, input size, and cleanup behavior along with inclusion and filtering rules.
+    /// </summary>
     internal sealed class AiXmlDocumentationRunOptions
     {
+        /// <summary>
+        /// Gets or sets the max methods per file.
+        /// </summary>
         public int MaxMethodsPerFile { get; set; }
 
+        /// <summary>
+        /// Gets or sets the max requests per cleanup.
+        /// </summary>
         public int MaxRequestsPerCleanup { get; set; }
 
+        /// <summary>
+        /// Gets or sets the max input chars per method.
+        /// </summary>
         public int MaxInputCharsPerMethod { get; set; }
 
+        /// <summary>
+        /// Gets or sets the max tokens per request.
+        /// </summary>
         public int MaxTokensPerRequest { get; set; }
 
+            /// <summary>
+            /// Gets or sets the context window tokens.
+            /// </summary>
             public int ContextWindowTokens { get; set; }
 
+        /// <summary>
+        /// Gets or sets the max estimated tokens per cleanup.
+        /// </summary>
         public int MaxEstimatedTokensPerCleanup { get; set; }
 
+        /// <summary>
+        /// Gets or sets the global timeout seconds.
+        /// </summary>
         public int GlobalTimeoutSeconds { get; set; }
 
+        /// <summary>
+        /// Gets or sets the allow deterministic fallback.
+        /// </summary>
         public bool AllowDeterministicFallback { get; set; }
 
+        /// <summary>
+        /// Gets or sets the ignore generated code.
+        /// </summary>
         public bool IgnoreGeneratedCode { get; set; }
 
+        /// <summary>
+        /// Gets or sets the ignore obsolete.
+        /// </summary>
         public bool IgnoreObsolete { get; set; }
 
+        /// <summary>
+        /// Gets or sets the ignore test methods.
+        /// </summary>
         public bool IgnoreTestMethods { get; set; }
 
+        /// <summary>
+        /// Gets or sets the ignore pattern.
+        /// </summary>
         public string IgnorePattern { get; set; }
 
+        /// <summary>
+        /// Gets or sets the preview changes.
+        /// </summary>
         public bool PreviewChanges { get; set; }
     }
 
+    /// <summary>
+    /// Represents the aggregated statistics and outcome metrics of a single AI-driven XML documentation generation run, tracking counts of eligible, attempted, documented, and skipped methods, AI failures, fallbacks, and resource usage such as tokens and elapsed time.
+    /// </summary>
     internal sealed class AiXmlDocumentationRunStats
     {
+        /// <summary>
+        /// Gets or sets the eligible methods.
+        /// </summary>
         public int EligibleMethods { get; set; }
 
+        /// <summary>
+        /// Gets or sets the attempted methods.
+        /// </summary>
         public int AttemptedMethods { get; set; }
 
+        /// <summary>
+        /// Gets or sets the documented methods.
+        /// </summary>
         public int DocumentedMethods { get; set; }
 
+        /// <summary>
+        /// Gets or sets the skipped by filters.
+        /// </summary>
         public int SkippedByFilters { get; set; }
 
+        /// <summary>
+        /// Gets or sets the skipped by budget.
+        /// </summary>
         public int SkippedByBudget { get; set; }
 
+        /// <summary>
+        /// Gets or sets the ai failures.
+        /// </summary>
         public int AiFailures { get; set; }
 
+        /// <summary>
+        /// Gets or sets the fallbacks used.
+        /// </summary>
         public int FallbacksUsed { get; set; }
 
         public int EstimatedTokensUsed { get; set; }
@@ -112,11 +189,8 @@ internal sealed class AiXmlDocumentationLogic
 
     internal static bool IsConfigurationPresent()
     {
-        var apiKey = GetConfiguredApiKey();
-
         return OpenAiCompatibleClient.IsEndpointConfigured(
-            Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl,
-            apiKey);
+            Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
     internal static async Task<OpenAiCompatibleClient.ConnectionTestResult> ValidateConnectionAsync(
@@ -131,7 +205,7 @@ internal sealed class AiXmlDocumentationLogic
         {
             return new OpenAiCompatibleClient.ConnectionTestResult
             {
-                ErrorMessage = "AI XML documentation endpoint URL or API key is missing/invalid."
+                ErrorMessage = "AI XML documentation endpoint URL is missing or invalid."
             };
         }
 
@@ -169,6 +243,94 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Applies AI XML documentation to a project item asynchronously, offloading file I/O, Roslyn transforms, and AI network calls to background threads.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>True if the file was modified, otherwise false.</returns>
+    internal async Task<bool> ApplyXmlDocumentationAsync(ProjectItem projectItem)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        if (RunToken.IsCancellationRequested || !CanDocumentProjectItem(projectItem))
+        {
+            return false;
+        }
+
+        var client = CreateClientFromSettings();
+        if (client == null)
+        {
+            return false;
+        }
+
+        var document = projectItem.Document;
+        if (document != null)
+        {
+            var textDocument = document.GetTextDocument();
+            if (textDocument != null)
+            {
+                if (Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges)
+                {
+                    var startPt = textDocument.StartPoint.CreateEditPoint();
+                    var before = startPt.GetText(textDocument.EndPoint);
+                    ApplyXmlDocumentationWithPreview(textDocument, client);
+                    var after = textDocument.StartPoint.CreateEditPoint().GetText(textDocument.EndPoint);
+
+                    return before != after;
+                }
+
+                var startPoint = textDocument.StartPoint.CreateEditPoint();
+                var originalText = startPoint.GetText(textDocument.EndPoint);
+
+                var updatedText = await Task.Run(() => ApplyXmlDocumentationToSourceInternal(originalText, client));
+
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                if (RunToken.IsCancellationRequested || updatedText == originalText)
+                {
+                    return false;
+                }
+
+                var endPoint = textDocument.EndPoint.CreateEditPoint();
+                startPoint.ReplaceText(endPoint, updatedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+
+                return true;
+            }
+        }
+
+        var filePath = projectItem.GetFileName();
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return false;
+        }
+
+        return await Task.Run(() =>
+        {
+            if (RunToken.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            string originalFileText;
+            Encoding encoding;
+
+            using (var reader = new StreamReader(filePath, true))
+            {
+                originalFileText = reader.ReadToEnd();
+                encoding = reader.CurrentEncoding;
+            }
+
+            var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
+            if (RunToken.IsCancellationRequested || updatedFileText == originalFileText)
+            {
+                return false;
+            }
+
+            File.WriteAllText(filePath, updatedFileText, encoding);
+            return true;
+        });
     }
 
     /// <summary>
@@ -457,6 +619,11 @@ internal sealed class AiXmlDocumentationLogic
             var indent = GetLineIndent(builder.ToString(), insertPosition);
 
             var rawSummary = summaryProvider(method);
+            if (RunToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             if (string.IsNullOrWhiteSpace(rawSummary))
             {
                 stats.SkippedByBudget++;
@@ -515,7 +682,7 @@ internal sealed class AiXmlDocumentationLogic
 
         private static OpenAiCompatibleClient CreateClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens = 0)
     {
-        if (!OpenAiCompatibleClient.IsEndpointConfigured(endpointUrl, apiKey))
+        if (!OpenAiCompatibleClient.IsEndpointConfigured(endpointUrl))
         {
             return null;
         }
@@ -604,6 +771,13 @@ internal sealed class AiXmlDocumentationLogic
         return true;
     }
 
+    /// <summary>
+    /// Returns true only for non-interface, non-abstract, non-extern methods with a body that lack an existing documentation comment and do not match the configured ignore options, incrementing the `filteredCounter` for each option-based exclusion.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="filteredCounter">The filtered counter.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool CanDocumentMethod(MethodDeclarationSyntax method, AiXmlDocumentationRunOptions options, ref int filteredCounter)
     {
         if (method == null)
@@ -665,6 +839,12 @@ internal sealed class AiXmlDocumentationLogic
         return true;
     }
 
+    /// <summary>
+    /// Returns true if the member declaration contains any attribute whose name (ignoring namespace, case, and the &quot;Attribute&quot; suffix) matches one of the supplied target names; returns false when the declaration is null or no match is found.
+    /// </summary>
+    /// <param name="declaration">The declaration.</param>
+    /// <param name="names">The names.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool HasAnyAttribute(MemberDeclarationSyntax declaration, params string[] names)
     {
         if (declaration == null)
@@ -694,6 +874,11 @@ internal sealed class AiXmlDocumentationLogic
         return false;
     }
 
+    /// <summary>
+    /// Determines whether a method is likely a test method by checking for common test attributes (TestMethod, Fact, Theory, Test, TestCase, DataTestMethod) or by verifying that its containing type name ends with &quot;Tests&quot; or &quot;Test&quot; (case-insensitive).
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool IsLikelyTestMethod(MethodDeclarationSyntax method)
     {
         if (HasAnyAttribute(method, "TestMethod", "Fact", "Theory", "Test", "TestCase", "DataTestMethod"))
@@ -707,6 +892,12 @@ internal sealed class AiXmlDocumentationLogic
                containingTypeName.EndsWith("Test", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Determines whether a method&apos;s fully qualified name (namespace.type.method) matches the given regex pattern case-insensitively, returning false for null/whitespace patterns or any exception.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <param name="ignorePattern">The ignore pattern.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool MatchesIgnorePattern(MethodDeclarationSyntax method, string ignorePattern)
     {
         if (string.IsNullOrWhiteSpace(ignorePattern))
@@ -730,6 +921,11 @@ internal sealed class AiXmlDocumentationLogic
         }
     }
 
+    /// <summary>
+    /// Determines whether the provided SyntaxNode includes a single-line documentation comment within its leading trivia.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool HasDocumentationComment(SyntaxNode member)
     {
         return member.GetLeadingTrivia().Any(trivia =>
@@ -740,6 +936,14 @@ internal sealed class AiXmlDocumentationLogic
         });
     }
 
+    /// <summary>
+    /// an AI-generated or fallback summary for a member, routing properties to a deterministic builder, enforcing per-cleanup token/request limits and cancellation via RunToken, updating stats (attempted/failed/fallback counters and estimated tokens), and falling back to a deterministic summary only when AllowDeterministicFallback is enabled on AI failure.
+    /// </summary>
+    /// <param name="client">The client.</param>
+    /// <param name="member">The member.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="stats">The stats.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string CreateSummary(OpenAiCompatibleClient client, MemberDeclarationSyntax member, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
     {
         // Property wording is formulaic, so spending a request on it buys nothing.
@@ -770,6 +974,11 @@ internal sealed class AiXmlDocumentationLogic
         string error;
         if (!client.TryGenerateDocumentation(prompt, out completion, out error, options.MaxTokensPerRequest, RunToken) || string.IsNullOrWhiteSpace(completion))
         {
+            if (RunToken.IsCancellationRequested)
+            {
+                return null;
+            }
+
             stats.AiFailures++;
             if (!options.AllowDeterministicFallback)
             {
@@ -784,6 +993,12 @@ internal sealed class AiXmlDocumentationLogic
         return NormalizeSentence(completion);
     }
 
+    /// <summary>
+    /// BuildMethodPrompt is a private static helper that constructs an AI analysis prompt string from a MethodDeclarationSyntax by composing its stripped signature, optionally truncated body text, and a comma-separated list of detected thrown exceptions (defaulting to &quot;none detected&quot;).
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <param name="options">The options.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildMethodPrompt(MethodDeclarationSyntax method, AiXmlDocumentationRunOptions options)
     {
         var signature = method.WithBody(null)
@@ -849,6 +1064,11 @@ internal sealed class AiXmlDocumentationLogic
             "Members: " + Truncate(members, options.MaxInputCharsPerMethod);
     }
 
+    /// <summary>
+    /// Builds a documentation summary string for a property by detecting its accessors—using a get accessor or expression body to set `hasGet`, and a set or init accessor for `hasSet`—then concatenating a verb (&quot;Gets or sets&quot;, &quot;Sets&quot;, or &quot;Gets&quot;) with &quot; the &quot; and the lowercased, split identifier name plus a period, with no side effects.
+    /// </summary>
+    /// <param name="property">The property.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildPropertySummary(PropertyDeclarationSyntax property)
     {
         var accessors = property.AccessorList?.Accessors;
@@ -860,6 +1080,12 @@ internal sealed class AiXmlDocumentationLogic
         return verb + " the " + SplitIdentifier(property.Identifier.ValueText).ToLowerInvariant() + ".";
     }
 
+    /// <summary>
+    /// Estimates the total token count for a request by approximating prompt tokens as `(prompt.Length / 4) + 1` (or 0 if the prompt is null or whitespace) and adding `maxOutputTokens` (defaulted to 256 via `PositiveOrDefault` when non-positive).
+    /// </summary>
+    /// <param name="prompt">The prompt.</param>
+    /// <param name="maxOutputTokens">The max output tokens.</param>
+    /// <returns>A int value produced by this method.</returns>
     private static int EstimateRequestTokens(string prompt, int maxOutputTokens)
     {
         var estimatedPromptTokens = string.IsNullOrWhiteSpace(prompt) ? 0 : (prompt.Length / 4) + 1;
@@ -867,6 +1093,11 @@ internal sealed class AiXmlDocumentationLogic
         return estimatedPromptTokens + PositiveOrDefault(maxOutputTokens, 256);
     }
 
+    /// <summary>
+    /// Detects exception types thrown by a method by collecting names from `throw` statements and expressions and inferring `ArgumentNullException`, `ArgumentException`, or `ArgumentOutOfRangeException` from `ThrowIf*` guard helper invocations, returning the unique results.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
     private static IEnumerable<string> DetectThrownExceptions(MethodDeclarationSyntax method)
     {
         var exceptions = new HashSet<string>(StringComparer.Ordinal);

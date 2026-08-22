@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using System.Collections.Generic;
 

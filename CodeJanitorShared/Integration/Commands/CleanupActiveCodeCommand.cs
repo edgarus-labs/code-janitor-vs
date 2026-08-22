@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -86,7 +86,7 @@ internal sealed class CleanupActiveCodeCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.ActiveDocument != null;
+        Enabled = Package.ActiveDocument is not null;
     }
 
     /// <summary>

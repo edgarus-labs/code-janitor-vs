@@ -1,8 +1,10 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.CleanupProgress;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +32,9 @@ internal sealed class AddXmlDocCommand : BaseCommand
         _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(Package);
     }
 
+    /// <summary>
+    /// Gets or sets the instance.
+    /// </summary>
     public static AddXmlDocCommand Instance { get; private set; }
 
     /// <summary>
@@ -49,7 +54,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.IDE.Solution.IsOpen || (Package.ActiveDocument != null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp);
+        Enabled = Package.IDE.Solution.IsOpen || (Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp);
     }
 
     /// <summary>
@@ -102,33 +107,13 @@ internal sealed class AddXmlDocCommand : BaseCommand
             return;
         }
 
-        var changedCount = 0;
-
         using (new ActiveDocumentRestorer(Package))
         {
-            var totalCount = projectItems.Count;
-            var current = 0;
+            var viewModel = new XmlDocProgressViewModel(Package, projectItems);
+            var window = new CleanupProgressWindow { DataContext = viewModel };
 
-            foreach (var projectItem in projectItems)
-            {
-                current++;
-
-                if (projectItem != null)
-                {
-                    Package.IDE.StatusBar.Text = $"CodeJanitor adding XML documentation {current}/{totalCount}: {projectItem.Name}";
-                }
-
-                if (_aiXmlDocumentationLogic.ApplyXmlDocumentation(projectItem))
-                {
-                    changedCount++;
-                }
-            }
+            window.ShowModal();
         }
-
-        Package.IDE.StatusBar.Text = $"CodeJanitor Add XMLDoc completed: changed {changedCount} of {projectItems.Count} file(s).";
-        MessageBox.Show($"Processed {projectItems.Count} file(s). Changed {changedCount} file(s).",
-                        "CodeJanitor Add XMLDoc",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -165,7 +150,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
 
         var selectedScopeRoots = UIHierarchyHelper.GetSelectedUIHierarchyItems(Package)
             .Select(item => item.Object)
-            .Where(item => item != null)
+            .Where(item => item is not null)
             .ToList();
 
         var selectedProjectItems = selectedScopeRoots
@@ -179,7 +164,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
         }
 
         var activeDocument = Package.ActiveDocument;
-        if (activeDocument?.ProjectItem != null && _aiXmlDocumentationLogic.CanDocumentProjectItem(activeDocument.ProjectItem))
+        if (activeDocument?.ProjectItem is not null && _aiXmlDocumentationLogic.CanDocumentProjectItem(activeDocument.ProjectItem))
         {
             return new[] { activeDocument.ProjectItem };
         }

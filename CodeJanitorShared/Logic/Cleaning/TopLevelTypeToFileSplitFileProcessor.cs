@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -6,8 +6,14 @@ using CodeJanitor.Properties;
 
 namespace CodeJanitor.Logic.Cleaning;
 
+/// <summary>
+/// A file processor that splits top-level types into individual files by applying a planned mapping and writing each resulting file atomically.
+/// </summary>
 internal sealed class TopLevelTypeToFileSplitFileProcessor
 {
+    /// <summary>
+    /// Represents the outcome of an apply operation, capturing whether a change occurred, the updated source content, any newly created files, and the reason for skipping if no changes were made.
+    /// </summary>
     internal sealed class ApplyResult
     {
         internal ApplyResult(
@@ -22,12 +28,24 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
             SkipReason = skipReason;
         }
 
+        /// <summary>
+        /// Gets the changed.
+        /// </summary>
         internal bool Changed { get; }
 
+        /// <summary>
+        /// Gets the updated source.
+        /// </summary>
         internal string UpdatedSource { get; }
 
+        /// <summary>
+        /// Gets the created files.
+        /// </summary>
         internal IReadOnlyList<string> CreatedFiles { get; }
 
+        /// <summary>
+        /// Gets the skip reason.
+        /// </summary>
         internal TopLevelTypeSplitSkipReason SkipReason { get; }
     }
 

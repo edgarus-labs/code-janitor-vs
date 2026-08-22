@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 
 namespace CodeJanitor.Helpers;
 
@@ -24,7 +24,7 @@ public static class CodeItemParentExtensions
             children.Add(child);
 
             var childAsParent = child as ICodeItemParent;
-            if (childAsParent != null && !(child is BaseCodeItemElementParent))
+            if (childAsParent is not null && !(child is BaseCodeItemElementParent))
             {
                 children.AddRange(childAsParent.GetChildrenRecursive());
             }

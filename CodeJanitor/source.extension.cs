@@ -1,5 +1,8 @@
-namespace CodeJanitor
+﻿namespace CodeJanitor
 {
+    /// <summary>
+    /// The Vsix class represents metadata for a Visual Studio extension package, containing its identifier, name, description, language, version, author, and tags.
+    /// </summary>
     static class Vsix
     {
         public const string Id = "4c82e17d-927e-42d2-8460-b473ac7df316";

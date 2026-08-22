@@ -452,6 +452,64 @@
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAddXmlDoc" priority="0x0250">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCrossProjectMultiProjectFolderGroup" />
     </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAddXmlDoc" priority="0x0850">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSpadeInsertGroup" />
+    </CommandPlacement>
+
+    <!-- AI Explain & Simplify Method -->
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiExplainMethod" priority="0x0860">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuExtendGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiExplainMethod" priority="0x0860">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiExplainMethod" priority="0x0860">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSpadeInsertGroup" />
+    </CommandPlacement>
+
+    <!-- AI Generate Unit Tests -->
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiGenerateUnitTests" priority="0x0870">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuExtendGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiGenerateUnitTests" priority="0x0870">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiGenerateUnitTests" priority="0x0870">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSpadeInsertGroup" />
+    </CommandPlacement>
+
+    <!-- AI Clean Code & Guard Clauses -->
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCleanRefactor" priority="0x0880">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuExtendGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCleanRefactor" priority="0x0880">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCleanRefactor" priority="0x0880">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSpadeInsertGroup" />
+    </CommandPlacement>
+
+    <!-- AI Code Review & Smell Detector -->
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCodeReview" priority="0x0890">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuExtendGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCodeReview" priority="0x0890">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCodeReview" priority="0x0890">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSpadeInsertGroup" />
+    </CommandPlacement>
+
+    <!-- AI Target Coverage Test Generator -->
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiTargetCoverage" priority="0x08A0">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuExtendGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiTargetCoverage" priority="0x08A0">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowSubGroup" />
+    </CommandPlacement>
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiTargetCoverage" priority="0x08A0">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextSpadeInsertGroup" />
+    </CommandPlacement>
 
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSettingCleanupOnSave" priority="0x0800">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuCleanupGroup" />
@@ -764,6 +822,11 @@
       <IDSymbol name="CmdIDCodeJanitorSwitchFile" value="0x3900" />
       <IDSymbol name="CmdIDCodeJanitorFixNamespace" value="0x3A00" />
       <IDSymbol name="CmdIDCodeJanitorAddXmlDoc" value="0x3B00" />
+      <IDSymbol name="CmdIDCodeJanitorAiExplainMethod" value="0x3B10" />
+      <IDSymbol name="CmdIDCodeJanitorAiGenerateUnitTests" value="0x3B20" />
+      <IDSymbol name="CmdIDCodeJanitorAiCleanRefactor" value="0x3B30" />
+      <IDSymbol name="CmdIDCodeJanitorAiCodeReview" value="0x3B40" />
+      <IDSymbol name="CmdIDCodeJanitorAiTargetCoverage" value="0x3B50" />
       <IDSymbol name="CmdIDCodeJanitorCleanupChangedFiles" value="0x4000" />
     </GuidSymbol>
 

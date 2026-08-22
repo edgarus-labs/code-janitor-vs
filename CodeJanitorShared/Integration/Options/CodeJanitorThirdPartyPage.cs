@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// presents a third-party code janitor page that creates and provides its associated view model for cleanup operations.
+/// </summary>
 public sealed class CodeJanitorThirdPartyPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

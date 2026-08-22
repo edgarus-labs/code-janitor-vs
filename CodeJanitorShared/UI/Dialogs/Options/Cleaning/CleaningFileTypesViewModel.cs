@@ -237,6 +237,9 @@ public class CleaningFileTypesViewModel : OptionsPageViewModel
         set { SetPropertyValue(value); }
     }
 
+    /// <summary>
+    /// Gets or sets the inclusion expression.
+    /// </summary>
     public string InclusionExpression
     {
         get { return GetPropertyValue<string>(); }

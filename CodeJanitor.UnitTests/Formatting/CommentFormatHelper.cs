@@ -5,6 +5,9 @@ using System;
 
 namespace CodeJanitor.UnitTests.Formatting;
 
+/// <summary>
+/// CommentFormatHelper is a utility class that provides methods to assert equality of strings after applying comment formatting transformations.
+/// </summary>
 internal sealed class CommentFormatHelper
 {
     /// <summary>

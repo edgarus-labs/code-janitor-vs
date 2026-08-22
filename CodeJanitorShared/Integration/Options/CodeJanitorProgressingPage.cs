@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// Represents a page that displays the progress of a CodeJanitor operation and initializes its associated view model.
+/// </summary>
 public sealed class CodeJanitorProgressingPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

@@ -34,6 +34,9 @@ namespace CodeJanitor.Logic.Cleaning;
 
 internal sealed class CodeCleanupManager
 {
+    /// <summary>
+    /// DelegateSourceTransformation represents a named transformation operation whose logic is supplied through a delegate and applied to produce results.
+    /// </summary>
     private sealed class DelegateSourceTransformation : ISourceTransformation
     {
         private readonly Func<string, string> _apply;
@@ -44,6 +47,9 @@ internal sealed class CodeCleanupManager
             _apply = apply;
         }
 
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
         public string Name { get; }
 
         /// <summary>
@@ -58,6 +64,9 @@ internal sealed class CodeCleanupManager
         }
     }
 
+    /// <summary>
+    /// Represents the outcome of a headless cleanup operation, indicating whether the operation was not applicable, produced no changes, or resulted in changes.
+    /// </summary>
     internal enum HeadlessCleanupResult
     {
         NotApplicable,
@@ -65,6 +74,9 @@ internal sealed class CodeCleanupManager
         Changed
     }
 
+        /// <summary>
+        /// HeadlessPreCleanupOutcome represents the result of a headless pre-cleanup operation, capturing its status, any files created, and whether a split operation occurred.
+        /// </summary>
         private struct HeadlessPreCleanupOutcome
         {
             internal HeadlessCleanupResult Result;
@@ -74,20 +86,44 @@ internal sealed class CodeCleanupManager
             internal bool SplitOperationOccurred;
         }
 
+    /// <summary>
+    /// statistics structure that aggregates counts of items processed during a cleanup operation, tracking changed, no-op, failed, editor-related, and split-operation outcomes.
+    /// </summary>
     internal struct CleanupExecutionStats
     {
+        /// <summary>
+        /// Gets or sets the headless changed items.
+        /// </summary>
         internal int HeadlessChangedItems { get; set; }
 
+        /// <summary>
+        /// Gets or sets the headless no op items.
+        /// </summary>
         internal int HeadlessNoOpItems { get; set; }
 
+        /// <summary>
+        /// Gets or sets the failed items.
+        /// </summary>
         internal int FailedItems { get; set; }
 
+        /// <summary>
+        /// Gets or sets the editor items.
+        /// </summary>
         internal int EditorItems { get; set; }
 
+        /// <summary>
+        /// Gets or sets the split operations.
+        /// </summary>
         internal int SplitOperations { get; set; }
 
+        /// <summary>
+        /// Gets or sets the split created files.
+        /// </summary>
         internal int SplitCreatedFiles { get; set; }
 
+        /// <summary>
+        /// Gets the total processed items.
+        /// </summary>
         internal int TotalProcessedItems => HeadlessChangedItems + HeadlessNoOpItems + EditorItems + FailedItems;
     }
 
@@ -111,7 +147,6 @@ internal sealed class CodeCleanupManager
     private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
     private readonly VarWhenApparentLogic _varWhenApparentLogic;
     private readonly ReadonlyFieldLogic _readonlyFieldLogic;
-    private readonly AiXmlDocumentationLogic _aiXmlDocumentationLogic;
     private readonly RazorFormatterLogic _razorFormatterLogic;
     private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
     private readonly SealedClassLogic _sealedClassLogic;
@@ -175,7 +210,6 @@ internal sealed class CodeCleanupManager
         _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
         _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
         _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
-        _aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_package);
         _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
         _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
         _sealedClassLogic = SealedClassLogic.GetInstance(_package);
@@ -493,10 +527,25 @@ internal sealed class CodeCleanupManager
     /// </summary>
     public sealed class ParallelCleanupProgress
     {
+        /// <summary>
+        /// Gets or sets the file path.
+        /// </summary>
         public string FilePath { get; set; }
+        /// <summary>
+        /// Gets or sets the processed count.
+        /// </summary>
         public int ProcessedCount { get; set; }
+        /// <summary>
+        /// Gets or sets the total count.
+        /// </summary>
         public int TotalCount { get; set; }
+        /// <summary>
+        /// Gets or sets the changed.
+        /// </summary>
         public bool Changed { get; set; }
+        /// <summary>
+        /// Gets or sets the error.
+        /// </summary>
         public Exception Error { get; set; }
     }
 
@@ -505,11 +554,29 @@ internal sealed class CodeCleanupManager
     /// </summary>
     public sealed class ParallelCleanupResult
     {
+        /// <summary>
+        /// Gets or sets the total files.
+        /// </summary>
         public int TotalFiles { get; set; }
+        /// <summary>
+        /// Gets or sets the changed files.
+        /// </summary>
         public int ChangedFiles { get; set; }
+        /// <summary>
+        /// Gets or sets the unchanged files.
+        /// </summary>
         public int UnchangedFiles { get; set; }
+        /// <summary>
+        /// Gets or sets the failed files.
+        /// </summary>
         public int FailedFiles { get; set; }
+        /// <summary>
+        /// Gets or sets the modified file paths.
+        /// </summary>
         public IReadOnlyList<string> ModifiedFilePaths { get; set; }
+        /// <summary>
+        /// Gets or sets the failures.
+        /// </summary>
         public IReadOnlyDictionary<string, Exception> Failures { get; set; }
     }
 
@@ -707,21 +774,6 @@ internal sealed class CodeCleanupManager
             transformations.Add(new ExplicitAccessModifierConverter());
         }
 
-            // Apply AI-assisted XML documentation before any of the formatting-normalization steps
-            // below (blank line padding, single-line/accessor normalization, comment formatting,
-            // blank line trimming, etc.) so those steps run *after* the new doc comments have been
-            // inserted and can consistently format the final result. Running the AI step later (as
-            // this used to) left newly inserted comments un-normalized and could cause the already
-            // applied formatting to look inconsistent.
-            if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
-                Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup &&
-                !Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges &&
-                AiXmlDocumentationLogic.IsConfigurationPresent())
-            {
-                var aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_instance?._package);
-                transformations.Add(new DelegateSourceTransformation("Apply AI XML documentation", aiXmlDocumentationLogic.ApplyXmlDocumentationToSource));
-            }
-
         if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
             Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
             Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
@@ -853,36 +905,11 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Transformations for a file produced by the top-level type split. Such a file is never
-    /// opened by the editor path, so the AI documentation step has to run here even when preview
-    /// mode keeps it out of the headless pipeline.
+    /// Transformations for a file produced by the top-level type split.
     /// </summary>
-
     internal static string ApplyHeadlessCSharpTransformationsForCreatedFile(string source, string filePath)
     {
-        var transformed = ApplyHeadlessCSharpTransformations(source, filePath);
-
-        var enabled = Settings.Default.Cleaning_AiXmlDocumentationEnabled;
-        var configured = AiXmlDocumentationLogic.IsConfigurationPresent();
-        var fileName = Path.GetFileName(filePath);
-
-        if (!enabled || !configured)
-        {
-            OutputWindowHelper.InfoWriteLine(
-                $"AI XMLDoc skipped for split file '{fileName}': enabled={enabled}, configured={configured}.");
-
-            return transformed;
-        }
-
-        // Already-documented members are skipped, so this is a no-op when the pipeline above
-        // has run the AI step itself.
-        var documented = AiXmlDocumentationLogic.GetInstance(_instance?._package)
-            .ApplyXmlDocumentationToSourceIgnoringPreview(transformed);
-
-        OutputWindowHelper.InfoWriteLine(
-            $"AI XMLDoc for split file '{fileName}': changed={!string.Equals(documented, transformed, StringComparison.Ordinal)}.");
-
-        return documented;
+        return ApplyHeadlessCSharpTransformations(source, filePath);
     }
 
     /// <summary>
@@ -1465,12 +1492,6 @@ internal sealed class CodeCleanupManager
 
         // Simplify single-statement lambda blocks to expression-bodied lambdas, when enabled.
         _singleStatementLambdaLogic.SimplifySingleStatementLambdas(textDocument);
-
-            // Add AI-assisted XML documentation before any of the formatting-normalization steps
-            // below (blank line padding, explicit access modifiers, single-line/accessor updates,
-            // comment formatting, etc.), so those steps run *after* the new doc comments have been
-            // inserted and can consistently format the final result.
-            _aiXmlDocumentationLogic.ApplyXmlDocumentation(textDocument);
 
         // Perform any actions that can modify the file code model first.
         RunExternalFormatting(textDocument);

@@ -43,10 +43,19 @@ internal sealed class CodeComment
         Expand(point);
     }
 
+    /// <summary>
+    /// Gets the end point.
+    /// </summary>
     public TextPoint EndPoint => _endPoint;
 
+    /// <summary>
+    /// Gets or sets the is valid.
+    /// </summary>
     public bool IsValid { get; private set; }
 
+    /// <summary>
+    /// Gets the start point.
+    /// </summary>
     public TextPoint StartPoint => _startPoint;
 
     /// <summary>

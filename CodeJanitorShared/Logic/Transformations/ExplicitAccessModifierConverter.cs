@@ -14,6 +14,9 @@ namespace CodeJanitor.Logic.Transformations;
 
 public class ExplicitAccessModifierConverter : ISourceTransformation
 {
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Explicit Access Modifiers";
 
     /// <summary>
@@ -37,6 +40,9 @@ public class ExplicitAccessModifierConverter : ISourceTransformation
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// AccessModifierRewriter is a syntax rewriter that visits various C# type and member declarations to ensure they each have an explicit access modifier, inserting a default one when none is present.
+    /// </summary>
     private sealed class AccessModifierRewriter : CSharpSyntaxRewriter
     {
         // ── Type declarations ──────────────────────────────────────────────────

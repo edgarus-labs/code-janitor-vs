@@ -17,6 +17,9 @@ public class CommentFormatConverter : ISourceTransformation
     private static readonly Regex MultiLineCommentStartRegex = new Regex(@"^(\s*)/\*", RegexOptions.Multiline | RegexOptions.Compiled);
     private static readonly Regex MultiLineCommentEndRegex = new Regex(@"\*/$", RegexOptions.Multiline | RegexOptions.Compiled);
 
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Format comments";
 
     /// <summary>

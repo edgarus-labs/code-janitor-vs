@@ -12,6 +12,9 @@ namespace CodeJanitor.Logic.Transformations;
 
 public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTransformation
 {
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Update accessors to both be single line or multi-line";
 
     /// <summary>
@@ -35,6 +38,9 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// A syntax rewriter that standardizes and formats the accessor blocks of property and event declarations to ensure consistent single-line or multi-line presentation.
+    /// </summary>
     private sealed class AccessorFormatRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

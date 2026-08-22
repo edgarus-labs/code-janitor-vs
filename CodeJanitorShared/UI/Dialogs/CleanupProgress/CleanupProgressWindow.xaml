@@ -8,7 +8,7 @@
 	xmlns:p="clr-namespace:CodeJanitor.Properties"
 	xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
 	xmlns:ui="clr-namespace:CodeJanitor.UI"
-	Title="{x:Static p:Resources.CodeJanitorCleanupProgress}"
+	Title="{Binding WindowTitle, FallbackValue='CodeJanitor Progress'}"
 	Width="640"
 	Height="260"
 	d:DataContext="{d:DesignInstance local:CleanupProgressViewModel,
@@ -38,7 +38,7 @@
 			<TextBlock
 				FontSize="14"
 				FontWeight="SemiBold"
-				Text="{x:Static p:Resources.Cleaning}" />
+				Text="{Binding HeaderTitle, FallbackValue='Processing...'}" />
 			<TextBlock
 				Margin="0,4,0,0"
 				Text="{Binding CurrentFileName}"

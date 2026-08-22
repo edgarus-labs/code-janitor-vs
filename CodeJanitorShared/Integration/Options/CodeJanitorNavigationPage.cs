@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// CodeJanitorNavigationPage represents a navigation page in the CodeJanitor application that provides a method to instantiate its corresponding view model.
+/// </summary>
 public sealed class CodeJanitorNavigationPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

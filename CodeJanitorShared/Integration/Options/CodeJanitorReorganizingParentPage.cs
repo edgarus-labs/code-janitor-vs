@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// presents a page for reorganizing a parent page within a Code Janitor feature, responsible for creating the corresponding view model.
+/// </summary>
 public sealed class CodeJanitorReorganizingParentPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

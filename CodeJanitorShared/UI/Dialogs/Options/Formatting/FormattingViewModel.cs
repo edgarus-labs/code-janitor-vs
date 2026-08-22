@@ -118,12 +118,18 @@ public class FormattingViewModel : OptionsPageViewModel
         set { SetPropertyValue(value); }
     }
 
+    /// <summary>
+    /// Gets or sets the comment xml keep tags together.
+    /// </summary>
     public bool CommentXmlKeepTagsTogether
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }
     }
 
+    /// <summary>
+    /// Gets or sets the comment xml space single tags.
+    /// </summary>
     public bool CommentXmlSpaceSingleTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -140,6 +146,9 @@ public class FormattingViewModel : OptionsPageViewModel
         set { SetPropertyValue(value); }
     }
 
+    /// <summary>
+    /// Gets or sets the comment xml split all tags.
+    /// </summary>
     public bool CommentXmlSplitAllTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -156,6 +165,9 @@ public class FormattingViewModel : OptionsPageViewModel
         set { SetPropertyValue(value); }
     }
 
+    /// <summary>
+    /// Gets or sets the comment xml tags to lower case.
+    /// </summary>
     public bool CommentXmlTagsToLowerCase
     {
         get { return GetPropertyValue<bool>(); }
@@ -181,14 +193,23 @@ public class FormattingViewModel : OptionsPageViewModel
         }
     }
 
+    /// <summary>
+    /// Gets or sets the comment preview text.
+    /// </summary>
     public string CommentPreviewText
     {
         get { return GetPropertyValue<string>(); }
         private set { SetPropertyValue(value); }
     }
 
+    /// <summary>
+    /// Gets the comment preview text font.
+    /// </summary>
     public FontFamily CommentPreviewTextFont => new FontFamily(_editorProperties.Item("FontFamily").Value.ToString());
 
+    /// <summary>
+    /// Gets the comment preview text foreground.
+    /// </summary>
     public Brush CommentPreviewTextForeground
     {
         get
@@ -199,6 +220,9 @@ public class FormattingViewModel : OptionsPageViewModel
         }
     }
 
+    /// <summary>
+    /// Gets the comment preview text background.
+    /// </summary>
     public Brush CommentPreviewTextBackground
     {
         get

@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -29,8 +29,16 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// A rewriter that transforms null check binary expressions into a normalized or optimized form.
+    /// </summary>
     private sealed class NullCheckRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Overriding a syntax visitor, this method rewrites binary `==`/`!=` expressions where one operand is `null` into equivalent `is` or `is not` pattern expressions, preserving the original trivia.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax node)
         {
             var visitedNode = (BinaryExpressionSyntax)base.VisitBinaryExpression(node);

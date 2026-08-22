@@ -1,7 +1,10 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 
 namespace CodeJanitor.Model.Comments.Options;
 
+/// <summary>
+/// presents a set of formatting options that control how XML tags are rendered, including aspects such as casing, indentation, content spacing, and element splitting.
+/// </summary>
 public class XmlTagOptions : IXmlTagOptions
 {
     public XmlTagOptions()
@@ -19,18 +22,39 @@ public class XmlTagOptions : IXmlTagOptions
         Split = tag.Split != XmlTagNewLine.Default ? tag.Split : fallback.Split != XmlTagNewLine.Default ? fallback.Split : XmlTagNewLine.Content;
     }
 
+    /// <summary>
+    /// Gets or sets the case.
+    /// </summary>
     public XmlTagCase Case { get; set; }
 
+    /// <summary>
+    /// Gets or sets the indent.
+    /// </summary>
     public int Indent { get; set; }
 
+    /// <summary>
+    /// Gets or sets the keep together.
+    /// </summary>
     public bool KeepTogether { get; set; }
 
+    /// <summary>
+    /// Gets or sets the literal.
+    /// </summary>
     public bool Literal { get; set; }
 
+    /// <summary>
+    /// Gets or sets the space content.
+    /// </summary>
     public bool SpaceContent { get; set; }
 
+    /// <summary>
+    /// Gets or sets the space self closing.
+    /// </summary>
     public bool SpaceSelfClosing { get; set; }
 
+    /// <summary>
+    /// Gets or sets the split.
+    /// </summary>
     public XmlTagNewLine Split { get; set; }
 
     /// <summary>

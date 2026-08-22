@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
@@ -25,7 +25,7 @@ internal static class SolutionHelper
         ThreadHelper.ThrowIfNotOnUIThread();
         var allProjects = new List<T>();
 
-        if (solution != null)
+        if (solution is not null)
         {
             allProjects.AddRange(GetItemsRecursively<T>(solution));
         }
@@ -45,7 +45,7 @@ internal static class SolutionHelper
         where T : class
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (parentItem == null)
+        if (parentItem is null)
         {
             throw new ArgumentNullException(nameof(parentItem));
         }
@@ -96,7 +96,7 @@ internal static class SolutionHelper
                 continue;
             }
 
-            if (item == null)
+            if (item is null)
             {
                 continue;
             }
@@ -134,13 +134,13 @@ internal static class SolutionHelper
 
         // First check if the item is a solution.
         var solution = parentItem as Solution;
-        if (solution != null)
+        if (solution is not null)
         {
             try
             {
-                return solution.Projects == null
+                return solution.Projects is null
                     ? Array.Empty<object>()
-                    : solution.Projects.Cast<Project>().Where(x => x != null).Cast<object>().ToList();
+                    : solution.Projects.Cast<Project>().Where(x => x is not null).Cast<object>().ToList();
             }
             catch (Exception ex)
             {
@@ -152,13 +152,13 @@ internal static class SolutionHelper
 
         // Next check if the item is a project.
         var project = parentItem as Project;
-        if (project != null)
+        if (project is not null)
         {
             try
             {
-                return project.ProjectItems == null
+                return project.ProjectItems is null
                     ? Array.Empty<object>()
-                    : project.ProjectItems.Cast<ProjectItem>().Where(x => x != null).Cast<object>().ToList();
+                    : project.ProjectItems.Cast<ProjectItem>().Where(x => x is not null).Cast<object>().ToList();
             }
             catch (Exception ex)
             {
@@ -174,9 +174,9 @@ internal static class SolutionHelper
             // Standard projects.
             try
             {
-                if (projectItem.ProjectItems != null)
+                if (projectItem.ProjectItems is not null)
                 {
-                    return projectItem.ProjectItems.Cast<ProjectItem>().Where(x => x != null).Cast<object>().ToList();
+                    return projectItem.ProjectItems.Cast<ProjectItem>().Where(x => x is not null).Cast<object>().ToList();
                 }
             }
             catch (Exception ex)
@@ -187,7 +187,7 @@ internal static class SolutionHelper
             // Projects within a solution folder.
             try
             {
-                if (projectItem.SubProject != null)
+                if (projectItem.SubProject is not null)
                 {
                     return new[] { projectItem.SubProject };
                 }

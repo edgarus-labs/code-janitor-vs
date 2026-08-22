@@ -2,6 +2,9 @@
 
 namespace CodeJanitor.Model.Comments.Options;
 
+/// <summary>
+/// presents options for controlling where newline characters are inserted in relation to XML tag elements during formatting.
+/// </summary>
 [Flags]
 public enum XmlTagNewLine
 {

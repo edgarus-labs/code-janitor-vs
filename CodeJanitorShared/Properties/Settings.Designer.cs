@@ -1630,6 +1630,18 @@ namespace CodeJanitor.Properties {
                 this["Cleaning_AiXmlDocumentationIgnorePattern"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public int Cleaning_AiXmlDocumentationMaxParallelFiles {
+            get {
+                return ((int)(this["Cleaning_AiXmlDocumentationMaxParallelFiles"]));
+            }
+            set {
+                this["Cleaning_AiXmlDocumentationMaxParallelFiles"] = value;
+            }
+        }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -2637,6 +2649,114 @@ namespace CodeJanitor.Properties {
             }
             set {
                 this["Feature_AddXmlDoc"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_AiExplainMethod {
+            get {
+                return ((bool)(this["Feature_AiExplainMethod"]));
+            }
+            set {
+                this["Feature_AiExplainMethod"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_AiGenerateUnitTests {
+            get {
+                return ((bool)(this["Feature_AiGenerateUnitTests"]));
+            }
+            set {
+                this["Feature_AiGenerateUnitTests"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_AiCleanRefactor {
+            get {
+                return ((bool)(this["Feature_AiCleanRefactor"]));
+            }
+            set {
+                this["Feature_AiCleanRefactor"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_AiCodeReview {
+            get {
+                return ((bool)(this["Feature_AiCodeReview"]));
+            }
+            set {
+                this["Feature_AiCodeReview"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_AiTargetCoverage {
+            get {
+                return ((bool)(this["Feature_AiTargetCoverage"]));
+            }
+            set {
+                this["Feature_AiTargetCoverage"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("90")]
+        public int Ai_TargetCoveragePercentage {
+            get {
+                return ((int)(this["Ai_TargetCoveragePercentage"]));
+            }
+            set {
+                this["Ai_TargetCoveragePercentage"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int Ai_MaxCoverageIterations {
+            get {
+                return ((int)(this["Ai_MaxCoverageIterations"]));
+            }
+            set {
+                this["Ai_MaxCoverageIterations"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("xUnit")]
+        public string Ai_TestFramework {
+            get {
+                return ((string)(this["Ai_TestFramework"]));
+            }
+            set {
+                this["Ai_TestFramework"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Moq")]
+        public string Ai_MockingLibrary {
+            get {
+                return ((string)(this["Ai_MockingLibrary"]));
+            }
+            set {
+                this["Ai_MockingLibrary"] = value;
             }
         }
         

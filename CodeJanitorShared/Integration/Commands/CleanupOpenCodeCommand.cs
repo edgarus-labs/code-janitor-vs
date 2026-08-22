@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -49,7 +49,7 @@ internal sealed class CleanupOpenCodeCommand : BaseCommand
     /// </summary>
 
     private IEnumerable<Document> OpenDocuments
-        => Package.IDE.Documents.OfType<Document>().Where(x => x.ActiveWindow != null);
+        => Package.IDE.Documents.OfType<Document>().Where(x => x.ActiveWindow is not null);
 
     /// <summary>
     /// Initializes a singleton instance of this command.

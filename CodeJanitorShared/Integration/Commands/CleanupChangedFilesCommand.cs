@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -97,7 +97,7 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
         }
 
         var solutionDirectory = GetSolutionDirectory();
-        var changedFiles = solutionDirectory != null
+        var changedFiles = solutionDirectory is not null
             ? new HashSet<string>(ChangedFilesProvider.GetChangedFiles(solutionDirectory), StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

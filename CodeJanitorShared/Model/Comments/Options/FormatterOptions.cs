@@ -19,10 +19,19 @@ public class FormatterOptions
     /// </summary>
     public bool SkipWrapOnLastWord { get; set; }
 
+    /// <summary>
+    /// Gets or sets the tab size.
+    /// </summary>
     public int TabSize { get; set; } = 4;
 
+    /// <summary>
+    /// Gets or sets the wrap column.
+    /// </summary>
     public int WrapColumn { get; set; }
 
+    /// <summary>
+    /// Gets or sets the xml.
+    /// </summary>
     public FormatterOptionsXml Xml { get; set; }
 
     /// <summary>

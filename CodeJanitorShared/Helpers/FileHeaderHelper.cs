@@ -9,6 +9,9 @@ using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Helpers;
 
+/// <summary>
+/// A utility class that provides methods for analyzing, extracting, and processing file headers, including determining header length, position, line skipping, and handling using directives.
+/// </summary>
 internal static class FileHeaderHelper
 {
     /// <summary>

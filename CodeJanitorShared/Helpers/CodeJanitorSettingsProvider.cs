@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.Xml;
 
@@ -115,7 +115,7 @@ public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
         foreach (SettingsProperty property in settings.Properties)
         {
             var element = fileSettings.Get(property.Name);
-            if (element != null)
+            if (element is not null)
             {
                 settings[property.Name] = new SettingsPropertyValue(property)
                 {
@@ -139,7 +139,7 @@ public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
 
     private static string GetSectionName(SettingsContext context)
     {
-        if (context == null) throw new ArgumentNullException(nameof(context));
+        if (context is null) throw new ArgumentNullException(nameof(context));
 
         return context["GroupName"]?.ToString();
     }
@@ -152,7 +152,7 @@ public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
 
     private static Configuration GetConfiguration(string path)
     {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (path is null) throw new ArgumentNullException(nameof(path));
 
         var fileMap = new ExeConfigurationFileMap { ExeConfigFilename = path };
         var config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
@@ -173,7 +173,7 @@ public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     private static SettingElementCollection GetSettingElementCollection(Configuration config, string sectionName)
     {
         var userSettings = config.GetSectionGroup("userSettings");
-        if (userSettings == null)
+        if (userSettings is null)
         {
             userSettings = new UserSettingsGroup();
             config.SectionGroups.Add("userSettings", userSettings);
@@ -252,7 +252,7 @@ public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     private static void ApplySettingToValue(SettingsPropertyValue value, SettingElementCollection settings)
     {
         var setting = settings.Get(value.Name);
-        if (setting != null)
+        if (setting is not null)
         {
             value.SerializedValue = setting.Value.ValueXml.InnerText;
 
@@ -307,7 +307,7 @@ public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
             if (value.IsDirty)
             {
                 var element = settings.Get(value.Name);
-                if (element == null)
+                if (element is null)
                 {
                     // Note: We only support string serialization for brevity of implementation.
                     element = new SettingElement(value.Name, SettingsSerializeAs.String);

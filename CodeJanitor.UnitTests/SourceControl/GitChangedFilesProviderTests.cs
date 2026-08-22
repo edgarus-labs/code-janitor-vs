@@ -14,6 +14,9 @@ namespace CodeJanitor.UnitTests.SourceControl;
 [TestClass]
 public class GitChangedFilesProviderTests
 {
+    /// <summary>
+    /// FakeProcessRunner represents a test double implementation used to simulate the execution and status reporting of an external process without actually launching one.
+    /// </summary>
     private sealed class FakeProcessRunner : IProcessRunner
     {
         public string TopLevel = "C:/repo";

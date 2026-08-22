@@ -39,6 +39,9 @@ public class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformati
         return rewritten.ToFullString();
     }
 
+    /// <summary>
+    /// VarRewriter is a class that converts implicitly-typed local variable declarations (var) into explicitly-typed declarations by analyzing each local declaration statement and determining whether the variable&apos;s type is apparent from its initializer.
+    /// </summary>
     private sealed class VarRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

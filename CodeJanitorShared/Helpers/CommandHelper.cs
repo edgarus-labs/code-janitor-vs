@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.Linq;
@@ -48,7 +48,7 @@ public class CommandHelper
     public Command FindCommand(params string[] commandNames)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (commandNames == null || commandNames.Length == 0) return null;
+        if (commandNames is null || commandNames.Length == 0) return null;
 
         return _package.IDE.Commands.OfType<Command>().FirstOrDefault(x => commandNames.Contains(x.Name));
     }
@@ -79,7 +79,7 @@ public class CommandHelper
         try
         {
             var command = FindCommand(commandNames);
-            if (command != null && command.IsAvailable)
+            if (command is not null && command.IsAvailable)
             {
                 using (new CursorPositionRestorer(textDocument))
                 {

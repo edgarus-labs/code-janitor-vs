@@ -13,6 +13,9 @@ internal static class OutputWindowHelper
 {
     private static IVsOutputWindowPane _CodeJanitorOutputWindowPane;
 
+    /// <summary>
+    /// Gets the code janitor output window pane.
+    /// </summary>
     private static IVsOutputWindowPane CodeJanitorOutputWindowPane =>
         _CodeJanitorOutputWindowPane ?? (_CodeJanitorOutputWindowPane = GetCodeJanitorOutputWindowPane());
 
@@ -49,7 +52,7 @@ internal static class OutputWindowHelper
     {
         if (!Settings.Default.General_DiagnosticsMode) return;
 
-        if (ex != null)
+        if (ex is not null)
         {
             message += $": {ex}";
         }
@@ -109,7 +112,7 @@ internal static class OutputWindowHelper
     private static void WriteLine(string category, string message)
     {
         var outputWindowPane = CodeJanitorOutputWindowPane;
-        if (outputWindowPane != null)
+        if (outputWindowPane is not null)
         {
             string outputMessage = $"[CodeJanitor {category} {DateTime.Now.ToString("hh:mm:ss tt")}] {message}{Environment.NewLine}";
 

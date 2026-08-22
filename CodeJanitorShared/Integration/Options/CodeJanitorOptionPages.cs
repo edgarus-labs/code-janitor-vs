@@ -1,4 +1,4 @@
-using CodeJanitor.Properties;
+﻿using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
 using CodeJanitor.UI.Dialogs.Options.Cleaning;
 using CodeJanitor.UI.Dialogs.Options.Digging;
@@ -17,6 +17,9 @@ using System.Runtime.InteropServices;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// UI page that provides general-purpose code clean-up functionality, instantiating its associated view model for the code janitor feature.
+/// </summary>
 [Guid("707636e3-b3b9-498f-97e6-923023377553")]
 public sealed class CodeJanitorGeneralPage : CodeJanitorSectionDialogPage
 {

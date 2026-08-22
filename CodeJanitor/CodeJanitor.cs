@@ -179,6 +179,11 @@ namespace CodeJanitor
         public const int CmdIDCodeJanitorSwitchFile = 0x3900;
         public const int CmdIDCodeJanitorFixNamespace = 0x3A00;
         public const int CmdIDCodeJanitorAddXmlDoc = 0x3B00;
+        public const int CmdIDCodeJanitorAiExplainMethod = 0x3B10;
+        public const int CmdIDCodeJanitorAiGenerateUnitTests = 0x3B20;
+        public const int CmdIDCodeJanitorAiCleanRefactor = 0x3B30;
+        public const int CmdIDCodeJanitorAiCodeReview = 0x3B40;
+        public const int CmdIDCodeJanitorAiTargetCoverage = 0x3B50;
         public const int IconCleanup = 0x0001;
         public const int IconCleanupAll = 0x0001;
         public const int IconCloseLocked = 0x0001;

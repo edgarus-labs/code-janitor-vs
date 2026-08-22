@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
@@ -24,7 +24,7 @@ internal static class UIHierarchyHelper
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (parentItem == null)
+        if (parentItem is null)
         {
             throw new ArgumentNullException(nameof(parentItem));
         }
@@ -106,7 +106,7 @@ internal static class UIHierarchyHelper
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (parentItem == null)
+        if (parentItem is null)
         {
             throw new ArgumentNullException(nameof(parentItem));
         }
@@ -138,7 +138,7 @@ internal static class UIHierarchyHelper
         {
             var solution = parentItem.DTE.Solution;
 
-            if (solution != null && solution.Projects.OfType<Project>().All(x => x == parentItem.Object || x.Name == "Miscellaneous Files"))
+            if (solution is not null && solution.Projects.OfType<Project>().All(x => x == parentItem.Object || x.Name == "Miscellaneous Files"))
             {
                 return false;
             }

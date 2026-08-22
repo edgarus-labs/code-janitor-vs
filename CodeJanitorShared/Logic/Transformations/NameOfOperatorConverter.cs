@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -39,8 +39,16 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// NameOfRewriter is a syntax rewriter that resolves `nameof` expressions by examining object creation expressions and gathering the set of available identifiers in scope.
+    /// </summary>
     private sealed class NameOfRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Overrides the visitor for object creation expressions to replace string literal arguments that match valid identifiers with `nameof()` expressions when the created type is in a configured set of exception types, returning the modified node if any substitutions were made.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
         {
             var visited = (ObjectCreationExpressionSyntax)base.VisitObjectCreationExpression(node);
@@ -99,6 +107,11 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
             return visited;
         }
 
+        /// <summary>
+        /// Walks up the syntax tree from the given node and collects parameter identifier names from each enclosing method, constructor, local function, or lambda into a case-sensitive HashSet, stopping when the root is reached.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A HashSet&lt;string&gt; value produced by this method.</returns>
         private static HashSet<string> GetAvailableIdentifiers(SyntaxNode node)
         {
             var identifiers = new HashSet<string>(StringComparer.Ordinal);

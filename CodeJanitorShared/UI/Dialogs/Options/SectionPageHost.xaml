@@ -30,6 +30,7 @@
 						<ResourceDictionary Source="Reorganizing/ReorganizingTypesDataTemplate.xaml" />
 						<ResourceDictionary Source="Switching/SwitchingDataTemplate.xaml" />
 						<ResourceDictionary Source="ThirdParty/ThirdPartyDataTemplate.xaml" />
+						<ResourceDictionary Source="XmlDoc/XmlDocDataTemplate.xaml" />
 					</ResourceDictionary.MergedDictionaries>
 				</ResourceDictionary>
 			</ContentPresenter.Resources>

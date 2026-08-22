@@ -1,5 +1,8 @@
 ﻿namespace CodeJanitor;
 
+/// <summary>
+/// presents the metadata of a Visual Studio Extension (VSIX) package, including its identification, descriptive details, supported language, versioning, authorship, and categorization tags.
+/// </summary>
 internal static class Vsix
 {
     public const string Id = "b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2";

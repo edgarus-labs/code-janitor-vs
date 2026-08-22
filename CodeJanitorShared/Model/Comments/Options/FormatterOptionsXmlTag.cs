@@ -1,5 +1,8 @@
 ﻿namespace CodeJanitor.Model.Comments.Options;
 
+/// <summary>
+/// Represents the available XML formatting options that control how XML output is structured, including casing, indentation, element grouping, spacing, and splitting behavior.
+/// </summary>
 public class FormatterOptionsXmlTag
 {
     /// <summary>
@@ -12,6 +15,9 @@ public class FormatterOptionsXmlTag
     /// </summary>
     public int? Indent { get; set; }
 
+    /// <summary>
+    /// Gets or sets the keep together.
+    /// </summary>
     public bool? KeepTogether { get; set; }
 
     /// <summary>
@@ -19,8 +25,14 @@ public class FormatterOptionsXmlTag
     /// </summary>
     public bool? Literal { get; set; }
 
+    /// <summary>
+    /// Gets or sets the space content.
+    /// </summary>
     public bool? SpaceContent { get; set; }
 
+    /// <summary>
+    /// Gets or sets the space self closing.
+    /// </summary>
     public bool? SpaceSelfClosing { get; set; }
 
     /// <summary>

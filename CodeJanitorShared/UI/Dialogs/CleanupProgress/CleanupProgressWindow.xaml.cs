@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
 
@@ -31,7 +31,7 @@ public partial class CleanupProgressWindow
 
     private void OnClosing(object sender, CancelEventArgs e)
     {
-        var viewModel = DataContext as CleanupProgressViewModel;
+        var viewModel = DataContext as BaseProgressViewModel;
         if (viewModel != null && viewModel.DialogResult == null)
         {
             viewModel.CancelCommand.Execute(null);

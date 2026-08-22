@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Helpers;
@@ -46,6 +46,6 @@ internal static class DocumentExtensions
         ThreadHelper.ThrowIfNotOnUIThread();
         var projectItem = document.ProjectItem;
 
-        return projectItem == null || projectItem.IsExternal();
+        return projectItem is null || projectItem.IsExternal();
     }
 }

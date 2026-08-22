@@ -8,8 +8,14 @@ using System.Linq;
 
 namespace CodeJanitor.Logic.Cleaning;
 
+/// <summary>
+/// Planner that determines how to split a top-level type into separate files by identifying and relocating its contained types while handling naming, partial declarations, and file uniqueness.
+/// </summary>
 internal sealed class TopLevelTypeToFileSplitPlanner
 {
+    /// <summary>
+    /// PlannedFile represents a file intended for creation or processing, encapsulating its destination path along with the content to be written.
+    /// </summary>
     internal sealed class PlannedFile
     {
         internal PlannedFile(string filePath, string content)
@@ -18,11 +24,20 @@ internal sealed class TopLevelTypeToFileSplitPlanner
             Content = content;
         }
 
+        /// <summary>
+        /// Gets the file path.
+        /// </summary>
         internal string FilePath { get; }
 
+        /// <summary>
+        /// Gets the content.
+        /// </summary>
         internal string Content { get; }
     }
 
+    /// <summary>
+    /// SplitPlan represents a proposed plan for splitting an existing source into updated source and new files, indicating whether changes are present and providing a reason if the operation is skipped.
+    /// </summary>
     internal sealed class SplitPlan
     {
         internal SplitPlan(
@@ -35,12 +50,24 @@ internal sealed class TopLevelTypeToFileSplitPlanner
             SkipReason = skipReason;
         }
 
+        /// <summary>
+        /// Gets the updated source.
+        /// </summary>
         internal string UpdatedSource { get; }
 
+        /// <summary>
+        /// Gets the new files.
+        /// </summary>
         internal IReadOnlyList<PlannedFile> NewFiles { get; }
 
+        /// <summary>
+        /// Gets the skip reason.
+        /// </summary>
         internal TopLevelTypeSplitSkipReason SkipReason { get; }
 
+        /// <summary>
+        /// Gets the has changes.
+        /// </summary>
         internal bool HasChanges => NewFiles.Count > 0;
     }
 

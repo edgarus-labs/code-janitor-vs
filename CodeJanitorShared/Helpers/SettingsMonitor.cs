@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace CodeJanitor.Helpers;
 
+/// <summary>
+/// SettingsMonitor is a class that asynchronously tracks changes to a settings object, notifying subscribers when settings are saved or modified.
+/// </summary>
 public sealed class SettingsMonitor<TSetting>
     where TSetting : ApplicationSettingsBase
 {
@@ -112,7 +115,7 @@ public sealed class SettingsMonitor<TSetting>
 
     private async void OnSettingsSaving(object sender, CancelEventArgs e)
     {
-        if (_joinableTaskFactory != null)
+        if (_joinableTaskFactory is not null)
         {
             await _joinableTaskFactory.RunAsync(NotifySettingsChangedAsync);
         }
@@ -122,12 +125,18 @@ public sealed class SettingsMonitor<TSetting>
         }
     }
 
+    /// <summary>
+    /// A class that monitors and retains the most recent values, invoking a callback when updates occur.
+    /// </summary>
     private class Monitor
     {
         public Func<object[], Task> Callback;
         public object[] LastValues;
     }
 
+    /// <summary>
+    /// StringArrayComparer is an equality comparer for string arrays that compares them element-by-element using a configurable element comparer.
+    /// </summary>
     private class StringArrayComparer : IEqualityComparer<string[]>
     {
         private static readonly StringComparer ElementComparer = StringComparer.OrdinalIgnoreCase;

@@ -8,6 +8,9 @@ using System.Xml.Linq;
 
 namespace CodeJanitor.Model.Comments;
 
+/// <summary>
+/// presents a comment line that parses and manages inline XML tags, including their opening/closing structure, options, and child node handling.
+/// </summary>
 internal sealed class CommentLineXml : CommentLine
 {
     private static readonly Regex InterpunctionRegex = new Regex(@"^[^\w]", RegexOptions.Compiled);
@@ -34,16 +37,34 @@ internal sealed class CommentLineXml : CommentLine
         IsLast = xml.NextNode == null;
     }
 
+    /// <summary>
+    /// Gets the close tag.
+    /// </summary>
     public string CloseTag { get; }
 
+    /// <summary>
+    /// Gets the is self closing.
+    /// </summary>
     public bool IsSelfClosing { get; }
 
+    /// <summary>
+    /// Gets the lines.
+    /// </summary>
     public ICollection<ICommentLine> Lines { get; }
 
+    /// <summary>
+    /// Gets or sets the open tag.
+    /// </summary>
     public string OpenTag { get; internal set; }
 
+    /// <summary>
+    /// Gets the tag name.
+    /// </summary>
     public string TagName { get; }
 
+    /// <summary>
+    /// Gets the tag options.
+    /// </summary>
     public IXmlTagOptions TagOptions { get; }
 
     /// <summary>

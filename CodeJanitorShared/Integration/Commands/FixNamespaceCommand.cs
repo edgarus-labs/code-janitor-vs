@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -31,6 +31,9 @@ internal sealed class FixNamespaceCommand : BaseCommand
         _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(Package);
     }
 
+    /// <summary>
+    /// Gets or sets the instance.
+    /// </summary>
     public static FixNamespaceCommand Instance { get; private set; }
 
     /// <summary>

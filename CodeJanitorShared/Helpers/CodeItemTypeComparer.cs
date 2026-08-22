@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using System.Collections.Generic;
@@ -128,7 +128,7 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateAccessOffset(BaseCodeItem codeItem)
     {
         var codeItemElement = codeItem as BaseCodeItemElement;
-        if (codeItemElement == null) return 0;
+        if (codeItemElement is null) return 0;
 
         var itemsOrder = new List<vsCMAccess>
         {
@@ -159,7 +159,7 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
         if (Settings.Default.Reorganizing_ExplicitMembersAtEnd)
         {
             var interfaceItem = codeItem as IInterfaceItem;
-            if ((interfaceItem != null) && interfaceItem.IsExplicitInterfaceImplementation)
+            if ((interfaceItem is not null) && interfaceItem.IsExplicitInterfaceImplementation)
             {
                 return 1;
             }
@@ -177,7 +177,7 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateConstantOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
-        if (codeItemField == null) return 0;
+        if (codeItemField is null) return 0;
 
         return codeItemField.IsConstant ? 0 : 1;
     }
@@ -191,7 +191,7 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateStaticOffset(BaseCodeItem codeItem)
     {
         var codeItemElement = codeItem as BaseCodeItemElement;
-        if (codeItemElement == null) return 0;
+        if (codeItemElement is null) return 0;
 
         return codeItemElement.IsStatic ? 0 : 1;
     }
@@ -205,7 +205,7 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateReadOnlyOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
-        if (codeItemField == null) return 0;
+        if (codeItemField is null) return 0;
 
         return codeItemField.IsReadOnly ? 0 : 1;
     }
@@ -220,7 +220,7 @@ public class CodeItemTypeComparer : Comparer<BaseCodeItem>
     {
         string name = codeItem.Name;
         var interfaceItem = codeItem as IInterfaceItem;
-        if ((interfaceItem != null) && interfaceItem.IsExplicitInterfaceImplementation)
+        if ((interfaceItem is not null) && interfaceItem.IsExplicitInterfaceImplementation)
         {
             // Try to find where the interface ends and the method starts
             int dot = name.LastIndexOf('.') + 1;

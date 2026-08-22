@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -31,8 +31,16 @@ public sealed class OutVarInliningConverter : ISourceTransformation
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// syntax rewriter that processes `out var` variable declarations within code blocks.
+    /// </summary>
     private sealed class OutVarRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// Overrides `VisitBlock` to merge a preceding uninitialized local variable declaration with a subsequent matching `out` argument into a single inline `out var` declaration.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitBlock(BlockSyntax node)
         {
             var visitedBlock = (BlockSyntax)base.VisitBlock(node);

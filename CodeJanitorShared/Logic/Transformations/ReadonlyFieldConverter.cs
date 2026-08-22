@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -67,6 +67,9 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// FieldAccessKind represents the access pattern for a field, distinguishing between no access, direct access, or access through a sub-member.
+    /// </summary>
     private enum FieldAccessKind
     {
         None,
@@ -171,6 +174,11 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         return true;
     }
 
+    /// <summary>
+    /// Strips all outer parentheses from the given expression, returning the innermost non-parenthesized ExpressionSyntax.
+    /// </summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns>A ExpressionSyntax value produced by this method.</returns>
     private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)
     {
         while (expression is ParenthesizedExpressionSyntax paren)
@@ -181,6 +189,13 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
         return expression;
     }
 
+    /// <summary>
+    /// Determines how a field is accessed within a given expression by recursively unwrapping parentheses and inspecting identifier, member-access, element-access, and conditional-access syntax nodes, returning `Direct` for a top-level match on the field name, `SubMember` when the match is nested deeper in the expression chain, and `None` otherwise.
+    /// </summary>
+    /// <param name="expression">The expression.</param>
+    /// <param name="fieldName">The field name.</param>
+    /// <param name="declaringTypeName">The declaring type name.</param>
+    /// <returns>A FieldAccessKind value produced by this method.</returns>
     private static FieldAccessKind GetFieldAccessKind(ExpressionSyntax expression, string fieldName, string declaringTypeName)
     {
         expression = UnwrapParentheses(expression);

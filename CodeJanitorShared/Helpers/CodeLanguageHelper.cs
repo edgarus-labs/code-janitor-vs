@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Helpers;
+namespace CodeJanitor.Helpers;
 
 /// <summary>
 /// A helper class for mapping <see cref="CodeLanguage"/> from a string.

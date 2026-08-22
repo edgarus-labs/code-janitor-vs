@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace CodeJanitor.Helpers;
 
+/// <summary>
+/// utility class that reads .editorconfig files and applies their C# formatting settings to source text.
+/// </summary>
 internal static class EditorConfigHelper
 {
     /// <summary>
@@ -39,7 +42,7 @@ internal static class EditorConfigHelper
 
     internal static void ApplyText(string editorConfigText, string filePath, EditorConfigCSharpOptions options)
     {
-        if (string.IsNullOrWhiteSpace(editorConfigText) || options == null || string.IsNullOrWhiteSpace(filePath))
+        if (string.IsNullOrWhiteSpace(editorConfigText) || options is null || string.IsNullOrWhiteSpace(filePath))
         {
             return;
         }
@@ -48,7 +51,7 @@ internal static class EditorConfigHelper
         using (var reader = new StringReader(editorConfigText))
         {
             string line;
-            while ((line = reader.ReadLine()) != null)
+            while ((line = reader.ReadLine()) is not null)
             {
                 var trimmed = line.Trim();
                 if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";", StringComparison.Ordinal))

@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CodeJanitor.UnitTests.Cleaning;
+namespace CodeJanitor.UnitTests.Ai;
 
 [TestClass]
 public class AiXmlDocumentationLogicTests
@@ -260,7 +260,7 @@ public int Second(int y)
     private static string InvokeGenerateXmlDocumentation(string source, Func<MemberDeclarationSyntax, string> summaryProvider, int maxMethodsPerFile)
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var type = assembly.GetType("CodeJanitor.Logic.Cleaning.AiXmlDocumentationLogic", throwOnError: true);
+        var type = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
         var method = type.GetMethod("GenerateXmlDocumentationForSource", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method, "Could not locate GenerateXmlDocumentationForSource via reflection.");
@@ -273,9 +273,9 @@ public int Second(int y)
     private static string InvokeGenerateXmlDocumentationInternal(string source, Func<MemberDeclarationSyntax, string> summaryProvider, Action<object, Type> configureOptions)
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var logicType = assembly.GetType("CodeJanitor.Logic.Cleaning.AiXmlDocumentationLogic", throwOnError: true);
-        var optionsType = assembly.GetType("CodeJanitor.Logic.Cleaning.AiXmlDocumentationLogic+AiXmlDocumentationRunOptions", throwOnError: true);
-        var statsType = assembly.GetType("CodeJanitor.Logic.Cleaning.AiXmlDocumentationLogic+AiXmlDocumentationRunStats", throwOnError: true);
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var optionsType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic+AiXmlDocumentationRunOptions", throwOnError: true);
+        var statsType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic+AiXmlDocumentationRunStats", throwOnError: true);
         var method = logicType.GetMethod("GenerateXmlDocumentationForSourceInternal", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method, "Could not locate GenerateXmlDocumentationForSourceInternal via reflection.");
@@ -313,15 +313,16 @@ public int Second(int y)
     public void OpenAiCompatibleClient_IsEndpointConfigured_ValidatesUrlAndKey()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
         var method = clientType.GetMethod("IsEndpointConfigured", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method);
 
         Assert.IsTrue((bool)method.Invoke(null, new object[] { "https://api.openai.com/v1", "sk-12345" }));
         Assert.IsTrue((bool)method.Invoke(null, new object[] { "http://localhost:11434/v1", "\"sk-quoted-key\"" }));
+        Assert.IsTrue((bool)method.Invoke(null, new object[] { "https://api.openai.com/v1", "" }));
+        Assert.IsTrue((bool)method.Invoke(null, new object[] { "http://192.168.1.52:20128/v1", null }));
         Assert.IsFalse((bool)method.Invoke(null, new object[] { "", "sk-12345" }));
-        Assert.IsFalse((bool)method.Invoke(null, new object[] { "https://api.openai.com/v1", "" }));
         Assert.IsFalse((bool)method.Invoke(null, new object[] { "invalid-url", "sk-12345" }));
     }
 
@@ -329,7 +330,7 @@ public int Second(int y)
     public void OpenAiCompatibleClient_GetNormalizedEndpointUrl_AppendsChatCompletionsWhenNeeded()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
         var method = clientType.GetMethod("GetNormalizedEndpointUrl", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method);
@@ -367,7 +368,7 @@ public int Second(int y)
         try
         {
             var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-            var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+            var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
             var client = Activator.CreateInstance(
                 clientType,
                 BindingFlags.Instance | BindingFlags.NonPublic,
@@ -405,7 +406,7 @@ public int Second(int y)
     public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_HandlesOpenAiAndDeepSeekFormats()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
         var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method);
@@ -414,6 +415,10 @@ public int Second(int y)
         var openAiJson = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"}}]}";
         Assert.AreEqual("OK", method.Invoke(null, new object[] { openAiJson }));
 
+        // OpenAI with content as array of blocks
+        var openAiBlocksJson = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Block 1 \"},{\"text\":\"Block 2\"}]}}]}";
+        Assert.AreEqual("Block 1 Block 2", method.Invoke(null, new object[] { openAiBlocksJson }));
+
         // DeepSeek Reasoner with content
         var deepSeekJson = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Result text\",\"reasoning_content\":\"Thinking...\"}}]}";
         Assert.AreEqual("Result text", method.Invoke(null, new object[] { deepSeekJson }));
@@ -421,6 +426,10 @@ public int Second(int y)
         // DeepSeek Reasoner with empty content (tokens exhausted by reasoning)
         var deepSeekReasoningOnly = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"Summary from reasoning\"}}]}";
         Assert.AreEqual("Summary from reasoning", method.Invoke(null, new object[] { deepSeekReasoningOnly }));
+
+        // DeepSeek with 'reasoning' or 'thought' field
+        var deepSeekAltReasoning = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"reasoning\":\"Alternative reasoning text\"}}]}";
+        Assert.AreEqual("Alternative reasoning text", method.Invoke(null, new object[] { deepSeekAltReasoning }));
 
         // Legacy / completions endpoint format
         var textJson = "{\"choices\":[{\"text\":\"Direct text\"}]}";
@@ -433,14 +442,83 @@ public int Second(int y)
     }
 
     [TestMethod]
-    public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_ReassemblesServerSentEventStream()
+    public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_HandlesClaudeGeminiOllamaAndGateways()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
         var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method);
 
+        // Anthropic Claude native messages format (content array of blocks)
+        var claudeNativeJson = "{\"id\":\"msg_123\",\"type\":\"message\",\"content\":[{\"type\":\"text\",\"text\":\"Claude message text\"}]}";
+        Assert.AreEqual("Claude message text", method.Invoke(null, new object[] { claudeNativeJson }));
+
+        // Anthropic Claude legacy format
+        var claudeLegacyJson = "{\"completion\":\"Claude legacy completion\"}";
+        Assert.AreEqual("Claude legacy completion", method.Invoke(null, new object[] { claudeLegacyJson }));
+
+        // Google Gemini native format (candidates -> content -> parts)
+        var geminiJson = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Gemini documentation text\"}]}}]}";
+        Assert.AreEqual("Gemini documentation text", method.Invoke(null, new object[] { geminiJson }));
+
+        // Ollama native generate format
+        var ollamaGenerateJson = "{\"response\":\"Ollama generated text\"}";
+        Assert.AreEqual("Ollama generated text", method.Invoke(null, new object[] { ollamaGenerateJson }));
+
+        // Ollama native chat format
+        var ollamaChatJson = "{\"message\":{\"role\":\"assistant\",\"content\":\"Ollama chat text\"}}";
+        Assert.AreEqual("Ollama chat text", method.Invoke(null, new object[] { ollamaChatJson }));
+
+        // Gateway / OmniRoute wrapping response in "data" array
+        var dataArrayChoicesJson = "{\"data\":[{\"choices\":[{\"message\":{\"content\":\"Data array choices content\"}}]}]}";
+        Assert.AreEqual("Data array choices content", method.Invoke(null, new object[] { dataArrayChoicesJson }));
+
+        var dataArrayMessageJson = "{\"data\":[{\"message\":{\"content\":\"Data array message content\"}}]}";
+        Assert.AreEqual("Data array message content", method.Invoke(null, new object[] { dataArrayMessageJson }));
+
+        var dataArrayDirectContentJson = "{\"data\":[{\"content\":\"Data array direct content\"}]}";
+        Assert.AreEqual("Data array direct content", method.Invoke(null, new object[] { dataArrayDirectContentJson }));
+
+        var dataArrayDirectStringJson = "{\"data\":[\"Data array direct string\"]}";
+        Assert.AreEqual("Data array direct string", method.Invoke(null, new object[] { dataArrayDirectStringJson }));
+
+        // Gateway / OpenAI-compatible endpoint with "data" as single object
+        var dataObjectChoicesJson = "{\"data\":{\"choices\":[{\"message\":{\"content\":\"Data object choices content\"}}]}}";
+        Assert.AreEqual("Data object choices content", method.Invoke(null, new object[] { dataObjectChoicesJson }));
+
+        var dataObjectDirectJson = "{\"data\":{\"content\":\"Data object direct content\"}}";
+        Assert.AreEqual("Data object direct content", method.Invoke(null, new object[] { dataObjectDirectJson }));
+
+        var dataStringJson = "{\"data\":\"Direct string in data property\"}";
+        Assert.AreEqual("Direct string in data property", method.Invoke(null, new object[] { dataStringJson }));
+
+        // Root JSON is an array of objects
+        var rootArrayJson = "[{\"choices\":[{\"message\":{\"content\":\"Root array content\"}}]}]";
+        Assert.AreEqual("Root array content", method.Invoke(null, new object[] { rootArrayJson }));
+
+        // HuggingFace / TGI generated_text format
+        var huggingFaceJson = "[{\"generated_text\":\"HuggingFace generated text\"}]";
+        Assert.AreEqual("HuggingFace generated text", method.Invoke(null, new object[] { huggingFaceJson }));
+
+        // Result / Output wrappers
+        var resultWrapperJson = "{\"result\":{\"choices\":[{\"message\":{\"content\":\"Result wrapper content\"}}]}}";
+        Assert.AreEqual("Result wrapper content", method.Invoke(null, new object[] { resultWrapperJson }));
+
+        var outputWrapperJson = "{\"output\":\"Output string content\"}";
+        Assert.AreEqual("Output string content", method.Invoke(null, new object[] { outputWrapperJson }));
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_ReassemblesServerSentEventStream()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        // OpenAI SSE
         var stream = "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Builds \"}}]}\n"
             + "\n"
             + "data: {\"choices\":[{\"delta\":{\"content\":\"a name.\"}}]}\n"
@@ -448,13 +526,33 @@ public int Second(int y)
             + "data: [DONE]\n";
 
         Assert.AreEqual("Builds a name.", method.Invoke(null, new object[] { stream }));
+
+        // Claude SSE
+        var claudeStream = "event: content_block_delta\n"
+            + "data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Claude \"}}\n"
+            + "event: content_block_delta\n"
+            + "data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"stream.\"}}\n"
+            + "event: message_stop\n"
+            + "data: {\"type\":\"message_stop\"}\n";
+
+        Assert.AreEqual("Claude stream.", method.Invoke(null, new object[] { claudeStream }));
+
+        // Gemini SSE
+        var geminiStream = "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Gemini \"}]}}]}\n"
+            + "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"stream.\"}]}}]}\n";
+
+        Assert.AreEqual("Gemini stream.", method.Invoke(null, new object[] { geminiStream }));
+
+        // Data array in SSE
+        var dataArrayStream = "data: [{\"choices\":[{\"delta\":{\"content\":\"Data array stream.\"}}]}]\n";
+        Assert.AreEqual("Data array stream.", method.Invoke(null, new object[] { dataArrayStream }));
     }
 
     [TestMethod]
     public void OpenAiCompatibleClient_TryExtractContentFromChatResponse_ReturnsNullForUnparseableText()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
         var method = clientType.GetMethod("TryExtractContentFromChatResponse", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.IsNotNull(method);
@@ -467,20 +565,53 @@ public int Second(int y)
     public void OpenAiCompatibleClient_BuildRequestJson_RequestsNonStreamingResponse()
     {
         var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
-        var clientType = assembly.GetType("CodeJanitor.Logic.Cleaning.OpenAiCompatibleClient", throwOnError: true);
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
         var client = Activator.CreateInstance(
             clientType,
             BindingFlags.Instance | BindingFlags.NonPublic,
             binder: null,
             args: new object[] { "http://127.0.0.1:1234/v1", "test-key", "Authorization", "test-model", 30 },
             culture: null);
-        var method = clientType.GetMethod("BuildRequestJson", BindingFlags.Instance | BindingFlags.NonPublic);
+        var method = clientType.GetMethod("BuildRequestJson", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(string), typeof(int) }, null);
 
         Assert.IsNotNull(method);
 
         var json = (string)method.Invoke(client, new object[] { "prompt", 128 });
 
         StringAssert.Contains(json, "\"stream\":false");
+    }
+
+    [TestMethod]
+    public void AiXmlDocumentationLogic_CancelRun_AbortsGenerationImmediately()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var beginRunMethod = logicType.GetMethod("BeginRun", BindingFlags.NonPublic | BindingFlags.Static);
+        var cancelRunMethod = logicType.GetMethod("CancelRun", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(beginRunMethod);
+        Assert.IsNotNull(cancelRunMethod);
+
+        beginRunMethod.Invoke(null, null);
+
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+    public int MethodOne() => 1;
+    public int MethodTwo() => 2;
+}
+";
+        var callCount = 0;
+        var updated = InvokeGenerateXmlDocumentation(source, m =>
+        {
+            callCount++;
+            cancelRunMethod.Invoke(null, null);
+            return "Summary";
+        }, 10);
+
+        Assert.AreEqual(1, callCount, "Should abort immediately after cancellation without continuing to other methods.");
     }
 
     private static string GetMemberName(MemberDeclarationSyntax member)

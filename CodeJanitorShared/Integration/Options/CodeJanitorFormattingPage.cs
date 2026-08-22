@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// presents a UI page for code formatting that provides a view model for its presentation layer.
+/// </summary>
 public sealed class CodeJanitorFormattingPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

@@ -14,6 +14,9 @@ using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 
 namespace CodeJanitor.Integration.Options;
 
+/// <summary>
+/// page class for the CodeJanitor cleaning feature that provides view model creation functionality for derived cleaning pages.
+/// </summary>
 public sealed class CodeJanitorCleaningParentPage : CodeJanitorSectionDialogPage
 {
     /// <summary>

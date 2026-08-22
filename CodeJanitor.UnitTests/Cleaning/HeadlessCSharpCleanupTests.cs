@@ -152,10 +152,9 @@ public class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_DoesNotRunAiXmlDoc_WhenRunDuringCleanupIsFalse()
+    public void ApplyHeadlessCSharpTransformations_NeverRunsAiXmlDoc()
     {
         Settings.Default.Cleaning_AiXmlDocumentationEnabled = true;
-        Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup = false;
         Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl = "https://api.openai.com/v1";
         Settings.Default.Cleaning_AiXmlDocumentationApiKey = "test-key";
 
@@ -164,7 +163,7 @@ public class HeadlessCSharpCleanupTests
 
         var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.IsFalse(output.Contains("/// <summary>"), "AI XML documentation should not run during cleanup when RunDuringCleanup is false.");
+        Assert.IsFalse(output.Contains("/// <summary>"), "AI XML documentation should never run during general cleanup.");
     }
 
     [TestMethod]

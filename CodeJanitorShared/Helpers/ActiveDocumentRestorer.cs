@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 
@@ -41,7 +41,7 @@ internal sealed class ActiveDocumentRestorer : IDisposable
     internal void RestoreTrackedDocument()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (TrackedDocument != null && Package.ActiveDocument != TrackedDocument)
+        if (TrackedDocument is not null && Package.ActiveDocument != TrackedDocument)
         {
             TrackedDocument.Activate();
         }

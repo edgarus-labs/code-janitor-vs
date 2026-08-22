@@ -3,6 +3,9 @@ using System;
 
 namespace CodeJanitor.Helpers;
 
+/// <summary>
+/// UIThread represents a dispatcher for executing actions on a user interface thread.
+/// </summary>
 internal static class UIThread
 {
     /// <summary>

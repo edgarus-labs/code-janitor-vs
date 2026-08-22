@@ -12,6 +12,9 @@ namespace CodeJanitor.Logic.Transformations;
 
 public class UpdateSingleLineMethodsConverter : ISourceTransformation
 {
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Update single-line methods";
 
     /// <summary>
@@ -35,6 +38,9 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// A rewriter that processes single-line method declarations and reformats them across multiple lines.
+    /// </summary>
     private sealed class SingleLineMethodRewriter : CSharpSyntaxRewriter
     {
         /// <summary>

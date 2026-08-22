@@ -281,6 +281,56 @@
         </Strings>
       </Button>
 
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiExplainMethod" priority="0x0110" type="Button">
+        <Icon guid="GuidImageFind" id="IconFind" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>AI: &amp;Explain &amp; Simplify</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiGenerateUnitTests" priority="0x0120" type="Button">
+        <Icon guid="GuidImageProgress" id="IconProgress" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>AI: &amp;Generate Unit Tests</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCleanRefactor" priority="0x0130" type="Button">
+        <Icon guid="GuidImageCleanup" id="IconCleanup" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>AI: &amp;Clean Code &amp; Guard Clauses</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCodeReview" priority="0x0140" type="Button">
+        <Icon guid="GuidImageInfo" id="IconInfo" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>AI: Code &amp;Review &amp; Smell Detector</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiTargetCoverage" priority="0x0150" type="Button">
+        <Icon guid="GuidImageProgress" id="IconProgress" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>AI: Generate Tests with &amp;Target Coverage...</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSettingCleanupOnSave" priority="0x0100" type="Button">
         <Icon guid="GuidImageOptions" id="IconOptions" />
         <CommandFlag>DefaultInvisible</CommandFlag>

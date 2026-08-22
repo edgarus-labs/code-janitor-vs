@@ -1,4 +1,4 @@
-﻿using CodeJanitor.UI.Dialogs.About;
+using CodeJanitor.UI.Dialogs.About;
 using System.Threading.Tasks;
 
 namespace CodeJanitor.Integration.Commands;

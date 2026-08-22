@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
 using System;
 using System.Configuration;
@@ -53,11 +53,11 @@ internal sealed class SettingsContextHelper
 
     internal static string GetSolutionSettingsPath(SettingsContext context)
     {
-        if (context == null) throw new ArgumentNullException(nameof(context));
+        if (context is null) throw new ArgumentNullException(nameof(context));
 
         var solutionPath = context["SolutionPath"];
 
-        return solutionPath != null ? Path.Combine(solutionPath.ToString(), SettingsFilename) : null;
+        return solutionPath is not null ? Path.Combine(solutionPath.ToString(), SettingsFilename) : null;
     }
 
     /// <summary>

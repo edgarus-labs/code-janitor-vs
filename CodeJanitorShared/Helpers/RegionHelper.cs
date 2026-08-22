@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 
@@ -58,7 +58,7 @@ internal static class RegionHelper
 
             case CodeLanguage.VisualBasic:
                 return "#Region " +
-                       (name != null ? $"\"{name}\"" : string.Empty);
+                       (name is not null ? $"\"{name}\"" : string.Empty);
 
             default:
                 throw new NotImplementedException($"Regions are not supported for '{codeLanguage}'.");

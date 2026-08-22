@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 
@@ -30,7 +30,7 @@ internal sealed class CursorPositionRestorer : IDisposable
     internal void CaptureCursorPosition()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (TextDocument != null && TextDocument.Selection != null)
+        if (TextDocument is not null && TextDocument.Selection is not null)
         {
             TrackedCursorPosition = new CursorPosition(TextDocument.Selection);
         }
@@ -43,7 +43,7 @@ internal sealed class CursorPositionRestorer : IDisposable
     internal void RestoreCursorPosition()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (TextDocument != null && TextDocument.Selection != null)
+        if (TextDocument is not null && TextDocument.Selection is not null)
         {
             if (IsCursorPositionReset() && TrackedCursorPosition.Line > 1)
             {

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -227,7 +227,7 @@ internal static class TextDocumentHelper
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
-        if (textDocument == null) return;
+        if (textDocument is null) return;
 
         try
         {
@@ -243,14 +243,14 @@ internal static class TextDocumentHelper
             }
 
             var codeItemElement = codeItem as BaseCodeItemElement;
-            if (codeItemElement != null)
+            if (codeItemElement is not null)
             {
                 navigatePoint = codeItemElement.CodeElement.GetStartPoint(vsCMPart.vsCMPartNavigate);
             }
 
             textDocument.Selection.AnchorPoint.TryToShow(vsPaneShowHow.vsPaneShowCentered, viewRangeEnd);
 
-            if (navigatePoint != null)
+            if (navigatePoint is not null)
             {
                 textDocument.Selection.MoveToPoint(navigatePoint, false);
             }
@@ -282,7 +282,7 @@ internal static class TextDocumentHelper
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
-        if (textDocument == null) return;
+        if (textDocument is null) return;
 
         try
         {
@@ -516,21 +516,19 @@ internal static class TextDocumentHelper
 
     private static bool TryGetTextBufferAt(string filePath, out ITextBuffer textBuffer)
     {
-        IVsWindowFrame windowFrame;
         if (VsShellUtilities.IsDocumentOpen(
           CodeJanitorPackage.Instance,
           filePath,
           Guid.Empty,
           out var _,
           out var _,
-          out windowFrame))
+          out var windowFrame))
         {
             IVsTextView view = VsShellUtilities.GetTextView(windowFrame);
-            IVsTextLines lines;
-            if (view.GetBuffer(out lines) == 0)
+            if (view.GetBuffer(out var lines) == 0)
             {
                 var buffer = lines as IVsTextBuffer;
-                if (buffer != null)
+                if (buffer is not null)
                 {
                     var editorAdapterFactoryService = CodeJanitorPackage.Instance.ComponentModel.GetService<IVsEditorAdaptersFactoryService>();
                     textBuffer = editorAdapterFactoryService.GetDataBuffer(buffer);

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.UI;
+using CodeJanitor.UI;
 using System;
 using System.Text.RegularExpressions;
 

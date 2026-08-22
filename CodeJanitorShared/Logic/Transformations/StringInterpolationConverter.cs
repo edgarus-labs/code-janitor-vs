@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -32,8 +32,16 @@ public sealed class StringInterpolationConverter : ISourceTransformation
         return newRoot.ToFullString();
     }
 
+    /// <summary>
+    /// syntax rewriter that transforms string.Format invocations into interpolated string expressions.
+    /// </summary>
     private sealed class StringFormatRewriter : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// This CSharpSyntaxRewriter override transforms valid `string.Format` invocations with string-literal format strings and in-range placeholder indices into equivalent interpolated strings, returning the original node unchanged when the call is not a string-format invocation, has fewer than two arguments, uses a non-literal format string, or contains out-of-range placeholders.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             var visited = (InvocationExpressionSyntax)base.VisitInvocationExpression(node);
@@ -146,6 +154,11 @@ public sealed class StringInterpolationConverter : ISourceTransformation
             }
         }
 
+        /// <summary>
+        /// Escapes a string for use in an interpolated string by replacing double quotes, carriage returns, newlines, and tabs with their escaped backslash representations.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <returns>A string value produced by this method.</returns>
         private static string EscapeForInterpolatedString(string text)
         {
             return text

@@ -47,11 +47,17 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\TypeFormatHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\UIHierarchyHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\UIThread.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\AiContextHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\UndoTransactionHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AboutCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\BaseCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\BuildProgressToolWindowCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AddXmlDocCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiExplainCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiGenerateUnitTestsCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiCleanRefactorCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiCodeReviewCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiTargetCoverageCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CleanupActiveCodeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CleanupAllCodeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CleanupChangedFilesCommand.cs" />
@@ -72,6 +78,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorProgressingPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorReorganizingParentPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorSectionDialogPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorXmlDocPage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorOptionPages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ReadOnlyToggleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\RemoveRegionCommand.cs" />
@@ -106,8 +113,20 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\SingleStatementLambdaLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileHeaderLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileScopedNamespaceLogic.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\AiXmlDocumentationLogic.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\OpenAiCompatibleClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiXmlDocumentationLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiExplainLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiTestGeneratorLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCleanRefactorLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCodeReviewLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\IAiChatClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CodeBranchDescriptor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\ICodeBranchAnalyzer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\RoslynCodeBranchAnalyzer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\ICoverageEvaluator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\BranchCoverageEvaluator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCoverageProgressReport.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCoverageTargetLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\OpenAiCompatibleClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\NamespaceFixerLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeSplitSkipReason.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeToFileSplitFileProcessor.cs" />
@@ -252,14 +271,28 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\About\AboutWindow.xaml.cs">
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiResultViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiResultWindow.xaml.cs">
+      <DependentUpon>AiResultWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiCoverageOptionsViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiCoverageOptionsDialog.xaml.cs">
+      <DependentUpon>AiCoverageOptionsDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiCoverageProgressViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiCoverageProgressDialog.xaml.cs">
+      <DependentUpon>AiCoverageProgressDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml.cs">
       <DependentUpon>CleanupOptionsWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\BaseProgressViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml.cs">
       <DependentUpon>CleanupProgressWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\XmlDocProgressViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningFileTypesViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningGeneralViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Cleaning\CleaningInsertViewModel.cs" />
@@ -290,6 +323,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\SettingToOptionMapping.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\Switching\SwitchingViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ThirdParty\ThirdPartyViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\XmlDoc\XmlDocViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptWindow.xaml.cs">
       <DependentUpon>YesNoPromptWindow.xaml</DependentUpon>
@@ -331,6 +365,18 @@
   <ItemGroup>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\About\AboutWindow.xaml">
       <Link>UI\Dialogs\About\AboutWindow.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiResultWindow.xaml">
+      <Link>UI\Dialogs\Ai\AiResultWindow.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiCoverageOptionsDialog.xaml">
+      <Link>UI\Dialogs\Ai\AiCoverageOptionsDialog.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Ai\AiCoverageProgressDialog.xaml">
+      <Link>UI\Dialogs\Ai\AiCoverageProgressDialog.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml">
@@ -419,6 +465,10 @@
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ThirdParty\ThirdPartyDataTemplate.xaml">
       <Link>UI\Dialogs\Options\ThirdParty\ThirdPartyDataTemplate.xaml</Link>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\XmlDoc\XmlDocDataTemplate.xaml">
+      <Link>UI\Dialogs\Options\XmlDoc\XmlDocDataTemplate.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\Prompts\YesNoPromptWindow.xaml">

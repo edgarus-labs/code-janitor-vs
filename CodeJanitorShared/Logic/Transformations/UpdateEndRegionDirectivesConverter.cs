@@ -21,6 +21,9 @@ public class UpdateEndRegionDirectivesConverter : ISourceTransformation
         @"^[ \t]*#endregion\b[ \t]*(.*)$",
         RegexOptions.Multiline | RegexOptions.Compiled);
 
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Update end region directives";
 
     /// <summary>

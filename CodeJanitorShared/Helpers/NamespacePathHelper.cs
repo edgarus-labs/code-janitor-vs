@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ internal static class NamespacePathHelper
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var project = projectItem?.ContainingProject;
-        if (project == null)
+        if (project is null)
         {
             return null;
         }
@@ -152,7 +152,7 @@ internal static class NamespacePathHelper
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (project?.Properties == null)
+        if (project?.Properties is null)
         {
             return null;
         }

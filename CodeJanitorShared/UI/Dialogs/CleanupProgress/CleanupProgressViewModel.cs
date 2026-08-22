@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Helpers;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 /// The view model representing the state and commands available for cleanup progress.
 /// </summary>
 
-public class CleanupProgressViewModel : Bindable
+public class CleanupProgressViewModel : BaseProgressViewModel
 {
     private readonly BackgroundWorker _backgroundWorker;
     private readonly Stopwatch _batchStopwatch;
@@ -29,7 +29,6 @@ public class CleanupProgressViewModel : Bindable
     {
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
-        AiXmlDocumentationLogic.BeginRun();
         _batchStopwatch = Stopwatch.StartNew();
 
         var cleanupItems = items.ToList();
@@ -53,119 +52,20 @@ public class CleanupProgressViewModel : Bindable
     }
 
     /// <summary>
-    /// Gets or sets the name of the current file being cleaned.
-    /// </summary>
-
-    public string CurrentFileName
-    {
-        get { return GetPropertyValue<string>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the current execution stats summary.
-    /// </summary>
-
-    public string ExecutionSummary
-    {
-        get { return GetPropertyValue<string>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the current elapsed time summary.
-    /// </summary>
-
-    public string ElapsedSummary
-    {
-        get { return GetPropertyValue<string>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the progress count.
-    /// </summary>
-
-    public int CountProgress
-    {
-        get { return GetPropertyValue<int>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the number of items that have finished processing.
-    /// </summary>
-
-    public int ProcessedCount
-    {
-        get { return GetPropertyValue<int>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the total count.
-    /// </summary>
-
-    public int CountTotal
-    {
-        get { return GetPropertyValue<int>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the dialog result.
-    /// </summary>
-
-    public bool? DialogResult
-    {
-        get { return GetPropertyValue<bool?>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets a flag indicating if the operation is being canceled.
-    /// </summary>
-
-    public bool IsCanceling
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
     /// Gets or sets the code cleanup manager.
     /// </summary>
     private CodeCleanupManager CodeCleanupManager { get; set; }
-
-    private DelegateCommand _cancelCommand;
-
-    /// <summary>
-    /// Gets the cancel command.
-    /// </summary>
-    public DelegateCommand CancelCommand => _cancelCommand ?? (_cancelCommand = new DelegateCommand(OnCancelCommandExecuted, OnCancelCommandCanExecute));
-
-    /// <summary>
-    /// Called when the <see cref="CancelCommand" /> needs to determine if it can execute.
-    /// </summary>
-    /// <param name="parameter">The command parameter.</param>
-    /// <returns>True if the command can execute, otherwise false.</returns>
-
-    private bool OnCancelCommandCanExecute(object parameter)
-    {
-        return !IsCanceling;
-    }
 
     /// <summary>
     /// Called when the <see cref="CancelCommand" /> is executed.
     /// </summary>
     /// <param name="parameter">The command parameter.</param>
 
-    private void OnCancelCommandExecuted(object parameter)
+    protected override void OnCancelCommandExecuted(object parameter)
     {
         IsCanceling = true;
         CancelCommand.RaiseCanExecuteChanged();
 
-        AiXmlDocumentationLogic.CancelRun();
         _backgroundWorker.CancelAsync();
     }
 

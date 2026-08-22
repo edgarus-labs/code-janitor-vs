@@ -60,6 +60,7 @@ namespace CodeJanitor;
 [ProvideOptionPage(typeof(CodeJanitorFormattingPage), "Code Janitor", "Formatting", 113, 126, true)]
 [ProvideOptionPage(typeof(CodeJanitorProgressingPage), "Code Janitor", "Progressing", 113, 127, true)]
 [ProvideOptionPage(typeof(CodeJanitorReorganizingParentPage), "Code Janitor", "Reorganizing", 113, 128, true)]
+[ProvideOptionPage(typeof(CodeJanitorXmlDocPage), "Code Janitor", "XML Documentation", 113, 134, true)]
 [ProvideOptionPage(typeof(CodeJanitorThirdPartyPage), "Code Janitor", "Third Party", 113, 133, true)]
 [ProvideToolWindow(typeof(BuildProgressToolWindow), MultiInstances = false, Height = 40, Width = 500, Style = VsDockStyle.Tabbed, Orientation = ToolWindowOrientation.Bottom, Window = EnvDTE.Constants.vsWindowKindMainWindow)]
 [ProvideToolWindow(typeof(SpadeToolWindow), MultiInstances = false, Style = VsDockStyle.Tabbed, Orientation = ToolWindowOrientation.Left, Window = EnvDTE.Constants.vsWindowKindSolutionExplorer)]
@@ -354,9 +355,13 @@ public sealed class CodeJanitorPackage : AsyncPackage
 
     private async Task RegisterCommandsAsync()
     {
-        // Initialize the individual commands, which internally register for command events.
         await AboutCommand.InitializeAsync(this);
         await AddXmlDocCommand.InitializeAsync(this);
+        await AiExplainCommand.InitializeAsync(this);
+        await AiGenerateUnitTestsCommand.InitializeAsync(this);
+        await AiCleanRefactorCommand.InitializeAsync(this);
+        await AiCodeReviewCommand.InitializeAsync(this);
+        await AiTargetCoverageCommand.InitializeAsync(this);
         await BuildProgressToolWindowCommand.InitializeAsync(this);
         await CleanupActiveCodeCommand.InitializeAsync(this);
         await CleanupAllCodeCommand.InitializeAsync(this);

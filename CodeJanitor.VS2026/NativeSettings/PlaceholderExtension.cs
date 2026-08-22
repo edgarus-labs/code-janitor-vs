@@ -11,9 +11,15 @@ namespace CodeJanitor.NativeSettings;
 // requirement in the meantime and is compiled out once native settings are re-enabled.
 #if !CODEJANITOR_NATIVE_SETTINGS
 
+/// <summary>
+/// presents a placeholder extension that provides configuration settings for an extension point when no specific implementation is registered.
+/// </summary>
 [VisualStudioContribution]
 internal sealed class PlaceholderExtension : Extension
 {
+    /// <summary>
+    /// Gets the extension configuration.
+    /// </summary>
     public override ExtensionConfiguration ExtensionConfiguration => new()
     {
         RequiresInProcessHosting = true,

@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeJanitor.Properties;
@@ -25,6 +25,9 @@ public class BlankLinePaddingConverter : ISourceTransformation
         @"(^[ \t]*(?!//)[^ \t\r\n{].*)\r?\n([ \t]*//(?!/))",
         RegexOptions.Multiline | RegexOptions.Compiled);
 
+    /// <summary>
+    /// Gets the name.
+    /// </summary>
     public string Name => "Insert blank line padding";
 
     /// <summary>

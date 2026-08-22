@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 
 namespace CodeJanitor.Helpers;
@@ -20,6 +20,6 @@ public static class EnumHelper
         var fieldInfo = value.GetType().GetField(value.ToString());
         var attribute = Attribute.GetCustomAttribute(fieldInfo, typeof(DescriptionAttribute)) as DescriptionAttribute;
 
-        return attribute != null ? attribute.Description : value.ToString();
+        return attribute is not null ? attribute.Description : value.ToString();
     }
 }
