@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -20,17 +20,15 @@ namespace CodeJanitor.Logic.Transformations;
 /// Visual Studio.
 /// </remarks>
 
-public class SealedClassConverter : IClassSealingConverter, ISourceTransformation
+public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Sealed Class";
 
     /// <inheritdoc />
-
     public string Apply(string source) => SealWhenSafe(source);
 
     /// <inheritdoc />
-
     public string SealWhenSafe(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -47,49 +45,60 @@ public class SealedClassConverter : IClassSealingConverter, ISourceTransformatio
                 .SelectMany(b => b.Types)
                 .Select(t => GetSimpleName(t.Type)));
 
-        var classesToSeal = new List<ClassDeclarationSyntax>();
+        var typesToSeal = new List<TypeDeclarationSyntax>();
 
-        foreach (var classDecl in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
+        foreach (var typeDecl in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
         {
-            if (IsTopLevel(classDecl) && IsSafeToSeal(classDecl, derivedFromNames))
+            if (IsTypeEligibleForSealing(typeDecl) && IsTopLevel(typeDecl) && IsSafeToSeal(typeDecl, derivedFromNames))
             {
-                classesToSeal.Add(classDecl);
+                typesToSeal.Add(typeDecl);
             }
         }
 
-        if (classesToSeal.Count == 0)
+        if (typesToSeal.Count == 0)
         {
             return source;
         }
 
-        var newRoot = root.ReplaceNodes(classesToSeal, (original, _) => WithSealedModifier(original));
+        var newRoot = root.ReplaceNodes(typesToSeal, (original, _) => WithSealedModifier(original));
 
         return newRoot.ToFullString();
     }
 
     /// <summary>
-    /// Determines if a class declaration is top-level by returning true when its parent is a compilation unit, a namespace declaration, or a file-scoped namespace declaration, with no side effects or exceptions.
+    /// Checks if the type declaration is a class or non-struct record.
     /// </summary>
-    /// <param name="classDecl">The class decl.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
-    private static bool IsTopLevel(ClassDeclarationSyntax classDecl)
+    private static bool IsTypeEligibleForSealing(TypeDeclarationSyntax typeDecl)
     {
-        return classDecl.Parent is CompilationUnitSyntax ||
-               classDecl.Parent is NamespaceDeclarationSyntax ||
-               classDecl.Parent is FileScopedNamespaceDeclarationSyntax;
+        if (typeDecl is ClassDeclarationSyntax)
+        {
+            return true;
+        }
+
+        if (typeDecl is RecordDeclarationSyntax recordDecl)
+        {
+            return !recordDecl.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword);
+        }
+
+        return false;
     }
 
     /// <summary>
-    /// Determines if a class can be safely sealed by returning false for any class with sealed, abstract, static, or partial modifiers, for public or protected classes, or for classes listed in derivedFromNames, and true otherwise, with no side effects.
+    /// Determines if a type declaration is top-level by returning true when its parent is a compilation unit, a namespace declaration, or a file-scoped namespace declaration.
     /// </summary>
-    /// <param name="classDecl">The class decl.</param>
-    /// <param name="derivedFromNames">The derived from names.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
-    private static bool IsSafeToSeal(ClassDeclarationSyntax classDecl, HashSet<string> derivedFromNames)
+    private static bool IsTopLevel(TypeDeclarationSyntax typeDecl)
     {
-        var modifiers = classDecl.Modifiers;
+        return typeDecl.Parent is CompilationUnitSyntax ||
+               typeDecl.Parent is NamespaceDeclarationSyntax ||
+               typeDecl.Parent is FileScopedNamespaceDeclarationSyntax;
+    }
+
+    /// <summary>
+    /// Determines if a type can be safely sealed by returning false for any type with sealed, abstract, static, or partial modifiers, or for types listed in derivedFromNames, and true otherwise.
+    /// </summary>
+    private static bool IsSafeToSeal(TypeDeclarationSyntax typeDecl, HashSet<string> derivedFromNames)
+    {
+        var modifiers = typeDecl.Modifiers;
 
         if (modifiers.Any(m => m.IsKind(SyntaxKind.SealedKeyword) ||
                                 m.IsKind(SyntaxKind.AbstractKeyword) ||
@@ -99,22 +108,12 @@ public class SealedClassConverter : IClassSealingConverter, ISourceTransformatio
             return false;
         }
 
-        // Only classes that cannot be inherited from outside the assembly: sealing a
-        // public/protected type would be a breaking API change (CA1852).
-        if (modifiers.Any(m => m.IsKind(SyntaxKind.PublicKeyword) || m.IsKind(SyntaxKind.ProtectedKeyword)))
-        {
-            return false;
-        }
-
-        return !derivedFromNames.Contains(classDecl.Identifier.Text);
+        return !derivedFromNames.Contains(typeDecl.Identifier.Text);
     }
 
     /// <summary>
-    /// Recursively extracts the rightmost simple identifier from a TypeSyntax, falling back to the full type string for other syntax forms, with no side effects.
+    /// Recursively extracts the rightmost simple identifier from a TypeSyntax.
     /// </summary>
-    /// <param name="type">The type.</param>
-    /// <returns>A string value produced by this method.</returns>
-
     private static string GetSimpleName(TypeSyntax type)
     {
         switch (type)
@@ -125,31 +124,29 @@ public class SealedClassConverter : IClassSealingConverter, ISourceTransformatio
             case QualifiedNameSyntax qualified:
                 return GetSimpleName(qualified.Right);
 
+            case AliasQualifiedNameSyntax alias:
+                return GetSimpleName(alias.Name);
+
             default:
                 return type.ToString();
         }
     }
 
     /// <summary>
-    /// Adds a sealed modifier to the given class declaration, preserving leading trivia by moving it from the class keyword when no modifiers exist, otherwise appending the sealed token to the existing modifier list.
+    /// Adds a sealed modifier to the given type declaration.
     /// </summary>
-    /// <param name="classDecl">The class decl.</param>
-    /// <returns>A ClassDeclarationSyntax value produced by this method.</returns>
-
-    private static ClassDeclarationSyntax WithSealedModifier(ClassDeclarationSyntax classDecl)
+    private static TypeDeclarationSyntax WithSealedModifier(TypeDeclarationSyntax typeDecl)
     {
         var sealedToken = SyntaxFactory.Token(SyntaxKind.SealedKeyword).WithTrailingTrivia(SyntaxFactory.Space);
 
-        if (classDecl.Modifiers.Count == 0)
+        if (typeDecl.Modifiers.Count == 0)
         {
-            // Move the class keyword's leading trivia (e.g. indentation) to the new modifier,
-            // since it now becomes the first token of the declaration.
-            sealedToken = sealedToken.WithLeadingTrivia(classDecl.Keyword.LeadingTrivia);
-            var newKeyword = classDecl.Keyword.WithLeadingTrivia(SyntaxTriviaList.Empty);
+            sealedToken = sealedToken.WithLeadingTrivia(typeDecl.Keyword.LeadingTrivia);
+            var newKeyword = typeDecl.Keyword.WithLeadingTrivia(SyntaxTriviaList.Empty);
 
-            return classDecl.WithModifiers(SyntaxFactory.TokenList(sealedToken)).WithKeyword(newKeyword);
+            return typeDecl.WithModifiers(SyntaxFactory.TokenList(sealedToken)).WithKeyword(newKeyword);
         }
 
-        return classDecl.WithModifiers(classDecl.Modifiers.Add(sealedToken));
+        return typeDecl.WithModifiers(typeDecl.Modifiers.Add(sealedToken));
     }
 }

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;
@@ -18,12 +18,20 @@ namespace CodeJanitor.Logic.Cleaning;
 
 internal sealed class RazorFormatterLogic
 {
+    /// <summary>
+    /// The indent unit.
+    /// </summary>
     private const string IndentUnit = "    ";
 
     private readonly CodeJanitorPackage _package;
 
     private static RazorFormatterLogic _instance;
 
+    /// <summary>
+    /// Returns the cached `RazorFormatterLogic` singleton, lazily creating and assigning a new instance using the provided package on first call.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A RazorFormatterLogic value produced by this method.</returns>
     internal static RazorFormatterLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new RazorFormatterLogic(package));
@@ -34,11 +42,15 @@ internal sealed class RazorFormatterLogic
         _package = package;
     }
 
+    /// <summary>
+    /// Formats the text of a Razor (.razor) TextDocument on the UI thread when Razor component formatting is enabled, replacing the original content with the formatted output only if it differs and preserving any existing markers.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
     internal void FormatRazorDocument(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (textDocument?.Parent?.FullName == null) return;
+        if (textDocument?.Parent?.FullName is null) return;
         if (!string.Equals(Path.GetExtension(textDocument.Parent.FullName), ".razor", StringComparison.OrdinalIgnoreCase)) return;
         if (!Settings.Default.Cleaning_FormatRazorComponents) return;
 
@@ -53,6 +65,11 @@ internal sealed class RazorFormatterLogic
         start.ReplaceText(end, formatted, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
 
+    /// <summary>
+    /// Formats Razor text by detecting and preserving the input&apos;s line ending while normalizing code blocks and control blocks, returning the input unchanged when null or empty.
+    /// </summary>
+    /// <param name="input">The input.</param>
+    /// <returns>A string value produced by this method.</returns>
     internal static string FormatRazorText(string input)
     {
         if (string.IsNullOrEmpty(input)) return input;
@@ -63,11 +80,22 @@ internal sealed class RazorFormatterLogic
         return FormatControlBlocks(withFormattedCode, lineEnding);
     }
 
+    /// <summary>
+    /// ects the line ending style of the given text by returning &quot;\r\n&quot; if the text contains carriage-return and newline sequences, otherwise returning &quot;\n&quot;, with no side effects or exceptions.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string DetectLineEnding(string text)
     {
         return text.Contains("\r\n") ? "\r\n" : "\n";
     }
 
+    /// <summary>
+    /// Locates directive code block ranges in the text, attempts to format each block&apos;s inner C# content, re-indents it to match the original line&apos;s indentation, and returns the text with the successfully formatted blocks replaced in place (processing in descending order to preserve offsets).
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string FormatCodeBlocks(string text, string lineEnding)
     {
         var ranges = FindDirectiveCodeBlockRanges(text);
@@ -82,7 +110,7 @@ internal sealed class RazorFormatterLogic
 
             var content = buffer.Substring(contentStart, contentLength);
             var formatted = TryFormatCSharpBlock(content, lineEnding);
-            if (formatted == null) continue;
+            if (formatted is null) continue;
 
             var baseIndent = GetLineIndent(buffer, range.Start);
             var indented = IndentBlock(formatted, baseIndent, lineEnding);
@@ -92,6 +120,12 @@ internal sealed class RazorFormatterLogic
         return buffer;
     }
 
+    /// <summary>
+    /// control blocks within the text by locating their ranges, reformatting each in reverse order with proper indentation, and inserting line endings after blocks that aren&apos;t followed by whitespace, returning the modified string (with no exceptions thrown).
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="lineEnding">The line ending.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string FormatControlBlocks(string text, string lineEnding)
     {
         var ranges = FindControlBlockRanges(text);
@@ -143,7 +177,7 @@ internal sealed class RazorFormatterLogic
 
         var root = tree.GetCompilationUnitRoot();
         var classDeclaration = root.Members.OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>().FirstOrDefault();
-        if (classDeclaration == null)
+        if (classDeclaration is null)
         {
             return null;
         }
@@ -211,7 +245,7 @@ internal sealed class RazorFormatterLogic
         }
 
         var header = TryBuildControlBlockHeader(rawBlock, braceIndex, lineEnding);
-        if (header == null)
+        if (header is null)
         {
             return null;
         }
@@ -385,7 +419,7 @@ internal sealed class RazorFormatterLogic
         var root = tree.GetCompilationUnitRoot();
         var method = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>().FirstOrDefault();
         var body = method?.Body;
-        if (body == null)
+        if (body is null)
         {
             return null;
         }
@@ -928,7 +962,7 @@ internal sealed class RazorFormatterLogic
         while (i < text.Length)
         {
             var directive = directives.FirstOrDefault(x => IsDirectiveAt(text, i, x));
-            if (directive == null)
+            if (directive is null)
             {
                 i++;
                 continue;
@@ -1203,14 +1237,17 @@ internal sealed class RazorFormatterLogic
         /// Gets the start.
         /// </summary>
         internal int Start { get; }
+
         /// <summary>
         /// Gets the end.
         /// </summary>
         internal int End { get; }
+
         /// <summary>
         /// Gets the brace start.
         /// </summary>
         internal int BraceStart { get; }
+
         /// <summary>
         /// Gets the brace end.
         /// </summary>
@@ -1232,6 +1269,7 @@ internal sealed class RazorFormatterLogic
         /// Gets the kind.
         /// </summary>
         internal RazorSegmentKind Kind { get; }
+
         /// <summary>
         /// Gets the content.
         /// </summary>

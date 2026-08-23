@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Model.CodeTree;
+namespace CodeJanitor.Model.CodeTree;
 
 /// <summary>
 /// An enumeration of code sort orders.

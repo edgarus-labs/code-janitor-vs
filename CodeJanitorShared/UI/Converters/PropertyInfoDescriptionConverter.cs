@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
@@ -10,7 +10,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter that retrieves the description attribute from a specified property info value.
 /// </summary>
 
-public class PropertyInfoDescriptionConverter : IValueConverter
+public sealed class PropertyInfoDescriptionConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="PropertyInfoDescriptionConverter" />.
@@ -29,10 +29,10 @@ public class PropertyInfoDescriptionConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var propertyInfo = value as PropertyInfo;
-        if (propertyInfo == null) return null;
+        if (propertyInfo is null) return null;
 
         var descriptionAttribute = propertyInfo.GetCustomAttribute<DescriptionAttribute>();
-        if (descriptionAttribute == null) return null;
+        if (descriptionAttribute is null) return null;
 
         return descriptionAttribute.Description;
     }

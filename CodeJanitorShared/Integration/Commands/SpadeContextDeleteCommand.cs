@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
@@ -56,7 +56,7 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
         bool visible = false;
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             visible = spade.SelectedItems.Any(IsDeletable);
         }
@@ -74,10 +74,10 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
         base.OnExecute();
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             // Delay the check of start/end points until execution time, to avoid an intermediate state issue.
-            var items = spade.SelectedItems.Where(IsDeletable).Where(x => x.StartPoint != null && x.EndPoint != null);
+            var items = spade.SelectedItems.Where(IsDeletable).Where(x => x.StartPoint is not null && x.EndPoint is not null);
 
             _undoTransactionHelper.Run(() =>
             {

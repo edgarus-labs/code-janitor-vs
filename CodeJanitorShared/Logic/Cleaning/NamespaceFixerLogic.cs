@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
@@ -44,7 +44,7 @@ internal sealed class NamespaceFixerLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (projectItem == null || !projectItem.IsPhysicalFile())
+        if (projectItem is null || !projectItem.IsPhysicalFile())
         {
             return false;
         }
@@ -90,7 +90,7 @@ internal sealed class NamespaceFixerLogic
         }
 
         var document = projectItem.Document;
-        if (document != null)
+        if (document is not null)
         {
             return FixNamespace(document, expectedNamespace);
         }
@@ -146,13 +146,13 @@ internal sealed class NamespaceFixerLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document == null)
+        if (document is null)
         {
             return false;
         }
 
         var projectItem = document.ProjectItem;
-        if (projectItem == null)
+        if (projectItem is null)
         {
             OutputWindowHelper.InfoWriteLine($"NamespaceFixerLogic.FixNamespace skipped for '{document.FullName}' because it is not part of a project item.");
 
@@ -173,7 +173,7 @@ internal sealed class NamespaceFixerLogic
         }
 
         var textDocument = document.GetTextDocument();
-        if (textDocument == null)
+        if (textDocument is null)
         {
             OutputWindowHelper.InfoWriteLine($"NamespaceFixerLogic.FixNamespace skipped for '{document.FullName}' because no text document was available.");
 

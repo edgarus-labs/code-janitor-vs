@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -23,7 +23,7 @@ public static class DependencyObjectExtensions
     {
         var parent = VisualTreeHelper.GetParent(obj.FindVisualTreeRoot());
 
-        while (parent != null)
+        while (parent is not null)
         {
             if (parent is T)
             {
@@ -55,7 +55,7 @@ public static class DependencyObjectExtensions
             }
 
             var descendant = FindVisualChild<T>(child);
-            if (descendant != null)
+            if (descendant is not null)
             {
                 return descendant;
             }
@@ -101,7 +101,7 @@ public static class DependencyObjectExtensions
         var current = obj;
         var result = obj;
 
-        while (current != null)
+        while (current is not null)
         {
             result = current;
             if (current is Visual || current is Visual3D)

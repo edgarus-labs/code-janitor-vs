@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -60,7 +60,7 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
         if (!Settings.Default.Collapsing_CollapseSolutionWhenOpened) return;
 
         var topItem = TopUIHierarchyItem;
-        if (topItem == null || topItem.UIHierarchyItems.Count == 0)
+        if (topItem is null || topItem.UIHierarchyItems.Count == 0)
         {
             _isWaitingToExecute = true;
         }
@@ -98,7 +98,7 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
 
         var topItem = TopUIHierarchyItem;
 
-        if (topItem != null && UIHierarchyHelper.HasExpandedChildren(topItem))
+        if (topItem is not null && UIHierarchyHelper.HasExpandedChildren(topItem))
         {
             UIHierarchyHelper.CollapseRecursively(TopUIHierarchyItem);
         }

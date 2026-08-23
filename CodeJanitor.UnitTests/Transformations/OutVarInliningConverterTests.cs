@@ -7,7 +7,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="OutVarInliningConverter" />.
 /// </summary>
 [TestClass]
-public class OutVarInliningConverterTests
+public sealed class OutVarInliningConverterTests
 {
     private OutVarInliningConverter _converter;
 

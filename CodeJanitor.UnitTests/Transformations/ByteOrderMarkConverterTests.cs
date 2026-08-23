@@ -7,7 +7,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="ByteOrderMarkConverter" />.
 /// </summary>
 [TestClass]
-public class ByteOrderMarkConverterTests
+public sealed class ByteOrderMarkConverterTests
 {
     private ByteOrderMarkConverter _converter;
 

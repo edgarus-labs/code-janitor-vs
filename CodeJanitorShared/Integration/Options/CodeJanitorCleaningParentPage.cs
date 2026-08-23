@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
 using CodeJanitor.UI.Dialogs.Options.Cleaning;
 using CodeJanitor.UI.Dialogs.Options.Digging;

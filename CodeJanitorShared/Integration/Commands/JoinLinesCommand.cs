@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -55,7 +55,7 @@ internal sealed class JoinLinesCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = ActiveTextDocument != null;
+        Enabled = ActiveTextDocument is not null;
     }
 
     /// <summary>
@@ -68,10 +68,10 @@ internal sealed class JoinLinesCommand : BaseCommand
         base.OnExecute();
 
         var activeTextDocument = ActiveTextDocument;
-        if (activeTextDocument != null)
+        if (activeTextDocument is not null)
         {
             var textSelection = activeTextDocument.Selection;
-            if (textSelection != null)
+            if (textSelection is not null)
             {
                 _undoTransactionHelper.Run(() => JoinText(textSelection));
             }

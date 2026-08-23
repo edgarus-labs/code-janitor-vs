@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter that performs a logical AND on all values.
 /// </summary>
 
-public class BooleanAndConverter : IMultiValueConverter
+public sealed class BooleanAndConverter : IMultiValueConverter
 {
     /// <summary>
     /// The default <see cref="BooleanAndConverter" />.
@@ -43,7 +43,7 @@ public class BooleanAndConverter : IMultiValueConverter
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values == null || values.Length < 1) return null;
+        if (values is null || values.Length < 1) return null;
 
         return values.All(x => (bool)x);
     }

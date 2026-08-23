@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Model.CodeItems;
 using System.Linq;
@@ -49,7 +49,7 @@ internal sealed class SpadeContextFindReferencesCommand : BaseCommand
         ThreadHelper.ThrowIfNotOnUIThread();
         var spade = Package.Spade;
 
-        Visible = spade != null && spade.SelectedItems.OfType<BaseCodeItemElement>().Count() == 1;
+        Visible = spade is not null && spade.SelectedItems.OfType<BaseCodeItemElement>().Count() == 1;
     }
 
     /// <summary>
@@ -64,10 +64,10 @@ internal sealed class SpadeContextFindReferencesCommand : BaseCommand
         var spade = Package.Spade;
 
         var item = spade?.SelectedItems.OfType<BaseCodeItemElement>().FirstOrDefault();
-        if (item == null) return;
+        if (item is null) return;
 
         var document = spade.Document;
-        if (document == null) return;
+        if (document is null) return;
 
         var selection = ((TextSelection)document.Selection);
 

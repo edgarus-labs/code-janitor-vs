@@ -7,7 +7,7 @@ using System.IO;
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class HeadlessCSharpCleanupTests
+public sealed class HeadlessCSharpCleanupTests
 {
     private string _tempDirectory;
 

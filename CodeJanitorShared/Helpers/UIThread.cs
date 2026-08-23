@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using System;
 
 namespace CodeJanitor.Helpers;

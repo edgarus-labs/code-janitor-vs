@@ -48,15 +48,12 @@
 				Height="26"
 				Margin="0,12,0,6"
 				Maximum="{Binding CountTotal}"
+				Minimum="0"
 				Value="{Binding ProcessedCount}" />
-			<TextBlock HorizontalAlignment="Center">
-				<TextBlock.Text>
-					<MultiBinding StringFormat="{}{0} of {1}">
-						<Binding Path="ProcessedCount" />
-						<Binding Path="CountTotal" />
-					</MultiBinding>
-				</TextBlock.Text>
-			</TextBlock>
+			<TextBlock
+				HorizontalAlignment="Center"
+				FontWeight="SemiBold"
+				Text="{Binding ProgressPercentText, FallbackValue='0%'}" />
 			<TextBlock
 				Margin="0,12,0,0"
 				HorizontalAlignment="Center"

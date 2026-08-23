@@ -1,4 +1,4 @@
-﻿using EnvDTE80;
+using EnvDTE80;
 using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts a code item into a metadata string.
 /// </summary>
 
-public class CodeItemToMetadataStringConverter : IValueConverter
+public sealed class CodeItemToMetadataStringConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="CodeItemToMetadataStringConverter" />.
@@ -41,7 +41,7 @@ public class CodeItemToMetadataStringConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var codeItem = value as BaseCodeItemElement;
-        if (codeItem == null) return string.Empty;
+        if (codeItem is null) return string.Empty;
 
         try
         {
@@ -183,14 +183,14 @@ public class CodeItemToMetadataStringConverter : IValueConverter
 
         strings.AddRange(GenerateMetadataStrings((BaseCodeItemElement)property));
 
-        if (property.CodeProperty.Getter != null)
+        if (property.CodeProperty.Getter is not null)
         {
             strings.Add(UseExtendedStrings ? "read" : "r");
 
             methodStrings.AddRange(GenerateMetadataStrings(new CodeItemMethod { CodeFunction = property.CodeProperty.Getter as CodeFunction2 }));
         }
 
-        if (property.CodeProperty.Setter != null)
+        if (property.CodeProperty.Setter is not null)
         {
             strings.Add(UseExtendedStrings ? "write" : "w");
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Extensibility;
+using Microsoft.VisualStudio.Extensibility;
 
 namespace CodeJanitor.NativeSettings;
 

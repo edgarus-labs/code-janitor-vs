@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System.Collections.Generic;
 
 namespace CodeJanitor.UI.Dialogs.Options;
@@ -7,7 +7,7 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// A specialized list class holding settings to options mappings.
 /// </summary>
 
-public class SettingsToOptionsList : List<ISettingToOptionMapping>
+public sealed class SettingsToOptionsList : List<ISettingToOptionMapping>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingsToOptionsList"/> class.

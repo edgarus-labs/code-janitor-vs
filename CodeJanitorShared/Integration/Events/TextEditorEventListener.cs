@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
@@ -83,12 +83,12 @@ internal sealed class TextEditorEventListener : BaseEventListener
     private void TextEditorEvents_LineChanged(TextPoint startPoint, TextPoint endPoint, int hint)
     {
         var textDocument = startPoint?.Parent;
-        if (textDocument == null) return;
+        if (textDocument is null) return;
 
         var document = startPoint.Parent.Parent;
 
         var onLineChanged = OnLineChanged;
-        if (onLineChanged != null && document != null)
+        if (onLineChanged is not null && document is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine($"TextEditorEventListener.OnLineChanged raised for '{document.FullName}'");
 

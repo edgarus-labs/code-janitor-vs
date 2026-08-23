@@ -1,3 +1,6 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Ai;
 using CodeJanitor.Properties;
@@ -7,10 +10,14 @@ namespace CodeJanitor.UI.Dialogs.Options.XmlDoc;
 /// <summary>
 /// The view model for the AI XML documentation options page.
 /// </summary>
-public class XmlDocViewModel : OptionsPageViewModel
+public sealed class XmlDocViewModel : OptionsPageViewModel
 {
     private bool _isTestingAiXmlDocumentationConnection;
     private DelegateCommand _testAiXmlDocumentationConnectionCommand;
+    private DelegateCommand _detectCopilotCommand;
+    private DelegateCommand _fetchCopilotModelsCommand;
+    private ObservableCollection<string> _availableCopilotModels;
+    private string _copilotStatusText;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XmlDocViewModel"/> class.
@@ -22,6 +29,15 @@ public class XmlDocViewModel : OptionsPageViewModel
     {
         Mappings = new SettingsToOptionsList(ActiveSettings, this)
         {
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_Provider, x => AiProvider),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CustomEndpointUrl, x => CustomEndpointUrl),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CustomApiKeyEncrypted, x => CustomApiKeyEncryptedStore),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CustomApiKeyHeader, x => CustomApiKeyHeader),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CustomModel, x => CustomModel),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CopilotEndpointUrl, x => CopilotEndpointUrl),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CopilotApiKeyEncrypted, x => CopilotApiKeyEncryptedStore),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CopilotApiKeyHeader, x => CopilotApiKeyHeader),
+            new SettingToOptionMapping<string, string>(x => ActiveSettings.Ai_CopilotModel, x => CopilotModel),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AiXmlDocumentationEnabled, x => AiXmlDocumentationEnabled),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl, x => AiXmlDocumentationEndpointUrl),
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_AiXmlDocumentationApiKeyEncrypted, x => AiXmlDocumentationApiKeyEncryptedStore),
@@ -50,7 +66,222 @@ public class XmlDocViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets the header for the options page.
     /// </summary>
-    public override string Header => "XML Documentation";
+    public override string Header => "AI Assistant";
+
+    /// <summary>
+    /// Gets or sets the AI provider backend (Custom or GitHubCopilot).
+    /// </summary>
+    public string AiProvider
+    {
+        get => GetPropertyValue<string>() ?? "Custom";
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                RaisePropertyChanged(nameof(IsCustomProvider));
+                RaisePropertyChanged(nameof(IsGitHubCopilotProvider));
+                RaisePropertyChanged(nameof(IsAiXmlDocumentationEndpointConfigured));
+                OnAiXmlDocumentationConfigurationChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether Custom OpenAI-compatible backend is selected.
+    /// </summary>
+    public bool IsCustomProvider
+    {
+        get => string.Equals(AiProvider, "Custom", StringComparison.OrdinalIgnoreCase);
+        set
+        {
+            if (value)
+            {
+                AiProvider = "Custom";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether GitHub Copilot backend is selected.
+    /// </summary>
+    public bool IsGitHubCopilotProvider
+    {
+        get => string.Equals(AiProvider, "GitHubCopilot", StringComparison.OrdinalIgnoreCase);
+        set
+        {
+            if (value)
+            {
+                AiProvider = "GitHubCopilot";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the detected status of GitHub Copilot.
+    /// </summary>
+    public string CopilotStatusText
+    {
+        get => _copilotStatusText ?? "Click 'Detect Copilot' to check local Visual Studio connection.";
+        set
+        {
+            if (_copilotStatusText != value)
+            {
+                _copilotStatusText = value;
+                RaisePropertyChanged(nameof(CopilotStatusText));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Command to detect active GitHub Copilot connection and auto-configure settings.
+    /// </summary>
+    public DelegateCommand DetectCopilotCommand => _detectCopilotCommand ?? (_detectCopilotCommand = new DelegateCommand(OnDetectCopilotCommandExecuted));
+
+    /// <summary>
+    /// Command to dynamically fetch available models from the GitHub Copilot API.
+    /// </summary>
+    public DelegateCommand FetchCopilotModelsCommand => _fetchCopilotModelsCommand ?? (_fetchCopilotModelsCommand = new DelegateCommand(OnFetchCopilotModelsCommandExecuted));
+
+    /// <summary>
+    /// Gets the collection of available models for GitHub Copilot.
+    /// </summary>
+    public ObservableCollection<string> AvailableCopilotModels
+    {
+        get
+        {
+            if (_availableCopilotModels is null)
+            {
+                _availableCopilotModels = new ObservableCollection<string>(GitHubCopilotDetector.SupportedCopilotModels);
+            }
+
+            return _availableCopilotModels;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the custom AI endpoint URL.
+    /// </summary>
+    public string CustomEndpointUrl
+    {
+        get => GetPropertyValue<string>();
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                OnAiXmlDocumentationConfigurationChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the custom protected persisted API key value.
+    /// </summary>
+    public string CustomApiKeyEncryptedStore
+    {
+        get => GetPropertyValue<string>();
+        set => SetPropertyValue(value);
+    }
+
+    /// <summary>
+    /// Gets or sets the custom API key.
+    /// </summary>
+    public string CustomApiKey
+    {
+        get => GetPropertyValue<string>();
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                OnAiXmlDocumentationConfigurationChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the custom API key header name.
+    /// </summary>
+    public string CustomApiKeyHeader
+    {
+        get => GetPropertyValue<string>();
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                OnAiXmlDocumentationConfigurationChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the custom model name.
+    /// </summary>
+    public string CustomModel
+    {
+        get => GetPropertyValue<string>();
+        set => SetPropertyValue(value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Copilot endpoint URL.
+    /// </summary>
+    public string CopilotEndpointUrl
+    {
+        get => GetPropertyValue<string>() ?? GitHubCopilotDetector.DefaultCopilotEndpoint;
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                OnAiXmlDocumentationConfigurationChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the Copilot protected persisted API key value.
+    /// </summary>
+    public string CopilotApiKeyEncryptedStore
+    {
+        get => GetPropertyValue<string>();
+        set => SetPropertyValue(value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Copilot API key or GitHub token.
+    /// </summary>
+    public string CopilotApiKey
+    {
+        get => GetPropertyValue<string>();
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                OnAiXmlDocumentationConfigurationChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the Copilot API key header name.
+    /// </summary>
+    public string CopilotApiKeyHeader
+    {
+        get => GetPropertyValue<string>() ?? "Authorization";
+        set => SetPropertyValue(value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Copilot model name.
+    /// </summary>
+    public string CopilotModel
+    {
+        get => GetPropertyValue<string>() ?? GitHubCopilotDetector.DefaultCopilotModel;
+        set => SetPropertyValue(value);
+    }
+
+    /// <summary>
+    /// List of standard models supported by GitHub Copilot.
+    /// </summary>
+    public string[] SupportedCopilotModels => GitHubCopilotDetector.SupportedCopilotModels;
 
     /// <summary>
     /// Gets or sets a value indicating whether AI-assisted XML documentation is enabled.
@@ -351,7 +582,10 @@ public class XmlDocViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets a flag indicating whether endpoint URL is configured.
     /// </summary>
-    public bool IsAiXmlDocumentationEndpointConfigured => OpenAiCompatibleClient.IsEndpointConfigured(AiXmlDocumentationEndpointUrl);
+    public bool IsAiXmlDocumentationEndpointConfigured =>
+        IsCustomProvider
+            ? OpenAiCompatibleClient.IsEndpointConfigured(CustomEndpointUrl)
+            : OpenAiCompatibleClient.IsEndpointConfigured(CopilotEndpointUrl);
 
     /// <summary>
     /// Loads settings and decrypts API key.
@@ -360,17 +594,46 @@ public class XmlDocViewModel : OptionsPageViewModel
     {
         base.LoadSettings();
 
-        var decryptedKey = SecretProtectionHelper.UnprotectForCurrentUser(AiXmlDocumentationApiKeyEncryptedStore);
-        if (string.IsNullOrWhiteSpace(decryptedKey) && !string.IsNullOrWhiteSpace(ActiveSettings.Cleaning_AiXmlDocumentationApiKey))
+        var decryptedCustomKey = SecretProtectionHelper.UnprotectForCurrentUser(CustomApiKeyEncryptedStore);
+        SetPropertyValue(decryptedCustomKey, nameof(CustomApiKey));
+
+        var decryptedCopilotKey = SecretProtectionHelper.UnprotectForCurrentUser(CopilotApiKeyEncryptedStore);
+        SetPropertyValue(decryptedCopilotKey, nameof(CopilotApiKey));
+
+        // Migration from legacy settings if custom profile is empty
+        if (string.IsNullOrWhiteSpace(CustomEndpointUrl) &&
+            !string.IsNullOrWhiteSpace(ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl) &&
+            !GitHubCopilotDetector.IsCopilotEndpoint(ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl))
         {
-            decryptedKey = ActiveSettings.Cleaning_AiXmlDocumentationApiKey;
+            CustomEndpointUrl = ActiveSettings.Cleaning_AiXmlDocumentationEndpointUrl;
+            CustomApiKeyHeader = string.IsNullOrWhiteSpace(ActiveSettings.Cleaning_AiXmlDocumentationApiKeyHeader) ? "Authorization" : ActiveSettings.Cleaning_AiXmlDocumentationApiKeyHeader;
+            CustomModel = ActiveSettings.Cleaning_AiXmlDocumentationModel;
+            var legacyKey = SecretProtectionHelper.UnprotectForCurrentUser(ActiveSettings.Cleaning_AiXmlDocumentationApiKeyEncrypted);
+            if (string.IsNullOrWhiteSpace(legacyKey) && !string.IsNullOrWhiteSpace(ActiveSettings.Cleaning_AiXmlDocumentationApiKey))
+            {
+                legacyKey = ActiveSettings.Cleaning_AiXmlDocumentationApiKey;
+            }
+            CustomApiKey = legacyKey;
         }
 
-        SetPropertyValue(decryptedKey, nameof(AiXmlDocumentationApiKey));
-
-        if (string.IsNullOrWhiteSpace(AiXmlDocumentationApiKeyHeader))
+        if (string.IsNullOrWhiteSpace(CustomApiKeyHeader))
         {
-            AiXmlDocumentationApiKeyHeader = "Authorization";
+            CustomApiKeyHeader = "Authorization";
+        }
+
+        if (string.IsNullOrWhiteSpace(CopilotEndpointUrl))
+        {
+            CopilotEndpointUrl = GitHubCopilotDetector.DefaultCopilotEndpoint;
+        }
+
+        if (string.IsNullOrWhiteSpace(CopilotApiKeyHeader))
+        {
+            CopilotApiKeyHeader = "Authorization";
+        }
+
+        if (string.IsNullOrWhiteSpace(CopilotModel))
+        {
+            CopilotModel = GitHubCopilotDetector.DefaultCopilotModel;
         }
 
         if (AiXmlDocumentationTimeoutSeconds <= 0)
@@ -436,20 +699,53 @@ public class XmlDocViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Encrypts the API key for the current user and persists all settings.
+    /// Encrypts the API keys for the current user and persists all settings.
     /// </summary>
     public override void SaveSettings()
     {
-        AiXmlDocumentationApiKeyEncryptedStore = SecretProtectionHelper.ProtectForCurrentUser(AiXmlDocumentationApiKey);
+        CustomApiKeyEncryptedStore = SecretProtectionHelper.ProtectForCurrentUser(CustomApiKey);
+        CopilotApiKeyEncryptedStore = SecretProtectionHelper.ProtectForCurrentUser(CopilotApiKey);
+
+        ActiveSettings.Ai_CustomEndpointUrl = CustomEndpointUrl;
+        ActiveSettings.Ai_CustomApiKeyEncrypted = CustomApiKeyEncryptedStore;
+        ActiveSettings.Ai_CustomApiKeyHeader = CustomApiKeyHeader;
+        ActiveSettings.Ai_CustomModel = CustomModel;
+
+        ActiveSettings.Ai_CopilotEndpointUrl = CopilotEndpointUrl;
+        ActiveSettings.Ai_CopilotApiKeyEncrypted = CopilotApiKeyEncryptedStore;
+        ActiveSettings.Ai_CopilotApiKeyHeader = CopilotApiKeyHeader;
+        ActiveSettings.Ai_CopilotModel = CopilotModel;
+
+        // Synchronize active execution settings
+        if (IsCustomProvider)
+        {
+            AiXmlDocumentationEndpointUrl = CustomEndpointUrl;
+            AiXmlDocumentationApiKeyEncryptedStore = CustomApiKeyEncryptedStore;
+            AiXmlDocumentationApiKeyHeader = CustomApiKeyHeader;
+            AiXmlDocumentationModel = CustomModel;
+        }
+        else
+        {
+            AiXmlDocumentationEndpointUrl = CopilotEndpointUrl;
+            AiXmlDocumentationApiKeyEncryptedStore = CopilotApiKeyEncryptedStore;
+            AiXmlDocumentationApiKeyHeader = CopilotApiKeyHeader;
+            AiXmlDocumentationModel = CopilotModel;
+        }
+
         ActiveSettings.Cleaning_AiXmlDocumentationApiKey = string.Empty;
         base.SaveSettings();
     }
 
+    /// <summary>
+    /// utes the AI XML documentation connection test by validating the configured endpoint asynchronously via the joinable task factory, updating the connection status message and can-execute state before, during, and after the test based on whether an endpoint URL is configured and the success of the validation call.
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
     private void OnTestAiXmlDocumentationConnectionCommandExecuted(object parameter)
     {
         if (!IsAiXmlDocumentationEndpointConfigured)
         {
             AiXmlDocumentationConnectionStatus = "Endpoint URL is missing or invalid.";
+
             return;
         }
 
@@ -457,10 +753,10 @@ public class XmlDocViewModel : OptionsPageViewModel
         TestAiXmlDocumentationConnectionCommand.RaiseCanExecuteChanged();
         AiXmlDocumentationConnectionStatus = $"Testing connection (timeout: {AiXmlDocumentationTimeoutSeconds}s)...";
 
-        var endpointUrl = AiXmlDocumentationEndpointUrl;
-        var apiKey = AiXmlDocumentationApiKey;
-        var apiKeyHeader = AiXmlDocumentationApiKeyHeader;
-        var model = AiXmlDocumentationModel;
+        var endpointUrl = IsCustomProvider ? CustomEndpointUrl : CopilotEndpointUrl;
+        var apiKey = IsCustomProvider ? CustomApiKey : CopilotApiKey;
+        var apiKeyHeader = IsCustomProvider ? CustomApiKeyHeader : CopilotApiKeyHeader;
+        var model = IsCustomProvider ? CustomModel : CopilotModel;
         var timeoutSeconds = AiXmlDocumentationTimeoutSeconds;
 
         Package.JoinableTaskFactory.RunAsync(async delegate
@@ -483,6 +779,101 @@ public class XmlDocViewModel : OptionsPageViewModel
         });
     }
 
+    /// <summary>
+    /// ApplyCopilotDefaults populates empty or whitespace CopilotEndpointUrl, CopilotApiKeyHeader, and CopilotModel fields with their respective default values, then invokes OnDetectCopilotCommandExecuted with a null argument to trigger a detection cycle.
+    /// </summary>
+    private void ApplyCopilotDefaults()
+    {
+        if (string.IsNullOrWhiteSpace(CopilotEndpointUrl))
+        {
+            CopilotEndpointUrl = GitHubCopilotDetector.DefaultCopilotEndpoint;
+        }
+
+        if (string.IsNullOrWhiteSpace(CopilotApiKeyHeader))
+        {
+            CopilotApiKeyHeader = "Authorization";
+        }
+
+        if (string.IsNullOrWhiteSpace(CopilotModel))
+        {
+            CopilotModel = GitHubCopilotDetector.DefaultCopilotModel;
+        }
+
+        OnDetectCopilotCommandExecuted(null);
+    }
+
+    /// <summary>
+    /// Executes the GitHub Copilot detection routine, updates the status text, auto-populates the endpoint URL, model, and API key from detection results when empty and Copilot is active, then triggers a fetch of available Copilot models.
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
+    private void OnDetectCopilotCommandExecuted(object parameter)
+    {
+        var detection = GitHubCopilotDetector.DetectCopilotStatus();
+        CopilotStatusText = detection.StatusDescription;
+
+        if (detection.IsActive)
+        {
+            if (string.IsNullOrWhiteSpace(CopilotEndpointUrl))
+            {
+                CopilotEndpointUrl = detection.RecommendedEndpoint;
+            }
+
+            if (string.IsNullOrWhiteSpace(CopilotModel))
+            {
+                CopilotModel = detection.RecommendedModel;
+            }
+
+            if (!string.IsNullOrEmpty(detection.DetectedToken) && string.IsNullOrWhiteSpace(CopilotApiKey))
+            {
+                CopilotApiKey = detection.DetectedToken;
+            }
+        }
+
+        OnFetchCopilotModelsCommandExecuted(null);
+    }
+
+    /// <summary>
+    /// etches available Copilot models asynchronously (auto-detecting the API token when missing), updates the AvailableCopilotModels collection only if changed, and preserves the previous selection or falls back to the default model.
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
+    private void OnFetchCopilotModelsCommandExecuted(object parameter)
+    {
+        var previousSelection = CopilotModel;
+        var token = CopilotApiKey;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            var detected = GitHubCopilotDetector.DetectCopilotStatus();
+            token = detected.DetectedToken;
+        }
+
+        Package.JoinableTaskFactory.RunAsync(async delegate
+        {
+            var models = await GitHubCopilotDetector.FetchCopilotModelsAsync(token);
+            await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            if (!AvailableCopilotModels.SequenceEqual(models))
+            {
+                AvailableCopilotModels.Clear();
+                foreach (var model in models)
+                {
+                    AvailableCopilotModels.Add(model);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(previousSelection) && AvailableCopilotModels.Contains(previousSelection))
+            {
+                CopilotModel = previousSelection;
+            }
+            else if (string.IsNullOrWhiteSpace(CopilotModel) || !AvailableCopilotModels.Contains(CopilotModel))
+            {
+                CopilotModel = AvailableCopilotModels.FirstOrDefault() ?? GitHubCopilotDetector.DefaultCopilotModel;
+            }
+        });
+    }
+
+    /// <summary>
+    /// AiXmlDocumentationConfigurationChanged updates AiXmlDocumentationConnectionStatus with an appropriate instructional message based on whether the AI XML documentation endpoint is configured, and raises a property change notification for IsAiXmlDocumentationEndpointConfigured.
+    /// </summary>
     private void OnAiXmlDocumentationConfigurationChanged()
     {
         AiXmlDocumentationConnectionStatus = IsAiXmlDocumentationEndpointConfigured

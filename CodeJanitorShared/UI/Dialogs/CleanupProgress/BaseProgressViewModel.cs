@@ -1,3 +1,4 @@
+using System;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 
@@ -59,8 +60,17 @@ public abstract class BaseProgressViewModel : Bindable
     /// </summary>
     public int ProcessedCount
     {
-        get { return GetPropertyValue<int>(); }
-        set { SetPropertyValue(value); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                RaisePropertyChanged(nameof(ProgressPercentText));
+            }
+        }
     }
 
     /// <summary>
@@ -68,8 +78,34 @@ public abstract class BaseProgressViewModel : Bindable
     /// </summary>
     public int CountTotal
     {
-        get { return GetPropertyValue<int>(); }
-        set { SetPropertyValue(value); }
+        get
+        {
+            return GetPropertyValue<int>();
+        }
+        set
+        {
+            if (SetPropertyValue(value))
+            {
+                RaisePropertyChanged(nameof(ProgressPercentText));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the formatted percentage text (e.g. "45%").
+    /// </summary>
+    public string ProgressPercentText
+    {
+        get
+        {
+            if (CountTotal <= 0)
+            {
+                return "0%";
+            }
+
+            var pct = Math.Min(100, Math.Max(0, (int)Math.Round((double)ProcessedCount / CountTotal * 100)));
+            return $"{pct}%";
+        }
     }
 
     /// <summary>

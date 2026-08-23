@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -18,7 +18,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// which keeps it unit-testable in isolation (see ADR-0005 / ADR-0006).
 /// </remarks>
 
-public class FileScopedNamespaceConverter : INamespaceScopeConverter, ISourceTransformation
+public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "File-Scoped Namespace";
@@ -58,6 +58,29 @@ public class FileScopedNamespaceConverter : INamespaceScopeConverter, ISourceTra
             return source;
         }
 
+        if (ns.Usings.Count > 0)
+        {
+            var movedSource = new MoveUsingsOutsideNamespaceConverter().MoveUsingsOutside(source);
+            if (movedSource != source)
+            {
+                source = movedSource;
+                tree = CSharpSyntaxTree.ParseText(source);
+                if (!(tree.GetRoot() is CompilationUnitSyntax newRoot))
+                {
+                    return source;
+                }
+
+                root = newRoot;
+                blockNamespaces = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().ToList();
+                if (blockNamespaces.Count != 1)
+                {
+                    return source;
+                }
+
+                ns = blockNamespaces[0];
+            }
+        }
+
         var openBrace = ns.OpenBraceToken;
         var closeBrace = ns.CloseBraceToken;
         if (openBrace.IsMissing || closeBrace.IsMissing)
@@ -81,8 +104,12 @@ public class FileScopedNamespaceConverter : INamespaceScopeConverter, ISourceTra
         var builder = new StringBuilder();
         builder.Append(header);
         builder.Append("namespace ").Append(name).Append(";");
-        builder.Append(newline).Append(newline);
-        builder.Append(dedentedBody);
+        if (!string.IsNullOrWhiteSpace(dedentedBody))
+        {
+            builder.Append(newline).Append(newline);
+            builder.Append(dedentedBody);
+        }
+
         builder.Append(newline);
 
         return builder.ToString();

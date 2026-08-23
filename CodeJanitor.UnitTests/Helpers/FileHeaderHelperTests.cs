@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -8,7 +8,7 @@ namespace CodeJanitor.UnitTests.Helpers;
 
 // remark: EnvDTE only counts 1 character per newline
 
-public class FileHeaderHelperTests
+public sealed class FileHeaderHelperTests
 {
     [Theory]
     [InlineData(CodeLanguage.CSharp, "// some CSharp test header\r\n")]

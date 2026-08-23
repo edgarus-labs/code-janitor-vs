@@ -11,6 +11,11 @@ namespace CodeJanitor.Logic.Ai;
 /// </summary>
 public sealed class RoslynCodeBranchAnalyzer : ICodeBranchAnalyzer
 {
+    /// <summary>
+    /// Parses C# source into a syntax tree and walks if-statements (classifying immediate return/throw as GuardClause versus ordinary IfBranch, plus non-chained ElseBranch) plus switch sections to build and return a list of CodeBranchDescriptor records containing sequential IDs, types, descriptions, condition snippets and 1-based line numbers, or an empty list for null/whitespace input, with no mutations, I/O or thrown exceptions.
+    /// </summary>
+    /// <param name="sourceCode">The source code.</param>
+    /// <returns>A IReadOnlyList&lt;CodeBranchDescriptor&gt; value produced by this method.</returns>
     public IReadOnlyList<CodeBranchDescriptor> AnalyzeBranches(string sourceCode)
     {
         var branches = new List<CodeBranchDescriptor>();
@@ -47,7 +52,7 @@ public sealed class RoslynCodeBranchAnalyzer : ICodeBranchAnalyzer
                     LineNumber = line
                 });
 
-                if (ifStmt.Else != null)
+                if (ifStmt.Else is not null)
                 {
                     var elseLine = text.Lines.GetLinePosition(ifStmt.Else.SpanStart).Line + 1;
                     if (!(ifStmt.Else.Statement is IfStatementSyntax))

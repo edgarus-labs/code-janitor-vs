@@ -9,7 +9,7 @@ namespace CodeJanitor.Helpers;
 /// A helper class for accessing commands.
 /// </summary>
 
-public class CommandHelper
+public sealed class CommandHelper
 {
     private readonly CodeJanitorPackage _package;
 

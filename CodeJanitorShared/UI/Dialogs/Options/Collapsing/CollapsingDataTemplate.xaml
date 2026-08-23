@@ -1,8 +1,8 @@
 <ResourceDictionary
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Collapsing"
-	xmlns:p="clr-namespace:CodeJanitor.Properties">
+	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Collapsing">
 	<DataTemplate DataType="{x:Type local:CollapsingViewModel}">
 		<StackPanel>
 			<CheckBox Content="{x:Static p:Resources.CollapseSolutionsWhenTheyAreOpened}" IsChecked="{Binding CollapseSolutionWhenOpened}" />

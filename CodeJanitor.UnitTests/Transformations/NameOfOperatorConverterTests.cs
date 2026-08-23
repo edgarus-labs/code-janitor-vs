@@ -7,7 +7,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="NameOfOperatorConverter" />.
 /// </summary>
 [TestClass]
-public class NameOfOperatorConverterTests
+public sealed class NameOfOperatorConverterTests
 {
     private NameOfOperatorConverter _converter;
 

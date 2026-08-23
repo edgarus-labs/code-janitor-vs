@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class UpdateLogicDirectiveParsingTests
+public sealed class UpdateLogicDirectiveParsingTests
 {
     [TestMethod]
     public void TryParseRegionDirective_AllowsTabSeparator()

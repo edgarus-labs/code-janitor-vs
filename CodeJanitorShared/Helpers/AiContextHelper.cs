@@ -10,18 +10,6 @@ using System.Linq;
 namespace CodeJanitor.Helpers;
 
 /// <summary>
-/// Encapsulates the extracted code context for AI operations.
-/// </summary>
-internal sealed class AiCodeContext
-{
-    public string TargetName { get; set; }
-    public string CodeSnippet { get; set; }
-    public string FilePath { get; set; }
-    public Action<string> ReplaceAction { get; set; }
-    public Action<string> InsertAction { get; set; }
-}
-
-/// <summary>
 /// Helper for extracting active code context, methods, selections, and applying AI modifications.
 /// </summary>
 internal static class AiContextHelper
@@ -34,13 +22,13 @@ internal static class AiContextHelper
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var document = package.ActiveDocument;
-        if (document == null)
+        if (document is null)
         {
             return null;
         }
 
         var textDocument = document.Object("TextDocument") as TextDocument;
-        if (textDocument == null)
+        if (textDocument is null)
         {
             return null;
         }
@@ -77,7 +65,7 @@ internal static class AiContextHelper
         }
 
         var spadeItem = package.Spade?.SelectedItems?.FirstOrDefault();
-        if (spadeItem is BaseCodeItemElement element && element.StartPoint != null && element.EndPoint != null)
+        if (spadeItem is BaseCodeItemElement element && element.StartPoint is not null && element.EndPoint is not null)
         {
             return GetCodeItemContext(package, element);
         }
@@ -98,7 +86,7 @@ internal static class AiContextHelper
             var node = token.Parent;
 
             var method = node?.AncestorsAndSelf().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-            if (method != null)
+            if (method is not null)
             {
                 var methodSpan = method.Span;
                 var methodText = method.ToFullString();
@@ -134,7 +122,7 @@ internal static class AiContextHelper
             }
 
             var typeDecl = node?.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().FirstOrDefault();
-            if (typeDecl != null)
+            if (typeDecl is not null)
             {
                 return new AiCodeContext
                 {
@@ -182,7 +170,7 @@ internal static class AiContextHelper
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (codeItem is BaseCodeItemElement element && element.StartPoint != null && element.EndPoint != null)
+        if (codeItem is BaseCodeItemElement element && element.StartPoint is not null && element.EndPoint is not null)
         {
             var code = element.StartPoint.GetText(element.EndPoint);
             var itemName = element.Name ?? "Member";
@@ -213,6 +201,7 @@ internal static class AiContextHelper
         }
 
         // Fallback to active document context
+
         return GetActiveCodeContext(package);
     }
 }

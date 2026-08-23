@@ -32,7 +32,7 @@ public partial class CleanupProgressWindow
     private void OnClosing(object sender, CancelEventArgs e)
     {
         var viewModel = DataContext as BaseProgressViewModel;
-        if (viewModel != null && viewModel.DialogResult == null)
+        if (viewModel is not null && viewModel.DialogResult is null)
         {
             viewModel.CancelCommand.Execute(null);
             e.Cancel = true;

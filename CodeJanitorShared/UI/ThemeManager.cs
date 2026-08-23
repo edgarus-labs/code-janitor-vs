@@ -1,4 +1,4 @@
-﻿using EnvDTE80;
+using EnvDTE80;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
@@ -14,7 +14,7 @@ namespace CodeJanitor.UI;
 /// A helper class for managing the active theme.
 /// </summary>
 
-public class ThemeManager : Bindable
+public sealed class ThemeManager : Bindable
 {
     private static Dictionary<ThemeMode, Uri> _themeUris;
 
@@ -64,7 +64,7 @@ public class ThemeManager : Bindable
     {
         get
         {
-            if (_themeUris == null)
+            if (_themeUris is null)
             {
                 _themeUris = new Dictionary<ThemeMode, Uri>();
 
@@ -141,9 +141,9 @@ public class ThemeManager : Bindable
 
     private void ApplyThemeToElement(FrameworkElement element, ThemeMode theme)
     {
-        if (element == null) return;
+        if (element is null) return;
 
-        if (element.Resources == null)
+        if (element.Resources is null)
         {
             element.Resources = new ResourceDictionary();
         }
@@ -166,7 +166,7 @@ public class ThemeManager : Bindable
 
         // Apply the theme.
         var resourceDictionary = LoadResourceDictionary(ThemeUris[theme]);
-        if (resourceDictionary != null)
+        if (resourceDictionary is not null)
         {
             element.Resources.MergedDictionaries.Insert(0, resourceDictionary);
         }

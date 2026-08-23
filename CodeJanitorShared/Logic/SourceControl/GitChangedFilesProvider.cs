@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 
 namespace CodeJanitor.Logic.SourceControl;
@@ -9,7 +9,7 @@ namespace CodeJanitor.Logic.SourceControl;
 /// </summary>
 /// <remarks>See ADR-0005 / ADR-0007 (dependency injection, unit-testability).</remarks>
 
-public class GitChangedFilesProvider : IChangedFilesProvider
+public sealed class GitChangedFilesProvider : IChangedFilesProvider
 {
     private readonly IProcessRunner _processRunner;
     private readonly IGitStatusParser _parser;

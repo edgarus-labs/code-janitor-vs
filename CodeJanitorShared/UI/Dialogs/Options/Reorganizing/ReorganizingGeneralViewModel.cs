@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 
 namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
@@ -7,7 +7,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
 /// The view model for reorganizing general options.
 /// </summary>
 
-public class ReorganizingGeneralViewModel : OptionsPageViewModel
+public sealed class ReorganizingGeneralViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ReorganizingGeneralViewModel" /> class.

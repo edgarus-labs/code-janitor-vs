@@ -39,61 +39,73 @@
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextASPXWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextASPXWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextASPXCodeWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextASPXCodeWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextCodeWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCodeWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextCSSWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCSSWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextCSSDocumentMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextCSSDocumentGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextHTMLWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextHTMLWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextHTMLDocumentMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextHTMLDocumentGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextJSONDocumentMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextJSONDocumentGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextScriptWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextScriptWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
         </Strings>
       </Menu>
       <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextXAMLWindowMenu" priority="0x0100" type="Menu">
         <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorContextXAMLWindowGroup" />
         <Strings>
-          <ButtonText>CodeJanitor</ButtonText>
+          <ButtonText>&amp;Code Janitor</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorContextSolutionExplorerMenu" priority="0x0500" type="Menu">
+        <Strings>
+          <ButtonText>&amp;Code Janitor</ButtonText>
+          <CommandName>&amp;Code Janitor</CommandName>
+        </Strings>
+      </Menu>
+      <Menu guid="GuidCodeJanitorMenuSet" id="MenuIDCodeJanitorAiMenu" priority="0x0350" type="Menu">
+        <Strings>
+          <ButtonText>&amp;AI Assistance</ButtonText>
+          <CommandName>&amp;AI Assistance</CommandName>
         </Strings>
       </Menu>
     </Menus>
@@ -277,7 +289,7 @@
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>&amp;Add XMLDoc</ButtonText>
+          <ButtonText>&amp;Add XML Documentation</ButtonText>
         </Strings>
       </Button>
 
@@ -287,7 +299,7 @@
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>AI: &amp;Explain &amp; Simplify</ButtonText>
+          <ButtonText>&amp;Explain &amp;amp; Simplify Method</ButtonText>
         </Strings>
       </Button>
 
@@ -297,37 +309,37 @@
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>AI: &amp;Generate Unit Tests</ButtonText>
+          <ButtonText>&amp;Generate Unit Tests</ButtonText>
         </Strings>
       </Button>
 
-      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCleanRefactor" priority="0x0130" type="Button">
-        <Icon guid="GuidImageCleanup" id="IconCleanup" />
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiTargetCoverage" priority="0x0130" type="Button">
+        <Icon guid="GuidImageSortNumeric" id="IconSortNumeric" />
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>AI: &amp;Clean Code &amp; Guard Clauses</ButtonText>
+          <ButtonText>Generate Tests with &amp;Target Coverage...</ButtonText>
         </Strings>
       </Button>
 
-      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCodeReview" priority="0x0140" type="Button">
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCleanRefactor" priority="0x0140" type="Button">
+        <Icon guid="GuidImageReorganize" id="IconReorganize" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Clean Code &amp;amp; Guard Clauses</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiCodeReview" priority="0x0150" type="Button">
         <Icon guid="GuidImageInfo" id="IconInfo" />
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <CommandFlag>TextChanges</CommandFlag>
         <Strings>
-          <ButtonText>AI: Code &amp;Review &amp; Smell Detector</ButtonText>
-        </Strings>
-      </Button>
-
-      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiTargetCoverage" priority="0x0150" type="Button">
-        <Icon guid="GuidImageProgress" id="IconProgress" />
-        <CommandFlag>DefaultInvisible</CommandFlag>
-        <CommandFlag>DynamicVisibility</CommandFlag>
-        <CommandFlag>TextChanges</CommandFlag>
-        <Strings>
-          <ButtonText>AI: Generate Tests with &amp;Target Coverage...</ButtonText>
+          <ButtonText>Code &amp;Review &amp;amp; Smell Detector</ButtonText>
         </Strings>
       </Button>
 

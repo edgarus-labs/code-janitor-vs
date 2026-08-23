@@ -8,7 +8,7 @@ namespace CodeJanitor.Helpers;
 /// A class that encapsulates caching a setting expression that can be parsed into a set.
 /// </summary>
 
-public class CachedSettingSet<T>
+public sealed class CachedSettingSet<T>
     where T : class
 {
     /// <summary>

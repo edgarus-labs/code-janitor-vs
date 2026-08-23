@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace CodeJanitor.UI;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.UI;
 /// </summary>
 
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
-public class NotifiesOnAttribute : Attribute
+public sealed class NotifiesOnAttribute : Attribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="NotifiesOnAttribute"/> class.
@@ -18,7 +18,7 @@ public class NotifiesOnAttribute : Attribute
 
     public NotifiesOnAttribute(string name)
     {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        if (name is null) throw new ArgumentNullException(nameof(name));
 
         Name = name;
     }

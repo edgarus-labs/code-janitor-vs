@@ -96,10 +96,10 @@ internal sealed class AiXmlDocumentationLogic
         /// </summary>
         public int MaxTokensPerRequest { get; set; }
 
-            /// <summary>
-            /// Gets or sets the context window tokens.
-            /// </summary>
-            public int ContextWindowTokens { get; set; }
+        /// <summary>
+        /// Gets or sets the context window tokens.
+        /// </summary>
+        public int ContextWindowTokens { get; set; }
 
         /// <summary>
         /// Gets or sets the max estimated tokens per cleanup.
@@ -201,7 +201,7 @@ internal sealed class AiXmlDocumentationLogic
         int timeoutSeconds)
     {
         var client = CreateClient(endpointUrl, apiKey, apiKeyHeader, model, timeoutSeconds);
-        if (client == null)
+        if (client is null)
         {
             return new OpenAiCompatibleClient.ConnectionTestResult
             {
@@ -221,7 +221,7 @@ internal sealed class AiXmlDocumentationLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (projectItem == null || !projectItem.IsPhysicalFile())
+        if (projectItem is null || !projectItem.IsPhysicalFile())
         {
             return false;
         }
@@ -260,16 +260,16 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return false;
         }
 
         var document = projectItem.Document;
-        if (document != null)
+        if (document is not null)
         {
             var textDocument = document.GetTextDocument();
-            if (textDocument != null)
+            if (textDocument is not null)
             {
                 if (Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges)
                 {
@@ -329,6 +329,7 @@ internal sealed class AiXmlDocumentationLogic
             }
 
             File.WriteAllText(filePath, updatedFileText, encoding);
+
             return true;
         });
     }
@@ -348,16 +349,16 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return false;
         }
 
         var document = projectItem.Document;
-        if (document != null)
+        if (document is not null)
         {
             var textDocument = document.GetTextDocument();
-            if (textDocument != null)
+            if (textDocument is not null)
             {
                 if (Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges)
                 {
@@ -407,6 +408,7 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         File.WriteAllText(filePath, updatedFileText, encoding);
+
         return true;
     }
 
@@ -420,7 +422,7 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return;
         }
@@ -455,7 +457,7 @@ internal sealed class AiXmlDocumentationLogic
 
         var client = CreateClientFromSettings();
 
-        return client == null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
+        return client is null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
     }
 
     /// <summary>
@@ -472,7 +474,7 @@ internal sealed class AiXmlDocumentationLogic
 
         var client = CreateClientFromSettings();
 
-        return client == null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
+        return client is null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
     }
 
     private void ApplyXmlDocumentationWithPreview(TextDocument textDocument, OpenAiCompatibleClient client)
@@ -569,7 +571,7 @@ internal sealed class AiXmlDocumentationLogic
 
     private static string GenerateXmlDocumentationForSourceInternal(string source, Func<MemberDeclarationSyntax, string> summaryProvider, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
     {
-        if (string.IsNullOrWhiteSpace(source) || summaryProvider == null)
+        if (string.IsNullOrWhiteSpace(source) || summaryProvider is null)
         {
             return source;
         }
@@ -594,15 +596,26 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         var methodLimit = PositiveOrDefault(options.MaxMethodsPerFile, 25);
-        if (eligibleMethods.Count > methodLimit)
+
+        // Methods and types that require AI requests are subject to MaxMethodsPerFile.
+        // Deterministic members (fields, properties, indexers, events) don't consume AI requests and are fully documented in one pass.
+        var aiCandidates = eligibleMethods.Where(x => x is MethodDeclarationSyntax || x is BaseTypeDeclarationSyntax).ToList();
+        var deterministicMembers = eligibleMethods.Where(x => !(x is MethodDeclarationSyntax || x is BaseTypeDeclarationSyntax)).ToList();
+
+        if (aiCandidates.Count > methodLimit)
         {
-            eligibleMethods = eligibleMethods.Take(methodLimit).ToList();
-            stats.SkippedByBudget += (stats.EligibleMethods - eligibleMethods.Count);
+            var allowedAi = aiCandidates.Take(methodLimit).ToList();
+            stats.SkippedByBudget += (aiCandidates.Count - allowedAi.Count);
+            aiCandidates = allowedAi;
         }
+
+        var eligibleToProcess = aiCandidates.Concat(deterministicMembers)
+            .OrderBy(x => x.GetFirstToken().SpanStart)
+            .ToList();
 
         var builder = new StringBuilder(source);
         var deadlineUtc = DateTime.UtcNow.AddSeconds(options.GlobalTimeoutSeconds > 0 ? options.GlobalTimeoutSeconds : 60);
-        foreach (var method in eligibleMethods.OrderByDescending(x => x.GetFirstToken().SpanStart))
+        foreach (var method in eligibleToProcess.OrderByDescending(x => x.GetFirstToken().SpanStart))
         {
             if (RunToken.IsCancellationRequested)
             {
@@ -652,7 +665,7 @@ internal sealed class AiXmlDocumentationLogic
             MaxRequestsPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, 25),
             MaxInputCharsPerMethod = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, 2500),
             MaxTokensPerRequest = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxTokensPerRequest, 256),
-                ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
+            ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
             MaxEstimatedTokensPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, 8000),
             GlobalTimeoutSeconds = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, 60),
             AllowDeterministicFallback = Settings.Default.Cleaning_AiXmlDocumentationAllowDeterministicFallback,
@@ -680,7 +693,7 @@ internal sealed class AiXmlDocumentationLogic
                 PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072));
     }
 
-        private static OpenAiCompatibleClient CreateClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens = 0)
+    private static OpenAiCompatibleClient CreateClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens = 0)
     {
         if (!OpenAiCompatibleClient.IsEndpointConfigured(endpointUrl))
         {
@@ -711,13 +724,12 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
-    /// Types and properties carry no parameters or exceptions, so they only need the shared
+    /// Types, properties, fields, indexers, and events carry no parameters or exceptions, so they only need the shared
     /// attribute and existing-documentation filters.
     /// </summary>
-
     private static bool CanDocumentMember(MemberDeclarationSyntax member, AiXmlDocumentationRunOptions options, ref int filteredCounter)
     {
-        if (member == null)
+        if (member is null)
         {
             return false;
         }
@@ -727,14 +739,39 @@ internal sealed class AiXmlDocumentationLogic
             return CanDocumentMethod(method, options, ref filteredCounter);
         }
 
-        if (!(member is BaseTypeDeclarationSyntax) && !(member is PropertyDeclarationSyntax))
+        if (!(member is BaseTypeDeclarationSyntax) &&
+            !(member is PropertyDeclarationSyntax) &&
+            !(member is FieldDeclarationSyntax) &&
+            !(member is IndexerDeclarationSyntax) &&
+            !(member is EventDeclarationSyntax) &&
+            !(member is EventFieldDeclarationSyntax))
         {
             return false;
         }
 
-        if (member is PropertyDeclarationSyntax && member.Parent is InterfaceDeclarationSyntax)
+        if ((member is PropertyDeclarationSyntax || member is FieldDeclarationSyntax || member is EventDeclarationSyntax || member is EventFieldDeclarationSyntax || member is IndexerDeclarationSyntax) &&
+            member.Parent is InterfaceDeclarationSyntax)
         {
             return false;
+        }
+
+        if (member is FieldDeclarationSyntax field)
+        {
+            if (field.Declaration.Variables.Count == 0)
+            {
+                return false;
+            }
+
+            var isAccessibleOrConst = field.Modifiers.Any(m =>
+                m.IsKind(SyntaxKind.PublicKeyword) ||
+                m.IsKind(SyntaxKind.InternalKeyword) ||
+                m.IsKind(SyntaxKind.ProtectedKeyword) ||
+                m.IsKind(SyntaxKind.ConstKeyword));
+
+            if (!isAccessibleOrConst)
+            {
+                return false;
+            }
         }
 
         if (options.IgnoreTestMethods && member is BaseTypeDeclarationSyntax testType &&
@@ -780,7 +817,7 @@ internal sealed class AiXmlDocumentationLogic
     /// <returns>A bool value produced by this method.</returns>
     private static bool CanDocumentMethod(MethodDeclarationSyntax method, AiXmlDocumentationRunOptions options, ref int filteredCounter)
     {
-        if (method == null)
+        if (method is null)
         {
             return false;
         }
@@ -795,7 +832,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        if (method.Body == null && method.ExpressionBody == null)
+        if (method.Body is null && method.ExpressionBody is null)
         {
             return false;
         }
@@ -847,7 +884,7 @@ internal sealed class AiXmlDocumentationLogic
     /// <returns>A bool value produced by this method.</returns>
     private static bool HasAnyAttribute(MemberDeclarationSyntax declaration, params string[] names)
     {
-        if (declaration == null)
+        if (declaration is null)
         {
             return false;
         }
@@ -922,22 +959,35 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
-    /// Determines whether the provided SyntaxNode includes a single-line documentation comment within its leading trivia.
+    /// Determines whether the provided SyntaxNode includes documentation comments within its leading trivia.
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>A bool value produced by this method.</returns>
     private static bool HasDocumentationComment(SyntaxNode member)
     {
+        if (member is null)
+        {
+            return false;
+        }
+
         return member.GetLeadingTrivia().Any(trivia =>
         {
+            if (trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+            {
+                return true;
+            }
+
             var structure = trivia.GetStructure();
 
-            return structure != null && structure.Kind() == SyntaxKind.SingleLineDocumentationCommentTrivia;
+            return structure is not null &&
+                   (structure.Kind() == SyntaxKind.SingleLineDocumentationCommentTrivia ||
+                    structure.Kind() == SyntaxKind.MultiLineDocumentationCommentTrivia);
         });
     }
 
     /// <summary>
-    /// an AI-generated or fallback summary for a member, routing properties to a deterministic builder, enforcing per-cleanup token/request limits and cancellation via RunToken, updating stats (attempted/failed/fallback counters and estimated tokens), and falling back to a deterministic summary only when AllowDeterministicFallback is enabled on AI failure.
+    /// Generates an AI-generated or fallback summary for a member, routing properties, fields, indexers, and events to deterministic builders, enforcing per-cleanup token/request limits and cancellation via RunToken, updating stats, and falling back to a deterministic summary on failure.
     /// </summary>
     /// <param name="client">The client.</param>
     /// <param name="member">The member.</param>
@@ -946,10 +996,25 @@ internal sealed class AiXmlDocumentationLogic
     /// <returns>A string value produced by this method.</returns>
     private static string CreateSummary(OpenAiCompatibleClient client, MemberDeclarationSyntax member, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
     {
-        // Property wording is formulaic, so spending a request on it buys nothing.
+        // Property, field, indexer, and event wording is formulaic, so spending an AI request on it buys nothing.
         if (member is PropertyDeclarationSyntax property)
         {
             return BuildPropertySummary(property);
+        }
+
+        if (member is FieldDeclarationSyntax field)
+        {
+            return BuildFieldSummary(field);
+        }
+
+        if (member is IndexerDeclarationSyntax indexer)
+        {
+            return BuildIndexerSummary(indexer);
+        }
+
+        if (member is EventDeclarationSyntax || member is EventFieldDeclarationSyntax)
+        {
+            return BuildEventSummary(member);
         }
 
         if (stats.AttemptedMethods >= options.MaxRequestsPerCleanup || RunToken.IsCancellationRequested)
@@ -970,9 +1035,7 @@ internal sealed class AiXmlDocumentationLogic
         stats.EstimatedTokensUsed += estimatedTokens;
         stats.AttemptedMethods++;
 
-        string completion;
-        string error;
-        if (!client.TryGenerateDocumentation(prompt, out completion, out error, options.MaxTokensPerRequest, RunToken) || string.IsNullOrWhiteSpace(completion))
+        if (!client.TryGenerateDocumentation(prompt, out var completion, out var error, options.MaxTokensPerRequest, RunToken) || string.IsNullOrWhiteSpace(completion))
         {
             if (RunToken.IsCancellationRequested)
             {
@@ -1007,7 +1070,7 @@ internal sealed class AiXmlDocumentationLogic
             .NormalizeWhitespace()
             .ToFullString();
 
-        var bodyText = method.Body != null
+        var bodyText = method.Body is not null
             ? method.Body.ToFullString().Trim()
             : method.ExpressionBody?.ToFullString().Trim() ?? string.Empty;
 
@@ -1072,12 +1135,64 @@ internal sealed class AiXmlDocumentationLogic
     private static string BuildPropertySummary(PropertyDeclarationSyntax property)
     {
         var accessors = property.AccessorList?.Accessors;
-        var hasGet = accessors?.Any(x => x.IsKind(SyntaxKind.GetAccessorDeclaration)) ?? property.ExpressionBody != null;
+        var hasGet = accessors?.Any(x => x.IsKind(SyntaxKind.GetAccessorDeclaration)) ?? property.ExpressionBody is not null;
         var hasSet = accessors?.Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration) || x.IsKind(SyntaxKind.InitAccessorDeclaration)) ?? false;
+
+        if (!hasGet && !hasSet && property.Initializer is not null)
+        {
+            hasGet = true;
+        }
 
         var verb = hasGet && hasSet ? "Gets or sets" : hasSet ? "Sets" : "Gets";
 
         return verb + " the " + SplitIdentifier(property.Identifier.ValueText).ToLowerInvariant() + ".";
+    }
+
+    /// <summary>
+    /// Performs build field summary.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <returns>A string value produced by this method.</returns>
+    private static string BuildFieldSummary(FieldDeclarationSyntax field)
+    {
+        var firstVar = field.Declaration.Variables.FirstOrDefault();
+        var name = firstVar is not null ? firstVar.Identifier.ValueText : "value";
+
+        return "The " + SplitIdentifier(name).ToLowerInvariant() + ".";
+    }
+
+    /// <summary>
+    /// the fixed documentation text &quot;Gets or sets element at specified index.&quot; for any given IndexerDeclarationSyntax without performing analysis or producing side effects.
+    /// </summary>
+    /// <param name="indexer">The indexer.</param>
+    /// <returns>A string value produced by this method.</returns>
+    private static string BuildIndexerSummary(IndexerDeclarationSyntax indexer)
+    {
+        return "Gets or sets the element at the specified index.";
+    }
+
+    /// <summary>
+    /// Builds a standardized &quot;Occurs when {name}.&quot; summary string for an event member, extracting the event name from either an EventDeclarationSyntax or EventFieldDeclarationSyntax and lowercasing the split identifier, with no side effects or thrown exceptions.
+    /// </summary>
+    /// <param name="eventMember">The event member.</param>
+    /// <returns>A string value produced by this method.</returns>
+    private static string BuildEventSummary(MemberDeclarationSyntax eventMember)
+    {
+        var name = "event";
+        if (eventMember is EventDeclarationSyntax ed)
+        {
+            name = ed.Identifier.ValueText;
+        }
+        else if (eventMember is EventFieldDeclarationSyntax efd)
+        {
+            var v = efd.Declaration.Variables.FirstOrDefault();
+            if (v is not null)
+            {
+                name = v.Identifier.ValueText;
+            }
+        }
+
+        return "Occurs when " + SplitIdentifier(name).ToLowerInvariant() + ".";
     }
 
     /// <summary>
@@ -1142,9 +1257,14 @@ internal sealed class AiXmlDocumentationLogic
         return exceptions;
     }
 
+    /// <summary>
+    /// Tries to return the type name string from an object creation expression, returning null if the expression is not an object creation or its type is null.
+    /// </summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string TryGetThrownTypeName(ExpressionSyntax expression)
     {
-        if (expression is ObjectCreationExpressionSyntax creation && creation.Type != null)
+        if (expression is ObjectCreationExpressionSyntax creation && creation.Type is not null)
         {
             return creation.Type.ToString();
         }
@@ -1164,6 +1284,14 @@ internal sealed class AiXmlDocumentationLogic
         return lineStart < 0 ? 0 : lineStart + 1;
     }
 
+    /// <summary>
+    /// an XML documentation comment block string for a member by appending an indented `&lt;summary&gt;` element, and for methods additionally appending `&lt;param&gt;` elements for each parameter, a `&lt;returns&gt;` element (unless the return type is void), and alphabetically-ordered `&lt;exception&gt;` elements using XML-escaped content.
+    /// </summary>
+    /// <param name="indent">The indent.</param>
+    /// <param name="member">The member.</param>
+    /// <param name="summary">The summary.</param>
+    /// <param name="exceptionTypes">The exception types.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes)
     {
         var sb = new StringBuilder();
@@ -1173,7 +1301,7 @@ internal sealed class AiXmlDocumentationLogic
         sb.Append(indent).AppendLine("/// </summary>");
 
         var method = member as MethodDeclarationSyntax;
-        if (method == null)
+        if (method is null)
         {
             return sb.ToString();
         }
@@ -1192,7 +1320,7 @@ internal sealed class AiXmlDocumentationLogic
             }
         }
 
-        var returnsVoid = method.ReturnType != null && method.ReturnType.ToString() == "void";
+        var returnsVoid = method.ReturnType is not null && method.ReturnType.ToString() == "void";
         if (!returnsVoid)
         {
             sb.Append(indent)
@@ -1214,11 +1342,21 @@ internal sealed class AiXmlDocumentationLogic
         return sb.ToString();
     }
 
+    /// <summary>
+    /// s a human-readable description string for a parameter by splitting the identifier on casing boundaries, lowercasing the result, and prefixing it with &quot;The &quot; and suffixing it with a period.
+    /// </summary>
+    /// <param name="parameterName">The parameter name.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildParameterDescription(string parameterName)
     {
         return "The " + SplitIdentifier(parameterName).ToLowerInvariant() + ".";
     }
 
+    /// <summary>
+    /// BuildReturnDescription returns a formatted description string, defaulting to &quot;result of operation.&quot; when the input returnType is null, empty, or whitespace, otherwise prefixing the type with &quot;A &quot; and appending &quot; value produced by this method.&quot;, with no side effects.
+    /// </summary>
+    /// <param name="returnType">The return type.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildReturnDescription(string returnType)
     {
         if (string.IsNullOrWhiteSpace(returnType))
@@ -1229,6 +1367,11 @@ internal sealed class AiXmlDocumentationLogic
         return "A " + returnType + " value produced by this method.";
     }
 
+    /// <summary>
+    /// Builds a fallback XML documentation summary string for a given member declaration by dispatching to type-specific summary builders for properties, fields, indexers, and events, while producing generic &quot;Represents X.&quot; and &quot;Performs X.&quot; text for type and method declarations respectively.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildFallbackSummary(MemberDeclarationSyntax member)
     {
         if (member is BaseTypeDeclarationSyntax type)
@@ -1241,11 +1384,31 @@ internal sealed class AiXmlDocumentationLogic
             return BuildPropertySummary(property);
         }
 
+        if (member is FieldDeclarationSyntax field)
+        {
+            return BuildFieldSummary(field);
+        }
+
+        if (member is IndexerDeclarationSyntax indexer)
+        {
+            return BuildIndexerSummary(indexer);
+        }
+
+        if (member is EventDeclarationSyntax || member is EventFieldDeclarationSyntax)
+        {
+            return BuildEventSummary(member);
+        }
+
         var method = (MethodDeclarationSyntax)member;
 
         return "Performs " + SplitIdentifier(method.Identifier.ValueText).ToLowerInvariant() + ".";
     }
 
+    /// <summary>
+    /// Splits a camelCase or snake_case identifier into separate words by inserting spaces between lowercase/digit-to-uppercase transitions and replacing underscores with spaces, returning &quot;operation&quot; when the input is null or whitespace.
+    /// </summary>
+    /// <param name="identifier">The identifier.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string SplitIdentifier(string identifier)
     {
         if (string.IsNullOrWhiteSpace(identifier))
@@ -1258,6 +1421,12 @@ internal sealed class AiXmlDocumentationLogic
         return text.Replace('_', ' ').Trim();
     }
 
+    /// <summary>
+    /// the leading whitespace (spaces and tabs) substring from the start of the line containing the specified position in the source string.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="position">The position.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string GetLineIndent(string source, int position)
     {
         var lineStart = source.LastIndexOf('\n', Math.Max(0, position - 1));
@@ -1278,6 +1447,11 @@ internal sealed class AiXmlDocumentationLogic
         return source.Substring(lineStart, i - lineStart);
     }
 
+    /// <summary>
+    /// izes a sentence by collapsing whitespace, trimming surrounding quotes (&quot;, &apos;, `), appending a period if it lacks sentence-ending punctuation, and returning the fallback &quot;Performs operation.&quot; when the input is null or empty.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string NormalizeSentence(string text)
     {
         var compact = Regex.Replace(text ?? string.Empty, "\\s+", " ").Trim();
@@ -1297,6 +1471,11 @@ internal sealed class AiXmlDocumentationLogic
         return compact;
     }
 
+    /// <summary>
+    /// Escapes XML special characters (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`) in the input string to their corresponding entity references, returning `string.Empty` if the input is null.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string XmlEscape(string text)
     {
         return (text ?? string.Empty)

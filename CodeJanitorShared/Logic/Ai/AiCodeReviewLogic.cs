@@ -14,6 +14,11 @@ internal sealed class AiCodeReviewLogic
     private readonly CodeJanitorPackage _package;
     private static AiCodeReviewLogic _instance;
 
+    /// <summary>
+    /// Implements lazy singleton initialization by returning the existing `_instance` or creating and storing a new `AiCodeReviewLogic` with the provided `CodeJanitorPackage` if the field is null.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A AiCodeReviewLogic value produced by this method.</returns>
     internal static AiCodeReviewLogic GetInstance(CodeJanitorPackage package) =>
         _instance ?? (_instance = new AiCodeReviewLogic(package));
 
@@ -28,6 +33,7 @@ internal sealed class AiCodeReviewLogic
     internal static bool IsConfigurationPresent()
     {
         var settings = Settings.Default;
+
         return OpenAiCompatibleClient.IsEndpointConfigured(settings.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
@@ -42,7 +48,7 @@ internal sealed class AiCodeReviewLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return "AI endpoint is not configured. Please configure your endpoint in Tools > Options > Code Janitor > XML Documentation.";
         }
@@ -53,6 +59,7 @@ internal sealed class AiCodeReviewLogic
         try
         {
             var response = await client.GetChatCompletionContentAsync(systemPrompt, prompt, cancellationToken).ConfigureAwait(false);
+
             return string.IsNullOrWhiteSpace(response)
                 ? "The AI model returned an empty response. Please check your model settings."
                 : response.Trim();
@@ -63,6 +70,12 @@ internal sealed class AiCodeReviewLogic
         }
     }
 
+    /// <summary>
+    /// Builds and returns a formatted string containing a structured code-review prompt template that embeds the target name and C# code snippet within markdown sections for summary, critical issues, warnings, and maintainability tips.
+    /// </summary>
+    /// <param name="targetName">The target name.</param>
+    /// <param name="codeSnippet">The code snippet.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildReviewPrompt(string targetName, string codeSnippet)
     {
         return $@"Perform a comprehensive, professional code review on the following C# code for '{targetName}':
@@ -91,6 +104,10 @@ A 1-2 sentence overall verdict on code health and quality.
 ";
     }
 
+    /// <summary>
+    /// Creates and returns an OpenAiCompatibleClient instance built from user settings, returning null when the endpoint URL is unconfigured, falling back to the plaintext API key if decryption yields empty, defaulting the header to &quot;Authorization&quot; when unset, and applying fallback values of 45 seconds for timeout and 131072 for context window tokens when those settings are non-positive.
+    /// </summary>
+    /// <returns>A OpenAiCompatibleClient value produced by this method.</returns>
     private static OpenAiCompatibleClient CreateClientFromSettings()
     {
         var settings = Settings.Default;

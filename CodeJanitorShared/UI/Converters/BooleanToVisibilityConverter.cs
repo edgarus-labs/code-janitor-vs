@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts a boolean value into a visiblity enumeration result.
 /// </summary>
 
-public class BooleanToVisibilityConverter : IValueConverter
+public sealed class BooleanToVisibilityConverter : IValueConverter
 {
     /// <summary>
     /// The default <see cref="BooleanToVisibilityConverter" /> that returns Visible for true

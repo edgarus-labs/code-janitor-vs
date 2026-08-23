@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -18,7 +18,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// could execute after construction. Pure logic, unit-testable without Visual Studio.
 /// </remarks>
 
-public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
+public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Readonly Field";
@@ -199,7 +199,7 @@ public class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransfor
     private static FieldAccessKind GetFieldAccessKind(ExpressionSyntax expression, string fieldName, string declaringTypeName)
     {
         expression = UnwrapParentheses(expression);
-        if (expression == null)
+        if (expression is null)
         {
             return FieldAccessKind.None;
         }

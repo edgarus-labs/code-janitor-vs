@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -9,7 +9,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// The line-break style (<c>\r\n</c> vs <c>\n</c>) matches the style already used in the file.
 /// </remarks>
 
-public class EnsureFinalNewlineConverter : ISourceTransformation
+public sealed class EnsureFinalNewlineConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Ensure final newline";

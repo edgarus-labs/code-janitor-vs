@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Logic.Transformations;
+namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
 /// Applies C# type-style rules to source text.

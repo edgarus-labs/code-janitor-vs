@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -17,6 +17,9 @@ internal sealed class FileHeaderLogic
 {
     private readonly CodeJanitorPackage _package;
 
+    /// <summary>
+    /// The header max nb lines.
+    /// </summary>
     private const int HeaderMaxNbLines = 60;
 
     /// <summary>

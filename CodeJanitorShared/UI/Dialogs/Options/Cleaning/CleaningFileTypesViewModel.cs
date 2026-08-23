@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// The view model for cleaning file types options.
 /// </summary>
 
-public class CleaningFileTypesViewModel : OptionsPageViewModel
+public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleaningFileTypesViewModel" /> class.

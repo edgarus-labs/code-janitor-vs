@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,7 +11,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// Handles both single-line (//) and multi-line (/* */) comments.
 /// </summary>
 
-public class CommentFormatConverter : ISourceTransformation
+public sealed class CommentFormatConverter : ISourceTransformation
 {
     private static readonly Regex SingleLineCommentRegex = new Regex(@"^(\s*)//\s*(.*)$", RegexOptions.Multiline | RegexOptions.Compiled);
     private static readonly Regex MultiLineCommentStartRegex = new Regex(@"^(\s*)/\*", RegexOptions.Multiline | RegexOptions.Compiled);

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// </summary>
 
 [TestClass]
-public class FileScopedNamespaceConverterTests
+public sealed class FileScopedNamespaceConverterTests
 {
     private INamespaceScopeConverter _converter;
 
@@ -31,10 +31,10 @@ public class FileScopedNamespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void PreservesUsingsInsideNamespaceAndDedents()
+    public void MovesUsingsOutsideNamespaceWhenConvertingToFileScoped()
     {
         var input = "namespace A\r\n{\r\n    using System;\r\n\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
-        var expected = "namespace A;\r\n\r\nusing System;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        var expected = "using System;\r\n\r\nnamespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.ConvertToFileScoped(input));
     }

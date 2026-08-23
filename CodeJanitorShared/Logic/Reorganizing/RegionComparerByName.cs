@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.Logic.Reorganizing;
 /// An implementation of <see cref="IEqualityComparer{T}"/> for handling region comparison by name.
 /// </summary>
 
-public class RegionComparerByName : IEqualityComparer<CodeItemRegion>
+public sealed class RegionComparerByName : IEqualityComparer<CodeItemRegion>
 {
     /// <summary>
     /// Determines whether the specified objects are equal.
@@ -19,11 +19,11 @@ public class RegionComparerByName : IEqualityComparer<CodeItemRegion>
 
     public bool Equals(CodeItemRegion x, CodeItemRegion y)
     {
-        if (x == null && y == null) return true;
-        if (x == null || y == null) return false;
+        if (x is null && y is null) return true;
+        if (x is null || y is null) return false;
 
-        if (x.Name == null && y.Name == null) return true;
-        if (x.Name == null || y.Name == null) return false;
+        if (x.Name is null && y.Name is null) return true;
+        if (x.Name is null || y.Name is null) return false;
 
         return x.Name.Equals(y.Name);
     }
@@ -42,7 +42,7 @@ public class RegionComparerByName : IEqualityComparer<CodeItemRegion>
 
     public int GetHashCode(CodeItemRegion region)
     {
-        if (region == null)
+        if (region is null)
         {
             throw new ArgumentNullException(nameof(region));
         }

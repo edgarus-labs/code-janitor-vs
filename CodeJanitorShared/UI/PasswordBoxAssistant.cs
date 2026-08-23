@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace CodeJanitor.UI;
@@ -9,12 +9,18 @@ namespace CodeJanitor.UI;
 
 public static class PasswordBoxAssistant
 {
+    /// <summary>
+    /// The bound password property.
+    /// </summary>
     public static readonly DependencyProperty BoundPasswordProperty = DependencyProperty.RegisterAttached(
         "BoundPassword",
         typeof(string),
         typeof(PasswordBoxAssistant),
         new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnBoundPasswordChanged));
 
+    /// <summary>
+    /// The bind password property.
+    /// </summary>
     public static readonly DependencyProperty BindPasswordProperty = DependencyProperty.RegisterAttached(
         "BindPassword",
         typeof(bool),
@@ -102,7 +108,7 @@ public static class PasswordBoxAssistant
     private static void OnBindPasswordChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var passwordBox = d as PasswordBox;
-        if (passwordBox == null)
+        if (passwordBox is null)
         {
             return;
         }
@@ -127,7 +133,7 @@ public static class PasswordBoxAssistant
     private static void OnBoundPasswordChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var passwordBox = d as PasswordBox;
-        if (passwordBox == null)
+        if (passwordBox is null)
         {
             return;
         }
@@ -135,7 +141,7 @@ public static class PasswordBoxAssistant
         passwordBox.PasswordChanged -= HandlePasswordChanged;
         if (!GetUpdatingPassword(passwordBox))
         {
-            passwordBox.Password = e.NewValue == null ? string.Empty : e.NewValue.ToString();
+            passwordBox.Password = e.NewValue is null ? string.Empty : e.NewValue.ToString();
         }
 
         passwordBox.PasswordChanged += HandlePasswordChanged;
@@ -150,7 +156,7 @@ public static class PasswordBoxAssistant
     private static void HandlePasswordChanged(object sender, RoutedEventArgs e)
     {
         var passwordBox = sender as PasswordBox;
-        if (passwordBox == null)
+        if (passwordBox is null)
         {
             return;
         }

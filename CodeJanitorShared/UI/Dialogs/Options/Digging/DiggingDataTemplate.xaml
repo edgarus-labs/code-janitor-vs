@@ -1,10 +1,10 @@
 <ResourceDictionary
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
 	xmlns:codeTree="clr-namespace:CodeJanitor.Model.CodeTree"
-	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Digging"
-	xmlns:p="clr-namespace:CodeJanitor.Properties">
+	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Digging">
 	<DataTemplate DataType="{x:Type local:DiggingViewModel}">
 		<StackPanel>
 			<GroupBox Header="{x:Static p:Resources.General}">

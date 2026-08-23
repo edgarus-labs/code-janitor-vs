@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.ThirdParty;
@@ -7,7 +7,7 @@ namespace CodeJanitor.UI.Dialogs.Options.ThirdParty;
 /// The view model for third party options.
 /// </summary>
 
-public class ThirdPartyViewModel : OptionsPageViewModel
+public sealed class ThirdPartyViewModel : OptionsPageViewModel
 {
     private readonly CommandHelper _commandHelper;
 
@@ -79,15 +79,15 @@ public class ThirdPartyViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets a flag indicating if the UseJetBrainsReSharperCleanup option should be enabled.
     /// </summary>
-    public bool IsEnabledUseJetBrainsReSharperCleanup => _commandHelper.FindCommand("ReSharper_SilentCleanupCode") != null || _commandHelper.FindCommand("ReSharper.ReSharper_SilentCleanupCode") != null;
+    public bool IsEnabledUseJetBrainsReSharperCleanup => _commandHelper.FindCommand("ReSharper_SilentCleanupCode") is not null || _commandHelper.FindCommand("ReSharper.ReSharper_SilentCleanupCode") is not null;
 
     /// <summary>
     /// Gets a flag indicating if the UseTelerikJustCodeCleanup option should be enabled.
     /// </summary>
-    public bool IsEnabledUseTelerikJustCodeCleanup => _commandHelper.FindCommand("JustCode.JustCode_CleanCodeWithDefaultProfile") != null;
+    public bool IsEnabledUseTelerikJustCodeCleanup => _commandHelper.FindCommand("JustCode.JustCode_CleanCodeWithDefaultProfile") is not null;
 
     /// <summary>
     /// Gets a flag indicating if the UseXAMLStylerCleanup option should be enabled.
     /// </summary>
-    public bool IsEnabledUseXAMLStylerCleanup => _commandHelper.FindCommand("EditorContextMenus.XAMLEditor.BeautifyXaml", "EditorContextMenus.XAMLEditor.FormatXAML", "EditorContextMenus.CodeWindow.FormatXAML") != null;
+    public bool IsEnabledUseXAMLStylerCleanup => _commandHelper.FindCommand("EditorContextMenus.XAMLEditor.BeautifyXaml", "EditorContextMenus.XAMLEditor.FormatXAML", "EditorContextMenus.CodeWindow.FormatXAML") is not null;
 }

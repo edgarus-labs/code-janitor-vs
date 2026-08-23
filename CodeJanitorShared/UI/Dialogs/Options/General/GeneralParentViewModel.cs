@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.General;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.General;
 /// The view model for the General category - hosts the general and features view models as tabs.
 /// </summary>
 
-public class GeneralParentViewModel : CompositeOptionsPageViewModel
+public sealed class GeneralParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="GeneralParentViewModel" /> class.

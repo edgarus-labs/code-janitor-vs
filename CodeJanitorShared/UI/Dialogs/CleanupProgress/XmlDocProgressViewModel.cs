@@ -14,7 +14,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 /// <summary>
 /// The view model representing the state and commands for AI XML documentation progress.
 /// </summary>
-public class XmlDocProgressViewModel : BaseProgressViewModel
+public sealed class XmlDocProgressViewModel : BaseProgressViewModel
 {
     private readonly BackgroundWorker _backgroundWorker;
     private readonly Stopwatch _batchStopwatch;
@@ -208,13 +208,14 @@ public class XmlDocProgressViewModel : BaseProgressViewModel
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The e.</param>
+
     private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
     {
         CountProgress = e.ProgressPercentage;
         ProcessedCount = e.ProgressPercentage;
         if (e.UserState is ValueTuple<ProjectItem, int, int, int> state)
         {
-            if (state.Item1 != null)
+            if (state.Item1 is not null)
             {
                 CurrentFileName = state.Item1.Name;
             }
@@ -236,7 +237,7 @@ public class XmlDocProgressViewModel : BaseProgressViewModel
         _batchStopwatch.Stop();
         UpdateExecutionSummary();
 
-        if (e.Error != null)
+        if (e.Error is not null)
         {
             OutputWindowHelper.WarningWriteLine(
                 $"Add XMLDoc batch failed after changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}. Error: {e.Error.Message}");
@@ -253,29 +254,38 @@ public class XmlDocProgressViewModel : BaseProgressViewModel
             OutputWindowHelper.InfoWriteLine(
                 $"Add XMLDoc batch completed. Processed {CountTotal} file(s). Changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
             _package.IDE.StatusBar.Text = $"CodeJanitor Add XMLDoc completed: changed {ChangedCount} of {CountTotal} file(s).";
-            MessageBox.Show($"Processed {CountTotal} file(s). Changed {ChangedCount} file(s).",
-                            "CodeJanitor Add XMLDoc",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+
+            if (CountTotal == 1)
+            {
+                var fileName = CurrentFileName ?? "the file";
+                var message = ChangedCount > 0
+                    ? $"XML documentation added successfully to {fileName}."
+                    : $"No missing XML documentation found in {fileName}.";
+
+                MessageBox.Show(message,
+                                "CodeJanitor Add XMLDoc",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show($"Processed {CountTotal} file(s). Changed {ChangedCount} file(s).",
+                                "CodeJanitor Add XMLDoc",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         DialogResult = true;
     }
 
     /// <summary>
+
     /// ExecutionSummary` and `ElapsedSummary` strings with formatted counts of changed, unchanged, failed, and processed items along with the elapsed batch time in mm:ss format.
     /// </summary>
+
     private void UpdateExecutionSummary()
     {
-        ExecutionSummary = string.Format(
-            "Changed: {0} | Unchanged: {1} | Failed: {2}",
-            ChangedCount,
-            UnchangedCount,
-            FailedCount);
+        ExecutionSummary = $"Changed: {ChangedCount} | Unchanged: {UnchangedCount} | Failed: {FailedCount}";
 
-        ElapsedSummary = string.Format(
-            "Processed: {0}/{1} | Elapsed: {2:mm\\:ss}",
-            ProcessedCount,
-            CountTotal,
-            _batchStopwatch.Elapsed);
+        ElapsedSummary = $"Processed: {ProcessedCount}/{CountTotal} | Elapsed: {_batchStopwatch.Elapsed:mm\\:ss}";
     }
 }

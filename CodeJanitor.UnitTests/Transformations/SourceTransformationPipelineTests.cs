@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
@@ -11,7 +11,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// </summary>
 
 [TestClass]
-public class SourceTransformationPipelineTests
+public sealed class SourceTransformationPipelineTests
 {
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -122,7 +122,7 @@ public class SourceTransformationPipelineTests
         // converters won't apply but should not disrupt the pipeline.
         // FileScopedNamespaceConverter appends: header + "namespace N;" + newline + newline + dedented body + newline
         var input = "namespace N\n{\n\tusing B;\n\tusing A;\n}\n";
-        var expected = "namespace N;\n\nusing A;\nusing B;\n";
+        var expected = "using A;\nusing B;\n\nnamespace N;\n";
 
         var result = pipeline.Run(input);
         Assert.AreEqual(expected, result, $"Expected length: {expected.Length}, Actual length: {result.Length}. Expected repr: {repr(expected)}, Actual repr: {repr(result)}");

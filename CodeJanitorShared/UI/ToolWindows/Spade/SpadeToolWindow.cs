@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.Internal.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Imaging.Interop;
@@ -300,7 +300,7 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
         ((IVsWindowFrame)Frame).SetProperty((int)__VSFPROPID.VSFPROPID_ViewHelper, this);
 
         // Package is not available at constructor time.
-        if (Package != null)
+        if (Package is not null)
         {
             // Get an instance of the code model manager.
             _codeModelManager = CodeModelManager.GetInstance(Package);
@@ -331,7 +331,7 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
             _viewModel.Package = Package;
 
             // Attempt to initialize the Document, may have been set before Spade was created.
-            if (Document == null)
+            if (Document is null)
             {
                 Document = Package.ActiveDocument;
             }
@@ -389,12 +389,12 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
         _viewModel.IsLoading = false;
         _viewModel.IsRefreshing = false;
 
-        if (Document == null || !isRefresh)
+        if (Document is null || !isRefresh)
         {
             _viewModel.RawCodeItems = null;
         }
 
-        if (Document != null)
+        if (Document is not null)
         {
             if (isRefresh)
             {
@@ -407,7 +407,7 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
             }
 
             var codeItems = _codeModelManager.RetrieveAllCodeItemsAsync(Document, true);
-            if (codeItems != null)
+            if (codeItems is not null)
             {
                 UpdateViewModelRawCodeItems(codeItems);
             }

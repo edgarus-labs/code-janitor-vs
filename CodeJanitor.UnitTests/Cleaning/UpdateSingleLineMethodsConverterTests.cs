@@ -1,11 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class UpdateSingleLineMethodsConverterTests
+public sealed class UpdateSingleLineMethodsConverterTests
 {
     private UpdateSingleLineMethodsConverter _converter;
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +16,7 @@ namespace CodeJanitor.UI;
 /// Largely based on http://chrigas.blogspot.com/2014/08/wpf-treeview-with-multiple-selection.html
 /// </remarks>
 
-public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
+public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
 {
     /// <summary>
     /// The dependency property definition for the SelectedItems property.
@@ -92,11 +92,11 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     {
         var treeViewItem = obj as TreeViewItem;
         var treeView = treeViewItem?.FindVisualAncestor<TreeView>();
-        if (treeView != null)
+        if (treeView is not null)
         {
             var behavior = Interaction.GetBehaviors(treeView).OfType<TreeViewMultipleSelectionBehavior>().FirstOrDefault();
             var selectedItems = behavior?.SelectedItems;
-            if (selectedItems != null)
+            if (selectedItems is not null)
             {
                 if (GetIsItemSelected(treeViewItem))
                 {
@@ -146,7 +146,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     private void OnTreeViewItemKeyDown(object sender, KeyEventArgs e)
     {
         var treeViewItem = e.OriginalSource as TreeViewItem;
-        if (treeViewItem != null)
+        if (treeViewItem is not null)
         {
             TreeViewItem targetItem = null;
 
@@ -168,7 +168,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
                     break;
             }
 
-            if (targetItem != null)
+            if (targetItem is not null)
             {
                 switch (Keyboard.Modifiers)
                 {
@@ -200,7 +200,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     private void OnTreeViewItemMouseUp(object sender, MouseButtonEventArgs e)
     {
         var treeViewItem = FindParentTreeViewItem(e.OriginalSource);
-        if (treeViewItem != null)
+        if (treeViewItem is not null)
         {
             switch (Keyboard.Modifiers)
             {
@@ -226,7 +226,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
 
     public void SelectMultipleItemsContinuously(TreeViewItem treeViewItem)
     {
-        if (AnchorItem != null)
+        if (AnchorItem is not null)
         {
             if (ReferenceEquals(AnchorItem, treeViewItem))
             {
@@ -276,7 +276,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     {
         SetIsItemSelected(treeViewItem, !GetIsItemSelected(treeViewItem));
 
-        if (AnchorItem == null)
+        if (AnchorItem is null)
         {
             if (GetIsItemSelected(treeViewItem))
             {
@@ -333,7 +333,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     private static IList<T> GetItemsRecursively<T>(ItemsControl parentItem)
         where T : ItemsControl
     {
-        if (parentItem == null)
+        if (parentItem is null)
         {
             throw new ArgumentNullException(nameof(parentItem));
         }
@@ -343,7 +343,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
         for (int i = 0; i < parentItem.Items.Count; i++)
         {
             var item = parentItem.ItemContainerGenerator.ContainerFromIndex(i) as T;
-            if (item != null)
+            if (item is not null)
             {
                 items.Add(item);
                 items.AddRange(GetItemsRecursively<T>(item));
@@ -365,7 +365,7 @@ public class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     private T GetRelativeItem<T>(T item, int relativePosition)
         where T : ItemsControl
     {
-        if (item == null)
+        if (item is null)
         {
             throw new ArgumentNullException(nameof(item));
         }

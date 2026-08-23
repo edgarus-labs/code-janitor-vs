@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using CodeJanitor.Helpers;
 using System;
@@ -11,7 +11,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code method.
 /// </summary>
 
-public class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, ICodeItemParameters, IInterfaceItem
+public sealed class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, ICodeItemParameters, IInterfaceItem
 {
     private readonly Lazy<int> _complexity;
     private readonly Lazy<bool> _isConstructor;
@@ -29,7 +29,7 @@ public class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, ICodeIte
         // Make exceptions for static constructors and explicit interface implementations -
         // which report private access but really do not have a meaningful access level.
         _Access = LazyTryDefault(
-            () => CodeFunction != null && !(IsStatic && IsConstructor) && !IsExplicitInterfaceImplementation ? CodeFunction.Access : vsCMAccess.vsCMAccessPublic);
+            () => CodeFunction is not null && !(IsStatic && IsConstructor) && !IsExplicitInterfaceImplementation ? CodeFunction.Access : vsCMAccess.vsCMAccessPublic);
 
         _Attributes = LazyTryDefault(
             () => CodeFunction?.Attributes);
@@ -41,16 +41,16 @@ public class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, ICodeIte
             () => CodeFunction?.DocComment);
 
         _isConstructor = LazyTryDefault(
-            () => CodeFunction != null && CodeFunction.FunctionKind == vsCMFunction.vsCMFunctionConstructor);
+            () => CodeFunction is not null && CodeFunction.FunctionKind == vsCMFunction.vsCMFunctionConstructor);
 
         _isDestructor = LazyTryDefault(
-            () => CodeFunction != null && CodeFunction.FunctionKind == vsCMFunction.vsCMFunctionDestructor);
+            () => CodeFunction is not null && CodeFunction.FunctionKind == vsCMFunction.vsCMFunctionDestructor);
 
         _isExplicitInterfaceImplementation = LazyTryDefault(
-            () => CodeFunction != null && ExplicitInterfaceImplementationHelper.IsExplicitInterfaceImplementation(CodeFunction));
+            () => CodeFunction is not null && ExplicitInterfaceImplementationHelper.IsExplicitInterfaceImplementation(CodeFunction));
 
         _IsStatic = LazyTryDefault(
-            () => CodeFunction != null && CodeFunction.IsShared);
+            () => CodeFunction is not null && CodeFunction.IsShared);
 
         _overrideKind = LazyTryDefault(
             () => CodeFunction?.OverrideKind ?? vsCMOverrideKind.vsCMOverrideKindNone);

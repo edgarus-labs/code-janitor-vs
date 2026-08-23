@@ -8,7 +8,7 @@ namespace CodeJanitor.Helpers;
 /// This class handles customizing the settings persistance.
 /// </summary>
 
-public class CodeJanitorSettingsProvider : LocalFileSettingsProvider
+public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
 {
     /// <summary>
     /// Returns the collection of setting property values for the specified application instance

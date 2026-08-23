@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.General;
 /// <summary>
 /// model that exposes a collection of editor and solution explorer commands or feature toggles for an IDE extension.
 /// </summary>
-public class FeaturesViewModel : OptionsPageViewModel
+public sealed class FeaturesViewModel : OptionsPageViewModel
 {
     public FeaturesViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)

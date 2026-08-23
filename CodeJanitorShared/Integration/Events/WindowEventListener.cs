@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
@@ -81,9 +81,9 @@ internal sealed class WindowEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var onWindowChange = OnWindowChange;
-        if (onWindowChange != null)
+        if (onWindowChange is not null)
         {
-            OutputWindowHelper.DiagnosticWriteLine($"WindowEventListener.OnWindowChange raised for '{(document != null ? document.FullName : "(null)")}'");
+            OutputWindowHelper.DiagnosticWriteLine($"WindowEventListener.OnWindowChange raised for '{(document is not null ? document.FullName : "(null)")}'");
 
             onWindowChange(document);
         }
@@ -102,7 +102,7 @@ internal sealed class WindowEventListener : BaseEventListener
         {
             RaiseWindowChange(gotFocus.Document);
         }
-        else if (Package.ActiveDocument == null)
+        else if (Package.ActiveDocument is null)
         {
             RaiseWindowChange(null);
         }

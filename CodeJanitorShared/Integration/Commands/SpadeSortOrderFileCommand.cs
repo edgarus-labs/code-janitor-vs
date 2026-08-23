@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Model.CodeTree;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
@@ -46,7 +46,7 @@ internal sealed class SpadeSortOrderFileCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             Checked = spade.SortOrder == CodeSortOrder.File;
         }
@@ -62,7 +62,7 @@ internal sealed class SpadeSortOrderFileCommand : BaseCommand
         base.OnExecute();
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             spade.SortOrder = CodeSortOrder.File;
         }

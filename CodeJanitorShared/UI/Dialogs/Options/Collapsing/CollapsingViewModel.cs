@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Collapsing;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Collapsing;
 /// The view model for collapsing options.
 /// </summary>
 
-public class CollapsingViewModel : OptionsPageViewModel
+public sealed class CollapsingViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CollapsingViewModel" /> class.

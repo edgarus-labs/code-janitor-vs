@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using CodeJanitor.Helpers;
 using System;
@@ -9,7 +9,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code event.
 /// </summary>
 
-public class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
+public sealed class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
 {
     private readonly Lazy<bool> _isExplicitInterfaceImplementation;
 
@@ -22,7 +22,7 @@ public class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
         // Make exceptions for explicit interface implementations - which report private access
         // but really do not have a meaningful access level.
         _Access = LazyTryDefault(
-            () => CodeEvent != null && !IsExplicitInterfaceImplementation ? CodeEvent.Access : vsCMAccess.vsCMAccessPublic);
+            () => CodeEvent is not null && !IsExplicitInterfaceImplementation ? CodeEvent.Access : vsCMAccess.vsCMAccessPublic);
 
         _Attributes = LazyTryDefault(
             () => CodeEvent?.Attributes);
@@ -31,10 +31,10 @@ public class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
             () => CodeEvent?.DocComment);
 
         _isExplicitInterfaceImplementation = LazyTryDefault(
-            () => CodeEvent != null && ExplicitInterfaceImplementationHelper.IsExplicitInterfaceImplementation(CodeEvent));
+            () => CodeEvent is not null && ExplicitInterfaceImplementationHelper.IsExplicitInterfaceImplementation(CodeEvent));
 
         _IsStatic = LazyTryDefault(
-            () => CodeEvent != null && CodeEvent.IsShared);
+            () => CodeEvent is not null && CodeEvent.IsShared);
 
         _TypeString = LazyTryDefault(
             () => CodeEvent?.Type?.AsString);

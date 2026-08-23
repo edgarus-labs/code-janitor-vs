@@ -7,7 +7,7 @@ namespace CodeJanitor.Helpers;
 /// A helper for comparing code items by name.
 /// </summary>
 
-public class CodeItemNameComparer : Comparer<BaseCodeItem>
+public sealed class CodeItemNameComparer : Comparer<BaseCodeItem>
 {
     /// <summary>
     /// Performs a comparison of two objects of the same type and returns a value indicating

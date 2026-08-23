@@ -9,19 +9,42 @@ using System.Threading.Tasks;
 namespace CodeJanitor.UnitTests.Ai;
 
 [TestClass]
-public class AiCoverageTargetLogicTests
+public sealed class AiCoverageTargetLogicTests
 {
+    /// <summary>
+    /// FakeAiChatClient is a test double for an AI chat client that tracks usage and provides configurable responses for chat completion requests.
+    /// </summary>
     private sealed class FakeAiChatClient : IAiChatClient
     {
+        /// <summary>
+        /// Gets the is configured.
+        /// </summary>
         public bool IsConfigured => true;
+
+        /// <summary>
+        /// Gets or sets the call count.
+        /// </summary>
         public int CallCount { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the response provider.
+        /// </summary>
         public Func<string, string, string> ResponseProvider { get; set; }
 
+        /// <summary>
+        /// Increments CallCount, ignores the ResponseProvider&apos;s actual result, and always returns a hardcoded C# code block string, ignoring the cancellation token and maxTokens parameters.
+        /// </summary>
+        /// <param name="systemPrompt">The system prompt.</param>
+        /// <param name="userPrompt">The user prompt.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="maxTokens">The max tokens.</param>
+        /// <returns>A Task&lt;string&gt; value produced by this method.</returns>
         public Task<string> GetChatCompletionContentAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default, int maxTokens = 2048)
         {
             CallCount++;
             var response = ResponseProvider?.Invoke(systemPrompt, userPrompt)
                 ?? "```csharp\npublic class Tests { [Fact] public void Test1() {} }\n```";
+
             return Task.FromResult(response);
         }
     }
@@ -127,9 +150,10 @@ public class SampleTests
                 return "```csharp\npublic class Tests { [Fact] public void Calculate_Valid_ReturnsValue() {} }\n```";
             }
             // Round 2: covers null branch as well
+
             return @"```csharp
-public class Tests 
-{ 
+public class Tests
+{
     [Fact] public void Calculate_Valid_ReturnsValue() {}
     [Fact] public void Calculate_WhenNull_ThrowsException() {}
 }
@@ -176,6 +200,7 @@ public int Calculate(string input)
             ResponseProvider = (sys, user) =>
             {
                 Thread.Sleep(50);
+
                 return "```csharp\n[Fact] public void Test() {}\n```";
             }
         };

@@ -7,7 +7,7 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A helper class for performing actions within the context of an undo transaction.
 /// </summary>
-public class UndoTransactionHelper : IDisposable
+public sealed class UndoTransactionHelper : IDisposable
 {
     private readonly CodeJanitorPackage _package;
     private readonly string _transactionName;
@@ -24,7 +24,7 @@ public class UndoTransactionHelper : IDisposable
         _package = package;
         _transactionName = transactionName;
 
-        if (package != null)
+        if (package is not null)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             if (Settings.Default.General_UseUndoTransactions && !package.IDE.UndoContext.IsOpen &&
@@ -54,14 +54,14 @@ public class UndoTransactionHelper : IDisposable
         {
             var message = $"{_transactionName}{Resources.WasStopped}";
             OutputWindowHelper.ExceptionWriteLine(message, ex);
-            if (_package?.IDE?.StatusBar != null)
+            if (_package?.IDE?.StatusBar is not null)
             {
                 _package.IDE.StatusBar.Text = $"{message}{Resources.SeeOutputWindowForMoreDetails}";
             }
 
             catchAction?.Invoke(ex);
 
-            if (_shouldCloseUndoContext && _package?.IDE?.UndoContext != null)
+            if (_shouldCloseUndoContext && _package?.IDE?.UndoContext is not null)
             {
                 _package.IDE.UndoContext.SetAborted();
                 _shouldCloseUndoContext = false;
@@ -81,7 +81,7 @@ public class UndoTransactionHelper : IDisposable
         if (!_isDisposed)
         {
             _isDisposed = true;
-            if (_shouldCloseUndoContext && _package?.IDE?.UndoContext != null)
+            if (_shouldCloseUndoContext && _package?.IDE?.UndoContext is not null)
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
                 _package.IDE.UndoContext.Close();

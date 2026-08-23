@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -22,7 +22,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// and is intentionally out of scope.
 /// </remarks>
 
-public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransformation
+public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Sort using directives";
@@ -117,7 +117,7 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
         }
 
         // A malformed directive with no name and no alias is left alone.
-        if (u.Alias == null && u.Name == null)
+        if (u.Alias is null && u.Name is null)
         {
             return true;
         }
@@ -139,7 +139,7 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
 
     private static int GroupRank(UsingDirectiveSyntax u)
     {
-        if (u.Alias != null)
+        if (u.Alias is not null)
         {
             return 2;
         }
@@ -156,7 +156,7 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
     private static int SystemRank(UsingDirectiveSyntax u)
     {
         // Alias usings are grouped separately and sorted purely by alias name.
-        if (u.Alias != null)
+        if (u.Alias is not null)
         {
             return 0;
         }
@@ -174,7 +174,7 @@ public class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransfor
 
     private static string SortName(UsingDirectiveSyntax u)
     {
-        if (u.Alias != null)
+        if (u.Alias is not null)
         {
             return u.Alias.Name.ToString();
         }

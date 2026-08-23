@@ -11,7 +11,7 @@ namespace CodeJanitor.UnitTests.Cleaning;
 /// Unit tests for <see cref="RemoveByteOrderMarkLogic" />.
 /// </summary>
 [TestClass]
-public class RemoveByteOrderMarkLogicTests
+public sealed class RemoveByteOrderMarkLogicTests
 {
     private string _tempDirectory;
     private RemoveByteOrderMarkLogic _logic;

@@ -12,7 +12,7 @@ namespace CodeJanitor.UnitTests.Cleaning;
 /// Unit tests for parallel headless cleanup.
 /// </summary>
 [TestClass]
-public class ParallelHeadlessCleanupTests
+public sealed class ParallelHeadlessCleanupTests
 {
     private string _tempDirectory;
 
@@ -84,5 +84,42 @@ public class ParallelHeadlessCleanupTests
         var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(filePaths, progress: progress);
 
         Assert.AreEqual(5, result.TotalFiles);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void BaseProgressViewModel_ProgressPercentText_CalculatesAccurately()
+    {
+        var vm = new TestProgressViewModel();
+
+        // 0 of 0
+        vm.CountTotal = 0;
+        vm.ProcessedCount = 0;
+        Assert.AreEqual("0%", vm.ProgressPercentText);
+
+        // 0 of 10
+        vm.CountTotal = 10;
+        vm.ProcessedCount = 0;
+        Assert.AreEqual("0%", vm.ProgressPercentText);
+
+        // 5 of 10
+        vm.ProcessedCount = 5;
+        Assert.AreEqual("50%", vm.ProgressPercentText);
+
+        // 10 of 10
+        vm.ProcessedCount = 10;
+        Assert.AreEqual("100%", vm.ProgressPercentText);
+
+        // 1 of 3 (33%)
+        vm.CountTotal = 3;
+        vm.ProcessedCount = 1;
+        Assert.AreEqual("33%", vm.ProgressPercentText);
+    }
+
+    private sealed class TestProgressViewModel : CodeJanitor.UI.Dialogs.CleanupProgress.BaseProgressViewModel
+    {
+        protected override void OnCancelCommandExecuted(object parameter)
+        {
+        }
     }
 }

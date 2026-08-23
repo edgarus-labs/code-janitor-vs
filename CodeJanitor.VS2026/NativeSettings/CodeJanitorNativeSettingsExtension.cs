@@ -214,6 +214,7 @@ namespace CodeJanitor.NativeSettings
             CleaningNativeSettings.UpdateEndRegionDirectives,
             CleaningNativeSettings.UpdateSingleLineMethods,
             CleaningNativeSettings.ConvertToFileScopedNamespace,
+            CleaningNativeSettings.MoveUsingsOutsideNamespace,
             CleaningNativeSettings.ConvertToVarWhenApparent,
             CleaningNativeSettings.MakeFieldsReadonlyWhenSafe,
             CleaningNativeSettings.SealClassesWhenSafe,
@@ -351,6 +352,8 @@ namespace CodeJanitor.NativeSettings
 
                     batch.WriteSetting(CleaningNativeSettings.AutoCleanupOnFileSave, settings.Cleaning_AutoCleanupOnFileSave);
                     batch.WriteSetting(CleaningNativeSettings.AutoSaveAndCloseIfOpenedByCleanup, settings.Cleaning_AutoSaveAndCloseIfOpenedByCleanup);
+                    batch.WriteSetting(CleaningNativeSettings.EnableParallelCleanup, settings.Cleaning_EnableParallelCleanup);
+                    batch.WriteSetting(CleaningNativeSettings.MaxDegreeOfParallelism, settings.Cleaning_MaxDegreeOfParallelism);
                     batch.WriteSetting(CleaningNativeSettings.PerformPartialCleanupOnExternal, settings.Cleaning_PerformPartialCleanupOnExternal);
                     batch.WriteSetting(CleaningNativeSettings.ExcludeT4GeneratedCode, settings.Cleaning_ExcludeT4GeneratedCode);
                     batch.WriteSetting(CleaningNativeSettings.ExclusionExpression, settings.Cleaning_ExclusionExpression);
@@ -436,6 +439,7 @@ namespace CodeJanitor.NativeSettings
                     batch.WriteSetting(CleaningNativeSettings.UpdateEndRegionDirectives, settings.Cleaning_UpdateEndRegionDirectives);
                     batch.WriteSetting(CleaningNativeSettings.UpdateSingleLineMethods, settings.Cleaning_UpdateSingleLineMethods);
                     batch.WriteSetting(CleaningNativeSettings.ConvertToFileScopedNamespace, settings.Cleaning_ConvertToFileScopedNamespace);
+                    batch.WriteSetting(CleaningNativeSettings.MoveUsingsOutsideNamespace, settings.Cleaning_MoveUsingsOutsideNamespace);
                     batch.WriteSetting(CleaningNativeSettings.ConvertToVarWhenApparent, settings.Cleaning_ConvertToVarWhenApparent);
                     batch.WriteSetting(CleaningNativeSettings.MakeFieldsReadonlyWhenSafe, settings.Cleaning_MakeFieldsReadonlyWhenSafe);
                     batch.WriteSetting(CleaningNativeSettings.SealClassesWhenSafe, settings.Cleaning_SealClassesWhenSafe);
@@ -587,6 +591,8 @@ namespace CodeJanitor.NativeSettings
 
             settings.Cleaning_AutoCleanupOnFileSave = values.ValueOrDefault(CleaningNativeSettings.AutoCleanupOnFileSave, settings.Cleaning_AutoCleanupOnFileSave);
             settings.Cleaning_AutoSaveAndCloseIfOpenedByCleanup = values.ValueOrDefault(CleaningNativeSettings.AutoSaveAndCloseIfOpenedByCleanup, settings.Cleaning_AutoSaveAndCloseIfOpenedByCleanup);
+            settings.Cleaning_EnableParallelCleanup = values.ValueOrDefault(CleaningNativeSettings.EnableParallelCleanup, settings.Cleaning_EnableParallelCleanup);
+            settings.Cleaning_MaxDegreeOfParallelism = values.ValueOrDefault(CleaningNativeSettings.MaxDegreeOfParallelism, settings.Cleaning_MaxDegreeOfParallelism);
             settings.Cleaning_PerformPartialCleanupOnExternal = values.ValueOrDefault(CleaningNativeSettings.PerformPartialCleanupOnExternal, settings.Cleaning_PerformPartialCleanupOnExternal);
             settings.Cleaning_ExcludeT4GeneratedCode = values.ValueOrDefault(CleaningNativeSettings.ExcludeT4GeneratedCode, settings.Cleaning_ExcludeT4GeneratedCode);
             settings.Cleaning_ExclusionExpression = values.ValueOrDefault(CleaningNativeSettings.ExclusionExpression, settings.Cleaning_ExclusionExpression);
@@ -672,6 +678,7 @@ namespace CodeJanitor.NativeSettings
             settings.Cleaning_UpdateEndRegionDirectives = values.ValueOrDefault(CleaningNativeSettings.UpdateEndRegionDirectives, settings.Cleaning_UpdateEndRegionDirectives);
             settings.Cleaning_UpdateSingleLineMethods = values.ValueOrDefault(CleaningNativeSettings.UpdateSingleLineMethods, settings.Cleaning_UpdateSingleLineMethods);
             settings.Cleaning_ConvertToFileScopedNamespace = values.ValueOrDefault(CleaningNativeSettings.ConvertToFileScopedNamespace, settings.Cleaning_ConvertToFileScopedNamespace);
+            settings.Cleaning_MoveUsingsOutsideNamespace = values.ValueOrDefault(CleaningNativeSettings.MoveUsingsOutsideNamespace, settings.Cleaning_MoveUsingsOutsideNamespace);
             settings.Cleaning_ConvertToVarWhenApparent = values.ValueOrDefault(CleaningNativeSettings.ConvertToVarWhenApparent, settings.Cleaning_ConvertToVarWhenApparent);
             settings.Cleaning_MakeFieldsReadonlyWhenSafe = values.ValueOrDefault(CleaningNativeSettings.MakeFieldsReadonlyWhenSafe, settings.Cleaning_MakeFieldsReadonlyWhenSafe);
             settings.Cleaning_SealClassesWhenSafe = values.ValueOrDefault(CleaningNativeSettings.SealClassesWhenSafe, settings.Cleaning_SealClassesWhenSafe);

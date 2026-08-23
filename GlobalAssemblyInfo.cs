@@ -1,4 +1,4 @@
-﻿using CodeJanitor;
+using CodeJanitor;
 using System;
 using System.Reflection;
 using System.Resources;

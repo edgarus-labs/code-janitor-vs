@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -59,7 +59,7 @@ internal sealed class CodeReorganizationAvailabilityLogic
             return false;
         }
 
-        if (document == null)
+        if (document is null)
         {
             OutputWindowHelper.DiagnosticWriteLine($"CodeReorganizationAvailabilityLogic.CanReorganize returned false due to a null document.");
 
@@ -148,12 +148,12 @@ internal sealed class CodeReorganizationAvailabilityLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var textDocument = document.GetTextDocument();
-        if (textDocument != null)
+        if (textDocument is not null)
         {
             const string pattern = @"^[ \t]*#(if|else|elif|endif|pragma)";
 
             var editPoint = TextDocumentHelper.FirstOrDefaultMatch(textDocument, pattern);
-            if (editPoint != null)
+            if (editPoint is not null)
             {
                 return true;
             }

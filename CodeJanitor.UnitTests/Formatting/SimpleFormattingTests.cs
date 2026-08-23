@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Properties;
 using System;
 
@@ -10,7 +10,7 @@ namespace CodeJanitor.UnitTests.Formatting;
 /// </summary>
 
 [TestClass]
-public class SimpleFormattingTests
+public sealed class SimpleFormattingTests
 {
     [TestInitialize]
     public void TestInitialize()

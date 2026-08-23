@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class UpdateEndRegionDirectivesConverterTests
+public sealed class UpdateEndRegionDirectivesConverterTests
 {
     private UpdateEndRegionDirectivesConverter _converter;
 

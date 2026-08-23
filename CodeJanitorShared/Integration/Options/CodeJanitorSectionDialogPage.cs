@@ -69,15 +69,16 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
 
     private void EnsureInitialized()
     {
-        if (_host != null) return;
+        if (_host is not null) return;
 
         var package = CodeJanitorPackage.Instance ?? ForceLoadPackage();
-        if (package == null) return;
+        if (package is null) return;
 
         _viewModel = CreateViewModel(package, Settings.Default);
         _viewModel.LoadSettings();
         _host = new SectionPageHost { DataContext = _viewModel };
     }
+
     /// <summary>
     /// The package only auto-loads once a solution is fully loaded, so Tools &gt; Options opened
     /// without a solution has to request the load explicitly.
@@ -87,7 +88,7 @@ public abstract class CodeJanitorSectionDialogPage : UIElementDialogPage
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var shell = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShell)) as IVsShell;
-        if (shell == null) return null;
+        if (shell is null) return null;
 
         var packageGuid = new Guid(PackageGuids.GuidCodeJanitorPackageString);
         shell.LoadPackage(ref packageGuid, out _);

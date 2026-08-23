@@ -15,7 +15,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// </summary>
 
 [TestClass]
-public class ReadonlyFieldConverterTests
+public sealed class ReadonlyFieldConverterTests
 {
     private IFieldMutabilityConverter _converter;
 

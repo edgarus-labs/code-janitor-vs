@@ -21,20 +21,34 @@ internal sealed class AiTargetCoverageCommand : BaseCommand
     {
     }
 
+    /// <summary>
+    /// Gets or sets the instance.
+    /// </summary>
     public static AiTargetCoverageCommand Instance { get; private set; }
 
+    /// <summary>
+    /// izes the AI Target Coverage command and asynchronously registers it to react to changes in the Feature_AiTargetCoverage setting via the package&apos;s settings monitor.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A Task value produced by this method.</returns>
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new AiTargetCoverageCommand(package);
         await package.SettingsMonitor.WatchAsync(s => s.Feature_AiTargetCoverage, Instance.SwitchAsync);
     }
 
+    /// <summary>
+    /// the command&apos;s Enabled state to true only when an active document exists and its code language is CSharp, while enforcing UI thread access.
+    /// </summary>
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.ActiveDocument != null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
+        Enabled = Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
     }
 
+    /// <summary>
+    /// This override of OnExecute first asserts that it is running on the UI thread, then invokes the base implementation, and finally calls ExecuteWithItem with a null argument.
+    /// </summary>
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -42,6 +56,10 @@ internal sealed class AiTargetCoverageCommand : BaseCommand
         ExecuteWithItem(null);
     }
 
+    /// <summary>
+    /// Executes an AI-driven test generation workflow that validates configuration, retrieves code context, prompts the user via an options dialog, and asynchronously generates tests to a target coverage percentage while reporting progress through a modal dialog and storing the resulting coverage outcome.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
     internal void ExecuteWithItem(ICodeItem codeItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -53,16 +71,18 @@ internal sealed class AiTargetCoverageCommand : BaseCommand
                 "CodeJanitor AI Assistant",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+
             return;
         }
 
-        var context = codeItem != null
+        var context = codeItem is not null
             ? AiContextHelper.GetCodeItemContext(Package, codeItem)
             : AiContextHelper.GetActiveCodeContext(Package);
 
-        if (context == null || string.IsNullOrWhiteSpace(context.CodeSnippet))
+        if (context is null || string.IsNullOrWhiteSpace(context.CodeSnippet))
         {
             MessageBox.Show("Could not find code to generate tests for.", "CodeJanitor AI Assistant", MessageBoxButton.OK, MessageBoxImage.Information);
+
             return;
         }
 
@@ -114,7 +134,7 @@ internal sealed class AiTargetCoverageCommand : BaseCommand
                 progressDialog.Close();
             }
 
-            if (coverageResult == null)
+            if (coverageResult is null)
             {
                 return;
             }
@@ -122,6 +142,7 @@ internal sealed class AiTargetCoverageCommand : BaseCommand
             if (!coverageResult.Success)
             {
                 MessageBox.Show(coverageResult.ErrorMessage ?? "Generation failed.", "CodeJanitor AI Assistant", MessageBoxButton.OK, MessageBoxImage.Warning);
+
                 return;
             }
 

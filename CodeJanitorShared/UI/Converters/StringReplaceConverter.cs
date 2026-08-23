@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter for running <see cref="string.Replace(string,string)" /> on a specified value.
 /// </summary>
 
-public class StringReplaceConverter : IValueConverter
+public sealed class StringReplaceConverter : IValueConverter
 {
     /// <summary>
     /// An instance of <see cref="StringReplaceConverter" /> that replaces "||" with a new line.

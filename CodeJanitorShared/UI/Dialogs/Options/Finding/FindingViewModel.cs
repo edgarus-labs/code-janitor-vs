@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Finding;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Finding;
 /// The view model for finding options.
 /// </summary>
 
-public class FindingViewModel : OptionsPageViewModel
+public sealed class FindingViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="FindingViewModel" /> class.

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.General;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.General;
 /// The view model for general options.
 /// </summary>
 
-public class GeneralViewModel : OptionsPageViewModel
+public sealed class GeneralViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="GeneralViewModel" /> class.

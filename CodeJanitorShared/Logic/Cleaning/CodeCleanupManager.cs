@@ -74,17 +74,26 @@ internal sealed class CodeCleanupManager
         Changed
     }
 
+    /// <summary>
+    /// HeadlessPreCleanupOutcome represents the result of a headless pre-cleanup operation, capturing its status, any files created, and whether a split operation occurred.
+    /// </summary>
+    internal struct HeadlessPreCleanupOutcome
+    {
         /// <summary>
-        /// HeadlessPreCleanupOutcome represents the result of a headless pre-cleanup operation, capturing its status, any files created, and whether a split operation occurred.
+        /// The result.
         /// </summary>
-        private struct HeadlessPreCleanupOutcome
-        {
-            internal HeadlessCleanupResult Result;
+        internal HeadlessCleanupResult Result;
 
-            internal List<string> CreatedFiles;
+        /// <summary>
+        /// The created files.
+        /// </summary>
+        internal List<string> CreatedFiles;
 
-            internal bool SplitOperationOccurred;
-        }
+        /// <summary>
+        /// The split operation occurred.
+        /// </summary>
+        internal bool SplitOperationOccurred;
+    }
 
     /// <summary>
     /// statistics structure that aggregates counts of items processed during a cleanup operation, tracking changed, no-op, failed, editor-related, and split-operation outcomes.
@@ -128,6 +137,7 @@ internal sealed class CodeCleanupManager
     }
 
     private readonly CodeJanitorPackage _package;
+    private readonly object _cleanupStatsLock = new object();
 
     private readonly CodeModelManager _codeModelManager;
     private readonly CodeReorganizationManager _codeReorganizationManager;
@@ -145,6 +155,7 @@ internal sealed class CodeCleanupManager
     private readonly JsonSerializerOptionsReuseLogic _jsonSerializerOptionsReuseLogic;
     private readonly FileHeaderLogic _fileHeaderLogic;
     private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
+    private readonly MoveUsingsOutsideNamespaceLogic _moveUsingsOutsideNamespaceLogic;
     private readonly VarWhenApparentLogic _varWhenApparentLogic;
     private readonly ReadonlyFieldLogic _readonlyFieldLogic;
     private readonly RazorFormatterLogic _razorFormatterLogic;
@@ -208,6 +219,7 @@ internal sealed class CodeCleanupManager
         _insertWhitespaceLogic = InsertWhitespaceLogic.GetInstance(_package);
         _fileHeaderLogic = FileHeaderLogic.GetInstance(_package);
         _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
+        _moveUsingsOutsideNamespaceLogic = MoveUsingsOutsideNamespaceLogic.GetInstance(_package);
         _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
         _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
         _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
@@ -275,7 +287,7 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (projectItem.Document != null)
+        if (projectItem.Document is not null)
         {
             Cleanup(projectItem.Document);
 
@@ -297,109 +309,110 @@ internal sealed class CodeCleanupManager
             $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: {!wasOpen})");
     }
 
-        /// <summary>
-        /// Attempts to run code cleanup on the specified project item without blocking the calling
-        /// thread (typically the UI thread) for the duration of any slow headless work, most
-        /// notably AI-assisted XML documentation HTTP requests. The small EnvDTE-dependent checks
-        /// still run on the main thread, but the file I/O, Roslyn transformations and AI network
-        /// calls run on a background thread so the IDE stays responsive and can be canceled.
-        /// </summary>
-        /// <param name="projectItem">The project item for cleanup.</param>
+    /// <summary>
+    /// Attempts to run code cleanup on the specified project item without blocking the calling
+    /// thread (typically the UI thread) for the duration of any slow headless work, most
+    /// notably AI-assisted XML documentation HTTP requests. The small EnvDTE-dependent checks
+    /// still run on the main thread, but the file I/O, Roslyn transformations and AI network
+    /// calls run on a background thread so the IDE stays responsive and can be canceled.
+    /// </summary>
+    /// <param name="projectItem">The project item for cleanup.</param>
 
-        internal async Task CleanupAsync(ProjectItem projectItem)
+    internal async Task CleanupAsync(ProjectItem projectItem)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem)) return;
+
+        // Instrumentation for BL-018: measure per-item cleanup cost and whether the document
+        // had to be opened by cleanup (opening documents is the primary performance concern).
+        var stopwatch = Stopwatch.StartNew();
+
+        var projectItemFileName = projectItem.GetFileName();
+
+        // Skip the disk-based headless path for documents that are already open - the editor
+        // buffer is then the source of truth and cleanup must operate on the live document.
+        bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
+
+        var headlessResult = HeadlessCleanupResult.NotApplicable;
+
+        if (!wasOpen)
         {
+            // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
+            // calls) on a background thread so the main thread's message pump keeps running
+            // and the cleanup progress dialog's Cancel button remains responsive.
+            var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName));
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem)) return;
+            headlessResult = outcome.Result;
 
-            // Instrumentation for BL-018: measure per-item cleanup cost and whether the document
-            // had to be opened by cleanup (opening documents is the primary performance concern).
-            var stopwatch = Stopwatch.StartNew();
-
-            var projectItemFileName = projectItem.GetFileName();
-
-            // Skip the disk-based headless path for documents that are already open - the editor
-            // buffer is then the source of truth and cleanup must operate on the live document.
-            bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
-
-            var headlessResult = HeadlessCleanupResult.NotApplicable;
-
-            if (!wasOpen)
+            if (outcome.SplitOperationOccurred)
             {
-                // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
-                // calls) on a background thread so the main thread's message pump keeps running
-                // and the cleanup progress dialog's Cancel button remains responsive.
-                var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName));
-
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                headlessResult = outcome.Result;
-
-                if (outcome.SplitOperationOccurred)
+                foreach (var createdFile in outcome.CreatedFiles)
                 {
-                    foreach (var createdFile in outcome.CreatedFiles)
-                    {
-                        AddGeneratedFileToProject(projectItem, createdFile);
-                    }
-
-                    _cleanupExecutionStats.SplitOperations++;
-                    _cleanupExecutionStats.SplitCreatedFiles += outcome.CreatedFiles.Count;
+                    AddGeneratedFileToProject(projectItem, createdFile);
                 }
+
+                _cleanupExecutionStats.SplitOperations++;
+                _cleanupExecutionStats.SplitCreatedFiles += outcome.CreatedFiles.Count;
             }
+        }
 
-            if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
+        {
+            if (headlessResult == HeadlessCleanupResult.Changed)
             {
-                if (headlessResult == HeadlessCleanupResult.Changed)
-                {
-                    _cleanupExecutionStats.HeadlessChangedItems++;
-                }
-                else
-                {
-                    _cleanupExecutionStats.HeadlessNoOpItems++;
-                }
-
-                stopwatch.Stop();
-                OutputWindowHelper.DiagnosticWriteLine(
-                    $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: False, headlessOnly: True, changed: {headlessResult == HeadlessCleanupResult.Changed})");
-
-                return;
-            }
-
-            // Attempt to open the document if not already opened.
-            if (!wasOpen)
-            {
-                try
-                {
-                    projectItem.Open(Constants.vsViewKindTextView);
-                }
-                catch (Exception ex)
-                {
-                    OutputWindowHelper.WarningWriteLine(
-                        $"Unable to open '{projectItemFileName}' for editor cleanup: {ex.Message}");
-                }
-            }
-
-            if (projectItem.Document != null)
-            {
-                Cleanup(projectItem.Document);
-
-                // Close the document if it was opened for cleanup.
-                if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
-                {
-                    projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
-                }
+                _cleanupExecutionStats.HeadlessChangedItems++;
             }
             else
             {
-                RecordCleanupFailure(
-                    projectItemFileName,
-                    new InvalidOperationException("The project item did not expose an open document."));
+                _cleanupExecutionStats.HeadlessNoOpItems++;
             }
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
-                $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: {!wasOpen})");
+                $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: False, headlessOnly: True, changed: {headlessResult == HeadlessCleanupResult.Changed})");
+
+            return;
         }
+
+        // Attempt to open the document if not already opened.
+        if (!wasOpen)
+        {
+            try
+            {
+                projectItem.Open(Constants.vsViewKindTextView);
+            }
+            catch (Exception ex)
+            {
+                OutputWindowHelper.WarningWriteLine(
+                    $"Unable to open '{projectItemFileName}' for editor cleanup: {ex.Message}");
+            }
+        }
+
+        if (projectItem.Document is not null)
+        {
+            Cleanup(projectItem.Document);
+
+            // Close the document if it was opened for cleanup.
+            if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
+            {
+                projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
+            }
+        }
+        else
+        {
+            RecordCleanupFailure(
+                projectItemFileName,
+                new InvalidOperationException("The project item did not expose an open document."));
+        }
+
+        stopwatch.Stop();
+        OutputWindowHelper.DiagnosticWriteLine(
+            $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: {!wasOpen})");
+    }
+
     /// <summary>
     /// Runs the subset of C# cleanup steps that can safely execute on raw file text without
     /// opening the document in the editor.
@@ -412,114 +425,114 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var projectItemFileName = projectItem.GetFileName();
-            var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName);
+        var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName);
 
-            if (outcome.SplitOperationOccurred)
+        if (outcome.SplitOperationOccurred)
+        {
+            foreach (var createdFile in outcome.CreatedFiles)
             {
-                foreach (var createdFile in outcome.CreatedFiles)
-                {
-                    AddGeneratedFileToProject(projectItem, createdFile);
-                }
-
-                _cleanupExecutionStats.SplitOperations++;
-                _cleanupExecutionStats.SplitCreatedFiles += outcome.CreatedFiles.Count;
+                AddGeneratedFileToProject(projectItem, createdFile);
             }
 
-            return outcome.Result;
+            _cleanupExecutionStats.SplitOperations++;
+            _cleanupExecutionStats.SplitCreatedFiles += outcome.CreatedFiles.Count;
         }
 
-        /// <summary>
-        /// Runs the file I/O, Roslyn transformation and AI-assisted documentation portion of the
-        /// headless pre-cleanup without touching any EnvDTE/COM objects, so it can safely run on a
-        /// background thread. Any files created by the top-level-type-to-file split feature are
-        /// returned to the caller, which must register them with the project on the main thread.
-        /// </summary>
-        /// <param name="projectItemFileName">The full path of the C# file to clean up.</param>
-        /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
+        return outcome.Result;
+    }
 
-        private HeadlessPreCleanupOutcome TryRunHeadlessPreCleanupForCSharpCore(string projectItemFileName)
+    /// <summary>
+    /// Runs the file I/O, Roslyn transformation and AI-assisted documentation portion of the
+    /// headless pre-cleanup without touching any EnvDTE/COM objects, so it can safely run on a
+    /// background thread. Any files created by the top-level-type-to-file split feature are
+    /// returned to the caller, which must register them with the project on the main thread.
+    /// </summary>
+    /// <param name="projectItemFileName">The full path of the C# file to clean up.</param>
+    /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
+
+    internal HeadlessPreCleanupOutcome TryRunHeadlessPreCleanupForCSharpCore(string projectItemFileName)
+    {
+        var createdFiles = new List<string>();
+
+        if (string.IsNullOrEmpty(projectItemFileName) ||
+            !projectItemFileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(projectItemFileName))
         {
-            var createdFiles = new List<string>();
+            return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
+        }
 
-            if (string.IsNullOrEmpty(projectItemFileName) ||
-                !projectItemFileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
-                !File.Exists(projectItemFileName))
+        try
+        {
+            string originalSource;
+            Encoding encoding;
+
+            using (var reader = new StreamReader(projectItemFileName, detectEncodingFromByteOrderMarks: true))
             {
-                return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
+                originalSource = reader.ReadToEnd();
+                encoding = reader.CurrentEncoding;
             }
 
-            try
+            bool splitChanged = false;
+            bool splitOperationOccurred = false;
+            if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles)
             {
-                string originalSource;
-                Encoding encoding;
-
-                using (var reader = new StreamReader(projectItemFileName, detectEncodingFromByteOrderMarks: true))
+                var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
+                    originalSource,
+                    projectItemFileName,
+                    encoding,
+                    ApplyHeadlessCSharpTransformations,
+                    transformUpdatedSource: false,
+                    transformCreatedFile: ApplyHeadlessCSharpTransformationsForCreatedFile);
+                if (splitResult.Changed)
                 {
-                    originalSource = reader.ReadToEnd();
-                    encoding = reader.CurrentEncoding;
-                }
+                    splitChanged = true;
+                    splitOperationOccurred = true;
+                    originalSource = splitResult.UpdatedSource;
+                    createdFiles.AddRange(splitResult.CreatedFiles);
 
-                bool splitChanged = false;
-                bool splitOperationOccurred = false;
-                if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles)
+                    OutputWindowHelper.DiagnosticWriteLine(
+                        $"Headless top-level type split for '{projectItemFileName}' created {splitResult.CreatedFiles.Count} file(s).");
+                }
+                else
                 {
-                    var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
-                        originalSource,
-                        projectItemFileName,
-                        encoding,
-                        ApplyHeadlessCSharpTransformations,
-                        transformUpdatedSource: false,
-                        transformCreatedFile: ApplyHeadlessCSharpTransformationsForCreatedFile);
-                    if (splitResult.Changed)
-                    {
-                        splitChanged = true;
-                        splitOperationOccurred = true;
-                        originalSource = splitResult.UpdatedSource;
-                        createdFiles.AddRange(splitResult.CreatedFiles);
-
-                        OutputWindowHelper.DiagnosticWriteLine(
-                            $"Headless top-level type split for '{projectItemFileName}' created {splitResult.CreatedFiles.Count} file(s).");
-                    }
-                    else
-                    {
-                        OutputWindowHelper.DiagnosticWriteLine(
-                            $"Headless top-level type split skipped for '{projectItemFileName}': {splitResult.SkipReason}.");
-                    }
+                    OutputWindowHelper.DiagnosticWriteLine(
+                        $"Headless top-level type split skipped for '{projectItemFileName}': {splitResult.SkipReason}.");
                 }
+            }
 
-                var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
-                var fileHadBom = Settings.Default.Cleaning_RemoveByteOrderMark &&
-                                 RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
-                var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark
-                    ? new UTF8Encoding(false)
-                    : encoding;
+            var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
+            var fileHadBom = Settings.Default.Cleaning_RemoveByteOrderMark &&
+                             RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
+            var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark
+                ? new UTF8Encoding(false)
+                : encoding;
 
-                if (splitChanged || fileHadBom || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
-                {
-                    File.WriteAllText(projectItemFileName, transformedSource, targetEncoding);
-
-                    return new HeadlessPreCleanupOutcome
-                    {
-                        Result = HeadlessCleanupResult.Changed,
-                        CreatedFiles = createdFiles,
-                        SplitOperationOccurred = splitOperationOccurred
-                    };
-                }
+            if (splitChanged || fileHadBom || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
+            {
+                File.WriteAllText(projectItemFileName, transformedSource, targetEncoding);
 
                 return new HeadlessPreCleanupOutcome
                 {
-                    Result = HeadlessCleanupResult.NoChanges,
+                    Result = HeadlessCleanupResult.Changed,
                     CreatedFiles = createdFiles,
                     SplitOperationOccurred = splitOperationOccurred
                 };
             }
-            catch (Exception ex)
-            {
-                OutputWindowHelper.WarningWriteLine(
-                    $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}");
 
-                return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
-            }
+            return new HeadlessPreCleanupOutcome
+            {
+                Result = HeadlessCleanupResult.NoChanges,
+                CreatedFiles = createdFiles,
+                SplitOperationOccurred = splitOperationOccurred
+            };
+        }
+        catch (Exception ex)
+        {
+            OutputWindowHelper.WarningWriteLine(
+                $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}");
+
+            return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
+        }
     }
 
     /// <summary>
@@ -531,18 +544,22 @@ internal sealed class CodeCleanupManager
         /// Gets or sets the file path.
         /// </summary>
         public string FilePath { get; set; }
+
         /// <summary>
         /// Gets or sets the processed count.
         /// </summary>
         public int ProcessedCount { get; set; }
+
         /// <summary>
         /// Gets or sets the total count.
         /// </summary>
         public int TotalCount { get; set; }
+
         /// <summary>
         /// Gets or sets the changed.
         /// </summary>
         public bool Changed { get; set; }
+
         /// <summary>
         /// Gets or sets the error.
         /// </summary>
@@ -558,22 +575,27 @@ internal sealed class CodeCleanupManager
         /// Gets or sets the total files.
         /// </summary>
         public int TotalFiles { get; set; }
+
         /// <summary>
         /// Gets or sets the changed files.
         /// </summary>
         public int ChangedFiles { get; set; }
+
         /// <summary>
         /// Gets or sets the unchanged files.
         /// </summary>
         public int UnchangedFiles { get; set; }
+
         /// <summary>
         /// Gets or sets the failed files.
         /// </summary>
         public int FailedFiles { get; set; }
+
         /// <summary>
         /// Gets or sets the modified file paths.
         /// </summary>
         public IReadOnlyList<string> ModifiedFilePaths { get; set; }
+
         /// <summary>
         /// Gets or sets the failures.
         /// </summary>
@@ -594,7 +616,7 @@ internal sealed class CodeCleanupManager
         IProgress<ParallelCleanupProgress> progress = null,
         CancellationToken cancellationToken = default)
     {
-        if (filePaths == null)
+        if (filePaths is null)
         {
             return new ParallelCleanupResult
             {
@@ -695,6 +717,11 @@ internal sealed class CodeCleanupManager
         if (Settings.Default.Cleaning_RemoveByteOrderMark)
         {
             transformations.Add(new ByteOrderMarkConverter());
+        }
+
+        if (Settings.Default.Cleaning_MoveUsingsOutsideNamespace)
+        {
+            transformations.Add(new MoveUsingsOutsideNamespaceConverter());
         }
 
         if (Settings.Default.Cleaning_ConvertToFileScopedNamespace)
@@ -917,7 +944,7 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <returns>True if editor-backed cleanup must run, otherwise false.</returns>
 
-    private bool RequiresEditorCleanupForCSharp()
+    internal bool RequiresEditorCleanupForCSharp()
     {
         if (Settings.Default.Reorganizing_RunAtStartOfCleanup) return true;
 
@@ -1269,7 +1296,7 @@ internal sealed class CodeCleanupManager
             delegate
             {
                 var cleanupMethod = FindCodeCleanupMethod(document);
-                if (cleanupMethod != null)
+                if (cleanupMethod is not null)
                 {
                     OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");
                     _package.IDE.StatusBar.Text = string.Format(Resources.CodeJanitorIsCleaning0, document.Name);
@@ -1370,7 +1397,7 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         if (!Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles ||
-            document == null ||
+            document is null ||
             document.GetCodeLanguage() != CodeLanguage.CSharp)
         {
             return;
@@ -1378,13 +1405,13 @@ internal sealed class CodeCleanupManager
 
         var projectItem = document.ProjectItem;
         var filePath = projectItem?.GetFileName();
-        if (projectItem == null || string.IsNullOrWhiteSpace(filePath))
+        if (projectItem is null || string.IsNullOrWhiteSpace(filePath))
         {
             return;
         }
 
         var textDocument = document.GetTextDocument();
-        if (textDocument == null)
+        if (textDocument is null)
         {
             return;
         }
@@ -1433,16 +1460,16 @@ internal sealed class CodeCleanupManager
     /// <param name="sourceProjectItem">The source project item.</param>
     /// <param name="filePath">The file path.</param>
 
-    private void AddGeneratedFileToProject(ProjectItem sourceProjectItem, string filePath)
+    internal void AddGeneratedFileToProject(ProjectItem sourceProjectItem, string filePath)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (sourceProjectItem == null || string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        if (sourceProjectItem is null || string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
         {
             return;
         }
 
-        if (_package.IDE.Solution.FindProjectItem(filePath) != null)
+        if (_package.IDE.Solution.FindProjectItem(filePath) is not null)
         {
             return;
         }
@@ -1459,6 +1486,40 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
+    /// Thread-safely increments the count of headless changed items.
+    /// </summary>
+    internal void IncrementHeadlessChanged()
+    {
+        lock (_cleanupStatsLock)
+        {
+            _cleanupExecutionStats.HeadlessChangedItems++;
+        }
+    }
+
+    /// <summary>
+    /// Thread-safely increments the count of headless no-op items.
+    /// </summary>
+    internal void IncrementHeadlessNoOp()
+    {
+        lock (_cleanupStatsLock)
+        {
+            _cleanupExecutionStats.HeadlessNoOpItems++;
+        }
+    }
+
+    /// <summary>
+    /// Thread-safely records a split operation.
+    /// </summary>
+    internal void RecordSplitOperation(int createdFilesCount)
+    {
+        lock (_cleanupStatsLock)
+        {
+            _cleanupExecutionStats.SplitOperations++;
+            _cleanupExecutionStats.SplitCreatedFiles += createdFilesCount;
+        }
+    }
+
+    /// <summary>
     /// Attempts to run code cleanup on the specified CSharp document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
@@ -1468,6 +1529,9 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
+
+        // Move using directives outside namespace (to top of file), when enabled.
+        _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
 
         // Convert to a file-scoped namespace first (changes file structure), when enabled.
         _fileScopedNamespaceLogic.ConvertToFileScopedNamespace(textDocument);
@@ -1498,6 +1562,7 @@ internal sealed class CodeCleanupManager
         if (!document.IsExternal())
         {
             _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument);
+            _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
         }
 
         // Interpret the document into a collection of elements.

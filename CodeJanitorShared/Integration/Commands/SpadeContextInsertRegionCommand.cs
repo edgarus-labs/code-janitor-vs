@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Reorganizing;
 using CodeJanitor.Model.CodeItems;
@@ -57,7 +57,7 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
         bool visible = false;
 
         var spade = Package.Spade;
-        if (spade?.Document != null)
+        if (spade?.Document is not null)
         {
             visible = spade.SelectedItems.Count() >= 2 &&
                       (spade.Document.GetCodeLanguage() == CodeLanguage.CSharp ||
@@ -77,7 +77,7 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
         base.OnExecute();
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             var region = new CodeItemRegion { Name = Resources.NewRegion };
             var startPoint = spade.SelectedItems.OrderBy(x => x.StartOffset).First().StartPoint;

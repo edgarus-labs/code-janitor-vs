@@ -16,7 +16,7 @@
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
-		<!-- Header -->
+		<!--  Header  -->
 		<Border
 			Grid.Row="0"
 			Padding="16,12"
@@ -38,9 +38,9 @@
 			</StackPanel>
 		</Border>
 
-		<!-- Form Body -->
+		<!--  Form Body  -->
 		<StackPanel Grid.Row="1" Margin="20,16,20,10">
-			<!-- Target Coverage Percentage -->
+			<!--  Target Coverage Percentage  -->
 			<TextBlock FontWeight="SemiBold" Text="Target Code Coverage (Branches &amp; Lines):" />
 			<Grid Margin="0,6,0,12">
 				<Grid.ColumnDefinitions>
@@ -64,7 +64,7 @@
 					Text="{Binding TargetCoveragePercentage, StringFormat='{}{0}%'}" />
 			</Grid>
 
-			<!-- Max Iterations -->
+			<!--  Max Iterations  -->
 			<TextBlock FontWeight="SemiBold" Text="Maximum AI Refinement Iterations:" />
 			<StackPanel Margin="0,4,0,12" Orientation="Horizontal">
 				<TextBox
@@ -81,7 +81,7 @@
 					Text="(Rounds of AI test generation targeting missing branches)" />
 			</StackPanel>
 
-			<!-- Framework & Mocking -->
+			<!--  Framework & Mocking  -->
 			<Grid Margin="0,4,0,10">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="*" />
@@ -107,7 +107,7 @@
 			</Grid>
 		</StackPanel>
 
-		<!-- Actions -->
+		<!--  Actions  -->
 		<Border
 			Grid.Row="2"
 			Padding="16,12"

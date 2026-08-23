@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -10,7 +10,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter for performing is greater than or equal to comparisons between two specified values.
 /// </summary>
 
-public class IsGreaterThanOrEqualToConverter : IValueConverter, IMultiValueConverter
+public sealed class IsGreaterThanOrEqualToConverter : IValueConverter, IMultiValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="IsGreaterThanOrEqualToConverter" />.
@@ -28,7 +28,7 @@ public class IsGreaterThanOrEqualToConverter : IValueConverter, IMultiValueConve
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value != null && parameter != null)
+        if (value is not null && parameter is not null)
         {
             var first = System.Convert.ToDouble(value);
             var second = System.Convert.ToDouble(parameter);
@@ -80,7 +80,7 @@ public class IsGreaterThanOrEqualToConverter : IValueConverter, IMultiValueConve
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values != null && values.Length >= 2 && values.All(x => x != DependencyProperty.UnsetValue))
+        if (values is not null && values.Length >= 2 && values.All(x => x != DependencyProperty.UnsetValue))
         {
             var first = System.Convert.ToDouble(values[0]);
             var second = System.Convert.ToDouble(values[1]);

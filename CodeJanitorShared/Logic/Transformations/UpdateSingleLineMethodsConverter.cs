@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeJanitor.Properties;
@@ -10,7 +10,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// on a new line, method body content on separate lines, and closing brace on its own line.
 /// </summary>
 
-public class UpdateSingleLineMethodsConverter : ISourceTransformation
+public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
 {
     /// <summary>
     /// Gets the name.
@@ -55,7 +55,7 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
             var visited = (MethodDeclarationSyntax)base.VisitMethodDeclaration(node);
 
             // Don't process abstract methods or methods in interfaces
-            if (visited.Body == null || visited.Modifiers.Any(SyntaxKind.AbstractKeyword))
+            if (visited.Body is null || visited.Modifiers.Any(SyntaxKind.AbstractKeyword))
             {
                 return visited;
             }
@@ -79,7 +79,7 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
 
         private bool IsSingleLineMethodBody(BlockSyntax body)
         {
-            if (body == null || body.Statements.Count == 0)
+            if (body is null || body.Statements.Count == 0)
                 return false;
 
             // Check if all statements fit on one line (simple heuristic)
@@ -101,7 +101,7 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
 
         private MethodDeclarationSyntax SpreadMethodOntoMultipleLines(MethodDeclarationSyntax method)
         {
-            if (method.Body == null)
+            if (method.Body is null)
                 return method;
 
             var newline = "\r\n";
@@ -124,7 +124,7 @@ public class UpdateSingleLineMethodsConverter : ISourceTransformation
 
             // Parse the new body
             var newBodySyntax = SyntaxFactory.ParseStatement(formattedBody) as BlockSyntax;
-            if (newBodySyntax == null)
+            if (newBodySyntax is null)
             {
                 return method;
             }

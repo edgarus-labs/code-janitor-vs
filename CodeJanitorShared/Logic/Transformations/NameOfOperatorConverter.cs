@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -47,7 +47,9 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
         /// <summary>
         /// Overrides the visitor for object creation expressions to replace string literal arguments that match valid identifiers with `nameof()` expressions when the created type is in a configured set of exception types, returning the modified node if any substitutions were made.
         /// </summary>
+
         /// <param name="node">The node.</param>
+
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
         {
@@ -62,7 +64,7 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
                 return visited;
             }
 
-            if (visited.ArgumentList == null || visited.ArgumentList.Arguments.Count == 0)
+            if (visited.ArgumentList is null || visited.ArgumentList.Arguments.Count == 0)
             {
                 return visited;
             }
@@ -108,6 +110,7 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
         }
 
         /// <summary>
+
         /// Walks up the syntax tree from the given node and collects parameter identifier names from each enclosing method, constructor, local function, or lambda into a case-sensitive HashSet, stopping when the root is reached.
         /// </summary>
         /// <param name="node">The node.</param>
@@ -117,7 +120,7 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
             var identifiers = new HashSet<string>(StringComparer.Ordinal);
             var current = node.Parent;
 
-            while (current != null)
+            while (current is not null)
             {
                 if (current is MethodDeclarationSyntax method)
                 {

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.UI.Enumerations;
+using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace CodeJanitor.UI;
 /// A behavior for supporting list box drag and drop reordering, and optionally merging.
 /// </summary>
 
-public class ListBoxReorderBehavior : Behavior<ListBox>
+public sealed class ListBoxReorderBehavior : Behavior<ListBox>
 {
     private ListBoxItem _dragCandidate;
     private Point? _dragStartPoint;
@@ -46,7 +46,7 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
     {
         base.OnDetaching();
 
-        if (AssociatedObject != null)
+        if (AssociatedObject is not null)
         {
             AssociatedObject.AllowDrop = false;
             AssociatedObject.PreviewMouseDown -= OnPreviewMouseDown;
@@ -101,7 +101,7 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
 
     private void OnPreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (_dragCandidate == null || !_dragStartPoint.HasValue) return;
+        if (_dragCandidate is null || !_dragStartPoint.HasValue) return;
 
         var delta = _dragStartPoint.Value - e.GetPosition(null);
         if (Math.Abs(delta.X) <= SystemParameters.MinimumHorizontalDragDistance &&
@@ -143,12 +143,12 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
     private void OnDragEvent(object sender, DragEventArgs e)
     {
         var target = FindParentListBoxItem(e.OriginalSource);
-        if (target != null && e.Data.GetDataPresent(typeof(object)))
+        if (target is not null && e.Data.GetDataPresent(typeof(object)))
         {
             var sourceData = e.Data.GetData(typeof(object));
             var targetData = target.DataContext;
 
-            if (sourceData != null && targetData != null && sourceData != targetData)
+            if (sourceData is not null && targetData is not null && sourceData != targetData)
             {
                 switch (GetDropPostion(e, target))
                 {
@@ -192,7 +192,7 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
     private void OnDragLeave(object sender, DragEventArgs e)
     {
         var target = FindParentListBoxItem(e.OriginalSource);
-        if (target != null)
+        if (target is not null)
         {
             target.SetValue(DragDropAttachedProperties.IsDropAboveTargetProperty, false);
             target.SetValue(DragDropAttachedProperties.IsDropBelowTargetProperty, false);
@@ -211,15 +211,15 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
         if (!e.Data.GetDataPresent(typeof(object))) return;
 
         var target = FindParentListBoxItem(e.OriginalSource);
-        if (target == null) return;
+        if (target is null) return;
 
         var sourceData = e.Data.GetData(typeof(object));
         var targetData = target.DataContext;
 
-        if (sourceData == null || targetData == null || sourceData == targetData) return;
+        if (sourceData is null || targetData is null || sourceData == targetData) return;
 
         var collection = AssociatedObject.ItemsSource as ObservableCollection<object>;
-        if (collection == null) return;
+        if (collection is null) return;
 
         var sourceIndex = collection.IndexOf(sourceData);
         var targetIndex = collection.IndexOf(targetData);
@@ -260,7 +260,7 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
     private static ListBoxItem FindParentListBoxItem(object eventSource)
     {
         var source = eventSource as DependencyObject;
-        if (source == null) return null;
+        if (source is null) return null;
 
         var listBoxItem = source.FindVisualAncestor<ListBoxItem>();
 
@@ -310,7 +310,7 @@ public class ListBoxReorderBehavior : Behavior<ListBox>
 
         // Add the source(s) to the target collection.
         var sourceCollection = sourceItem as IList;
-        if (sourceCollection != null)
+        if (sourceCollection is not null)
         {
             foreach (var source in sourceCollection)
             {

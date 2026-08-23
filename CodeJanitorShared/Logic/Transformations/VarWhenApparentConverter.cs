@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -14,7 +14,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// declared type differs from the created type. Pure logic, unit-testable without Visual Studio.
 /// </remarks>
 
-public class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformation
+public sealed class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Var When Apparent";
@@ -59,7 +59,7 @@ public class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformati
             }
 
             var variable = declaration.Variables[0];
-            if (variable.Initializer == null)
+            if (variable.Initializer is null)
             {
                 return base.VisitLocalDeclarationStatement(node);
             }

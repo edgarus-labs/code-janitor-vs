@@ -23,46 +23,74 @@ public sealed class AiCoverageProgressViewModel : Bindable, IProgress<AiCoverage
         CurrentCoveragePercentage = 0;
     }
 
+    /// <summary>
+    /// Gets or sets the target name.
+    /// </summary>
     public string TargetName
     {
         get => GetPropertyValue<string>();
         set => SetPropertyValue(value);
     }
 
+    /// <summary>
+    /// Gets or sets the target coverage percentage.
+    /// </summary>
     public int TargetCoveragePercentage
     {
         get => GetPropertyValue<int>();
         set => SetPropertyValue(value);
     }
 
+    /// <summary>
+    /// Gets or sets the current coverage percentage.
+    /// </summary>
     public int CurrentCoveragePercentage
     {
         get => GetPropertyValue<int>();
         set => SetPropertyValue(value);
     }
 
+    /// <summary>
+    /// Gets or sets the iteration text.
+    /// </summary>
     public string IterationText
     {
         get => GetPropertyValue<string>();
         set => SetPropertyValue(value);
     }
 
+    /// <summary>
+    /// Gets or sets the status message.
+    /// </summary>
     public string StatusMessage
     {
         get => GetPropertyValue<string>();
         set => SetPropertyValue(value);
     }
 
+    /// <summary>
+    /// Gets or sets the is cancelled.
+    /// </summary>
     public bool IsCancelled { get; private set; }
 
+    /// <summary>
+    /// Occurs when request close.
+    /// </summary>
     public event EventHandler RequestClose;
 
+    /// <summary>
+    /// Gets the cancel command.
+    /// </summary>
     public DelegateCommand CancelCommand => _cancelCommand
         ?? (_cancelCommand = new DelegateCommand(OnCancel));
 
+    /// <summary>
+    /// Updates CurrentCoveragePercentage, StatusMessage, and IterationText from a non-null AiCoverageProgressReport (no-op on null), formatting iteration and branch-coverage details when CurrentIteration is positive or else using a static analyzing message.
+    /// </summary>
+    /// <param name="value">The value.</param>
     public void Report(AiCoverageProgressReport value)
     {
-        if (value == null) return;
+        if (value is null) return;
 
         CurrentCoveragePercentage = value.CurrentCoveragePercentage;
         StatusMessage = value.StatusMessage;
@@ -76,6 +104,10 @@ public sealed class AiCoverageProgressViewModel : Bindable, IProgress<AiCoverage
         }
     }
 
+    /// <summary>
+    /// OnCancel sets IsCancelled to true, updates StatusMessage, cancels the CancellationTokenSource, and raises RequestClose to close the associated view.
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
     private void OnCancel(object parameter)
     {
         IsCancelled = true;

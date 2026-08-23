@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Formatting;
@@ -67,7 +67,7 @@ internal sealed class CommentFormatCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        Enabled = ActiveTextDocument != null;
+        Enabled = ActiveTextDocument is not null;
     }
 
     /// <summary>
@@ -82,10 +82,10 @@ internal sealed class CommentFormatCommand : BaseCommand
 
         var activeTextDocument = ActiveTextDocument;
 
-        if (activeTextDocument != null && activeTextDocument.Selection != null)
+        if (activeTextDocument is not null && activeTextDocument.Selection is not null)
         {
             var prefix = CodeCommentHelper.GetCommentPrefix(activeTextDocument);
-            if (prefix != null)
+            if (prefix is not null)
             {
                 var selection = activeTextDocument.Selection;
 

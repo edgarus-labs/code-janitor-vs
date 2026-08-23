@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
@@ -94,7 +94,7 @@ internal sealed class SolutionEventListener : BaseEventListener
     private void SolutionEvents_AfterClosing()
     {
         var onSolutionClosed = OnSolutionClosed;
-        if (onSolutionClosed != null)
+        if (onSolutionClosed is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine("SolutionEventListener.OnSolutionClosed raised");
 
@@ -109,7 +109,7 @@ internal sealed class SolutionEventListener : BaseEventListener
     private void SolutionEvents_Opened()
     {
         var onSolutionOpened = OnSolutionOpened;
-        if (onSolutionOpened != null)
+        if (onSolutionOpened is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine("SolutionEventListener.OnSolutionOpened raised");
 

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using System;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code field.
 /// </summary>
 
-public class CodeItemField : BaseCodeItemElement
+public sealed class CodeItemField : BaseCodeItemElement
 {
     private readonly Lazy<bool> _isConstant;
     private readonly Lazy<bool> _isEnumItem;
@@ -30,16 +30,16 @@ public class CodeItemField : BaseCodeItemElement
             () => CodeVariable?.DocComment);
 
         _isConstant = LazyTryDefault(
-            () => CodeVariable != null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindConst);
+            () => CodeVariable is not null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindConst);
 
         _isEnumItem = LazyTryDefault(
             () => CodeVariable?.Parent is CodeEnum);
 
         _isReadOnly = LazyTryDefault(
-            () => CodeVariable != null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindReadOnly);
+            () => CodeVariable is not null && CodeVariable.IsConstant && CodeVariable.ConstKind == vsCMConstKind.vsCMConstKindReadOnly);
 
         _IsStatic = LazyTryDefault(
-            () => CodeVariable != null && CodeVariable.IsShared);
+            () => CodeVariable is not null && CodeVariable.IsShared);
 
         _TypeString = LazyTryDefault(
             () => CodeVariable?.Type?.AsString);

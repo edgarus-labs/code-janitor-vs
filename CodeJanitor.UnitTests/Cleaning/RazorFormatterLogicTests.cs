@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class RazorFormatterLogicTests
+public sealed class RazorFormatterLogicTests
 {
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]

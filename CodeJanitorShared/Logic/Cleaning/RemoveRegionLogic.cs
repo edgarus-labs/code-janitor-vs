@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model;
@@ -57,7 +57,7 @@ internal sealed class RemoveRegionLogic
         ThreadHelper.ThrowIfNotOnUIThread();
 
         return _package.IDE.Debugger.CurrentMode == dbgDebugMode.dbgDesignMode &&
-               document != null &&
+               document is not null &&
                (document.GetCodeLanguage() == CodeLanguage.CSharp ||
                 document.GetCodeLanguage() == CodeLanguage.VisualBasic);
     }
@@ -156,7 +156,7 @@ internal sealed class RemoveRegionLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (region == null || region.IsInvalidated || region.IsPseudoGroup || region.StartLine <= 0 || region.EndLine <= 0)
+        if (region is null || region.IsInvalidated || region.IsPseudoGroup || region.StartLine <= 0 || region.EndLine <= 0)
         {
             return;
         }

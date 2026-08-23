@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
@@ -16,7 +16,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// Pure logic, unit-testable without Visual Studio.
 /// </remarks>
 
-public class CollectionExpressionConverter : ISourceTransformation
+public sealed class CollectionExpressionConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Collection Expression";
@@ -52,14 +52,14 @@ public class CollectionExpressionConverter : ISourceTransformation
         {
             node = (VariableDeclaratorSyntax)base.VisitVariableDeclarator(node);
 
-            if (!(node.Parent is VariableDeclarationSyntax declaration) || node.Initializer == null)
+            if (!(node.Parent is VariableDeclarationSyntax declaration) || node.Initializer is null)
             {
                 return node;
             }
 
             var replacement = TryConvertToCollectionExpression(declaration.Type, node.Initializer.Value);
 
-            return replacement == null
+            return replacement is null
                 ? node
                 : node.WithInitializer(node.Initializer.WithValue(replacement));
         }
@@ -74,14 +74,14 @@ public class CollectionExpressionConverter : ISourceTransformation
         {
             node = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
 
-            if (node.Initializer == null)
+            if (node.Initializer is null)
             {
                 return node;
             }
 
             var replacement = TryConvertToCollectionExpression(node.Type, node.Initializer.Value);
 
-            return replacement == null
+            return replacement is null
                 ? node
                 : node.WithInitializer(node.Initializer.WithValue(replacement));
         }
@@ -122,7 +122,7 @@ public class CollectionExpressionConverter : ISourceTransformation
 
         private static ExpressionSyntax TryConvertObjectCreation(TypeSyntax declaredType, ObjectCreationExpressionSyntax objectCreation)
         {
-            if (objectCreation.ArgumentList != null && objectCreation.ArgumentList.Arguments.Count > 0)
+            if (objectCreation.ArgumentList is not null && objectCreation.ArgumentList.Arguments.Count > 0)
             {
                 // e.g. new List<T>(capacity) or new List<T>(otherCollection) - not a plain
                 // empty/initializer creation, leave untouched.
@@ -154,7 +154,7 @@ public class CollectionExpressionConverter : ISourceTransformation
                 return null;
             }
 
-            if (arrayCreation.Initializer != null)
+            if (arrayCreation.Initializer is not null)
             {
                 return BuildCollectionExpression(arrayCreation.Initializer.Expressions).WithTriviaFrom(arrayCreation);
             }

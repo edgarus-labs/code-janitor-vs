@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -59,7 +59,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
             ThreadHelper.ThrowIfNotOnUIThread();
             if (_document != value)
             {
-                if (_document != null && _outliningManager != null)
+                if (_document is not null && _outliningManager is not null)
                 {
                     // Unregister from outlining events on the previous document.
                     _outliningManager.RegionsCollapsed -= OnCodeRegionsCollapsed;
@@ -69,7 +69,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
                 _document = value;
                 _outliningManager = GetOutliningManager(_document);
 
-                if (_document != null && _outliningManager != null)
+                if (_document is not null && _outliningManager is not null)
                 {
                     // Register for outlining events on the new document.
                     _outliningManager.RegionsCollapsed += OnCodeRegionsCollapsed;
@@ -105,7 +105,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
         if (sender is ICodeItemParent codeItemParent)
         {
             var iCollapsible = FindCollapsibleFromCodeItemParent(codeItemParent);
-            if (iCollapsible != null)
+            if (iCollapsible is not null)
             {
                 if (codeItemParent.IsExpanded && iCollapsible.IsCollapsed)
                 {
@@ -130,7 +130,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
         foreach (var collapsedRegion in e.CollapsedRegions)
         {
             var codeItemParent = FindCodeItemParentFromCollapsible(collapsedRegion);
-            if (codeItemParent != null)
+            if (codeItemParent is not null)
             {
                 codeItemParent.IsExpanded = false;
             }
@@ -148,7 +148,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
         foreach (var expandedRegion in e.ExpandedRegions)
         {
             var codeItemParent = FindCodeItemParentFromCollapsible(expandedRegion);
-            if (codeItemParent != null)
+            if (codeItemParent is not null)
             {
                 codeItemParent.IsExpanded = true;
             }
@@ -180,7 +180,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
 
     private ICollapsible FindCollapsibleFromCodeItemParent(ICodeItemParent parent)
     {
-        if (_outliningManager == null || _wpfTextView == null)
+        if (_outliningManager is null || _wpfTextView is null)
         {
             return null;
         }
@@ -232,7 +232,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
         try
         {
             _wpfTextView = GetWpfTextView(document);
-            if (_wpfTextView != null && _outliningManagerService != null)
+            if (_wpfTextView is not null && _outliningManagerService is not null)
             {
                 return _outliningManagerService.GetOutliningManager(_wpfTextView);
             }
@@ -254,7 +254,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     private IWpfTextView GetWpfTextView(Document document)
     {
         var textView = GetTextView(document);
-        if (textView != null && _editorAdaptersFactoryService != null)
+        if (textView is not null && _editorAdaptersFactoryService is not null)
         {
             return _editorAdaptersFactoryService.GetWpfTextView(textView);
         }
@@ -271,7 +271,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     private IVsTextView GetTextView(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (document == null)
+        if (document is null)
         {
             return null;
         }
@@ -292,7 +292,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
 
     private static IEnumerable<ICodeItemParent> RecursivelyGetAllCodeItemParents(SetCodeItems codeItems)
     {
-        if (codeItems == null)
+        if (codeItems is null)
         {
             return Enumerable.Empty<ICodeItemParent>();
         }
@@ -312,7 +312,7 @@ internal sealed class OutliningSynchronizationManager : IDisposable
         foreach (var codeItemParent in _codeItemParents ?? Enumerable.Empty<ICodeItemParent>())
         {
             var iCollapsible = FindCollapsibleFromCodeItemParent(codeItemParent);
-            if (iCollapsible != null)
+            if (iCollapsible is not null)
             {
                 codeItemParent.IsExpanded = !iCollapsible.IsCollapsed;
             }

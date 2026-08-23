@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 using System;
 using System.IO;
@@ -8,7 +8,7 @@ using System.Text;
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class TopLevelTypeToFileSplitFileProcessorTests
+public sealed class TopLevelTypeToFileSplitFileProcessorTests
 {
     private string _tempDirectory;
     private TopLevelTypeToFileSplitFileProcessor _processor;

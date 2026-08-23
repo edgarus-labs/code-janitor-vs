@@ -1,11 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 
 namespace CodeJanitor.UnitTests;
 
 [TestClass]
-public class CachedSettingTests
+public sealed class CachedSettingTests
 {
     private int _lookupCount;
     private int _parseCount;

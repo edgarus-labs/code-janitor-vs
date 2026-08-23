@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -38,9 +38,12 @@ public sealed class OutVarInliningConverter : ISourceTransformation
     {
         /// <summary>
         /// Overrides `VisitBlock` to merge a preceding uninitialized local variable declaration with a subsequent matching `out` argument into a single inline `out var` declaration.
+
         /// </summary>
+
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
+
         public override SyntaxNode VisitBlock(BlockSyntax node)
         {
             var visitedBlock = (BlockSyntax)base.VisitBlock(node);
@@ -53,7 +56,7 @@ public sealed class OutVarInliningConverter : ISourceTransformation
                     localDecl.Declaration.Variables.Count == 1)
                 {
                     var variable = localDecl.Declaration.Variables[0];
-                    if (variable.Initializer == null)
+                    if (variable.Initializer is null)
                     {
                         var varName = variable.Identifier.Text;
                         var nextStatement = statements[i + 1];
@@ -64,7 +67,7 @@ public sealed class OutVarInliningConverter : ISourceTransformation
                                                  a.Expression is IdentifierNameSyntax id &&
                                                  id.Identifier.Text == varName);
 
-                        if (outArg != null)
+                        if (outArg is not null)
                         {
                             // Check that varName is not used in nextStatement before outArg
                             var outArgSpanStart = outArg.SpanStart;

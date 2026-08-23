@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Progressing;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Progressing;
 /// The view model for progressing options.
 /// </summary>
 
-public class ProgressingViewModel : OptionsPageViewModel
+public sealed class ProgressingViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ProgressingViewModel" /> class.

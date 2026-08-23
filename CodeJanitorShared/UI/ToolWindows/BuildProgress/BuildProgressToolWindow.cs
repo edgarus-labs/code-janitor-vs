@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -17,7 +17,7 @@ namespace CodeJanitor.UI.ToolWindows.BuildProgress;
 /// </summary>
 
 [Guid(PackageGuids.GuidCodeJanitorToolWindowBuildProgressString)]
-public class BuildProgressToolWindow : ToolWindowPane
+public sealed class BuildProgressToolWindow : ToolWindowPane
 {
     private readonly BuildProgressViewModel _viewModel;
     private readonly string DefaultCaption = Resources.BuildProgress;

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -49,7 +49,7 @@ internal sealed class ReadOnlyToggleCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.ActiveDocument != null;
+        Enabled = Package.ActiveDocument is not null;
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ internal sealed class ReadOnlyToggleCommand : BaseCommand
         base.OnExecute();
 
         Document document = Package.ActiveDocument;
-        if (document != null)
+        if (document is not null)
         {
             try
             {

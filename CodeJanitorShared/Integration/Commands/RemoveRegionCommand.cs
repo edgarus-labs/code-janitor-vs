@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -128,10 +128,10 @@ internal sealed class RemoveRegionCommand : BaseCommand
         if (_removeRegionLogic.CanRemoveRegions(Package.ActiveDocument))
         {
             var activeTextDocument = ActiveTextDocument;
-            if (activeTextDocument != null)
+            if (activeTextDocument is not null)
             {
                 var textSelection = activeTextDocument.Selection;
-                if (textSelection != null)
+                if (textSelection is not null)
                 {
                     if (!textSelection.IsEmpty)
                     {

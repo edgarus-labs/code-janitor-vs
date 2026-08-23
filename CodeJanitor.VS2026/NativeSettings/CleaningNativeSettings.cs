@@ -25,6 +25,14 @@ namespace CodeJanitor.NativeSettings
             "codeJanitorCleaningAutoSaveAndCloseIfOpenedByCleanup", "Auto save and close if opened by cleanup", GeneralCategory, defaultValue: true);
 
         [VisualStudioContribution]
+        internal static Setting.Boolean EnableParallelCleanup { get; } = new(
+            "codeJanitorCleaningEnableParallelCleanup", "Enable parallel background cleanup for headless C# files", GeneralCategory, defaultValue: true);
+
+        [VisualStudioContribution]
+        internal static Setting.Integer MaxDegreeOfParallelism { get; } = new(
+            "codeJanitorCleaningMaxDegreeOfParallelism", "Max degree of parallelism (0 = auto)", GeneralCategory, defaultValue: 0);
+
+        [VisualStudioContribution]
         internal static Setting.Integer PerformPartialCleanupOnExternal { get; } = new(
             "codeJanitorCleaningPerformPartialCleanupOnExternal", "Perform partial cleanup on externally modified files", GeneralCategory, defaultValue: 0);
 
@@ -407,6 +415,13 @@ namespace CodeJanitor.NativeSettings
             "codeJanitorCleaningConvertToFileScopedNamespace", "Convert to file scoped namespace", UpdateCategory, defaultValue: false)
         {
             Description = "Converts a C# block-scoped namespace ('namespace X { }') to a file-scoped namespace ('namespace X;') during cleanup. Only applies when the file has exactly one top-level namespace; files with multiple or nested namespaces are left unchanged (a warning is written to the CodeJanitor output pane).",
+        };
+
+        [VisualStudioContribution]
+        internal static Setting.Boolean MoveUsingsOutsideNamespace { get; } = new(
+            "codeJanitorCleaningMoveUsingsOutsideNamespace", "Move using directives outside namespace", UpdateCategory, defaultValue: true)
+        {
+            Description = "Moves C# using directives from inside namespace blocks to the top of the file (outside namespace).",
         };
 
         [VisualStudioContribution]

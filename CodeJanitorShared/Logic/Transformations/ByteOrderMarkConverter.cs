@@ -7,6 +7,9 @@ namespace CodeJanitor.Logic.Transformations;
 /// </summary>
 public sealed class ByteOrderMarkConverter : ISourceTransformation
 {
+    /// <summary>
+    /// The bom char.
+    /// </summary>
     private const char BomChar = '\uFEFF';
 
     /// <inheritdoc />

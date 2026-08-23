@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,7 +11,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// unchanged, so the pipeline is safe to run with any subset or ordering of blocks.
 /// </summary>
 
-public class SourceTransformationPipeline
+public sealed class SourceTransformationPipeline
 {
     private readonly IList<ISourceTransformation> _transformations;
 
@@ -30,12 +30,12 @@ public class SourceTransformationPipeline
 
     public SourceTransformationPipeline(IEnumerable<ISourceTransformation> transformations)
     {
-        if (transformations == null)
+        if (transformations is null)
         {
             throw new ArgumentNullException(nameof(transformations));
         }
 
-        _transformations = transformations.Where(t => t != null).ToList();
+        _transformations = transformations.Where(t => t is not null).ToList();
     }
 
     /// <summary>

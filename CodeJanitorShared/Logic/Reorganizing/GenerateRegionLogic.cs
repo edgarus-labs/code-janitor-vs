@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -104,7 +104,7 @@ internal sealed class GenerateRegionLogic
         {
             // While the current code item is a region not in the list, advance to the next code item.
             var currentCodeItemAsRegion = codeItemEnumerator.Current as CodeItemRegion;
-            while (currentCodeItemAsRegion != null && !regions.Contains(currentCodeItemAsRegion, _regionComparerByName))
+            while (currentCodeItemAsRegion is not null && !regions.Contains(currentCodeItemAsRegion, _regionComparerByName))
             {
                 cursor = codeItemEnumerator.Current.EndPoint;
                 codeItemEnumerator.MoveNext();
@@ -120,13 +120,13 @@ internal sealed class GenerateRegionLogic
             }
 
             // Update the cursor position to the current code item.
-            if (codeItemEnumerator.Current != null)
+            if (codeItemEnumerator.Current is not null)
             {
                 cursor = codeItemEnumerator.Current.StartPoint;
             }
 
             // If the current code item is a region, offset the position by 1 to workaround points not tracking for region types.
-            if (currentCodeItemAsRegion != null)
+            if (currentCodeItemAsRegion is not null)
             {
                 cursor = cursor.CreateEditPoint();
                 currentCodeItemAsRegion.StartPoint.CharRight();
@@ -147,7 +147,7 @@ internal sealed class GenerateRegionLogic
             cursor = InsertEndRegionTag(region, cursor);
 
             // If the current code item is a region, reverse offset of the position.
-            if (currentCodeItemAsRegion != null)
+            if (currentCodeItemAsRegion is not null)
             {
                 currentCodeItemAsRegion.StartPoint.CharLeft();
                 currentCodeItemAsRegion.EndPoint.CharLeft();
@@ -247,7 +247,7 @@ internal sealed class GenerateRegionLogic
 
     private bool CodeItemBelongsInRegion(BaseCodeItem codeItem, CodeItemRegion region)
     {
-        return codeItem != null && _regionComparerByName.Equals(region, ComposeRegionForCodeItem(codeItem));
+        return codeItem is not null && _regionComparerByName.Equals(region, ComposeRegionForCodeItem(codeItem));
     }
 
     /// <summary>
@@ -304,14 +304,14 @@ internal sealed class GenerateRegionLogic
         foreach (var codeItem in codeItems)
         {
             var region = ComposeRegionForCodeItem(codeItem);
-            if (region != null)
+            if (region is not null)
             {
                 regions.Add(region);
             }
             else
             {
                 region = codeItem as CodeItemRegion;
-                if (region != null)
+                if (region is not null)
                 {
                     // Add an existing region to the list iff it has a child whose composed region name would match it.
                     var childrenRegions = ComposePresentTypesRegionsList(region.Children);
@@ -336,20 +336,20 @@ internal sealed class GenerateRegionLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (codeItem == null) return null;
+        if (codeItem is null) return null;
 
         var setting = MemberTypeSettingHelper.LookupByKind(codeItem.Kind);
-        if (setting == null) return null;
+        if (setting is null) return null;
 
         var regionName = string.Empty;
 
         if (Settings.Default.Reorganizing_RegionsIncludeAccessLevel)
         {
             var element = codeItem as BaseCodeItemElement;
-            if (element != null && (!Settings.Default.Reorganizing_RegionsIncludeAccessLevelForMethodsOnly || element is CodeItemMethod))
+            if (element is not null && (!Settings.Default.Reorganizing_RegionsIncludeAccessLevelForMethodsOnly || element is CodeItemMethod))
             {
                 var accessModifier = CodeElementHelper.GetAccessModifierKeyword(element.Access);
-                if (accessModifier != null)
+                if (accessModifier is not null)
                 {
                     regionName = Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(accessModifier) + " ";
                 }

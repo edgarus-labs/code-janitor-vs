@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace CodeJanitor.Logic.SourceControl;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.Logic.SourceControl;
 /// Runs an external process and captures its standard output.
 /// </summary>
 
-public class ProcessRunner : IProcessRunner
+public sealed class ProcessRunner : IProcessRunner
 {
     /// <inheritdoc />
 
@@ -23,7 +23,7 @@ public class ProcessRunner : IProcessRunner
 
         using (var process = Process.Start(startInfo))
         {
-            if (process == null)
+            if (process is null)
             {
                 return string.Empty;
             }

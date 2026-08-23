@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Model.Comments.Options;
+namespace CodeJanitor.Model.Comments.Options;
 
 /// <summary>
 /// XmlTagCase is an enumeration that specifies the letter casing convention to apply when writing XML element or attribute tag names.

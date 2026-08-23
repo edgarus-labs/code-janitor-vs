@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using CodeJanitor.Helpers;
 using System;
@@ -11,7 +11,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code property.
 /// </summary>
 
-public class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity, ICodeItemParameters, IInterfaceItem
+public sealed class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity, ICodeItemParameters, IInterfaceItem
 {
     private readonly Lazy<int> _complexity;
     private readonly Lazy<bool> _isExplicitInterfaceImplementation;
@@ -27,7 +27,7 @@ public class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity, ICodeI
         // Make exceptions for explicit interface implementations - which report private access
         // but really do not have a meaningful access level.
         _Access = LazyTryDefault(
-            () => CodeProperty != null && !IsExplicitInterfaceImplementation ? CodeProperty.Access : vsCMAccess.vsCMAccessPublic);
+            () => CodeProperty is not null && !IsExplicitInterfaceImplementation ? CodeProperty.Access : vsCMAccess.vsCMAccessPublic);
 
         _Attributes = LazyTryDefault(
             () => CodeProperty?.Attributes);
@@ -39,15 +39,15 @@ public class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity, ICodeI
             () => CodeProperty?.DocComment);
 
         _isExplicitInterfaceImplementation = LazyTryDefault(
-            () => CodeProperty != null && ExplicitInterfaceImplementationHelper.IsExplicitInterfaceImplementation(CodeProperty));
+            () => CodeProperty is not null && ExplicitInterfaceImplementationHelper.IsExplicitInterfaceImplementation(CodeProperty));
 
         _isIndexer = LazyTryDefault(
-            () => CodeProperty?.Parameters != null && CodeProperty.Parameters.Count > 0);
+            () => CodeProperty?.Parameters is not null && CodeProperty.Parameters.Count > 0);
 
         _IsStatic = LazyTryDefault(
-            () => CodeProperty != null &&
-                  ((CodeProperty.Getter != null && CodeProperty.Getter.IsShared) ||
-                   (CodeProperty.Setter != null && CodeProperty.Setter.IsShared)));
+            () => CodeProperty is not null &&
+                  ((CodeProperty.Getter is not null && CodeProperty.Getter.IsShared) ||
+                   (CodeProperty.Setter is not null && CodeProperty.Setter.IsShared)));
 
         _parameters = LazyTryDefault(
             () => CodeProperty?.Parameters?.Cast<CodeParameter>().ToList() ?? Enumerable.Empty<CodeParameter>());

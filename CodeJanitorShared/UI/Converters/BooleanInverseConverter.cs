@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.UI.Converters;
 /// A simple converter for inverting a boolean.
 /// </summary>
 
-public class BooleanInverseConverter : IValueConverter
+public sealed class BooleanInverseConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of <see cref="BooleanInverseConverter" />.

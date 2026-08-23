@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -53,7 +53,7 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        Enabled = Package.ActiveDocument != null;
+        Enabled = Package.ActiveDocument is not null;
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
         base.OnExecute();
 
         Document document = Package.ActiveDocument;
-        if (document != null)
+        if (document is not null)
         {
             if (Settings.Default.Finding_ClearSolutionExplorerSearch)
             {
@@ -83,7 +83,7 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
             // the GUID/ID pair. This is a workaround for the canonical name being undefined in
             // Spanish versions of Visual Studio.
             var command = _commandHelper.FindCommand("{D63DB1F0-404E-4B21-9648-CA8D99245EC3}", 36);
-            if (command != null && command.IsAvailable)
+            if (command is not null && command.IsAvailable)
             {
                 object customIn = null;
                 object customOut = null;
@@ -123,7 +123,7 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (parentItem == null)
+        if (parentItem is null)
         {
             throw new ArgumentNullException(nameof(parentItem));
         }
@@ -131,7 +131,7 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
         const string solutionFolderGuid = "{66A26720-8FB5-11D2-AA7E-00C04F688DDE}";
 
         var project = parentItem.Object as Project;
-        bool isCollapsedSolutionFolder = project != null && project.Kind == solutionFolderGuid && !parentItem.UIHierarchyItems.Expanded;
+        bool isCollapsedSolutionFolder = project is not null && project.Kind == solutionFolderGuid && !parentItem.UIHierarchyItems.Expanded;
 
         // Expand the solution folder temporarily.
         if (isCollapsedSolutionFolder)

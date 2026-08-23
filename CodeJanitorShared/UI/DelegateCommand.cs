@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Input;
 
 namespace CodeJanitor.UI;
@@ -7,7 +7,7 @@ namespace CodeJanitor.UI;
 /// A basic ICommand implementation based on http://www.wpftutorial.net/delegatecommand.html.
 /// </summary>
 
-public class DelegateCommand : ICommand
+public sealed class DelegateCommand : ICommand
 {
     private readonly Predicate<object> _canExecute;
     private readonly Action<object> _execute;
@@ -41,7 +41,7 @@ public class DelegateCommand : ICommand
 
     public bool CanExecute(object parameter)
     {
-        if (_canExecute == null)
+        if (_canExecute is null)
         {
             return true;
         }
@@ -68,7 +68,7 @@ public class DelegateCommand : ICommand
 
     public void RaiseCanExecuteChanged()
     {
-        if (CanExecuteChanged != null)
+        if (CanExecuteChanged is not null)
         {
             CanExecuteChanged(this, EventArgs.Empty);
         }

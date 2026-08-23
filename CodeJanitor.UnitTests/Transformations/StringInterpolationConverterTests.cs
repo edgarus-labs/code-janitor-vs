@@ -7,7 +7,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="StringInterpolationConverter" />.
 /// </summary>
 [TestClass]
-public class StringInterpolationConverterTests
+public sealed class StringInterpolationConverterTests
 {
     private StringInterpolationConverter _converter;
 

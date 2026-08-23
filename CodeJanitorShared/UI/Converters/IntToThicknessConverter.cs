@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts an integer into a thickness value, building on top of the converter parameter if specified.
 /// </summary>
 
-public class IntToThicknessConverter : IValueConverter
+public sealed class IntToThicknessConverter : IValueConverter
 {
     /// <summary>
     /// An instance of <see cref="IntToThicknessConverter" /> that only sets the left side of

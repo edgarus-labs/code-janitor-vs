@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -70,14 +70,14 @@ internal sealed class UsingStatementCleanupLogic
         const string patternFormat = @"^[ \t]*{0}[ \t]*\r?\n";
 
         var usingStatementsToReinsert = _usingStatementsToReinsertWhenRemoved.Value
-            .Where(usingStatement => TextDocumentHelper.FirstOrDefaultMatch(textDocument, string.Format(patternFormat, usingStatement)) != null)
+            .Where(usingStatement => TextDocumentHelper.FirstOrDefaultMatch(textDocument, string.Format(patternFormat, usingStatement)) is not null)
             .ToList();
 
         _commandHelper.ExecuteCommand(textDocument, "EditorContextMenus.CodeWindow.RemoveAndSort");
 
         // Ignore any using statements that are still referenced
         usingStatementsToReinsert = usingStatementsToReinsert
-             .Where(usingStatement => TextDocumentHelper.FirstOrDefaultMatch(textDocument, string.Format(patternFormat, usingStatement)) == null)
+             .Where(usingStatement => TextDocumentHelper.FirstOrDefaultMatch(textDocument, string.Format(patternFormat, usingStatement)) is null)
              .ToList();
 
         if (usingStatementsToReinsert.Count > 0)

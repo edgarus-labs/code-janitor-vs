@@ -12,6 +12,9 @@ namespace CodeJanitor.Helpers;
 
 internal sealed class SettingsContextHelper
 {
+    /// <summary>
+    /// The settings filename.
+    /// </summary>
     private const string SettingsFilename = "CodeJanitor.config";
 
     /// <summary>

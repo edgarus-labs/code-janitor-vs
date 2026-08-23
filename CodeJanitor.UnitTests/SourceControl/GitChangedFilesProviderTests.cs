@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.SourceControl;
 using System.Collections.Generic;
 using System.IO;
@@ -12,14 +12,21 @@ namespace CodeJanitor.UnitTests.SourceControl;
 /// </summary>
 
 [TestClass]
-public class GitChangedFilesProviderTests
+public sealed class GitChangedFilesProviderTests
 {
     /// <summary>
     /// FakeProcessRunner represents a test double implementation used to simulate the execution and status reporting of an external process without actually launching one.
     /// </summary>
     private sealed class FakeProcessRunner : IProcessRunner
     {
+        /// <summary>
+        /// The top level.
+        /// </summary>
         public string TopLevel = "C:/repo";
+
+        /// <summary>
+        /// The status.
+        /// </summary>
         public string Status = string.Empty;
 
         /// <summary>

@@ -17,7 +17,7 @@
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
-		<!-- Header -->
+		<!--  Header  -->
 		<Border
 			Grid.Row="0"
 			Padding="16,12"
@@ -39,9 +39,9 @@
 			</StackPanel>
 		</Border>
 
-		<!-- Main Content -->
+		<!--  Main Content  -->
 		<Grid Grid.Row="1" Margin="12,10,12,8">
-			<!-- Tab View when both analysis and code exist -->
+			<!--  Tab View when both analysis and code exist  -->
 			<TabControl
 				Background="White"
 				BorderBrush="#D0D7DE"
@@ -75,7 +75,7 @@
 				</TabItem>
 			</TabControl>
 
-			<!-- Single View when only text exists -->
+			<!--  Single View when only text exists  -->
 			<Border
 				Background="White"
 				BorderBrush="#D0D7DE"
@@ -96,10 +96,8 @@
 			</Border>
 		</Grid>
 
-		<!-- Action Buttons -->
-		<Grid
-			Grid.Row="2"
-			Margin="12,0,12,8">
+		<!--  Action Buttons  -->
+		<Grid Grid.Row="2" Margin="12,0,12,8">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="*" />
 				<ColumnDefinition Width="Auto" />
@@ -111,9 +109,7 @@
 				Foreground="#57606A"
 				Text="{Binding StatusMessage}" />
 
-			<StackPanel
-				Grid.Column="1"
-				Orientation="Horizontal">
+			<StackPanel Grid.Column="1" Orientation="Horizontal">
 				<Button
 					Width="150"
 					Height="28"
@@ -139,7 +135,7 @@
 			</StackPanel>
 		</Grid>
 
-		<!-- Footer status bar -->
+		<!--  Footer status bar  -->
 		<Border
 			Grid.Row="3"
 			Padding="12,4"

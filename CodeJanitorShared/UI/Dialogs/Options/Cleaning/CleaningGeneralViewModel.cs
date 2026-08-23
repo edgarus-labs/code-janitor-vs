@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 
 namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
@@ -7,7 +7,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// The view model for cleaning general options.
 /// </summary>
 
-public class CleaningGeneralViewModel : OptionsPageViewModel
+public sealed class CleaningGeneralViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleaningGeneralViewModel" /> class.
@@ -22,6 +22,8 @@ public class CleaningGeneralViewModel : OptionsPageViewModel
         {
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AutoCleanupOnFileSave, x => AutoCleanupOnFileSave),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_AutoSaveAndCloseIfOpenedByCleanup, x => AutoSaveAndCloseIfOpenedByCleanup),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_EnableParallelCleanup, x => EnableParallelCleanup),
+            new SettingToOptionMapping<int, int>(x => ActiveSettings.Cleaning_MaxDegreeOfParallelism, x => MaxDegreeOfParallelism),
             new SettingToOptionMapping<int, AskYesNo>(x => ActiveSettings.Cleaning_PerformPartialCleanupOnExternal, x => PerformPartialCleanupOnExternal)
         };
     }
@@ -49,6 +51,24 @@ public class CleaningGeneralViewModel : OptionsPageViewModel
     public bool AutoSaveAndCloseIfOpenedByCleanup
     {
         get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether background/headless cleanup runs in parallel across multiple threads.
+    /// </summary>
+    public bool EnableParallelCleanup
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the maximum degree of parallelism (0 = automatic based on processor count).
+    /// </summary>
+    public int MaxDegreeOfParallelism
+    {
+        get { return GetPropertyValue<int>(); }
         set { SetPropertyValue(value); }
     }
 

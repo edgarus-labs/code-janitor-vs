@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using System;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code interface.
 /// </summary>
 
-public class CodeItemInterface : BaseCodeItemElementParent
+public sealed class CodeItemInterface : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemInterface" /> class.

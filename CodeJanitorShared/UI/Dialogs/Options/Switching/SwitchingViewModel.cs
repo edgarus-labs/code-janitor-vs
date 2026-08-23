@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Switching;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Switching;
 /// The view model for switching options.
 /// </summary>
 
-public class SwitchingViewModel : OptionsPageViewModel
+public sealed class SwitchingViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SwitchingViewModel" /> class.

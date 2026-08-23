@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -10,7 +10,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// Updates the namespace declaration in a C# file to match an expected namespace.
 /// </summary>
 
-public class NamespaceFixerConverter
+public sealed class NamespaceFixerConverter
 {
     /// <summary>
     /// Parses the C# source and, if it has a top-level namespace whose name differs from expectedNamespace, returns the source with that namespace name replaced by expectedNamespace; otherwise returns the original source unchanged, with no side effects or exceptions thrown.
@@ -33,7 +33,7 @@ public class NamespaceFixerConverter
         }
 
         var namespaceDeclaration = GetTopLevelNamespace(root);
-        if (namespaceDeclaration == null)
+        if (namespaceDeclaration is null)
         {
             return source;
         }

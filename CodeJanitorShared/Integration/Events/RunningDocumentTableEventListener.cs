@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -133,11 +133,11 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var afterSave = AfterSave;
-        if (afterSave != null)
+        if (afterSave is not null)
         {
             Document document = GetDocumentFromCookie(docCookie);
 
-            OutputWindowHelper.DiagnosticWriteLine($"RunningDocumentTableEventListener.AfterSave raised for '{(document != null ? document.FullName : "(null)")}'");
+            OutputWindowHelper.DiagnosticWriteLine($"RunningDocumentTableEventListener.AfterSave raised for '{(document is not null ? document.FullName : "(null)")}'");
 
             afterSave(document);
         }
@@ -176,11 +176,11 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var beforeSave = BeforeSave;
-        if (beforeSave != null)
+        if (beforeSave is not null)
         {
             Document document = GetDocumentFromCookie(docCookie);
 
-            OutputWindowHelper.DiagnosticWriteLine($"RunningDocumentTableEventListener.BeforeSave raised for '{(document != null ? document.FullName : "(null)")}'");
+            OutputWindowHelper.DiagnosticWriteLine($"RunningDocumentTableEventListener.BeforeSave raised for '{(document is not null ? document.FullName : "(null)")}'");
 
             beforeSave(document);
         }

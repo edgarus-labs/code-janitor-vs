@@ -765,11 +765,8 @@
     </PackageReference>
   </ItemGroup>
   <Import Project="..\CodeJanitorShared\CodeJanitorShared.projitems" Label="Shared" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
   <Target Name="AfterBuild">
+    <Copy SourceFiles="$(TargetDir)CodeJanitor.VS2026.vsix" DestinationFolder="$(TargetDir)..\" Condition="Exists('$(TargetDir)CodeJanitor.VS2026.vsix')" ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetDir)CodeJanitor.VS2026.vsix" DestinationFolder="$(TargetDir)..\..\" Condition="Exists('$(TargetDir)CodeJanitor.VS2026.vsix')" ContinueOnError="true" />
   </Target>
-  -->
 </Project>

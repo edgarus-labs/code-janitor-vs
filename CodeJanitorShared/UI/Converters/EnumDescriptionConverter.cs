@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.Globalization;
 using System.Windows.Data;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter that retrieves the description attribute from a specified enumeration value.
 /// </summary>
 
-public class EnumDescriptionConverter : IValueConverter
+public sealed class EnumDescriptionConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="EnumDescriptionConverter" />.

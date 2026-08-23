@@ -24,18 +24,29 @@ internal sealed class AiCodeReviewCommand : BaseCommand
 
     public static AiCodeReviewCommand Instance { get; private set; }
 
+    /// <summary>
+    /// izes the AI code review command by creating a new instance assigned to the static Instance field and subscribes it to settings changes for the Feature_AiCodeReview option to invoke SwitchAsync when toggled.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A Task value produced by this method.</returns>
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new AiCodeReviewCommand(package);
         await package.SettingsMonitor.WatchAsync(s => s.Feature_AiCodeReview, Instance.SwitchAsync);
     }
 
+    /// <summary>
+    /// Sets the command&apos;s Enabled state to true only when an active document exists and its code language is C#, ensuring UI thread execution.
+    /// </summary>
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.ActiveDocument != null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
+        Enabled = Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
     }
 
+    /// <summary>
+    /// This override of OnExecute first enforces UI-thread execution (throwing otherwise), invokes the base implementation, and then calls ExecuteWithItem with a null item.
+    /// </summary>
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -43,6 +54,10 @@ internal sealed class AiCodeReviewCommand : BaseCommand
         ExecuteWithItem(null);
     }
 
+    /// <summary>
+    /// ates AI configuration, gathers the code context for the given or active item, and asynchronously runs an AI code review on the UI thread, displaying the resulting report in a modal `AiResultWindow` (showing warning or info MessageBoxes and aborting if configuration is missing or no code snippet is found).
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
     internal void ExecuteWithItem(ICodeItem codeItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -54,16 +69,18 @@ internal sealed class AiCodeReviewCommand : BaseCommand
                 "CodeJanitor AI Assistant",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+
             return;
         }
 
-        var context = codeItem != null
+        var context = codeItem is not null
             ? AiContextHelper.GetCodeItemContext(Package, codeItem)
             : AiContextHelper.GetActiveCodeContext(Package);
 
-        if (context == null || string.IsNullOrWhiteSpace(context.CodeSnippet))
+        if (context is null || string.IsNullOrWhiteSpace(context.CodeSnippet))
         {
             MessageBox.Show("Could not find code to review.", "CodeJanitor AI Assistant", MessageBoxButton.OK, MessageBoxImage.Information);
+
             return;
         }
 

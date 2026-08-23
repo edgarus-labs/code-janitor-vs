@@ -299,6 +299,15 @@
     <Setting Name="Cleaning_ConvertToFileScopedNamespace" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="Cleaning_EnableParallelCleanup" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Cleaning_MaxDegreeOfParallelism" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="Cleaning_MoveUsingsOutsideNamespace" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
     <Setting Name="Cleaning_MoveTopLevelTypesToSeparateFiles" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
@@ -685,6 +694,33 @@
     </Setting>
     <Setting Name="Ai_MockingLibrary" Type="System.String" Scope="User">
       <Value Profile="(Default)">Moq</Value>
+    </Setting>
+    <Setting Name="Ai_Provider" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Custom</Value>
+    </Setting>
+    <Setting Name="Ai_CustomEndpointUrl" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Ai_CustomApiKeyEncrypted" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Ai_CustomApiKeyHeader" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Authorization</Value>
+    </Setting>
+    <Setting Name="Ai_CustomModel" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Ai_CopilotEndpointUrl" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://api.githubcopilot.com/chat/completions</Value>
+    </Setting>
+    <Setting Name="Ai_CopilotApiKeyEncrypted" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Ai_CopilotApiKeyHeader" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Authorization</Value>
+    </Setting>
+    <Setting Name="Ai_CopilotModel" Type="System.String" Scope="User">
+      <Value Profile="(Default)">gpt-4o</Value>
     </Setting>
     <Setting Name="Formatting_IgnoreLinesStartingWith" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;

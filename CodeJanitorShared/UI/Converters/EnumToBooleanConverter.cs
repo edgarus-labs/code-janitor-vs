@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter for turning enumeration values into booleans.
 /// </summary>
 
-public class EnumToBooleanConverter : IValueConverter
+public sealed class EnumToBooleanConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="EnumToBooleanConverter" />.

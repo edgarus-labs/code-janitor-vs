@@ -9,7 +9,7 @@ namespace CodeJanitor.Helpers;
 /// A helper for comparing code items by type, access level, etc.
 /// </summary>
 
-public class CodeItemTypeComparer : Comparer<BaseCodeItem>
+public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
 {
     private readonly bool _sortByName;
 

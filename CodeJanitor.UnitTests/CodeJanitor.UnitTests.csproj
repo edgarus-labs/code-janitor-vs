@@ -59,6 +59,7 @@
     <Compile Include="Ai\AiXmlDocumentationLogicTests.cs" />
     <Compile Include="Ai\AiFeaturesLogicTests.cs" />
     <Compile Include="Ai\AiCoverageTargetLogicTests.cs" />
+    <Compile Include="Ai\GitHubCopilotDetectorTests.cs" />
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
@@ -95,6 +96,7 @@
     <Compile Include="Transformations\JsonSerializerOptionsReuseConverterTests.cs" />
     <Compile Include="Transformations\SingleStatementLambdaConverterTests.cs" />
     <Compile Include="Transformations\FileScopedNamespaceConverterTests.cs" />
+    <Compile Include="Transformations\MoveUsingsOutsideNamespaceConverterTests.cs" />
     <Compile Include="Transformations\NamespaceFixerConverterTests.cs" />
     <Compile Include="Transformations\ReturnThrowBlankLinePaddingConverterTests.cs" />
     <Compile Include="Transformations\VarWhenApparentConverterTests.cs" />

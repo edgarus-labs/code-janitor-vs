@@ -13,6 +13,9 @@ namespace CodeJanitor.Logic.Cleaning;
 /// </summary>
 internal sealed class RemoveByteOrderMarkLogic
 {
+    /// <summary>
+    /// The bom char.
+    /// </summary>
     private const char BomChar = '\uFEFF';
 
     private static readonly byte[] Utf8Bom = [0xEF, 0xBB, 0xBF];
@@ -47,7 +50,7 @@ internal sealed class RemoveByteOrderMarkLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_RemoveByteOrderMark || textDocument == null)
+        if (!Settings.Default.Cleaning_RemoveByteOrderMark || textDocument is null)
         {
             return;
         }
@@ -71,13 +74,13 @@ internal sealed class RemoveByteOrderMarkLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document == null)
+        if (document is null)
         {
             return;
         }
 
         var textDocument = document.GetTextDocument();
-        if (textDocument != null)
+        if (textDocument is not null)
         {
             RemoveByteOrderMark(textDocument);
         }
@@ -92,14 +95,15 @@ internal sealed class RemoveByteOrderMarkLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (projectItem == null)
+        if (projectItem is null)
         {
             return false;
         }
 
-        if (projectItem.Document != null)
+        if (projectItem.Document is not null)
         {
             RemoveByteOrderMark(projectItem.Document);
+
             return false;
         }
 
@@ -132,6 +136,7 @@ internal sealed class RemoveByteOrderMarkLogic
 
         var cleanedBytes = StripByteOrderMark(bytes);
         File.WriteAllBytes(filePath, cleanedBytes);
+
         return true;
     }
 
@@ -142,7 +147,7 @@ internal sealed class RemoveByteOrderMarkLogic
     /// <returns>True if a BOM prefix is detected, otherwise false.</returns>
     internal static bool HasByteOrderMark(byte[] bytes)
     {
-        if (bytes == null || bytes.Length < 2)
+        if (bytes is null || bytes.Length < 2)
         {
             return false;
         }
@@ -175,7 +180,7 @@ internal sealed class RemoveByteOrderMarkLogic
     /// <returns>A byte array encoded in UTF-8 without BOM.</returns>
     internal static byte[] StripByteOrderMark(byte[] bytes)
     {
-        if (bytes == null || bytes.Length == 0)
+        if (bytes is null || bytes.Length == 0)
         {
             return bytes ?? [];
         }
@@ -185,6 +190,7 @@ internal sealed class RemoveByteOrderMarkLogic
         {
             var result = new byte[bytes.Length - 3];
             Buffer.BlockCopy(bytes, 3, result, 0, result.Length);
+
             return result;
         }
 
@@ -192,6 +198,7 @@ internal sealed class RemoveByteOrderMarkLogic
         if (bytes.Length >= 4 && bytes[0] == Utf32LeBom[0] && bytes[1] == Utf32LeBom[1] && bytes[2] == Utf32LeBom[2] && bytes[3] == Utf32LeBom[3])
         {
             var text = Encoding.UTF32.GetString(bytes, 4, bytes.Length - 4);
+
             return new UTF8Encoding(false).GetBytes(text);
         }
 
@@ -199,6 +206,7 @@ internal sealed class RemoveByteOrderMarkLogic
         if (bytes.Length >= 4 && bytes[0] == Utf32BeBom[0] && bytes[1] == Utf32BeBom[1] && bytes[2] == Utf32BeBom[2] && bytes[3] == Utf32BeBom[3])
         {
             var text = new UTF32Encoding(true, false).GetString(bytes, 4, bytes.Length - 4);
+
             return new UTF8Encoding(false).GetBytes(text);
         }
 
@@ -206,6 +214,7 @@ internal sealed class RemoveByteOrderMarkLogic
         if (bytes.Length >= 2 && bytes[0] == Utf16LeBom[0] && bytes[1] == Utf16LeBom[1])
         {
             var text = Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
+
             return new UTF8Encoding(false).GetBytes(text);
         }
 
@@ -213,6 +222,7 @@ internal sealed class RemoveByteOrderMarkLogic
         if (bytes.Length >= 2 && bytes[0] == Utf16BeBom[0] && bytes[1] == Utf16BeBom[1])
         {
             var text = Encoding.BigEndianUnicode.GetString(bytes, 2, bytes.Length - 2);
+
             return new UTF8Encoding(false).GetBytes(text);
         }
 

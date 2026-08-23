@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -356,10 +356,10 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     {
         switch (member)
         {
-            case TypeDeclarationSyntax typeDeclaration when typeDeclaration.TypeParameterList != null:
+            case TypeDeclarationSyntax typeDeclaration when typeDeclaration.TypeParameterList is not null:
                 return typeDeclaration.TypeParameterList.Parameters.Select(x => x.Identifier.ValueText).ToList();
 
-            case DelegateDeclarationSyntax delegateDeclaration when delegateDeclaration.TypeParameterList != null:
+            case DelegateDeclarationSyntax delegateDeclaration when delegateDeclaration.TypeParameterList is not null:
                 return delegateDeclaration.TypeParameterList.Parameters.Select(x => x.Identifier.ValueText).ToList();
 
             default:

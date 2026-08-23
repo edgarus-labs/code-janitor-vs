@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using System.Linq;
@@ -69,12 +69,12 @@ internal sealed class CodeModelBuilder
 
     private FileCodeModel RetrieveFileCodeModel(ProjectItem projectItem)
     {
-        if (projectItem == null)
+        if (projectItem is null)
         {
             return null;
         }
 
-        if (projectItem.FileCodeModel != null)
+        if (projectItem.FileCodeModel is not null)
         {
             return projectItem.FileCodeModel;
         }
@@ -83,11 +83,11 @@ internal sealed class CodeModelBuilder
         const string sharedProjectTypeGUID = "{d954291e-2a0b-460d-934e-dc6b0785db48}";
         var containingProject = projectItem.ContainingProject;
 
-        if (containingProject != null && containingProject.Kind != null &&
+        if (containingProject is not null && containingProject.Kind is not null &&
             containingProject.Kind.ToLowerInvariant() == sharedProjectTypeGUID)
         {
             var similarProjectItems = SolutionHelper.GetSimilarProjectItems(_package, projectItem);
-            var fileCodeModel = similarProjectItems.Select(x => x.FileCodeModel).FirstOrDefault(y => y != null);
+            var fileCodeModel = similarProjectItems.Select(x => x.FileCodeModel).FirstOrDefault(y => y is not null);
 
             return fileCodeModel;
         }
@@ -104,7 +104,7 @@ internal sealed class CodeModelBuilder
 
     private static void RetrieveCodeItems(SetCodeItems codeItems, FileCodeModel fcm)
     {
-        if (fcm != null && fcm.CodeElements != null)
+        if (fcm is not null && fcm.CodeElements is not null)
         {
             RetrieveCodeItemsFromElements(codeItems, fcm.CodeElements);
         }
@@ -134,12 +134,12 @@ internal sealed class CodeModelBuilder
     private static void RetrieveCodeItemsRecursively(SetCodeItems codeItems, CodeElement codeElement)
     {
         var parentCodeItem = FactoryCodeItems.CreateCodeItemElement(codeElement);
-        if (parentCodeItem != null)
+        if (parentCodeItem is not null)
         {
             codeItems.Add(parentCodeItem);
         }
 
-        if (codeElement.Children != null)
+        if (codeElement.Children is not null)
         {
             RetrieveCodeItemsFromElements(codeItems, codeElement.Children);
         }

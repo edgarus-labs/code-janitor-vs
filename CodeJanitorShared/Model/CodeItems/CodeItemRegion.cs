@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using System;
 using System.Linq;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code region.
 /// </summary>
 
-public class CodeItemRegion : BaseCodeItem, ICodeItemParent
+public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
 {
     private bool _isExpanded = true;
 
@@ -46,7 +46,7 @@ public class CodeItemRegion : BaseCodeItem, ICodeItemParent
         get
         {
             var startPoint = StartPoint;
-            if (startPoint != null)
+            if (startPoint is not null)
             {
                 var insertPoint = startPoint.CreateEditPoint();
                 insertPoint.LineDown();

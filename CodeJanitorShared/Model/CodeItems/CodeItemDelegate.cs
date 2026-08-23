@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code delegate.
 /// </summary>
 
-public class CodeItemDelegate : BaseCodeItemElement, ICodeItemParameters
+public sealed class CodeItemDelegate : BaseCodeItemElement, ICodeItemParameters
 {
     private readonly Lazy<string> _namespace;
     private readonly Lazy<IEnumerable<CodeParameter>> _parameters;

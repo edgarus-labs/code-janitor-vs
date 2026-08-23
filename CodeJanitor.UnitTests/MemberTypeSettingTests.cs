@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 
 namespace CodeJanitor.UnitTests;
 
 [TestClass]
-public class MemberTypeSettingTests
+public sealed class MemberTypeSettingTests
 {
     [TestMethod]
     public void CanSerializeMemberTypeSetting()

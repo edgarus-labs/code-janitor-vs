@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 
 namespace CodeJanitor.Model.Comments.Options;
@@ -7,7 +7,7 @@ namespace CodeJanitor.Model.Comments.Options;
 /// Document wide options for the comment formatter.
 /// </summary>
 
-public class FormatterOptions
+public sealed class FormatterOptions
 {
     /// <summary>
     /// The list of comment prefix tokens to ignore while formatting the comment.

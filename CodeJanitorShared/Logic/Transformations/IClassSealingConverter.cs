@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Logic.Transformations;
+namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
 /// Applies C# class-sealing rules to source text (see ADR-0007).

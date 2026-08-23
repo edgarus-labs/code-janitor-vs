@@ -107,7 +107,14 @@ internal sealed class CursorPositionRestorer : IDisposable
             Column = textSelection.CurrentColumn;
         }
 
+        /// <summary>
+        /// The line.
+        /// </summary>
         public readonly int Line;
+
+        /// <summary>
+        /// The column.
+        /// </summary>
         public readonly int Column;
     }
 }

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System;
 using System.ComponentModel;
 
@@ -57,7 +57,7 @@ internal sealed class CodeTreeBuilderAsync
 
     private static void OnDoWork(object sender, DoWorkEventArgs e)
     {
-        if (!(e.Argument is CodeTreeRequest request) || request.RawCodeItems == null)
+        if (!(e.Argument is CodeTreeRequest request) || request.RawCodeItems is null)
         {
             return;
         }
@@ -81,11 +81,11 @@ internal sealed class CodeTreeBuilderAsync
 
     private void OnRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
-        if (_pendingRequest != null)
+        if (_pendingRequest is not null)
         {
             RetrieveCodeTreeAsync(_pendingRequest);
         }
-        else if (e.Error == null)
+        else if (e.Error is null)
         {
             if (e.Result is SnapshotCodeItems snapshot)
             {

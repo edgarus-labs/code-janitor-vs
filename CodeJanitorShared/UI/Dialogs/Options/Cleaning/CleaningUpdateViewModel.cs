@@ -10,11 +10,11 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// The view model for cleaning update options.
 /// </summary>
 
-public class CleaningUpdateViewModel : OptionsPageViewModel
+public sealed class CleaningUpdateViewModel : OptionsPageViewModel
 {
     private static readonly TimeSpan SuccessfulConnectionCacheDuration = TimeSpan.FromMinutes(30);
-    private static string _lastSuccessfulConnectionFingerprint;
-    private static DateTime _lastSuccessfulConnectionUtc;
+    private static readonly string _lastSuccessfulConnectionFingerprint;
+    private static readonly DateTime _lastSuccessfulConnectionUtc;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CleaningUpdateViewModel" /> class.
@@ -49,6 +49,7 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<string, string>(x => ActiveSettings.Cleaning_UpdateFileHeaderXML, x => UpdateFileHeaderXML),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_UpdateSingleLineMethods, x => UpdateSingleLineMethods),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToFileScopedNamespace, x => ConvertToFileScopedNamespace),
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_MoveUsingsOutsideNamespace, x => MoveUsingsOutsideNamespace),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_MoveTopLevelTypesToSeparateFiles, x => MoveTopLevelTypesToSeparateFiles),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToVarWhenApparent, x => ConvertToVarWhenApparent),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ConvertToCollectionExpressions, x => ConvertToCollectionExpressions),
@@ -286,6 +287,15 @@ public class CleaningUpdateViewModel : OptionsPageViewModel
     /// </summary>
 
     public bool ConvertToFileScopedNamespace
+    {
+        get { return GetPropertyValue<bool>(); }
+        set { SetPropertyValue(value); }
+    }
+
+    /// <summary>
+    /// Gets or sets the flag indicating if using directives should be moved outside namespace declarations to the top of the file.
+    /// </summary>
+    public bool MoveUsingsOutsideNamespace
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }

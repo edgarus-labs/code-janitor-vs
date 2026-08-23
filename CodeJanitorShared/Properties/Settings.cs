@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System.Configuration;
 
 namespace CodeJanitor.Properties;

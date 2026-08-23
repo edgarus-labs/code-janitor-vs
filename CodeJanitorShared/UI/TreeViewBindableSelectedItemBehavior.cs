@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interactivity;
 using System.Windows.Media;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI;
 /// A behavior for making TreeView's SelectedItem bindable based on http://stackoverflow.com/questions/1000040/selecteditem-in-a-wpf-treeview.
 /// </summary>
 
-public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
+public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
 {
     /// <summary>
     /// The dependency property definition for the SelectedItem property.
@@ -43,10 +43,10 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
         if (obj is TreeViewBindableSelectedItemBehavior behavior)
         {
             var treeView = behavior.AssociatedObject;
-            if (treeView != null)
+            if (treeView is not null)
             {
                 var treeViewItem = FindTreeViewItemRecursively(treeView, e.NewValue);
-                if (treeViewItem != null)
+                if (treeViewItem is not null)
                 {
                     treeViewItem.SetValue(TreeViewItem.IsSelectedProperty, true);
                 }
@@ -68,7 +68,7 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
 
     private static TreeViewItem FindTreeViewItemRecursively(ItemsControl itemsControl, object contentToFind)
     {
-        if (itemsControl == null)
+        if (itemsControl is null)
         {
             return null;
         }
@@ -84,7 +84,7 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
         {
             var childItemsControl = itemsControl.ItemContainerGenerator.ContainerFromIndex(i) as ItemsControl;
             var result = FindTreeViewItemRecursively(childItemsControl, contentToFind);
-            if (result != null)
+            if (result is not null)
             {
                 return result;
             }
@@ -104,7 +104,7 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
 
         var itemsPresenter = (ItemsPresenter)itemsControl.Template.FindName("ItemsHost", itemsControl);
 
-        if (itemsPresenter != null)
+        if (itemsPresenter is not null)
         {
             itemsPresenter.ApplyTemplate();
         }
@@ -114,7 +114,7 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
             // find the child.
             itemsPresenter = itemsControl.FindVisualChild<ItemsPresenter>();
 
-            if (itemsPresenter == null)
+            if (itemsPresenter is null)
             {
                 itemsControl.UpdateLayout();
 
@@ -122,7 +122,7 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
             }
         }
 
-        if (itemsPresenter != null)
+        if (itemsPresenter is not null)
         {
             var itemsHostPanel = (Panel)VisualTreeHelper.GetChild(itemsPresenter, 0);
 
@@ -151,7 +151,7 @@ public class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     {
         base.OnDetaching();
 
-        if (AssociatedObject != null)
+        if (AssociatedObject is not null)
         {
             AssociatedObject.SelectedItemChanged -= OnSelectedItemChanged;
         }

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options.Collapsing;
 using CodeJanitor.UI.Dialogs.Options.Finding;
 using CodeJanitor.UI.Dialogs.Options.Switching;
@@ -11,7 +11,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Navigation;
 /// now (undecided future).
 /// </summary>
 
-public class NavigationParentViewModel : CompositeOptionsPageViewModel
+public sealed class NavigationParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="NavigationParentViewModel" /> class.

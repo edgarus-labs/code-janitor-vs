@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using System;
 using System.Globalization;
 using System.Windows.Data;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts a type string into a simpler value using the <see cref="TypeFormatHelper" />.
 /// </summary>
 
-public class TypeStringConverter : IValueConverter
+public sealed class TypeStringConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="TypeStringConverter" />.

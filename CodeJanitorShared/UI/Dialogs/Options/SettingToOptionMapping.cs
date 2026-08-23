@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// the cast between the two occurs.
 /// </summary>
 
-public class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
+public sealed class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingToOptionMapping{TS,TO}"/> class.

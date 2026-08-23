@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System;
 using System.Windows;
 using System.Windows.Shell;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.ToolWindows.BuildProgress;
 /// The view model representing the state and commands for showing build progress.
 /// </summary>
 
-public class BuildProgressViewModel : Bindable
+public sealed class BuildProgressViewModel : Bindable
 {
     private TaskbarItemInfo _taskbarItemInfo;
 
@@ -111,10 +111,10 @@ public class BuildProgressViewModel : Bindable
     {
         get
         {
-            if (_taskbarItemInfo == null)
+            if (_taskbarItemInfo is null)
             {
                 _taskbarItemInfo = Application.Current.MainWindow.TaskbarItemInfo;
-                if (_taskbarItemInfo == null)
+                if (_taskbarItemInfo is null)
                 {
                     Application.Current.MainWindow.TaskbarItemInfo = _taskbarItemInfo = new TaskbarItemInfo();
                 }
@@ -151,7 +151,7 @@ public class BuildProgressViewModel : Bindable
     {
         try
         {
-            if (Package != null)
+            if (Package is not null)
             {
                 Package.IDE.ExecuteCommand("Build.Cancel", string.Empty);
             }

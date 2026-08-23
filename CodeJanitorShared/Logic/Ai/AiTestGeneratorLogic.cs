@@ -14,6 +14,11 @@ internal sealed class AiTestGeneratorLogic
     private readonly CodeJanitorPackage _package;
     private static AiTestGeneratorLogic _instance;
 
+    /// <summary>
+    /// Returns the lazily initialized singleton AiTestGeneratorLogic instance, creating and assigning a new one from the given package to the static field if it is currently null.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A AiTestGeneratorLogic value produced by this method.</returns>
     internal static AiTestGeneratorLogic GetInstance(CodeJanitorPackage package) =>
         _instance ?? (_instance = new AiTestGeneratorLogic(package));
 
@@ -28,6 +33,7 @@ internal sealed class AiTestGeneratorLogic
     internal static bool IsConfigurationPresent()
     {
         var settings = Settings.Default;
+
         return OpenAiCompatibleClient.IsEndpointConfigured(settings.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
@@ -42,7 +48,7 @@ internal sealed class AiTestGeneratorLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return "// AI endpoint is not configured. Please configure your endpoint in Tools > Options > Code Janitor > XML Documentation.";
         }
@@ -70,6 +76,14 @@ internal sealed class AiTestGeneratorLogic
         }
     }
 
+    /// <summary>
+    /// Constructs and returns a formatted multi-line prompt string that requests generation of a complete unit-test class for the supplied C# snippet using the given test framework and mocking library, covering happy paths, argument validations, edge cases, and AAA-style methods.
+    /// </summary>
+    /// <param name="memberOrClassName">The member or class name.</param>
+    /// <param name="codeSnippet">The code snippet.</param>
+    /// <param name="testFramework">The test framework.</param>
+    /// <param name="mockingLib">The mocking lib.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildTestPrompt(string memberOrClassName, string codeSnippet, string testFramework, string mockingLib)
     {
         return $@"Generate a comprehensive suite of unit tests for the following C# code ('{memberOrClassName}') using {testFramework} and {mockingLib}:
@@ -90,6 +104,11 @@ Requirements:
 5. Return the complete test class file with necessary using statements.";
     }
 
+    /// <summary>
+    /// Extracts the trimmed interior of a markdown code fence from the AI response, preferring a case-insensitive ```csharp block then a generic ``` block (skipping a short language identifier after the opening fence), falling back to the trimmed original string or empty for null/whitespace input, with no side effects.
+    /// </summary>
+    /// <param name="aiResponse">The ai response.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string ExtractCodeSnippet(string aiResponse)
     {
         if (string.IsNullOrWhiteSpace(aiResponse))
@@ -127,6 +146,10 @@ Requirements:
         return aiResponse.Trim();
     }
 
+    /// <summary>
+    /// an `OpenAiCompatibleClient` from user settings, returning null when the endpoint URL is not configured, attempting to unprotect the encrypted API key (falling back to the plaintext value via the `ApiKey` field assignment if that yields empty), and applying defaults of 45 seconds for timeout and 131072 tokens for context window when not explicitly set.
+    /// </summary>
+    /// <returns>A OpenAiCompatibleClient value produced by this method.</returns>
     private static OpenAiCompatibleClient CreateClientFromSettings()
     {
         var settings = Settings.Default;

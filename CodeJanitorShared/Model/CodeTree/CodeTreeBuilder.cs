@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using System;
@@ -71,7 +71,7 @@ internal static class CodeTreeBuilder
     {
         var organizedCodeItems = new SetCodeItems();
 
-        if (rawCodeItems != null)
+        if (rawCodeItems is not null)
         {
             var codeItemsWithoutRegions = rawCodeItems.Where(x => !(x is CodeItemRegion));
 
@@ -95,7 +95,7 @@ internal static class CodeTreeBuilder
     {
         var organizedCodeItems = new SetCodeItems();
 
-        if (rawCodeItems != null)
+        if (rawCodeItems is not null)
         {
             // Sort the raw list of code items by starting position.
             var sortedCodeItems = rawCodeItems.OrderBy(x => x.StartOffset);
@@ -116,7 +116,7 @@ internal static class CodeTreeBuilder
                     if (codeItem.EndOffset < top.EndOffset)
                     {
                         var topParent = top as ICodeItemParent;
-                        if (topParent != null)
+                        if (topParent is not null)
                         {
                             topParent.Children.Add(codeItem);
                             codeItemStack.Push(codeItem);
@@ -148,7 +148,7 @@ internal static class CodeTreeBuilder
     {
         var organizedCodeItems = new SetCodeItems();
 
-        if (rawCodeItems != null)
+        if (rawCodeItems is not null)
         {
             var codeItemsWithoutRegions = rawCodeItems.Where(x => !(x is CodeItemRegion));
 
@@ -193,7 +193,7 @@ internal static class CodeTreeBuilder
             var memberTypeSetting = MemberTypeSettingHelper.LookupByKind(child.Kind);
 
             // Create a new group unless the right kind has already been defined.
-            if (group == null || memberTypeSetting.Order != groupOrder)
+            if (group is null || memberTypeSetting.Order != groupOrder)
             {
                 group = new CodeItemRegion { Name = memberTypeSetting.EffectiveName, IsPseudoGroup = true };
                 groupOrder = memberTypeSetting.Order;
@@ -205,7 +205,7 @@ internal static class CodeTreeBuilder
             group.Children.Add(child);
 
             var childAsParent = child as ICodeItemParent;
-            if (childAsParent != null)
+            if (childAsParent is not null)
             {
                 RecursivelyGroupByType(childAsParent);
             }
@@ -239,7 +239,7 @@ internal static class CodeTreeBuilder
         codeItems.RemoveAll(codeItem =>
         {
             var codeItemParent = codeItem as ICodeItemParent;
-            if (codeItemParent != null)
+            if (codeItemParent is not null)
             {
                 RecursivelyFilter(codeItemParent.Children, nameFilter);
                 if (codeItemParent.Children.Any())

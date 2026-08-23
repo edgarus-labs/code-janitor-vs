@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Reorganizing;
 using System.Threading.Tasks;
@@ -56,7 +56,7 @@ internal sealed class ReorganizeActiveCodeCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.ActiveDocument != null;
+        Enabled = Package.ActiveDocument is not null;
     }
 
     /// <summary>

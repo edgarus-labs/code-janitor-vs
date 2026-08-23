@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// adds at most one blank line at a time.
 /// </summary>
 
-public class NormalizeBlankLinesConverter : ISourceTransformation
+public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 {
     // Matches 3+ consecutive newlines (= 2+ blank lines), where intermediate lines may contain
     // only horizontal whitespace. Handles \n and \r\n. [^\S\r\n] = whitespace excluding newlines.

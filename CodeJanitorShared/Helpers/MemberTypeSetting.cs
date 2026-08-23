@@ -8,7 +8,7 @@ namespace CodeJanitor.Helpers;
 /// A class that encapsulates the settings associcated with a member type.
 /// </summary>
 
-public class MemberTypeSetting : Bindable
+public sealed class MemberTypeSetting : Bindable
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="MemberTypeSetting"/> class.

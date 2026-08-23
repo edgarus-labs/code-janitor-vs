@@ -1,11 +1,11 @@
-﻿using CodeJanitor.Logic.Transformations;
+using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class ExplicitAccessModifierConverterTests
+public sealed class ExplicitAccessModifierConverterTests
 {
     private ExplicitAccessModifierConverter _converter;
 

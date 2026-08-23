@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;

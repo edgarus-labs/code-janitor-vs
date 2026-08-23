@@ -1,9 +1,9 @@
-﻿namespace CodeJanitor.Model.Comments.Options;
+namespace CodeJanitor.Model.Comments.Options;
 
 /// <summary>
 /// Represents the available XML formatting options that control how XML output is structured, including casing, indentation, element grouping, spacing, and splitting behavior.
 /// </summary>
-public class FormatterOptionsXmlTag
+public sealed class FormatterOptionsXmlTag
 {
     /// <summary>
     /// If not <see cref="XmlTagCase.Default"/>, overrides the default tag case setting.

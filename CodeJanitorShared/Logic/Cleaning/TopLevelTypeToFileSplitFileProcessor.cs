@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -84,7 +84,7 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
         var createdFiles = new List<string>();
         foreach (var plannedFile in splitPlan.NewFiles)
         {
-            var transformedSource = createdFileTransform != null
+            var transformedSource = createdFileTransform is not null
                 ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
                 : plannedFile.Content;
 
@@ -92,7 +92,7 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
             createdFiles.Add(plannedFile.FilePath);
         }
 
-        var updatedSource = transformSource != null && transformUpdatedSource
+        var updatedSource = transformSource is not null && transformUpdatedSource
             ? transformSource(splitPlan.UpdatedSource, filePath)
             : splitPlan.UpdatedSource;
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -26,10 +26,9 @@ public abstract class Bindable : INotifyPropertyChanged
 
     protected T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
     {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
+        if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
 
-        object value;
-        if (_propertyBackingDictionary.TryGetValue(propertyName, out value))
+        if (_propertyBackingDictionary.TryGetValue(propertyName, out var value))
         {
             return (T)value;
         }
@@ -48,7 +47,7 @@ public abstract class Bindable : INotifyPropertyChanged
 
     protected bool SetPropertyValue<T>(T newValue, [CallerMemberName] string propertyName = null)
     {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
+        if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
 
         if (EqualityComparer<T>.Default.Equals(newValue, GetPropertyValue<T>(propertyName))) return false;
 
@@ -89,10 +88,10 @@ public abstract class Bindable : INotifyPropertyChanged
 
     protected void RaisePropertyChanged([CallerMemberName] string propertyName = null)
     {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
+        if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
 
         var propertyChanged = PropertyChanged;
-        if (propertyChanged != null)
+        if (propertyChanged is not null)
         {
             propertyChanged(this, new PropertyChangedEventArgs(propertyName));
 

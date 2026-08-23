@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Model.Comments;
+namespace CodeJanitor.Model.Comments;
 
 /// <summary>
 /// presents a single line of a comment, storing its textual content and indicating whether it is the final line.

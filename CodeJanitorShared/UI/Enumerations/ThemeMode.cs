@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.UI.Enumerations;
+namespace CodeJanitor.UI.Enumerations;
 
 /// <summary>
 /// The enumeration of theme options. Always auto-detected from the current IDE theme -

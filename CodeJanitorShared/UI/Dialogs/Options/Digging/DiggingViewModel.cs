@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.CodeTree;
+using CodeJanitor.Model.CodeTree;
 using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Digging;
@@ -7,7 +7,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Digging;
 /// The view model for digging options.
 /// </summary>
 
-public class DiggingViewModel : OptionsPageViewModel
+public sealed class DiggingViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DiggingViewModel" /> class.

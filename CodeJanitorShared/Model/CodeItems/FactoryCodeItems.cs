@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 
 namespace CodeJanitor.Model.CodeItems;
@@ -17,7 +17,7 @@ public static class FactoryCodeItems
 
     public static BaseCodeItemElement CreateCodeItemElement(CodeElement codeElement)
     {
-        if (codeElement == null) return null;
+        if (codeElement is null) return null;
 
         BaseCodeItemElement codeItem;
 

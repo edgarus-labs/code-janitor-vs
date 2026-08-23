@@ -7,7 +7,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="NullCheckPatternMatchingConverter" />.
 /// </summary>
 [TestClass]
-public class NullCheckPatternMatchingConverterTests
+public sealed class NullCheckPatternMatchingConverterTests
 {
     private NullCheckPatternMatchingConverter _converter;
 

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.Model.CodeItems;
 using System;
 using System.Globalization;
@@ -11,7 +11,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts a code item into an image.
 /// </summary>
 
-public class CodeItemToImageConverter : IValueConverter
+public sealed class CodeItemToImageConverter : IValueConverter
 {
     /// <summary>
     /// A <see cref="CodeItemToImageConverter" /> that retrieves VS2010 based images.
@@ -45,12 +45,12 @@ public class CodeItemToImageConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var codeItem = value as BaseCodeItem;
-        if (codeItem == null) return null;
+        if (codeItem is null) return null;
 
         try
         {
             string uriString = BuildImageURIString(codeItem);
-            if (uriString == null) return null;
+            if (uriString is null) return null;
 
             return new BitmapImage(new Uri(uriString, UriKind.Relative));
         }
@@ -85,7 +85,7 @@ public class CodeItemToImageConverter : IValueConverter
         string typeComponent = GetTypeComponentString(codeItem);
         string accessComponent = GetAccessString(codeItem as BaseCodeItemElement);
 
-        if (typeComponent == null) return null;
+        if (typeComponent is null) return null;
 
         string uriString = $"/UI/ToolWindows/Spade/Images/{ImagePath}/{typeComponent}{accessComponent}.png";
 
@@ -132,7 +132,7 @@ public class CodeItemToImageConverter : IValueConverter
 
     private static string GetAccessString(BaseCodeItemElement codeItem)
     {
-        if (codeItem == null) return string.Empty;
+        if (codeItem is null) return string.Empty;
 
         switch (codeItem.Access)
         {

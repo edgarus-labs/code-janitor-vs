@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
 using System;
@@ -11,7 +11,7 @@ namespace CodeJanitor.UnitTests.Formatting;
 /// </summary>
 
 [TestClass]
-public class XmlFormattingTests
+public sealed class XmlFormattingTests
 {
     [TestInitialize]
     public void TestInitialize()

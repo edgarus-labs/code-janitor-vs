@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeItems;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// A template selector for code item tool tips.
 /// </summary>
 
-public class CodeItemToolTipTemplateSelector : DataTemplateSelector
+public sealed class CodeItemToolTipTemplateSelector : DataTemplateSelector
 {
     /// <summary>
     /// Gets or sets the constructor data template.
@@ -68,7 +68,7 @@ public class CodeItemToolTipTemplateSelector : DataTemplateSelector
     public override DataTemplate SelectTemplate(object item, DependencyObject container)
     {
         var codeItem = item as BaseCodeItem;
-        if (codeItem != null)
+        if (codeItem is not null)
         {
             switch (codeItem.Kind)
             {

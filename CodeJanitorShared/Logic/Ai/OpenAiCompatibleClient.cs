@@ -16,6 +16,9 @@ namespace CodeJanitor.Logic.Ai;
 
 internal sealed class OpenAiCompatibleClient : IAiChatClient
 {
+    /// <summary>
+    /// The max attempts.
+    /// </summary>
     private const int MaxAttempts = 3;
 
     /// <summary>
@@ -169,8 +172,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             return false;
         }
 
-        Uri endpoint;
-        if (!Uri.TryCreate(endpointUrl.Trim(), UriKind.Absolute, out endpoint))
+        if (!Uri.TryCreate(endpointUrl.Trim(), UriKind.Absolute, out var endpoint))
         {
             return false;
         }
@@ -427,18 +429,58 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <param name="headers">The headers.</param>
     private void ApplyAuthentication(HttpRequestHeaders headers)
     {
-        if (string.Equals(ApiKeyHeader, "Authorization", StringComparison.OrdinalIgnoreCase))
+        var rawKey = ApiKey;
+        var isCopilot = GitHubCopilotDetector.IsCopilotEndpoint(EndpointUrl);
+
+        if (isCopilot)
         {
-            var tokenValue = ApiKey.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                ? ApiKey
-                : "Bearer " + ApiKey;
+            if (string.IsNullOrWhiteSpace(rawKey))
+            {
+                var detected = GitHubCopilotDetector.DetectCopilotStatus();
+                if (!string.IsNullOrEmpty(detected.DetectedToken))
+                {
+                    rawKey = detected.DetectedToken;
+                }
+            }
 
-            headers.TryAddWithoutValidation("Authorization", tokenValue);
-
-            return;
+            if (!string.IsNullOrWhiteSpace(rawKey))
+            {
+                // Synchronously or best-effort exchange GitHub token for Copilot session token
+                try
+                {
+                    rawKey = GitHubCopilotDetector.ExchangeGitHubTokenForCopilotTokenAsync(rawKey).GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Fallback to rawKey
+                }
+            }
         }
 
-        headers.TryAddWithoutValidation(ApiKeyHeader, ApiKey);
+        if (string.Equals(ApiKeyHeader, "Authorization", StringComparison.OrdinalIgnoreCase))
+        {
+            var tokenValue = string.IsNullOrEmpty(rawKey) ? string.Empty : (rawKey.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? rawKey
+                : "Bearer " + rawKey);
+
+            if (!string.IsNullOrEmpty(tokenValue))
+            {
+                headers.TryAddWithoutValidation("Authorization", tokenValue);
+            }
+        }
+        else if (!string.IsNullOrEmpty(rawKey))
+        {
+            headers.TryAddWithoutValidation(ApiKeyHeader, rawKey);
+        }
+
+        if (isCopilot)
+        {
+            headers.TryAddWithoutValidation("User-Agent", "GitHubCopilotChat/18.9");
+            headers.TryAddWithoutValidation("Copilot-Integration-Id", "vscode-chat");
+            headers.TryAddWithoutValidation("Editor-Version", "VisualStudio/18.0");
+            headers.TryAddWithoutValidation("Editor-Plugin-Version", "copilot-chat/0.24.1");
+            headers.TryAddWithoutValidation("Openai-Intent", "conversation-panel");
+        }
     }
 
     /// <summary>
@@ -452,6 +494,13 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         return BuildRequestJson(userPrompt, maxTokens, null);
     }
 
+    /// <summary>
+    /// Builds and returns a serialized OpenAI-compatible chat completion request JSON string from the supplied prompt, token limit, and optional system prompt, applying a fallback default system message, a fixed low temperature of 0.2, non-streaming mode, and conditionally appending a `model` field and a `num_ctx` context-window hint when targeting a local endpoint.
+    /// </summary>
+    /// <param name="userPrompt">The user prompt.</param>
+    /// <param name="maxTokens">The max tokens.</param>
+    /// <param name="systemPrompt">The system prompt.</param>
+    /// <returns>A string value produced by this method.</returns>
     private string BuildRequestJson(string userPrompt, int maxTokens, string systemPrompt)
     {
         var effectiveSystemPrompt = !string.IsNullOrWhiteSpace(systemPrompt)
@@ -511,7 +560,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         var payload = TryDeserializeAny(responseText);
-        if (payload != null)
+        if (payload is not null)
         {
             var content = ExtractContentFromNode(payload);
             if (!string.IsNullOrWhiteSpace(content))
@@ -521,6 +570,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         var sseContent = TryExtractContentFromEventStream(responseText);
+
         return string.IsNullOrWhiteSpace(sseContent) ? null : sseContent.Trim();
     }
 
@@ -557,7 +607,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <returns>A string value produced by this method.</returns>
     private static string ExtractContentFromNode(object node)
     {
-        if (node == null)
+        if (node is null)
         {
             return null;
         }
@@ -587,7 +637,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <returns>A string value produced by this method.</returns>
     private static string ExtractContentFromDictionary(IDictionary dict)
     {
-        if (dict == null)
+        if (dict is null)
         {
             return null;
         }
@@ -617,7 +667,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                         }
                     }
 
-                    if (choice["text"] != null)
+                    if (choice["text"] is not null)
                     {
                         var text = ExtractStringOrBlocks(choice["text"]);
                         if (!string.IsNullOrWhiteSpace(text))
@@ -626,7 +676,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                         }
                     }
 
-                    if (choice["content"] != null)
+                    if (choice["content"] is not null)
                     {
                         var content = ExtractStringOrBlocks(choice["content"]);
                         if (!string.IsNullOrWhiteSpace(content))
@@ -652,7 +702,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             {
                 if (candObj is IDictionary cand)
                 {
-                    if (cand["content"] != null)
+                    if (cand["content"] is not null)
                     {
                         var content = ExtractStringOrBlocks(cand["content"]);
                         if (!string.IsNullOrWhiteSpace(content))
@@ -670,7 +720,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                         }
                     }
 
-                    if (cand["text"] != null)
+                    if (cand["text"] is not null)
                     {
                         var text = ExtractStringOrBlocks(cand["text"]);
                         if (!string.IsNullOrWhiteSpace(text))
@@ -683,7 +733,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         // 3. Wrapped in "data" property (array, object, or string) - common in gateways, OmniRoute, etc.
-        if (dict["data"] != null)
+        if (dict["data"] is not null)
         {
             var dataContent = ExtractContentFromNode(dict["data"]);
             if (!string.IsNullOrWhiteSpace(dataContent))
@@ -693,7 +743,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         // 4. Wrapped in "result" property
-        if (dict["result"] != null)
+        if (dict["result"] is not null)
         {
             var resultContent = ExtractContentFromNode(dict["result"]);
             if (!string.IsNullOrWhiteSpace(resultContent))
@@ -724,7 +774,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         // 6. Direct response/content/output fields (Claude / Ollama / HuggingFace / TGI)
         foreach (var key in new[] { "content", "response", "output", "completion", "generated_text", "text" })
         {
-            if (dict[key] != null)
+            if (dict[key] is not null)
             {
                 var text = ExtractStringOrBlocks(dict[key]);
                 if (!string.IsNullOrWhiteSpace(text))
@@ -737,7 +787,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         // 7. Fallback reasoning fields
         foreach (var key in new[] { "reasoning_content", "reasoning", "thought", "thinking" })
         {
-            if (dict[key] != null)
+            if (dict[key] is not null)
             {
                 var text = ExtractStringOrBlocks(dict[key]);
                 if (!string.IsNullOrWhiteSpace(text))
@@ -757,7 +807,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <returns>A string value produced by this method.</returns>
     private static string ExtractContentFromList(IList list)
     {
-        if (list == null || list.Count == 0)
+        if (list is null || list.Count == 0)
         {
             return null;
         }
@@ -780,7 +830,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// </summary>
     private static string ReadContentField(IDictionary source)
     {
-        if (source == null)
+        if (source is null)
         {
             return null;
         }
@@ -788,7 +838,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         // 1. Primary content fields
         foreach (var key in new[] { "content", "text", "value" })
         {
-            if (source[key] != null)
+            if (source[key] is not null)
             {
                 var val = ExtractStringOrBlocks(source[key]);
                 if (!string.IsNullOrWhiteSpace(val))
@@ -801,7 +851,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         // 2. Reasoning / thinking fallback fields (e.g. DeepSeek-R1, Qwen, Claude thinking)
         foreach (var key in new[] { "reasoning_content", "reasoning", "thought", "thinking" })
         {
-            if (source[key] != null)
+            if (source[key] is not null)
             {
                 var val = ExtractStringOrBlocks(source[key]);
                 if (!string.IsNullOrWhiteSpace(val))
@@ -821,7 +871,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <returns>A string value produced by this method.</returns>
     private static string ExtractStringOrBlocks(object value)
     {
-        if (value == null)
+        if (value is null)
         {
             return null;
         }
@@ -843,23 +893,23 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 else if (item is IDictionary itemDict)
                 {
                     string piece = null;
-                    if (itemDict["text"] != null)
+                    if (itemDict["text"] is not null)
                     {
                         piece = Convert.ToString(itemDict["text"]);
                     }
-                    else if (itemDict["content"] != null)
+                    else if (itemDict["content"] is not null)
                     {
                         piece = ExtractStringOrBlocks(itemDict["content"]);
                     }
-                    else if (itemDict["parts"] != null)
+                    else if (itemDict["parts"] is not null)
                     {
                         piece = ExtractStringOrBlocks(itemDict["parts"]);
                     }
-                    else if (itemDict["value"] != null)
+                    else if (itemDict["value"] is not null)
                     {
                         piece = Convert.ToString(itemDict["value"]);
                     }
-                    else if (itemDict["thought"] != null || itemDict["thinking"] != null || itemDict["reasoning_content"] != null || itemDict["reasoning"] != null)
+                    else if (itemDict["thought"] is not null || itemDict["thinking"] is not null || itemDict["reasoning_content"] is not null || itemDict["reasoning"] is not null)
                     {
                         piece = Convert.ToString(itemDict["thought"] ?? itemDict["thinking"] ?? itemDict["reasoning_content"] ?? itemDict["reasoning"]);
                     }
@@ -872,12 +922,13 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             }
 
             var result = builder.ToString();
+
             return string.IsNullOrEmpty(result) ? null : result;
         }
 
         if (value is IDictionary dict)
         {
-            if (dict["parts"] != null)
+            if (dict["parts"] is not null)
             {
                 var partsText = ExtractStringOrBlocks(dict["parts"]);
                 if (!string.IsNullOrWhiteSpace(partsText))
@@ -886,7 +937,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 }
             }
 
-            if (dict["text"] != null)
+            if (dict["text"] is not null)
             {
                 var text = Convert.ToString(dict["text"]);
                 if (!string.IsNullOrEmpty(text))
@@ -895,7 +946,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 }
             }
 
-            if (dict["value"] != null)
+            if (dict["value"] is not null)
             {
                 var val = Convert.ToString(dict["value"]);
                 if (!string.IsNullOrEmpty(val))
@@ -904,7 +955,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 }
             }
 
-            if (dict["content"] != null)
+            if (dict["content"] is not null)
             {
                 var cont = ExtractStringOrBlocks(dict["content"]);
                 if (!string.IsNullOrWhiteSpace(cont))
@@ -915,6 +966,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         var fallback = Convert.ToString(value);
+
         return string.IsNullOrEmpty(fallback) ? null : fallback;
     }
 
@@ -950,7 +1002,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             }
 
             var chunkNode = TryDeserializeAny(chunkText);
-            if (chunkNode == null)
+            if (chunkNode is null)
             {
                 continue;
             }
@@ -966,18 +1018,21 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         if (contentBuilder.Length > 0)
         {
             var res = contentBuilder.ToString();
+
             return string.IsNullOrWhiteSpace(res) ? null : res;
         }
 
         if (generalBuilder.Length > 0)
         {
             var res = generalBuilder.ToString();
+
             return string.IsNullOrWhiteSpace(res) ? null : res;
         }
 
         if (reasoningBuilder.Length > 0)
         {
             var res = reasoningBuilder.ToString();
+
             return string.IsNullOrWhiteSpace(res) ? null : res;
         }
 
@@ -993,11 +1048,12 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <param name="generalBuilder">The general builder.</param>
     private static void ExtractStreamChunkPiece(object node, StringBuilder contentBuilder, StringBuilder reasoningBuilder, StringBuilder generalBuilder)
     {
-        if (node == null) return;
+        if (node is null) return;
 
         if (node is string s)
         {
             generalBuilder.Append(s);
+
             return;
         }
 
@@ -1007,14 +1063,16 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             {
                 ExtractStreamChunkPiece(item, contentBuilder, reasoningBuilder, generalBuilder);
             }
+
             return;
         }
 
         if (node is IDictionary dict)
         {
-            if (dict["data"] != null)
+            if (dict["data"] is not null)
             {
                 ExtractStreamChunkPiece(dict["data"], contentBuilder, reasoningBuilder, generalBuilder);
+
                 return;
             }
 
@@ -1028,7 +1086,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                         var message = choice["message"] as IDictionary;
                         var target = delta ?? message;
 
-                        if (target != null)
+                        if (target is not null)
                         {
                             var content = ExtractStringOrBlocks(target["content"] ?? target["text"]);
                             if (!string.IsNullOrEmpty(content))
@@ -1042,7 +1100,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                                 reasoningBuilder.Append(reasoning);
                             }
                         }
-                        else if (choice["text"] != null)
+                        else if (choice["text"] is not null)
                         {
                             var text = ExtractStringOrBlocks(choice["text"]);
                             if (!string.IsNullOrEmpty(text))
@@ -1052,6 +1110,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                         }
                     }
                 }
+
                 return;
             }
 
@@ -1061,6 +1120,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 if (!string.IsNullOrEmpty(text))
                 {
                     contentBuilder.Append(text);
+
                     return;
                 }
 
@@ -1068,6 +1128,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 if (!string.IsNullOrEmpty(thought))
                 {
                     reasoningBuilder.Append(thought);
+
                     return;
                 }
             }
@@ -1085,6 +1146,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                         }
                     }
                 }
+
                 return;
             }
 

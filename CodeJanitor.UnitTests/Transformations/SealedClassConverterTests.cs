@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -14,7 +14,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// </summary>
 
 [TestClass]
-public class SealedClassConverterTests
+public sealed class SealedClassConverterTests
 {
     private IClassSealingConverter _converter;
 
@@ -92,9 +92,39 @@ public class SealedClassConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void PublicClass_StaysUnsealed()
+    public void PublicClass_BecomesSealed()
     {
         var input = "public class Foo { }";
+        var expected = "public sealed class Foo { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void PublicClassWithDerivedClassInSameFile_BaseStaysUnsealed_DerivedBecomesSealed()
+    {
+        var input = "public class Animal { } public class Dog : Animal { }";
+        var expected = "public class Animal { } public sealed class Dog : Animal { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void PublicRecordClass_BecomesSealed()
+    {
+        var input = "public record Person(string Name);";
+        var expected = "public sealed record Person(string Name);";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void RecordStruct_Unchanged()
+    {
+        var input = "public record struct Point(int X, int Y);";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }

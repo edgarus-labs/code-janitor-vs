@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 
 namespace CodeJanitor.UI.ToolWindows.Spade;
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// <summary>
 /// CenterConverter is a value converter class that translates a value to or from a center-aligned representation for data binding scenarios.
 /// </summary>
-public class CenterConverter : System.Windows.Data.IValueConverter
+public sealed class CenterConverter : System.Windows.Data.IValueConverter
 {
     /// <summary>
     /// Divides the input value by 2.0 after casting it to double and returns the result as an object with no side effects or exception handling.

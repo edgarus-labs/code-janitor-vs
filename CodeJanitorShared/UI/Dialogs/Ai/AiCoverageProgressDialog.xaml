@@ -16,7 +16,7 @@
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
-		<!-- Header -->
+		<!--  Header  -->
 		<Border
 			Grid.Row="0"
 			Padding="16,10"
@@ -55,7 +55,7 @@
 			</Grid>
 		</Border>
 
-		<!-- Progress Body -->
+		<!--  Progress Body  -->
 		<StackPanel Grid.Row="1" Margin="20,16,20,10">
 			<Grid Margin="0,0,0,4">
 				<TextBlock
@@ -85,7 +85,7 @@
 				TextWrapping="Wrap" />
 		</StackPanel>
 
-		<!-- Actions -->
+		<!--  Actions  -->
 		<Border
 			Grid.Row="2"
 			Padding="16,10"

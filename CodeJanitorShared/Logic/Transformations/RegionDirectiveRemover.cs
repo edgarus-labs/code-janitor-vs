@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// Removes C# #region and #endregion directive lines while preserving other preprocessor directives.
 /// </summary>
 
-public class RegionDirectiveRemover : ISourceTransformation
+public sealed class RegionDirectiveRemover : ISourceTransformation
 {
     private static readonly Regex RegionDirectiveRegex = new Regex(
         @"^[ \t]*#(?:end)?region\b[^\r\n]*(?:\r?\n)?",

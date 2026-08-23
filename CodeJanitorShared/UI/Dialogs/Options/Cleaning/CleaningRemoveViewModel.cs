@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// The view model for cleaning remove options.
 /// </summary>
 
-public class CleaningRemoveViewModel : OptionsPageViewModel
+public sealed class CleaningRemoveViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleaningRemoveViewModel" /> class.

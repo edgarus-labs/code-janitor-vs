@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
@@ -52,7 +52,7 @@ internal sealed class InsertBlankLinePaddingLogic
 
     internal bool ShouldBePrecededByBlankLine(BaseCodeItem codeItem)
     {
-        if (codeItem == null)
+        if (codeItem is null)
         {
             return false;
         }
@@ -116,7 +116,7 @@ internal sealed class InsertBlankLinePaddingLogic
 
     internal bool ShouldBeFollowedByBlankLine(BaseCodeItem codeItem)
     {
-        if (codeItem == null)
+        if (codeItem is null)
         {
             return false;
         }
@@ -282,7 +282,7 @@ internal sealed class InsertBlankLinePaddingLogic
             probe.StartOfLine();
 
             var lineText = probe.GetText(probe.LineLength);
-            if (lineText == null || !lineText.TrimStart().StartsWith("///", System.StringComparison.Ordinal))
+            if (lineText is null || !lineText.TrimStart().StartsWith("///", System.StringComparison.Ordinal))
             {
                 break;
             }
@@ -361,7 +361,7 @@ internal sealed class InsertBlankLinePaddingLogic
             var getter = property.CodeProperty.Getter;
             var setter = property.CodeProperty.Setter;
 
-            if (getter != null && setter != null && (getter.StartPoint.Line < getter.EndPoint.Line ||
+            if (getter is not null && setter is not null && (getter.StartPoint.Line < getter.EndPoint.Line ||
                                                      setter.StartPoint.Line < setter.EndPoint.Line))
             {
                 TextDocumentHelper.InsertBlankLineAfterPoint(setter.EndPoint.Line > getter.EndPoint.Line

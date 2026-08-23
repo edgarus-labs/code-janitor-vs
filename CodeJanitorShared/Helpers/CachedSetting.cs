@@ -6,7 +6,7 @@ namespace CodeJanitor.Helpers;
 /// A class that encapsulates caching a setting expression that can be parsed.
 /// </summary>
 
-public class CachedSetting<T>
+public sealed class CachedSetting<T>
     where T : class
 {
     /// <summary>

@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -13,7 +13,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// transformation is intentionally narrow and skips configured options instances.
 /// </remarks>
 
-public class JsonSerializerOptionsReuseConverter : ISourceTransformation
+public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "CA1869 JsonSerializerOptions Reuse";
@@ -49,7 +49,7 @@ public class JsonSerializerOptionsReuseConverter : ISourceTransformation
         {
             node = (InvocationExpressionSyntax)base.VisitInvocationExpression(node);
 
-            if (node.ArgumentList == null || node.ArgumentList.Arguments.Count == 0 || !IsJsonSerializerCall(node))
+            if (node.ArgumentList is null || node.ArgumentList.Arguments.Count == 0 || !IsJsonSerializerCall(node))
             {
                 return node;
             }
@@ -110,12 +110,12 @@ public class JsonSerializerOptionsReuseConverter : ISourceTransformation
                 return false;
             }
 
-            if (creation.Initializer != null)
+            if (creation.Initializer is not null)
             {
                 return false;
             }
 
-            if (creation.ArgumentList != null && creation.ArgumentList.Arguments.Count > 0)
+            if (creation.ArgumentList is not null && creation.ArgumentList.Arguments.Count > 0)
             {
                 return false;
             }

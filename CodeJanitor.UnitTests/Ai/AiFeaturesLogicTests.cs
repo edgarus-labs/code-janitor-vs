@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CodeJanitor.UnitTests.Ai;
 
 [TestClass]
-public class AiFeaturesLogicTests
+public sealed class AiFeaturesLogicTests
 {
     [TestMethod]
     public async Task AiExplainLogic_ExplainCodeAsync_WhenCodeIsEmpty_ReturnsNoCodeMessage()
@@ -40,7 +40,7 @@ public class AiFeaturesLogicTests
     {
         // Arrange
         var responseWithMarkdown = "Here is the unit test class:\n```csharp\nusing Xunit;\npublic class SampleTests { }\n```\nHope this helps!";
-        
+
         var method = typeof(AiTestGeneratorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method, "ExtractCodeSnippet method should exist on AiTestGeneratorLogic");
 
@@ -70,7 +70,7 @@ public class AiFeaturesLogicTests
     {
         // Arrange
         var response = "Key improvements:\n- Guard clauses\n- Flattened nesting\n```csharp\npublic void CleanMethod() { return; }\n```";
-        
+
         var method = typeof(AiCleanRefactorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method, "ExtractCodeSnippet method should exist on AiCleanRefactorLogic");
 
@@ -152,6 +152,7 @@ public class AiFeaturesLogicTests
     private static T CreateInstance<T>() where T : class
     {
         var ctor = typeof(T).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(CodeJanitorPackage) }, null);
+
         return (T)ctor?.Invoke(new object[] { null });
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 
 namespace CodeJanitor.UnitTests.Helpers;
@@ -8,7 +8,7 @@ namespace CodeJanitor.UnitTests.Helpers;
 /// </summary>
 
 [TestClass]
-public class NamespacePathHelperTests
+public sealed class NamespacePathHelperTests
 {
     [TestMethod]
     [TestCategory("Helpers UnitTests")]

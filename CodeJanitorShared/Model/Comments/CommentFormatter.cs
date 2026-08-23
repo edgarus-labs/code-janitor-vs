@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments.Options;
 using System;
 using System.Linq;
@@ -187,14 +187,14 @@ internal sealed class CommentFormatter : IEquatable<string>
             return FormatXml(xml);
         }
 
-        if (line.Content == null)
+        if (line.Content is null)
             return true;
 
         var matches = _commentOptions.Regex.Matches(line.Content).OfType<Match>().Select(x => new CodeCommentMatch(x, _formatterOptions)).ToList();
 
         // Remove empty matches from the start and end of the comment.
         CodeCommentMatch m;
-        while (((m = matches.FirstOrDefault()) != null && m.IsEmpty) || ((m = matches.LastOrDefault()) != null && m.IsEmpty))
+        while (((m = matches.FirstOrDefault()) is not null && m.IsEmpty) || ((m = matches.LastOrDefault()) is not null && m.IsEmpty))
         {
             matches.Remove(m);
         }
@@ -472,6 +472,6 @@ internal sealed class CommentFormatter : IEquatable<string>
 
     private int WordLength(string word)
     {
-        return word == null ? 0 : word.Length + word.Count(c => c == '\t') * (_formatterOptions.TabSize - 1);
+        return word is null ? 0 : word.Length + word.Count(c => c == '\t') * (_formatterOptions.TabSize - 1);
     }
 }

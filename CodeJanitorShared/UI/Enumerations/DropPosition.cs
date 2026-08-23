@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.UI.Enumerations;
+namespace CodeJanitor.UI.Enumerations;
 
 /// <summary>
 /// An enumeration of drop positions.

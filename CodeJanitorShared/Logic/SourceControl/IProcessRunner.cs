@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Logic.SourceControl;
+namespace CodeJanitor.Logic.SourceControl;
 
 /// <summary>
 /// Abstraction over running an external process and capturing its standard output.

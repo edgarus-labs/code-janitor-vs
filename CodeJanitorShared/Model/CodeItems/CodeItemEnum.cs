@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using System;
 
 namespace CodeJanitor.Model.CodeItems;
@@ -7,7 +7,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code enumeration.
 /// </summary>
 
-public class CodeItemEnum : BaseCodeItemElementParent
+public sealed class CodeItemEnum : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemEnum" /> class.

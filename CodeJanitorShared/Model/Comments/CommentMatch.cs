@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.Comments.Options;
+using CodeJanitor.Model.Comments.Options;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -33,7 +33,7 @@ internal sealed class CodeCommentMatch
             Words = match.Groups["words"].Success ? match.Groups["words"].Captures.OfType<Capture>().Select(c => c.Value).ToList() : null;
 
             IsLiteral = false;
-            IsEmpty = string.IsNullOrWhiteSpace(match.Value) || Words == null || Words.Count < 1;
+            IsEmpty = string.IsNullOrWhiteSpace(match.Value) || Words is null || Words.Count < 1;
             IsList = !string.IsNullOrWhiteSpace(ListPrefix);
         }
 
@@ -99,7 +99,7 @@ internal sealed class CodeCommentMatch
 
     public bool TryAppend(CodeCommentMatch other)
     {
-        if (other == null)
+        if (other is null)
             return false;
 
         if (IsEmpty || other.IsEmpty)

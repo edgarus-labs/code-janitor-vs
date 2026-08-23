@@ -2,8 +2,8 @@
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:ci="clr-namespace:CodeJanitor.Model.CodeItems"
-	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
 	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
 	xmlns:spade="clr-namespace:CodeJanitor.UI.ToolWindows.Spade">
 	<ResourceDictionary.MergedDictionaries>
 		<ResourceDictionary Source="CodeItemBaseTemplates.xaml" />

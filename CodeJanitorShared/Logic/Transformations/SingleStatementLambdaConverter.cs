@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -13,7 +13,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// <c>() =&gt; { DoWork(); }</c> becomes <c>() =&gt; DoWork()</c>.
 /// </remarks>
 
-public class SingleStatementLambdaConverter : ISourceTransformation
+public sealed class SingleStatementLambdaConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Single Statement Lambda";
@@ -50,7 +50,7 @@ public class SingleStatementLambdaConverter : ISourceTransformation
             node = (AnonymousMethodExpressionSyntax)base.VisitAnonymousMethodExpression(node);
 
             var expression = TryExtractSingleExpression(node.Block);
-            if (expression == null)
+            if (expression is null)
             {
                 return node;
             }
@@ -117,7 +117,7 @@ public class SingleStatementLambdaConverter : ISourceTransformation
         {
             var expression = TryExtractSingleExpression(node.Body as BlockSyntax);
 
-            return expression == null ? node : node.WithBody(expression.WithTriviaFrom(node.Body));
+            return expression is null ? node : node.WithBody(expression.WithTriviaFrom(node.Body));
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ public class SingleStatementLambdaConverter : ISourceTransformation
         {
             var expression = TryExtractSingleExpression(node.Body as BlockSyntax);
 
-            return expression == null ? node : node.WithBody(expression.WithTriviaFrom(node.Body));
+            return expression is null ? node : node.WithBody(expression.WithTriviaFrom(node.Body));
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ public class SingleStatementLambdaConverter : ISourceTransformation
 
         private static ExpressionSyntax TryExtractSingleExpression(BlockSyntax block)
         {
-            if (block == null || block.Statements.Count != 1)
+            if (block is null || block.Statements.Count != 1)
             {
                 return null;
             }
@@ -152,7 +152,7 @@ public class SingleStatementLambdaConverter : ISourceTransformation
                 case ExpressionStatementSyntax expressionStatement:
                     return expressionStatement.Expression;
 
-                case ReturnStatementSyntax returnStatement when returnStatement.Expression != null:
+                case ReturnStatementSyntax returnStatement when returnStatement.Expression is not null:
                     return returnStatement.Expression;
 
                 default:

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 using System.Reflection;
 
 namespace CodeJanitor.UI.Dialogs.Options;

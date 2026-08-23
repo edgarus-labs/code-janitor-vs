@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -18,7 +18,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// <see cref="EnsureFinalNewlineConverter" /> for that edge case.
 /// </remarks>
 
-public class RemoveTrailingWhitespaceConverter : ISourceTransformation
+public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Remove trailing whitespace";

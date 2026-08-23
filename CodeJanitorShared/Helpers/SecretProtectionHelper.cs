@@ -10,6 +10,9 @@ namespace CodeJanitor.Helpers;
 
 internal static class SecretProtectionHelper
 {
+    /// <summary>
+    /// The protected prefix.
+    /// </summary>
     private const string ProtectedPrefix = "enc:";
 
     /// <summary>

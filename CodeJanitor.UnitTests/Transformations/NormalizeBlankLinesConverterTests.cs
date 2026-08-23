@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
 [TestClass]
-public class NormalizeBlankLinesConverterTests
+public sealed class NormalizeBlankLinesConverterTests
 {
     private NormalizeBlankLinesConverter _converter;
 

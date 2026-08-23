@@ -1,4 +1,5 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+					xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 	<SolidColorBrush x:Key="FCodeJanitorGreen" Color="#FF057463" />
 	<SolidColorBrush x:Key="FCodeJanitorGray" Color="#FF464646" />
 	<SolidColorBrush x:Key="OCodeJanitorGray" Color="#44464646" />

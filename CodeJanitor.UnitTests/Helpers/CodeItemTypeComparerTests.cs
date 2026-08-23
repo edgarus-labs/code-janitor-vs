@@ -1,4 +1,4 @@
-﻿using EnvDTE80;
+using EnvDTE80;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using CodeJanitor.Helpers;
@@ -8,7 +8,7 @@ using CodeJanitor.Properties;
 namespace CodeJanitor.UnitTests.Helpers;
 
 [TestClass]
-public class CodeItemTypeComparerTests
+public sealed class CodeItemTypeComparerTests
 {
     [TestInitialize]
     public void TestInitialize()

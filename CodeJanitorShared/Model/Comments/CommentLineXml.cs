@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments.Options;
 using System.Collections.Generic;
 using System.Text;
@@ -29,12 +29,12 @@ internal sealed class CommentLineXml : CommentLine
 
         OpenTag = CreateXmlOpenTag(xml, TagOptions);
         CloseTag = CreateXmlCloseTag(xml, TagOptions);
-        IsSelfClosing = CloseTag == null;
+        IsSelfClosing = CloseTag is null;
 
         Lines = new List<ICommentLine>();
         ParseChildNodes(xml);
         CloseInnerText(true);
-        IsLast = xml.NextNode == null;
+        IsLast = xml.NextNode is null;
     }
 
     /// <summary>
@@ -173,7 +173,7 @@ internal sealed class CommentLineXml : CommentLine
     private bool NeedsXmlHandling(XElement e)
     {
         // All root level elements are always on their own line.
-        if (e.Parent == null || e.Parent.Parent == null)
+        if (e.Parent is null || e.Parent.Parent is null)
             return true;
 
         // Some special tags should also always be their own line.
@@ -203,7 +203,7 @@ internal sealed class CommentLineXml : CommentLine
         {
             // Loop and parse all child nodes.
             var node = xml.FirstNode;
-            while (node != null)
+            while (node is not null)
             {
                 // If the node is a sub-element, it needs to be handled seperately.
                 if (node.NodeType == XmlNodeType.Element)
@@ -240,14 +240,14 @@ internal sealed class CommentLineXml : CommentLine
                     var value = node.ToString().TrimEnd(CodeCommentHelper.Spacer);
 
                     // If the parent is an element, trim the starting spaces.
-                    if (node.PreviousNode == null && node.Parent.NodeType == XmlNodeType.Element && !TagOptions.SpaceContent)
+                    if (node.PreviousNode is null && node.Parent.NodeType == XmlNodeType.Element && !TagOptions.SpaceContent)
                     {
                         value = value.TrimStart(CodeCommentHelper.Spacer);
                     }
 
                     // If the previous node was an XML element, put a space before the text
                     // unless the first character is interpunction.
-                    if (node.PreviousNode != null && node.PreviousNode.NodeType == XmlNodeType.Element)
+                    if (node.PreviousNode is not null && node.PreviousNode.NodeType == XmlNodeType.Element)
                     {
                         if (!StartsWithInterpunction(value))
                         {
@@ -258,7 +258,7 @@ internal sealed class CommentLineXml : CommentLine
                     _innerText.Append(value);
 
                     // Add spacing after (almost) each word.
-                    if (node.NextNode != null || node.Parent.NodeType != XmlNodeType.Element || TagOptions.SpaceContent)
+                    if (node.NextNode is not null || node.Parent.NodeType != XmlNodeType.Element || TagOptions.SpaceContent)
                     {
                         _innerText.Append(CodeCommentHelper.Spacer);
                     }

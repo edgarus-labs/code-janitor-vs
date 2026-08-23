@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using System;
 
@@ -8,7 +8,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code class.
 /// </summary>
 
-public class CodeItemClass : BaseCodeItemElementParent
+public sealed class CodeItemClass : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemClass" /> class.
@@ -26,7 +26,7 @@ public class CodeItemClass : BaseCodeItemElementParent
             () => CodeClass?.DocComment);
 
         _IsStatic = LazyTryDefault(
-            () => CodeClass != null && CodeClass.IsShared);
+            () => CodeClass is not null && CodeClass.IsShared);
 
         _Namespace = LazyTryDefault(
             () => CodeClass?.Namespace?.Name);

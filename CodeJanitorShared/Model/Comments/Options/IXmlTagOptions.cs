@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Model.Comments.Options;
+namespace CodeJanitor.Model.Comments.Options;
 
 /// <summary>
 /// Defines formatting and layout options for controlling the rendering of XML tags, including casing, indentation, line splitting, spacing of content and self-closing elements, and whether tags are kept together or output literally.

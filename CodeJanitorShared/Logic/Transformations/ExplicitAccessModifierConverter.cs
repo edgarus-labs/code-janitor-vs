@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeJanitor.Properties;
@@ -12,7 +12,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// Visual Studio.
 /// </summary>
 
-public class ExplicitAccessModifierConverter : ISourceTransformation
+public sealed class ExplicitAccessModifierConverter : ISourceTransformation
 {
     /// <summary>
     /// Gets the name.
@@ -189,7 +189,7 @@ public class ExplicitAccessModifierConverter : ISourceTransformation
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
-            if (visited.ExplicitInterfaceSpecifier != null) return visited;
+            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.ReturnType);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -239,7 +239,7 @@ public class ExplicitAccessModifierConverter : ISourceTransformation
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (visited.ExplicitInterfaceSpecifier != null) return visited;
+            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Type);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -259,7 +259,7 @@ public class ExplicitAccessModifierConverter : ISourceTransformation
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (visited.ExplicitInterfaceSpecifier != null) return visited;
+            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.EventKeyword);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 

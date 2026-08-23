@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System.Collections.Generic;

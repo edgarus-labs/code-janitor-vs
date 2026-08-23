@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -16,8 +16,11 @@ namespace CodeJanitor.Logic.Transformations;
 /// this is a simple fixed-width expansion, not column-aware elastic-tab alignment.
 /// </remarks>
 
-public class TabToSpaceConverter : ISourceTransformation
+public sealed class TabToSpaceConverter : ISourceTransformation
 {
+    /// <summary>
+    /// The default tab size.
+    /// </summary>
     private const int DefaultTabSize = 4;
 
     private readonly string _replacement;

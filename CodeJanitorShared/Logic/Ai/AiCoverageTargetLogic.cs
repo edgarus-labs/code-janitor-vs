@@ -35,6 +35,7 @@ public sealed class AiCoverageTargetLogic
     {
         var settings = Settings.Default;
         var client = CreateClientFromSettings(settings);
+
         return new AiCoverageTargetLogic(client, new RoslynCodeBranchAnalyzer(), new BranchCoverageEvaluator());
     }
 
@@ -44,6 +45,7 @@ public sealed class AiCoverageTargetLogic
     public static bool IsConfigurationPresent()
     {
         var settings = Settings.Default;
+
         return OpenAiCompatibleClient.IsEndpointConfigured(settings.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
@@ -69,7 +71,7 @@ public sealed class AiCoverageTargetLogic
             };
         }
 
-        if (_aiClient == null || !_aiClient.IsConfigured)
+        if (_aiClient is null || !_aiClient.IsConfigured)
         {
             return new AiCoverageResult
             {
@@ -190,6 +192,17 @@ public sealed class AiCoverageTargetLogic
         };
     }
 
+    /// <summary>
+    /// This static method returns an LLM prompt that requests a full comprehensive unit-test suite (with the given framework and mocking) for the supplied C# snippet on the first iteration or when existing tests are empty, otherwise listing uncovered branches and requesting additional methods that update the existing suite, allocating only a temporary StringBuilder and producing no other side effects.
+    /// </summary>
+    /// <param name="targetName">The target name.</param>
+    /// <param name="codeSnippet">The code snippet.</param>
+    /// <param name="framework">The framework.</param>
+    /// <param name="mocking">The mocking.</param>
+    /// <param name="iteration">The iteration.</param>
+    /// <param name="existingTests">The existing tests.</param>
+    /// <param name="uncoveredBranches">The uncovered branches.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildIterativePrompt(
         string targetName,
         string codeSnippet,
@@ -238,6 +251,12 @@ Existing Test Suite:
 Please generate the additional unit test methods (using {framework} and {mocking}) specifically targeting these uncovered paths. Return the complete updated test class.";
     }
 
+    /// <summary>
+    /// Merges two test-code strings by returning whichever is non-whitespace when the other is empty, preferring newTests when it contains a complete class with [Fact] or any [Test] attribute, otherwise appending newTests to originalTests after a comment separator, with no side effects.
+    /// </summary>
+    /// <param name="originalTests">The original tests.</param>
+    /// <param name="newTests">The new tests.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string MergeTestCode(string originalTests, string newTests)
     {
         if (string.IsNullOrWhiteSpace(originalTests)) return newTests;
@@ -252,6 +271,16 @@ Please generate the additional unit test methods (using {framework} and {mocking
         return originalTests + Environment.NewLine + Environment.NewLine + "// Additional coverage tests:" + Environment.NewLine + newTests;
     }
 
+    /// <summary>
+    /// Builds and returns a markdown coverage report string with target/achieved metrics, iteration counts, status, and per-branch covered/uncovered lines, producing no side effects.
+    /// </summary>
+    /// <param name="targetName">The target name.</param>
+    /// <param name="targetCoverage">The target coverage.</param>
+    /// <param name="evalResult">The eval result.</param>
+    /// <param name="iterations">The iterations.</param>
+    /// <param name="maxIterations">The max iterations.</param>
+    /// <param name="allBranches">The all branches.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildSummaryReport(
         string targetName,
         int targetCoverage,
@@ -272,13 +301,18 @@ Please generate the additional unit test methods (using {framework} and {mocking
         sb.AppendLine("### 🌳 Branch Analysis Breakdown");
         foreach (var b in allBranches)
         {
-            var isCovered = evalResult.CoveredBranches != null && evalResult.CoveredBranches.Any(cb => cb.Id == b.Id);
+            var isCovered = evalResult.CoveredBranches is not null && evalResult.CoveredBranches.Any(cb => cb.Id == b.Id);
             sb.AppendLine($"- {(isCovered ? "✅" : "❌")} **{b.Description}** (Line {b.LineNumber})");
         }
 
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Extracts a trimmed C# code snippet from markdown-fenced blocks in the AI response (preferring ```csharp then generic ``` while skipping short language identifiers), returning empty for null/whitespace input or the trimmed original if none found, with no side effects.
+    /// </summary>
+    /// <param name="aiResponse">The ai response.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string ExtractCodeSnippet(string aiResponse)
     {
         if (string.IsNullOrWhiteSpace(aiResponse)) return string.Empty;
@@ -313,6 +347,11 @@ Please generate the additional unit test methods (using {framework} and {mocking
         return aiResponse.Trim();
     }
 
+    /// <summary>
+    /// Creates an OpenAiCompatibleClient from the given Settings (or returns null if the endpoint is unconfigured) by unprotecting the encrypted API key with a plaintext fallback, defaulting the header to Authorization, timeout to 45 seconds and context window to 131072 tokens.
+    /// </summary>
+    /// <param name="settings">The settings.</param>
+    /// <returns>A OpenAiCompatibleClient value produced by this method.</returns>
     private static OpenAiCompatibleClient CreateClientFromSettings(Settings settings)
     {
         var endpointUrl = settings.Cleaning_AiXmlDocumentationEndpointUrl;

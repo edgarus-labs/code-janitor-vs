@@ -1213,6 +1213,42 @@ namespace CodeJanitor.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_EnableParallelCleanup {
+            get {
+                return ((bool)(this["Cleaning_EnableParallelCleanup"]));
+            }
+            set {
+                this["Cleaning_EnableParallelCleanup"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int Cleaning_MaxDegreeOfParallelism {
+            get {
+                return ((int)(this["Cleaning_MaxDegreeOfParallelism"]));
+            }
+            set {
+                this["Cleaning_MaxDegreeOfParallelism"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Cleaning_MoveUsingsOutsideNamespace {
+            get {
+                return ((bool)(this["Cleaning_MoveUsingsOutsideNamespace"]));
+            }
+            set {
+                this["Cleaning_MoveUsingsOutsideNamespace"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool Cleaning_MoveTopLevelTypesToSeparateFiles {
             get {
@@ -2757,6 +2793,114 @@ namespace CodeJanitor.Properties {
             }
             set {
                 this["Ai_MockingLibrary"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Custom")]
+        public string Ai_Provider {
+            get {
+                return ((string)(this["Ai_Provider"]));
+            }
+            set {
+                this["Ai_Provider"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Ai_CustomEndpointUrl {
+            get {
+                return ((string)(this["Ai_CustomEndpointUrl"]));
+            }
+            set {
+                this["Ai_CustomEndpointUrl"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Ai_CustomApiKeyEncrypted {
+            get {
+                return ((string)(this["Ai_CustomApiKeyEncrypted"]));
+            }
+            set {
+                this["Ai_CustomApiKeyEncrypted"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Authorization")]
+        public string Ai_CustomApiKeyHeader {
+            get {
+                return ((string)(this["Ai_CustomApiKeyHeader"]));
+            }
+            set {
+                this["Ai_CustomApiKeyHeader"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Ai_CustomModel {
+            get {
+                return ((string)(this["Ai_CustomModel"]));
+            }
+            set {
+                this["Ai_CustomModel"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://api.githubcopilot.com/chat/completions")]
+        public string Ai_CopilotEndpointUrl {
+            get {
+                return ((string)(this["Ai_CopilotEndpointUrl"]));
+            }
+            set {
+                this["Ai_CopilotEndpointUrl"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Ai_CopilotApiKeyEncrypted {
+            get {
+                return ((string)(this["Ai_CopilotApiKeyEncrypted"]));
+            }
+            set {
+                this["Ai_CopilotApiKeyEncrypted"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Authorization")]
+        public string Ai_CopilotApiKeyHeader {
+            get {
+                return ((string)(this["Ai_CopilotApiKeyHeader"]));
+            }
+            set {
+                this["Ai_CopilotApiKeyHeader"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("gpt-4o")]
+        public string Ai_CopilotModel {
+            get {
+                return ((string)(this["Ai_CopilotModel"]));
+            }
+            set {
+                this["Ai_CopilotModel"] = value;
             }
         }
         

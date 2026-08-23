@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ namespace CodeJanitor.Model.Comments.Options;
 /// <summary>
 /// Represents XML formatter configuration options, providing tag-specific formatting settings such as split-before/after overrides and parameter tag alignment, with the ability to retrieve options for individual tags and populate from application settings.
 /// </summary>
-public class FormatterOptionsXml
+public sealed class FormatterOptionsXml
 {
     private readonly static FormatterOptionsXmlTag FormatterOptionsXmlTagOverrideSplitBeforeAfter = new FormatterOptionsXmlTag
     {

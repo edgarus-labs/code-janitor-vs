@@ -13,8 +13,19 @@ namespace CodeJanitor.Helpers;
 
 internal static class CodeCommentHelper
 {
+    /// <summary>
+    /// The copyright extra indent.
+    /// </summary>
     public const int CopyrightExtraIndent = 4;
+
+    /// <summary>
+    /// The keep together spacer.
+    /// </summary>
     public const char KeepTogetherSpacer = '\a';
+
+    /// <summary>
+    /// The spacer.
+    /// </summary>
     public const char Spacer = ' ';
 
     /// <summary>

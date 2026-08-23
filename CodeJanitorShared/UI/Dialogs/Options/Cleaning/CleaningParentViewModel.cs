@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// The view model for cleaning options - hosts the more specific cleaning view models as tabs.
 /// </summary>
 
-public class CleaningParentViewModel : CompositeOptionsPageViewModel
+public sealed class CleaningParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleaningParentViewModel" /> class.

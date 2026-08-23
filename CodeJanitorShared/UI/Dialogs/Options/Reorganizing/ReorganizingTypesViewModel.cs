@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
 /// The view model for reorganizing types options.
 /// </summary>
 
-public class ReorganizingTypesViewModel : OptionsPageViewModel
+public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ReorganizingTypesViewModel" /> class.
@@ -131,7 +131,7 @@ public class ReorganizingTypesViewModel : OptionsPageViewModel
     private void OnSplitCommandExecuted(object parameter)
     {
         var list = parameter as IList;
-        if (list != null)
+        if (list is not null)
         {
             // Determine the position of the combined item and remove it.
             int index = MemberTypes.IndexOf(parameter);
@@ -185,7 +185,7 @@ public class ReorganizingTypesViewModel : OptionsPageViewModel
     private void OnMemberTypeSettingPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         var memberTypeSetting = sender as MemberTypeSetting;
-        if (memberTypeSetting != null)
+        if (memberTypeSetting is not null)
         {
             // Raise NotifyPropertyChanged on the DefaultName of the MemberTypeSetting which matches the property name on this class.
             RaisePropertyChanged(memberTypeSetting.DefaultName);
@@ -194,7 +194,7 @@ public class ReorganizingTypesViewModel : OptionsPageViewModel
             if (e.PropertyName == "EffectiveName")
             {
                 var list = MemberTypes.OfType<IList>().FirstOrDefault(x => x.Contains(memberTypeSetting));
-                if (list != null && list.Count > 1)
+                if (list is not null && list.Count > 1)
                 {
                     foreach (var type in list.OfType<MemberTypeSetting>())
                     {
@@ -216,14 +216,14 @@ public class ReorganizingTypesViewModel : OptionsPageViewModel
         foreach (var memberType in MemberTypes)
         {
             var memberTypeSetting = memberType as MemberTypeSetting;
-            if (memberTypeSetting != null)
+            if (memberTypeSetting is not null)
             {
                 memberTypeSetting.Order = index;
             }
             else
             {
                 var list = memberType as IList;
-                if (list != null)
+                if (list is not null)
                 {
                     var types = list.OfType<MemberTypeSetting>().ToList();
 

@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using System;
@@ -15,7 +15,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts a code item into a single TextBlock object containing its name and optionally its parameters.
 /// </summary>
 
-public class NameParametersToTextBlockConverter : IMultiValueConverter
+public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="NameParametersToTextBlockConverter" />.
@@ -167,7 +167,7 @@ public class NameParametersToTextBlockConverter : IMultiValueConverter
         var inlines = new List<Inline>();
 
         var opener = GetOpeningString(codeItem);
-        if (opener != null)
+        if (opener is not null)
         {
             inlines.Add(CreateItalicRun(opener));
         }
@@ -204,7 +204,7 @@ public class NameParametersToTextBlockConverter : IMultiValueConverter
         }
 
         var closer = GetClosingString(codeItem);
-        if (closer != null)
+        if (closer is not null)
         {
             inlines.Add(CreateItalicRun(closer));
         }

@@ -10,7 +10,7 @@ using System.Xml.Linq;
 namespace CodeJanitor.UnitTests;
 
 [TestClass]
-public class SettingsConfigurationSyncTests
+public sealed class SettingsConfigurationSyncTests
 {
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]

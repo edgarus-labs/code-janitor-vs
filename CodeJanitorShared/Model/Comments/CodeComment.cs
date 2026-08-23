@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments.Options;
@@ -31,7 +31,7 @@ internal sealed class CodeComment
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (point == null)
+        if (point is null)
         {
             throw new ArgumentNullException(nameof(point));
         }
@@ -126,7 +126,7 @@ internal sealed class CodeComment
             }
         }
 
-        if (line == null)
+        if (line is null)
         {
             line = new CommentLine(commentText);
         }
@@ -166,7 +166,7 @@ internal sealed class CodeComment
         });
 
         // If a valid start is found, look down to find the end of the comment.
-        if (_startPoint != null)
+        if (_startPoint is not null)
         {
             _endPoint = Expand(point, p =>
             {
@@ -176,7 +176,7 @@ internal sealed class CodeComment
         }
 
         // If both start and endpoint are valid, the comment is valid.
-        if (_startPoint != null && _endPoint != null)
+        if (_startPoint is not null && _endPoint is not null)
         {
             _startPoint.StartOfLine();
             _endPoint.EndOfLine();
@@ -217,7 +217,7 @@ internal sealed class CodeComment
                 // the initial spacer check to allow formatting comments adjacent to Stylecop
                 // SA1626 style commented code.
                 var currentPrefix = match.Groups["prefix"].Value.TrimStart();
-                if (prefix != null && !string.Equals(prefix, currentPrefix))
+                if (prefix is not null && !string.Equals(prefix, currentPrefix))
                 {
                     break;
                 }
@@ -253,7 +253,7 @@ internal sealed class CodeComment
             {
                 current = null;
             }
-        } while (current != null);
+        } while (current is not null);
 
         return result;
     }

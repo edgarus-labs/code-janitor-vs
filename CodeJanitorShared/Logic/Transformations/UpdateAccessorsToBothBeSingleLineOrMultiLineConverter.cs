@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeJanitor.Properties;
@@ -10,7 +10,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// ensuring consistency and readability.
 /// </summary>
 
-public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTransformation
+public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTransformation
 {
     /// <summary>
     /// Gets the name.
@@ -54,7 +54,7 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
             // First visit children
             var visited = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
 
-            if (visited.AccessorList == null || visited.AccessorList.Accessors.Count < 2)
+            if (visited.AccessorList is null || visited.AccessorList.Accessors.Count < 2)
             {
                 return visited;
             }
@@ -64,7 +64,7 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
             var second = visited.AccessorList.Accessors[1];
 
             // Check if they have bodies (can't format property shorthand or abstract properties)
-            if (first.Body == null || second.Body == null)
+            if (first.Body is null || second.Body is null)
             {
                 return visited;
             }
@@ -83,7 +83,7 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
             // First visit children
             var visited = (EventDeclarationSyntax)base.VisitEventDeclaration(node);
 
-            if (visited.AccessorList == null || visited.AccessorList.Accessors.Count < 2)
+            if (visited.AccessorList is null || visited.AccessorList.Accessors.Count < 2)
             {
                 return visited;
             }
@@ -93,7 +93,7 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
             var second = visited.AccessorList.Accessors[1];
 
             // Check if they have bodies
-            if (first.Body == null || second.Body == null)
+            if (first.Body is null || second.Body is null)
             {
                 return visited;
             }
@@ -190,7 +190,7 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
 
         private bool IsSingleLine(AccessorDeclarationSyntax accessor)
         {
-            if (accessor.Body == null)
+            if (accessor.Body is null)
                 return true; // Expression-bodied accessors are considered single-line
 
             // Check if body spans only 2 lines (opening and closing brace)
@@ -209,7 +209,7 @@ public class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTran
 
         private AccessorDeclarationSyntax FormatAccessor(AccessorDeclarationSyntax accessor, bool makeMultiLine)
         {
-            if (accessor.Body == null)
+            if (accessor.Body is null)
                 return accessor;
 
             if (makeMultiLine)

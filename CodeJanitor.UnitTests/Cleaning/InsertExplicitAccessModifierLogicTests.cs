@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class InsertExplicitAccessModifierLogicTests
+public sealed class InsertExplicitAccessModifierLogicTests
 {
     [TestMethod]
     public void IsFixedFieldDeclaration_ReturnsTrue_ForUnsafeFixedBuffer()

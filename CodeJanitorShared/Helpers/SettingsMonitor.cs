@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Threading;
+using Microsoft.VisualStudio.Threading;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -130,7 +130,14 @@ public sealed class SettingsMonitor<TSetting>
     /// </summary>
     private class Monitor
     {
+        /// <summary>
+        /// The callback.
+        /// </summary>
         public Func<object[], Task> Callback;
+
+        /// <summary>
+        /// The last values.
+        /// </summary>
         public object[] LastValues;
     }
 

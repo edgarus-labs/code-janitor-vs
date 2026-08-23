@@ -1,30 +1,97 @@
 <ResourceDictionary
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.XmlDoc"
-	xmlns:ui="clr-namespace:CodeJanitor.UI">
+	xmlns:ui="clr-namespace:CodeJanitor.UI"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.XmlDoc">
+	<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 	<DataTemplate DataType="{x:Type local:XmlDocViewModel}">
 		<StackPanel>
-			<GroupBox Header="AI-Assisted XML Documentation">
+			<GroupBox Header="AI Assistant &amp; LLM Provider Configuration">
 				<StackPanel>
 					<CheckBox
-						Content="Enable AI-assisted XML documentation"
+						Content="Enable AI-assisted features (XML Documentation, Test Generation, Refactor, Code Review)"
 						IsChecked="{Binding AiXmlDocumentationEnabled}"
-						ToolTip="Enables Add XMLDoc command and AI documentation generation." />
+						ToolTip="Enables AI commands and documentation generation in Code Janitor." />
 
-					<TextBlock Margin="0,8,0,0" Text="Endpoint URL" />
-					<TextBox Text="{Binding AiXmlDocumentationEndpointUrl, UpdateSourceTrigger=PropertyChanged}" />
+					<TextBlock
+						Margin="0,10,0,4"
+						FontWeight="Bold"
+						Text="AI Backend Provider" />
+					<StackPanel Margin="0,2,0,8" Orientation="Vertical">
+						<RadioButton
+							Margin="0,2,0,2"
+							Content="Custom OpenAI-compatible API (Ollama, LM Studio, DeepSeek, Local LLM, Azure, OpenAI)"
+							GroupName="AiProviderGroup"
+							IsChecked="{Binding IsCustomProvider}" />
+						<RadioButton
+							Margin="0,2,0,2"
+							Content="GitHub Copilot (Visual Studio Integrated / GitHub Token)"
+							GroupName="AiProviderGroup"
+							IsChecked="{Binding IsGitHubCopilotProvider}" />
+					</StackPanel>
 
-					<TextBlock Margin="0,6,0,0" Text="API key" />
-					<PasswordBox ui:PasswordBoxAssistant.BindPassword="True" ui:PasswordBoxAssistant.BoundPassword="{Binding AiXmlDocumentationApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+					<!--  GitHub Copilot Configuration Panel  -->
+					<Border
+						Margin="0,4,0,8"
+						Padding="10"
+						Background="#0D007ACC"
+						BorderBrush="#33007ACC"
+						BorderThickness="1"
+						CornerRadius="3"
+						Visibility="{Binding IsGitHubCopilotProvider, Converter={StaticResource BooleanToVisibilityConverter}}">
+						<StackPanel>
+							<StackPanel Orientation="Horizontal">
+								<TextBlock FontWeight="SemiBold" Text="Copilot Status: " />
+								<TextBlock Text="{Binding CopilotStatusText}" TextWrapping="Wrap" />
+							</StackPanel>
+							<Button
+								Margin="0,6,0,0"
+								Padding="10,3"
+								HorizontalAlignment="Left"
+								Command="{Binding DetectCopilotCommand}"
+								Content="Detect Active Copilot Connection / Fill Defaults" />
+							<TextBlock Margin="0,8,0,2" Text="Copilot Model (Select from available models)" />
+							<Grid Margin="0,2,0,0">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*" />
+									<ColumnDefinition Width="Auto" />
+								</Grid.ColumnDefinitions>
+								<ComboBox
+									Grid.Column="0"
+									IsEditable="False"
+									ItemsSource="{Binding AvailableCopilotModels}"
+									SelectedItem="{Binding CopilotModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+								<Button
+									Grid.Column="1"
+									Margin="8,0,0,0"
+									Padding="8,2"
+									Command="{Binding FetchCopilotModelsCommand}"
+									Content="Refresh Models"
+									ToolTip="Query GitHub Copilot API for live available models" />
+							</Grid>
+							<TextBlock Margin="0,6,0,0" Text="GitHub Token / Copilot API Key (leave blank to use auto-detected local token)" />
+							<PasswordBox ui:PasswordBoxAssistant.BindPassword="True" ui:PasswordBoxAssistant.BoundPassword="{Binding CopilotApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+							<TextBlock Margin="0,6,0,0" Text="Endpoint URL (default: https://api.githubcopilot.com/chat/completions)" />
+							<TextBox Text="{Binding CopilotEndpointUrl, UpdateSourceTrigger=PropertyChanged}" />
+						</StackPanel>
+					</Border>
 
-					<TextBlock Margin="0,6,0,0" Text="API key header (Authorization / api-key / x-api-key)" />
-					<TextBox Text="{Binding AiXmlDocumentationApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />
+					<!--  Custom OpenAI-compatible Configuration Panel  -->
+					<StackPanel Visibility="{Binding IsCustomProvider, Converter={StaticResource BooleanToVisibilityConverter}}">
+						<TextBlock Margin="0,6,0,0" Text="Endpoint URL" />
+						<TextBox Text="{Binding CustomEndpointUrl, UpdateSourceTrigger=PropertyChanged}" />
 
-					<TextBlock Margin="0,6,0,0" Text="Model or deployment name (optional)" />
-					<TextBox Text="{Binding AiXmlDocumentationModel, UpdateSourceTrigger=PropertyChanged}" />
+						<TextBlock Margin="0,6,0,0" Text="API key" />
+						<PasswordBox ui:PasswordBoxAssistant.BindPassword="True" ui:PasswordBoxAssistant.BoundPassword="{Binding CustomApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-					<StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+						<TextBlock Margin="0,6,0,0" Text="API key header (Authorization / api-key / x-api-key)" />
+						<TextBox Text="{Binding CustomApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />
+
+						<TextBlock Margin="0,6,0,0" Text="Model or deployment name (optional)" />
+						<TextBox Text="{Binding CustomModel, UpdateSourceTrigger=PropertyChanged}" />
+					</StackPanel>
+
+					<StackPanel Margin="0,8,0,0" Orientation="Horizontal">
 						<TextBlock VerticalAlignment="Center" Text="Timeout (seconds)" />
 						<TextBox
 							Width="48"

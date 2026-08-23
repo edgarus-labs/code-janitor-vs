@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -108,7 +108,7 @@ internal sealed class SwitchFileCommand : BaseCommand
     {
         var alternatePaths = GetAlternatePaths(document);
 
-        return alternatePaths.FirstOrDefault(x => !string.IsNullOrEmpty(x) && Package.IDE.Solution.FindProjectItem(x) != null);
+        return alternatePaths.FirstOrDefault(x => !string.IsNullOrEmpty(x) && Package.IDE.Solution.FindProjectItem(x) is not null);
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ internal sealed class SwitchFileCommand : BaseCommand
     {
         var results = new List<string>();
 
-        if (document != null)
+        if (document is not null)
         {
             var path = document.FullName;
             if (!string.IsNullOrEmpty(path))

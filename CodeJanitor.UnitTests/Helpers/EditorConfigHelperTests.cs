@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 
 namespace CodeJanitor.UnitTests.Helpers;
 
 [TestClass]
-public class EditorConfigHelperTests
+public sealed class EditorConfigHelperTests
 {
     [TestMethod]
     public void ApplyText_ShouldReadCSharpSectionSettings()

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model.CodeItems;
 using System.Linq;
@@ -53,7 +53,7 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
         bool visible = false;
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             visible = spade.SelectedItems.OfType<CodeItemRegion>().Any(IsRemoveableRegion);
         }
@@ -71,7 +71,7 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
         base.OnExecute();
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             var regions = spade.SelectedItems.OfType<CodeItemRegion>().Where(IsRemoveableRegion);
             _removeRegionLogic.RemoveRegions(regions);

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -11,7 +11,7 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// </summary>
 
 [TestClass]
-public class VarWhenApparentConverterTests
+public sealed class VarWhenApparentConverterTests
 {
     private ITypeStyleConverter _converter;
 

@@ -1,8 +1,8 @@
 # Code Janitor
 
 [![Build VSIX](https://github.com/edgarus-labs/code-janitor/actions/workflows/build-vsix.yml/badge.svg)](https://github.com/edgarus-labs/code-janitor/actions/workflows/build-vsix.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0.26-blue.svg)](https://github.com/edgarus-labs/code-janitor/releases)
-[![Tests](https://img.shields.io/badge/tests-557%20passed-brightgreen.svg)](https://github.com/edgarus-labs/code-janitor)
+[![Version](https://img.shields.io/badge/version-v0.1.0.48-blue.svg)](https://github.com/edgarus-labs/code-janitor/releases)
+[![Tests](https://img.shields.io/badge/tests-572%20passed-brightgreen.svg)](https://github.com/edgarus-labs/code-janitor)
 [![Code Coverage](https://img.shields.io/badge/coverage-100%25%20core%20logic-success.svg)](https://github.com/edgarus-labs/code-janitor)
 [![Visual Studio](https://img.shields.io/badge/Visual%20Studio-2022%20%7C%202026-purple.svg)](https://visualstudio.microsoft.com/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](LICENSE.txt)

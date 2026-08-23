@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
@@ -9,7 +9,7 @@ namespace CodeJanitor.UI.Dialogs.Prompts;
 /// A view model for providing a yes no prompt.
 /// </summary>
 
-public class YesNoPromptViewModel : Bindable
+public sealed class YesNoPromptViewModel : Bindable
 {
     /// <summary>
     /// Gets or sets the title.
@@ -100,8 +100,7 @@ public class YesNoPromptViewModel : Bindable
 
     private void OnSetDialogResultCommandExecuted(object parameter)
     {
-        bool result;
-        if (bool.TryParse(parameter as string, out result))
+        if (bool.TryParse(parameter as string, out var result))
         {
             DialogResult = result;
         }

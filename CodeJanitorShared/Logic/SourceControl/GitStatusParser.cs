@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -13,7 +13,7 @@ namespace CodeJanitor.Logic.SourceControl;
 /// (see ADR-0005 / ADR-0007).
 /// </remarks>
 
-public class GitStatusParser : IGitStatusParser
+public sealed class GitStatusParser : IGitStatusParser
 {
     private static readonly string[] RenameSeparator = { " -> " };
 

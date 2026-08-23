@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using CodeJanitor.Properties;
 using System;
@@ -111,12 +111,19 @@ internal static class OutputWindowHelper
 
     private static void WriteLine(string category, string message)
     {
-        var outputWindowPane = CodeJanitorOutputWindowPane;
-        if (outputWindowPane is not null)
+        try
         {
-            string outputMessage = $"[CodeJanitor {category} {DateTime.Now.ToString("hh:mm:ss tt")}] {message}{Environment.NewLine}";
+            var outputWindowPane = CodeJanitorOutputWindowPane;
+            if (outputWindowPane is not null)
+            {
+                string outputMessage = $"[CodeJanitor {category} {DateTime.Now.ToString("hh:mm:ss tt")}] {message}{Environment.NewLine}";
 
-            outputWindowPane.OutputString(outputMessage);
+                outputWindowPane.OutputStringThreadSafe(outputMessage);
+                outputWindowPane.Activate();
+            }
+        }
+        catch
+        {
         }
     }
 }

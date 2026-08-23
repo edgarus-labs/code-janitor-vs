@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.Logic.Digging;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Model.CodeTree;
@@ -13,7 +13,7 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// The view model representing the state and commands available to Spade.
 /// </summary>
 
-public class SpadeViewModel : Bindable
+public sealed class SpadeViewModel : Bindable
 {
     private readonly CodeTreeBuilderAsync _codeTreeBuilderAsync;
     private OutliningSynchronizationManager _outliningSynchronizationManager;
@@ -135,7 +135,7 @@ public class SpadeViewModel : Bindable
             {
                 _rawCodeItems = value;
 
-                if (_rawCodeItems != null)
+                if (_rawCodeItems is not null)
                 {
                     RequestUpdatedOrganizedCodeItems();
                 }
@@ -208,7 +208,7 @@ public class SpadeViewModel : Bindable
     {
         if (Settings.Default.Digging_SynchronizeOutlining)
         {
-            if (_outliningSynchronizationManager == null)
+            if (_outliningSynchronizationManager is null)
             {
                 _outliningSynchronizationManager = new OutliningSynchronizationManager(Package);
             }
@@ -216,7 +216,7 @@ public class SpadeViewModel : Bindable
             _outliningSynchronizationManager.Document = Document;
             _outliningSynchronizationManager.UpdateCodeItems(_organizedCodeItems);
         }
-        else if (_outliningSynchronizationManager != null)
+        else if (_outliningSynchronizationManager is not null)
         {
             _outliningSynchronizationManager.Dispose();
             _outliningSynchronizationManager = null;

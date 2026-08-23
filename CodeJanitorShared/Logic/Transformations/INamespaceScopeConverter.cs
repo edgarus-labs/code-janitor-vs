@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Logic.Transformations;
+namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
 /// Converts C# namespace declarations between block-scoped and file-scoped forms.

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace CodeJanitor.Model.CodeItems;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// The representation of a code using statemen.
 /// </summary>
 
-public class CodeItemUsingStatement : BaseCodeItemElement
+public sealed class CodeItemUsingStatement : BaseCodeItemElement
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemUsingStatement" /> class.

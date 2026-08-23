@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)CodeJanitorPackage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\ActiveDocumentRestorer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\AiCodeContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CachedSetting.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CachedSettingSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\CodeCommentHelper.cs" />
@@ -106,6 +107,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Events\WindowEventListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\ISwitchableFeature.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Options\CodeJanitorThirdPartyPage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCoverageResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiRefactorResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CodeBranchType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CopilotDetectionResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CoverageEvaluationResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupAvailabilityLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />
@@ -113,6 +119,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\SingleStatementLambdaLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileHeaderLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\FileScopedNamespaceLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\MoveUsingsOutsideNamespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiXmlDocumentationLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiExplainLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiTestGeneratorLogic.cs" />
@@ -126,6 +133,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\BranchCoverageEvaluator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCoverageProgressReport.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\AiCoverageTargetLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\GitHubCopilotDetector.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\OpenAiCompatibleClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\NamespaceFixerLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\TopLevelTypeSplitSkipReason.cs" />
@@ -161,6 +169,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\CommentFormatConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\SingleStatementLambdaConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\FileScopedNamespaceConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\MoveUsingsOutsideNamespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ReturnThrowBlankLinePaddingConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ITypeStyleConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\VarWhenApparentConverter.cs" />

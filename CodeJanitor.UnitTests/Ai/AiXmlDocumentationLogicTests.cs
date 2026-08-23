@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CodeJanitor.UnitTests.Ai;
 
 [TestClass]
-public class AiXmlDocumentationLogicTests
+public sealed class AiXmlDocumentationLogicTests
 {
     [TestMethod]
     public void GenerateXmlDocumentationForSource_InsertsSummaryParamReturnsAndException()
@@ -99,6 +99,80 @@ public int Second(int y)
         StringAssert.Contains(updated, "Summary for WriteRelationsRequest.");
         StringAssert.Contains(updated, "Summary for Name.");
         StringAssert.Contains(updated, "Summary for Count.");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsPublicConstAndPublicStaticMembers()
+    {
+        var source = @"namespace Demo;
+
+public class ConfigClass
+{
+    public const string Version = ""1.0"";
+
+    public static readonly string DefaultName = ""Test"";
+
+    public static int StaticCounter { get; set; }
+
+    public static string StaticExpressionProp => ""Hello"";
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 10);
+
+        Assert.AreEqual(5, CountOccurrences(updated, "/// <summary>"), "Class, const field, static readonly field, static property, and static expression property should all be documented.");
+        StringAssert.Contains(updated, "Summary for ConfigClass.");
+        StringAssert.Contains(updated, "Summary for Version.");
+        StringAssert.Contains(updated, "Summary for DefaultName.");
+        StringAssert.Contains(updated, "Summary for StaticCounter.");
+        StringAssert.Contains(updated, "Summary for StaticExpressionProp.");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsPublicFieldsAndSkipsPrivateFields()
+    {
+        var source = @"namespace Demo;
+
+public class FieldSample
+{
+    public string PublicField;
+
+    public int PublicNumber = 42;
+
+    private string _privateField;
+
+    int _unspecifiedPrivate;
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 10);
+
+        Assert.AreEqual(3, CountOccurrences(updated, "/// <summary>"), "Should document class and 2 public fields, but skip 2 private fields.");
+        StringAssert.Contains(updated, "Summary for FieldSample.");
+        StringAssert.Contains(updated, "Summary for PublicField.");
+        StringAssert.Contains(updated, "Summary for PublicNumber.");
+        Assert.IsFalse(updated.Contains("Summary for _privateField."));
+        Assert.IsFalse(updated.Contains("Summary for _unspecifiedPrivate."));
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsAllConstFieldsInSinglePassRegardlessOfMethodLimit()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("namespace Demo;");
+        sb.AppendLine("public static class LargeConstants {");
+        for (int i = 0; i < 50; i++)
+        {
+            sb.AppendLine($"    public const int Field{i} = {i};");
+        }
+        sb.AppendLine("}");
+
+        var source = sb.ToString();
+
+        // Max methods per file set to 2, but all 50 constants plus class should be documented
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 2);
+
+        Assert.AreEqual(51, CountOccurrences(updated, "/// <summary>"), "All 50 const fields + class should be documented in a single pass without batching truncation.");
     }
 
     [TestMethod]
@@ -608,6 +682,7 @@ public class Sample
         {
             callCount++;
             cancelRunMethod.Invoke(null, null);
+
             return "Summary";
         }, 10);
 
@@ -619,6 +694,7 @@ public class Sample
         if (member is BaseTypeDeclarationSyntax type) return type.Identifier.ValueText;
         if (member is MethodDeclarationSyntax method) return method.Identifier.ValueText;
         if (member is PropertyDeclarationSyntax property) return property.Identifier.ValueText;
+        if (member is FieldDeclarationSyntax field) return field.Declaration.Variables.FirstOrDefault()?.Identifier.ValueText ?? "Field";
 
         return member.Kind().ToString();
     }

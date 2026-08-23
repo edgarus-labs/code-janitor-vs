@@ -5,26 +5,38 @@ namespace CodeJanitor.Logic.Ai;
 /// </summary>
 public sealed class AiCoverageProgressReport
 {
+    /// <summary>
+    /// Gets or sets the current iteration.
+    /// </summary>
     public int CurrentIteration { get; set; }
-    public int MaxIterations { get; set; }
-    public int TargetCoveragePercentage { get; set; }
-    public int CurrentCoveragePercentage { get; set; }
-    public int TotalBranchesCount { get; set; }
-    public int CoveredBranchesCount { get; set; }
-    public string StatusMessage { get; set; }
-}
 
-/// <summary>
-/// Final result produced by the AI target coverage test generator.
-/// </summary>
-public sealed class AiCoverageResult
-{
-    public bool Success { get; set; }
-    public bool TargetMet { get; set; }
-    public int AchievedCoveragePercentage { get; set; }
+    /// <summary>
+    /// Gets or sets the max iterations.
+    /// </summary>
+    public int MaxIterations { get; set; }
+
+    /// <summary>
+    /// Gets or sets the target coverage percentage.
+    /// </summary>
     public int TargetCoveragePercentage { get; set; }
-    public int IterationsUsed { get; set; }
-    public string GeneratedTestCode { get; set; }
-    public string CoverageSummaryReport { get; set; }
-    public string ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current coverage percentage.
+    /// </summary>
+    public int CurrentCoveragePercentage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total branches count.
+    /// </summary>
+    public int TotalBranchesCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the covered branches count.
+    /// </summary>
+    public int CoveredBranchesCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the status message.
+    /// </summary>
+    public string StatusMessage { get; set; }
 }

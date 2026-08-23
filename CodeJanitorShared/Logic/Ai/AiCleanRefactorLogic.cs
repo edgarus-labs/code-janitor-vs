@@ -7,17 +7,6 @@ using System.Threading.Tasks;
 namespace CodeJanitor.Logic.Ai;
 
 /// <summary>
-/// Result of an AI Clean Refactoring operation containing the refactored code and explanation.
-/// </summary>
-internal sealed class AiRefactorResult
-{
-    public bool Success { get; set; }
-    public string RefactoredCode { get; set; }
-    public string Explanation { get; set; }
-    public string ErrorMessage { get; set; }
-}
-
-/// <summary>
 /// Provides AI-assisted Clean Code refactoring, Guard Clause insertion, and modern C# pattern adoption.
 /// </summary>
 internal sealed class AiCleanRefactorLogic
@@ -25,6 +14,11 @@ internal sealed class AiCleanRefactorLogic
     private readonly CodeJanitorPackage _package;
     private static AiCleanRefactorLogic _instance;
 
+    /// <summary>
+    /// Internal static GetInstance lazily returns the singleton AiCleanRefactorLogic, creating and assigning a new instance from the given CodeJanitorPackage to the static _instance field as a side effect when it is null.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A AiCleanRefactorLogic value produced by this method.</returns>
     internal static AiCleanRefactorLogic GetInstance(CodeJanitorPackage package) =>
         _instance ?? (_instance = new AiCleanRefactorLogic(package));
 
@@ -39,6 +33,7 @@ internal sealed class AiCleanRefactorLogic
     internal static bool IsConfigurationPresent()
     {
         var settings = Settings.Default;
+
         return OpenAiCompatibleClient.IsEndpointConfigured(settings.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
@@ -57,7 +52,7 @@ internal sealed class AiCleanRefactorLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return new AiRefactorResult
             {
@@ -82,6 +77,7 @@ internal sealed class AiCleanRefactorLogic
             }
 
             var refactoredCode = ExtractCodeSnippet(response);
+
             return new AiRefactorResult
             {
                 Success = true,
@@ -99,6 +95,12 @@ internal sealed class AiCleanRefactorLogic
         }
     }
 
+    /// <summary>
+    /// BuildRefactorPrompt interpolates memberName and codeSnippet into a verbatim string template and returns a refactoring prompt listing five Clean Code goals with no side effects or exceptions.
+    /// </summary>
+    /// <param name="memberName">The member name.</param>
+    /// <param name="codeSnippet">The code snippet.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildRefactorPrompt(string memberName, string codeSnippet)
     {
         return $@"Refactor the following C# code for '{memberName}' to follow modern Clean Code standards:
@@ -115,6 +117,11 @@ Refactoring Goals:
 5. Provide a summary of key changes made, followed by the complete refactored C# method.";
     }
 
+    /// <summary>
+    /// Extracts a trimmed C# code snippet from an AI response by locating a ```csharp fenced block or a generic ``` block (skipping a short language identifier after the opening fence), returning the inner content or the trimmed original string if none is found, with no side effects.
+    /// </summary>
+    /// <param name="aiResponse">The ai response.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string ExtractCodeSnippet(string aiResponse)
     {
         if (string.IsNullOrWhiteSpace(aiResponse))
@@ -152,6 +159,10 @@ Refactoring Goals:
         return aiResponse.Trim();
     }
 
+    /// <summary>
+    /// Creates an OpenAiCompatibleClient from Settings.Default (unprotecting the encrypted API key with plaintext fallback, defaulting header to Authorization, timeout to 40s and context window to 131072) or returns null when the endpoint is unconfigured.
+    /// </summary>
+    /// <returns>A OpenAiCompatibleClient value produced by this method.</returns>
     private static OpenAiCompatibleClient CreateClientFromSettings()
     {
         var settings = Settings.Default;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Data;
@@ -10,7 +10,7 @@ namespace CodeJanitor.UI.Converters;
 /// Converts the specified doc comment into a simpler string.
 /// </summary>
 
-public class DocCommentToStringConverter : IValueConverter
+public sealed class DocCommentToStringConverter : IValueConverter
 {
     /// <summary>
     /// A default instance of the <see cref="DocCommentToStringConverter" />.
@@ -43,7 +43,7 @@ public class DocCommentToStringConverter : IValueConverter
             var xElement = XElement.Parse(str);
 
             var summaryTag = xElement.DescendantsAndSelf("summary").FirstOrDefault();
-            if (summaryTag == null) return string.Empty;
+            if (summaryTag is null) return string.Empty;
 
             // Get the Inner XML for the summary tag.
             var result = GetInnerXML(summaryTag);

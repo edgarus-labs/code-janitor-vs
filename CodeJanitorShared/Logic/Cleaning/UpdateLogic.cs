@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
@@ -66,7 +66,7 @@ internal sealed class UpdateLogic
         const string pattern = @"^[ \t]*#";
 
         // Keep pushing cursor forwards (note ref cursor parameter) until finished.
-        while (cursor != null &&
+        while (cursor is not null &&
                TextDocumentHelper.TryFindNextMatch(startPoint: cursor, endPoint: ref cursor, pattern))
         {
             // Create a pointer to capture the text for this line.
@@ -314,7 +314,7 @@ internal sealed class UpdateLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (first == null || second == null) return;
+        if (first is null || second is null) return;
 
         bool isFirstSingleLine = first.StartPoint.Line == first.EndPoint.Line;
         bool isSecondSingleLine = second.StartPoint.Line == second.EndPoint.Line;

@@ -1,4 +1,4 @@
-﻿namespace CodeJanitor.Model.CodeItems;
+namespace CodeJanitor.Model.CodeItems;
 
 /// <summary>
 /// An interface for code items that support complexity calculations.

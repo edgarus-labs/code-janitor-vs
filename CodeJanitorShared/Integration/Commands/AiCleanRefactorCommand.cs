@@ -22,20 +22,34 @@ internal sealed class AiCleanRefactorCommand : BaseCommand
         _logic = AiCleanRefactorLogic.GetInstance(Package);
     }
 
+    /// <summary>
+    /// Gets or sets the instance.
+    /// </summary>
     public static AiCleanRefactorCommand Instance { get; private set; }
 
+    /// <summary>
+    /// This static async initializer creates an AiCleanRefactorCommand from the supplied package, stores it in the Instance field, and registers a settings watcher that asynchronously invokes SwitchAsync whenever Feature_AiCleanRefactor changes.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A Task value produced by this method.</returns>
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new AiCleanRefactorCommand(package);
         await package.SettingsMonitor.WatchAsync(s => s.Feature_AiCleanRefactor, Instance.SwitchAsync);
     }
 
+    /// <summary>
+    /// This override verifies UI-thread execution then sets Enabled true only when an active C# document exists.
+    /// </summary>
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.ActiveDocument != null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
+        Enabled = Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
     }
 
+    /// <summary>
+    /// Overrides OnExecute to enforce UI-thread execution, invoke the base implementation, and then call ExecuteWithItem with a null item.
+    /// </summary>
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -43,6 +57,10 @@ internal sealed class AiCleanRefactorCommand : BaseCommand
         ExecuteWithItem(null);
     }
 
+    /// <summary>
+    /// ExecuteWithItem requires the UI thread, aborts with MessageBox warnings if AI is unconfigured or no code snippet is found, then asynchronously refactors the item or active context and shows a modal result dialog whose apply callback can replace the original code.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
     internal void ExecuteWithItem(ICodeItem codeItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -54,16 +72,18 @@ internal sealed class AiCleanRefactorCommand : BaseCommand
                 "CodeJanitor AI Assistant",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
+
             return;
         }
 
-        var context = codeItem != null
+        var context = codeItem is not null
             ? AiContextHelper.GetCodeItemContext(Package, codeItem)
             : AiContextHelper.GetActiveCodeContext(Package);
 
-        if (context == null || string.IsNullOrWhiteSpace(context.CodeSnippet))
+        if (context is null || string.IsNullOrWhiteSpace(context.CodeSnippet))
         {
             MessageBox.Show("Could not find code to refactor.", "CodeJanitor AI Assistant", MessageBoxButton.OK, MessageBoxImage.Information);
+
             return;
         }
 
@@ -76,6 +96,7 @@ internal sealed class AiCleanRefactorCommand : BaseCommand
             if (!result.Success)
             {
                 MessageBox.Show(result.ErrorMessage ?? "Refactoring failed.", "CodeJanitor AI Assistant", MessageBoxButton.OK, MessageBoxImage.Warning);
+
                 return;
             }
 

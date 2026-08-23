@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using System;
 using System.Globalization;
@@ -11,7 +11,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter that finds the specified member count within a specified parent.
 /// </summary>
 
-public class CodeItemParentMemberCountConverter : IMultiValueConverter
+public sealed class CodeItemParentMemberCountConverter : IMultiValueConverter
 {
     /// <summary>
     /// The default <see cref="CodeItemParentMemberCountConverter" />.
@@ -45,10 +45,10 @@ public class CodeItemParentMemberCountConverter : IMultiValueConverter
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values == null || values.Length < 2) return null;
+        if (values is null || values.Length < 2) return null;
 
         var parent = values[0] as ICodeItemParent;
-        if (parent == null || !(values[1] is KindCodeItem)) return null;
+        if (parent is null || !(values[1] is KindCodeItem)) return null;
 
         var count = parent.GetChildrenRecursive().Count(x => x.Kind == (KindCodeItem)values[1]);
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.SourceControl;
 using System.Collections.Generic;
 using System.IO;
@@ -12,9 +12,13 @@ namespace CodeJanitor.UnitTests.SourceControl;
 /// </summary>
 
 [TestClass]
-public class GitStatusParserTests
+public sealed class GitStatusParserTests
 {
+    /// <summary>
+    /// The root.
+    /// </summary>
     private const string Root = @"C:\repo";
+
     private IGitStatusParser _parser;
 
     [TestInitialize]

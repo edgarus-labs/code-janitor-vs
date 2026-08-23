@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -18,7 +18,14 @@ namespace CodeJanitor.Integration.Commands;
 
 internal sealed class FixNamespaceCommand : BaseCommand
 {
+    /// <summary>
+    /// The large scope warning threshold.
+    /// </summary>
     private const int LargeScopeWarningThreshold = 2000;
+
+    /// <summary>
+    /// The very large scope warning threshold.
+    /// </summary>
     private const int VeryLargeScopeWarningThreshold = 10000;
 
     private readonly NamespaceFixerLogic _namespaceFixerLogic;
@@ -55,7 +62,7 @@ internal sealed class FixNamespaceCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.IDE.Solution.IsOpen || (Package.ActiveDocument != null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp);
+        Enabled = Package.IDE.Solution.IsOpen || (Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp);
     }
 
     /// <summary>
@@ -102,7 +109,7 @@ internal sealed class FixNamespaceCommand : BaseCommand
             {
                 current++;
 
-                if (projectItem != null)
+                if (projectItem is not null)
                 {
                     Package.IDE.StatusBar.Text = $"CodeJanitor fixing namespace {current}/{totalCount}: {projectItem.Name}";
                 }
@@ -153,10 +160,31 @@ internal sealed class FixNamespaceCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
+        // 1. If the active window is a document editor, prioritize the active document
+        var activeWindow = Package.IDE.ActiveWindow;
+        if (activeWindow is not null && activeWindow.Type == vsWindowType.vsWindowTypeDocument)
+        {
+            var activeDoc = Package.ActiveDocument;
+            if (activeDoc?.ProjectItem is not null && _namespaceFixerLogic.CanFixNamespaceProjectItem(activeDoc.ProjectItem))
+            {
+                return new[] { activeDoc.ProjectItem };
+            }
+        }
+
+        // 2. Otherwise, check selection in Solution Explorer
         var selectedScopeRoots = UIHierarchyHelper.GetSelectedUIHierarchyItems(Package)
             .Select(item => item.Object)
-            .Where(item => item != null)
+            .Where(item => item is not null)
             .ToList();
+
+        // If a single ProjectItem (file) is selected in Solution Explorer
+        if (selectedScopeRoots.Count == 1 && selectedScopeRoots[0] is ProjectItem singleProjectItem)
+        {
+            if (_namespaceFixerLogic.CanFixNamespaceProjectItem(singleProjectItem))
+            {
+                return new[] { singleProjectItem };
+            }
+        }
 
         var selectedProjectItems = selectedScopeRoots
             .SelectMany(SolutionHelper.GetItemsRecursively<ProjectItem>)
@@ -168,10 +196,11 @@ internal sealed class FixNamespaceCommand : BaseCommand
             return selectedScopedDistinct;
         }
 
-        var activeDocument = Package.ActiveDocument;
-        if (activeDocument?.ProjectItem != null && _namespaceFixerLogic.CanFixNamespaceProjectItem(activeDocument.ProjectItem))
+        // 3. Fallback to active document if any
+        var fallbackDoc = Package.ActiveDocument;
+        if (fallbackDoc?.ProjectItem is not null && _namespaceFixerLogic.CanFixNamespaceProjectItem(fallbackDoc.ProjectItem))
         {
-            return new[] { activeDocument.ProjectItem };
+            return new[] { fallbackDoc.ProjectItem };
         }
 
         return Enumerable.Empty<ProjectItem>();

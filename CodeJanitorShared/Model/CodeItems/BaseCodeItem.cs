@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.UI;
 using System.Diagnostics;
 
@@ -55,7 +55,7 @@ public abstract class BaseCodeItem : Bindable, ICodeItem
     /// <summary>
     /// Gets a flag indicating if this is a code item that spans multiple lines.
     /// </summary>
-    public bool IsMultiLine => StartPoint != null && EndPoint != null && StartPoint.Line != EndPoint.Line;
+    public bool IsMultiLine => StartPoint is not null && EndPoint is not null && StartPoint.Line != EndPoint.Line;
 
     /// <summary>
     /// Loads all lazy initialized values immediately.

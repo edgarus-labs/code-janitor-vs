@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
@@ -12,10 +12,29 @@ namespace CodeJanitor.Model.CodeItems;
 
 public abstract class BaseCodeItemElement : BaseCodeItem
 {
+    /// <summary>
+    /// The access.
+    /// </summary>
     protected Lazy<vsCMAccess> _Access;
+
+    /// <summary>
+    /// The attributes.
+    /// </summary>
     protected Lazy<CodeElements> _Attributes;
+
+    /// <summary>
+    /// The doc comment.
+    /// </summary>
     protected Lazy<string> _DocComment;
+
+    /// <summary>
+    /// The is static.
+    /// </summary>
     protected Lazy<bool> _IsStatic;
+
+    /// <summary>
+    /// The type string.
+    /// </summary>
     protected Lazy<string> _TypeString;
 
     /// <summary>
@@ -41,7 +60,7 @@ public abstract class BaseCodeItemElement : BaseCodeItem
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            return CodeElement != null ? GetStartPointAdjustedForComments(CodeElement.GetStartPoint()) : null;
+            return CodeElement is not null ? GetStartPointAdjustedForComments(CodeElement.GetStartPoint()) : null;
         }
     }
 

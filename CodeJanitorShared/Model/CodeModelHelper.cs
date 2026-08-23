@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using System.Collections.Generic;
@@ -56,7 +56,7 @@ internal sealed class CodeModelHelper
         var orderedCodeItems = codeItems.OrderBy(x => x.StartLine);
         foreach (T codeItem in orderedCodeItems)
         {
-            if (currentBlock != null &&
+            if (currentBlock is not null &&
                 (codeItem.StartLine <= currentBlock.Last().EndLine + 1))
             {
                 // This item belongs in the current block, add it.
@@ -81,7 +81,7 @@ internal sealed class CodeModelHelper
 
     internal bool IsCodeRegionUnderCursor(TextDocument textDocument)
     {
-        if (textDocument != null && textDocument.Selection != null)
+        if (textDocument is not null && textDocument.Selection is not null)
         {
             var cursor = textDocument.GetEditPointAtCursor();
             var currentLineText = cursor.GetLine();

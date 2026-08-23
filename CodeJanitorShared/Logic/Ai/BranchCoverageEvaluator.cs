@@ -11,9 +11,15 @@ namespace CodeJanitor.Logic.Ai;
 /// </summary>
 public sealed class BranchCoverageEvaluator : ICoverageEvaluator
 {
+    /// <summary>
+    /// Evaluates estimated branch coverage by heuristically matching extracted test scenarios to descriptors, treating null/empty branches as 100% covered and blank test code as 0% uncovered, falling back to marking the first branch as a covered happy path when tests exist but none match, and returns a CoverageEvaluationResult with no input mutations or thrown exceptions.
+    /// </summary>
+    /// <param name="allBranches">The all branches.</param>
+    /// <param name="testCode">The test code.</param>
+    /// <returns>A CoverageEvaluationResult value produced by this method.</returns>
     public CoverageEvaluationResult Evaluate(IReadOnlyList<CodeBranchDescriptor> allBranches, string testCode)
     {
-        if (allBranches == null || allBranches.Count == 0)
+        if (allBranches is null || allBranches.Count == 0)
         {
             return new CoverageEvaluationResult
             {
@@ -73,6 +79,11 @@ public sealed class BranchCoverageEvaluator : ICoverageEvaluator
         };
     }
 
+    /// <summary>
+    /// Extracts test method identifiers from C# source via Roslyn syntax-tree parsing of Fact/Test/Theory attributes, falling back on any exception to a line scan that collects public void or public async Task signatures, and returns the resulting list with no side effects.
+    /// </summary>
+    /// <param name="testCode">The test code.</param>
+    /// <returns>A List&lt;string&gt; value produced by this method.</returns>
     private static List<string> ExtractTestScenarios(string testCode)
     {
         var scenarios = new List<string>();
@@ -108,6 +119,13 @@ public sealed class BranchCoverageEvaluator : ICoverageEvaluator
         return scenarios;
     }
 
+    /// <summary>
+    /// This static method heuristically checks whether a code branch is covered by tests by iterating test scenario names (and full test code for switches) and matching type-specific lowercase keywords such as throw/null for guards or the case value itself, returning true on the first hit with no mutations or thrown exceptions.
+    /// </summary>
+    /// <param name="branch">The branch.</param>
+    /// <param name="testScenarios">The test scenarios.</param>
+    /// <param name="fullTestCode">The full test code.</param>
+    /// <returns>A bool value produced by this method.</returns>
     private static bool IsBranchCoveredByTests(CodeBranchDescriptor branch, List<string> testScenarios, string fullTestCode)
     {
         var condition = branch.ConditionSnippet ?? string.Empty;

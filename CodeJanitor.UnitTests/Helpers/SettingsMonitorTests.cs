@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace CodeJanitor.UnitTests.Helpers;
 
 [TestClass]
-public class SettingsMonitorTests
+public sealed class SettingsMonitorTests
 {
     [TestInitialize]
     public void TestInitialize()

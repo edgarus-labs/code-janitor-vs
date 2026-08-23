@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// The view model for cleaning visual studio options.
 /// </summary>
 
-public class CleaningVisualStudioViewModel : OptionsPageViewModel
+public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleaningVisualStudioViewModel" /> class.

@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace CodeJanitor.UI;
 
@@ -51,7 +51,7 @@ public static class WindowAttachedProperties
     private static void OnDialogResultChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
     {
         var window = obj as Window;
-        if (window != null)
+        if (window is not null)
         {
             window.DialogResult = e.NewValue as bool?;
         }

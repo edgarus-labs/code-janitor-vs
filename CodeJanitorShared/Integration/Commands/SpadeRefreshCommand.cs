@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
@@ -47,7 +47,7 @@ internal sealed class SpadeRefreshCommand : BaseCommand
         base.OnExecute();
 
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             spade.Refresh();
         }

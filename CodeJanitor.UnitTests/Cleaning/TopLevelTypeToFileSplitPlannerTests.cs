@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 using System;
 using System.IO;
@@ -7,7 +7,7 @@ using System.Linq;
 namespace CodeJanitor.UnitTests.Cleaning;
 
 [TestClass]
-public class TopLevelTypeToFileSplitPlannerTests
+public sealed class TopLevelTypeToFileSplitPlannerTests
 {
     private string _tempDirectory;
     private TopLevelTypeToFileSplitPlanner _planner;

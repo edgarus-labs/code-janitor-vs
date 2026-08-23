@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System.Threading.Tasks;
@@ -64,7 +64,7 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             spade.NotifyDocumentSave(document);
         }
@@ -79,7 +79,7 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var spade = Package.Spade;
-        if (spade != null)
+        if (spade is not null)
         {
             spade.NotifyActiveDocument(document);
         }

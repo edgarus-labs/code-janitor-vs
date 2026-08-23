@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// which keeps it unit-testable in isolation (see ADR-0005 / ADR-0006).
 /// </remarks>
 
-public class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
+public sealed class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Blank Line Before Return/Throw";

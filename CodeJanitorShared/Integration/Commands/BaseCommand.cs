@@ -69,7 +69,7 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
 
     protected virtual void OnExecute()
     {
-        OutputWindowHelper.DiagnosticWriteLine($"{GetType().Name}.OnExecute invoked");
+        OutputWindowHelper.InfoWriteLine($"{GetType().Name}.OnExecute invoked");
     }
 
     /// <summary>

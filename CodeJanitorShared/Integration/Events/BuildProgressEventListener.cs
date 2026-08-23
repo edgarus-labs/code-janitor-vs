@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
@@ -101,22 +101,22 @@ internal sealed class BuildProgressEventListener : BaseEventListener
         _onBuildProjConfigDoneHandler = CreateHandler(_onBuildProjConfigDoneEvent, nameof(BuildEvents_OnBuildProjConfigDone));
         _onBuildDoneHandler = CreateHandler(_onBuildDoneEvent, nameof(BuildEvents_OnBuildDone));
 
-        if (_onBuildBeginEvent != null && _onBuildBeginHandler != null)
+        if (_onBuildBeginEvent is not null && _onBuildBeginHandler is not null)
         {
             _onBuildBeginEvent.AddEventHandler(BuildEvents, _onBuildBeginHandler);
         }
 
-        if (_onBuildProjConfigBeginEvent != null && _onBuildProjConfigBeginHandler != null)
+        if (_onBuildProjConfigBeginEvent is not null && _onBuildProjConfigBeginHandler is not null)
         {
             _onBuildProjConfigBeginEvent.AddEventHandler(BuildEvents, _onBuildProjConfigBeginHandler);
         }
 
-        if (_onBuildProjConfigDoneEvent != null && _onBuildProjConfigDoneHandler != null)
+        if (_onBuildProjConfigDoneEvent is not null && _onBuildProjConfigDoneHandler is not null)
         {
             _onBuildProjConfigDoneEvent.AddEventHandler(BuildEvents, _onBuildProjConfigDoneHandler);
         }
 
-        if (_onBuildDoneEvent != null && _onBuildDoneHandler != null)
+        if (_onBuildDoneEvent is not null && _onBuildDoneHandler is not null)
         {
             _onBuildDoneEvent.AddEventHandler(BuildEvents, _onBuildDoneHandler);
         }
@@ -130,22 +130,22 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (_onBuildBeginEvent != null && _onBuildBeginHandler != null)
+        if (_onBuildBeginEvent is not null && _onBuildBeginHandler is not null)
         {
             _onBuildBeginEvent.RemoveEventHandler(BuildEvents, _onBuildBeginHandler);
         }
 
-        if (_onBuildProjConfigBeginEvent != null && _onBuildProjConfigBeginHandler != null)
+        if (_onBuildProjConfigBeginEvent is not null && _onBuildProjConfigBeginHandler is not null)
         {
             _onBuildProjConfigBeginEvent.RemoveEventHandler(BuildEvents, _onBuildProjConfigBeginHandler);
         }
 
-        if (_onBuildProjConfigDoneEvent != null && _onBuildProjConfigDoneHandler != null)
+        if (_onBuildProjConfigDoneEvent is not null && _onBuildProjConfigDoneHandler is not null)
         {
             _onBuildProjConfigDoneEvent.RemoveEventHandler(BuildEvents, _onBuildProjConfigDoneHandler);
         }
 
-        if (_onBuildDoneEvent != null && _onBuildDoneHandler != null)
+        if (_onBuildDoneEvent is not null && _onBuildDoneHandler is not null)
         {
             _onBuildDoneEvent.RemoveEventHandler(BuildEvents, _onBuildDoneHandler);
         }
@@ -170,7 +170,7 @@ internal sealed class BuildProgressEventListener : BaseEventListener
 
     private Delegate CreateHandler(EventInfo eventInfo, string methodName)
     {
-        if (eventInfo?.EventHandlerType == null)
+        if (eventInfo?.EventHandlerType is null)
         {
             return null;
         }
@@ -198,7 +198,7 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildBegin = BuildBegin;
-        if (buildBegin != null)
+        if (buildBegin is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine("BuildProgressEventListener.BuildBegin raised");
 
@@ -216,7 +216,7 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildDone = BuildDone;
-        if (buildDone != null)
+        if (buildDone is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine("BuildProgressEventListener.BuildDone raised");
 
@@ -236,7 +236,7 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildProjConfigBegin = BuildProjConfigBegin;
-        if (buildProjConfigBegin != null)
+        if (buildProjConfigBegin is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine("BuildProgressEventListener.BuildProjConfigBegin raised");
 
@@ -257,7 +257,7 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var buildProjConfigDone = BuildProjConfigDone;
-        if (buildProjConfigDone != null)
+        if (buildProjConfigDone is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine("BuildProgressEventListener.BuildProjConfigDone raised");
 

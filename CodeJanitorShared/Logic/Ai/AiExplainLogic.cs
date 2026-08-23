@@ -14,6 +14,11 @@ internal sealed class AiExplainLogic
     private readonly CodeJanitorPackage _package;
     private static AiExplainLogic _instance;
 
+    /// <summary>
+    /// Returns the singleton AiExplainLogic instance, creating and assigning a new one with the provided package only if the existing instance is null.
+    /// </summary>
+    /// <param name="package">The package.</param>
+    /// <returns>A AiExplainLogic value produced by this method.</returns>
     internal static AiExplainLogic GetInstance(CodeJanitorPackage package) =>
         _instance ?? (_instance = new AiExplainLogic(package));
 
@@ -28,6 +33,7 @@ internal sealed class AiExplainLogic
     internal static bool IsConfigurationPresent()
     {
         var settings = Settings.Default;
+
         return OpenAiCompatibleClient.IsEndpointConfigured(settings.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
@@ -42,7 +48,7 @@ internal sealed class AiExplainLogic
         }
 
         var client = CreateClientFromSettings();
-        if (client == null)
+        if (client is null)
         {
             return "AI endpoint is not configured. Please configure your endpoint in Tools > Options > Code Janitor > XML Documentation.";
         }
@@ -53,6 +59,7 @@ internal sealed class AiExplainLogic
         try
         {
             var response = await client.GetChatCompletionContentAsync(systemPrompt, prompt, cancellationToken).ConfigureAwait(false);
+
             return string.IsNullOrWhiteSpace(response)
                 ? "The AI model returned an empty response. Please check your model settings."
                 : response.Trim();
@@ -63,6 +70,12 @@ internal sealed class AiExplainLogic
         }
     }
 
+    /// <summary>
+    /// BuildExplainPrompt returns a structured markdown prompt template that embeds the supplied member name and code snippet into instructions for analyzing the C# code across three predefined sections (purpose, complexity/risk, and refactoring suggestions), with no side effects or exception handling.
+    /// </summary>
+    /// <param name="memberName">The member name.</param>
+    /// <param name="codeSnippet">The code snippet.</param>
+    /// <returns>A string value produced by this method.</returns>
     private static string BuildExplainPrompt(string memberName, string codeSnippet)
     {
         return $@"Analyze the following C# code for member '{memberName}':
@@ -86,6 +99,10 @@ A concise summary explaining the business purpose, inputs, and outputs in plain 
 ";
     }
 
+    /// <summary>
+    /// Creates an `OpenAiCompatibleClient` from user settings, returning `null` when the endpoint is unconfigured, decrypting the API key via `SecretProtectionHelper.UnprotectForCurrentUser` (with fallback to a static `ApiKey` field if decryption yields empty), applying defaults for the header (`Authorization`), timeout (30s), and context window (131072 tokens), and constructing the client with the resolved endpoint, key, header, model, timeout, and token values.
+    /// </summary>
+    /// <returns>A OpenAiCompatibleClient value produced by this method.</returns>
     private static OpenAiCompatibleClient CreateClientFromSettings()
     {
         var settings = Settings.Default;

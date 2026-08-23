@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace CodeJanitor.Model.CodeItems;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.Model.CodeItems;
 /// A specialized container for holding a set of code items.
 /// </summary>
 
-public class SetCodeItems : List<BaseCodeItem>
+public sealed class SetCodeItems : List<BaseCodeItem>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SetCodeItems" /> class.

@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using System;
@@ -81,9 +81,9 @@ internal sealed class DocumentEventListener : BaseEventListener
     {
         ThreadHelper.ThrowIfNotOnUIThread();
         var onDocumentClosing = OnDocumentClosing;
-        if (onDocumentClosing != null)
+        if (onDocumentClosing is not null)
         {
-            OutputWindowHelper.DiagnosticWriteLine($"DocumentEventListener.OnDocumentClosing raised for '{(document != null ? document.FullName : "(null)")}'");
+            OutputWindowHelper.DiagnosticWriteLine($"DocumentEventListener.OnDocumentClosing raised for '{(document is not null ? document.FullName : "(null)")}'");
 
             onDocumentClosing(document);
         }

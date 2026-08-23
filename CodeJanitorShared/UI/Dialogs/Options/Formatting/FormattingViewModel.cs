@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Model.Comments;
+using CodeJanitor.Model.Comments;
 using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
 using System.Windows.Media;
@@ -9,8 +9,11 @@ namespace CodeJanitor.UI.Dialogs.Options.Formatting;
 /// The view model for comment formatting options.
 /// </summary>
 
-public class FormattingViewModel : OptionsPageViewModel
+public sealed class FormattingViewModel : OptionsPageViewModel
 {
+    /// <summary>
+    /// The unformatted preview text.
+    /// </summary>
     private const string UnformattedPreviewText =
         "<summary>Lorem ipsum dolor sit amet.</summary>" +
         "<param name=\"p1\">Praesent sollicitudin massa nunc.</param>" +

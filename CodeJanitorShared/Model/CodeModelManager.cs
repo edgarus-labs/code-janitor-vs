@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
@@ -63,7 +63,7 @@ internal sealed class CodeModelManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document != null)
+        if (document is not null)
         {
             _codeModelCache.StaleCodeModel(document);
         }
@@ -78,7 +78,7 @@ internal sealed class CodeModelManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document != null)
+        if (document is not null)
         {
             _codeModelCache.RemoveCodeModel(document);
         }
@@ -97,7 +97,7 @@ internal sealed class CodeModelManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document == null)
+        if (document is null)
         {
             throw new ArgumentNullException(nameof(document));
         }
@@ -146,7 +146,7 @@ internal sealed class CodeModelManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document == null)
+        if (document is null)
         {
             throw new ArgumentNullException(nameof(document));
         }
@@ -262,7 +262,7 @@ internal sealed class CodeModelManager
     private void RaiseCodeModelBuilt(CodeModel codeModel)
     {
         var codeModelBuilt = CodeModelBuilt;
-        if (codeModelBuilt != null)
+        if (codeModelBuilt is not null)
         {
             OutputWindowHelper.DiagnosticWriteLine(
                 $"CodeModelManager.CodeModelBuilt raised for '{codeModel.Document.FullName}'");

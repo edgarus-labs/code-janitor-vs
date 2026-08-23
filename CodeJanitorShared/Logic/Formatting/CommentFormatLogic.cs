@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments;
@@ -80,7 +80,7 @@ internal sealed class CommentFormatLogic
                     foundComments = true;
                 }
 
-                if (comment.EndPoint != null)
+                if (comment.EndPoint is not null)
                 {
                     start = comment.EndPoint.CreateEditPoint();
                 }

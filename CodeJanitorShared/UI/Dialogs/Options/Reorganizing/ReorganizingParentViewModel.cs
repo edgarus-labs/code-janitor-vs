@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
 
@@ -6,7 +6,7 @@ namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
 /// The view model for reorganizing options - hosts the more specific reorganizing view models as tabs.
 /// </summary>
 
-public class ReorganizingParentViewModel : CompositeOptionsPageViewModel
+public sealed class ReorganizingParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ReorganizingParentViewModel" /> class.

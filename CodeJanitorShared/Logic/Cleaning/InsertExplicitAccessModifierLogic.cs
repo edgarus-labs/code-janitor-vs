@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
@@ -15,6 +15,9 @@ namespace CodeJanitor.Logic.Cleaning;
 
 internal sealed class InsertExplicitAccessModifierLogic
 {
+    /// <summary>
+    /// The partial keyword.
+    /// </summary>
     private const string PartialKeyword = "partial";
 
     /// <summary>
@@ -51,7 +54,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses) return;
 
-        foreach (var codeClass in classes.Select(x => x.CodeClass).Where(y => y != null))
+        foreach (var codeClass in classes.Select(x => x.CodeClass).Where(y => y is not null))
         {
             var classDeclaration = CodeElementHelper.GetClassDeclaration(codeClass);
 
@@ -80,7 +83,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates) return;
 
-        foreach (var codeDelegate in delegates.Select(x => x.CodeDelegate).Where(y => y != null))
+        foreach (var codeDelegate in delegates.Select(x => x.CodeDelegate).Where(y => y is not null))
         {
             var delegateDeclaration = CodeElementHelper.GetDelegateDeclaration(codeDelegate);
 
@@ -103,7 +106,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations) return;
 
-        foreach (var codeEnum in enumerations.Select(x => x.CodeEnum).Where(y => y != null))
+        foreach (var codeEnum in enumerations.Select(x => x.CodeEnum).Where(y => y is not null))
         {
             var enumDeclaration = CodeElementHelper.GetEnumerationDeclaration(codeEnum);
 
@@ -126,7 +129,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents) return;
 
-        foreach (var codeEvent in events.Select(x => x.CodeEvent).Where(y => y != null))
+        foreach (var codeEvent in events.Select(x => x.CodeEvent).Where(y => y is not null))
         {
             try
             {
@@ -169,7 +172,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields) return;
 
-        foreach (var codeField in fields.Select(x => x.CodeVariable).Where(y => y != null))
+        foreach (var codeField in fields.Select(x => x.CodeVariable).Where(y => y is not null))
         {
             try
             {
@@ -213,7 +216,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces) return;
 
-        foreach (var codeInterface in interfaces.Select(x => x.CodeInterface).Where(y => y != null))
+        foreach (var codeInterface in interfaces.Select(x => x.CodeInterface).Where(y => y is not null))
         {
             var interfaceDeclaration = CodeElementHelper.GetInterfaceDeclaration(codeInterface);
 
@@ -236,7 +239,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods) return;
 
-        foreach (var codeFunction in methods.Select(x => x.CodeFunction).Where(y => y != null))
+        foreach (var codeFunction in methods.Select(x => x.CodeFunction).Where(y => y is not null))
         {
             try
             {
@@ -297,7 +300,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties) return;
 
-        foreach (var codeProperty in properties.Select(x => x.CodeProperty).Where(y => y != null))
+        foreach (var codeProperty in properties.Select(x => x.CodeProperty).Where(y => y is not null))
         {
             try
             {
@@ -340,7 +343,7 @@ internal sealed class InsertExplicitAccessModifierLogic
 
         if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs) return;
 
-        foreach (var codeStruct in structs.Select(x => x.CodeStruct).Where(y => y != null))
+        foreach (var codeStruct in structs.Select(x => x.CodeStruct).Where(y => y is not null))
         {
             var structDeclaration = CodeElementHelper.GetStructDeclaration(codeStruct);
 

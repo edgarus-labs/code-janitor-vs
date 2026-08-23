@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +11,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// and normalizes whitespace around region names.
 /// </summary>
 
-public class UpdateEndRegionDirectivesConverter : ISourceTransformation
+public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
 {
     private static readonly Regex RegionDirectiveRegex = new Regex(
         @"^[ \t]*#region\b[ \t]*(.*)$",

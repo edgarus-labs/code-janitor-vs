@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using System;
 
 namespace CodeJanitor.Model.CodeItems;
@@ -10,6 +10,9 @@ namespace CodeJanitor.Model.CodeItems;
 
 public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItemParent
 {
+    /// <summary>
+    /// The namespace.
+    /// </summary>
     protected Lazy<string> _Namespace;
 
     private bool _isExpanded = true;

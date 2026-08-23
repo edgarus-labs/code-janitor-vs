@@ -1,11 +1,11 @@
-﻿using CodeJanitor.Properties;
+using CodeJanitor.Properties;
 
 namespace CodeJanitor.Model.Comments.Options;
 
 /// <summary>
 /// presents a set of formatting options that control how XML tags are rendered, including aspects such as casing, indentation, content spacing, and element splitting.
 /// </summary>
-public class XmlTagOptions : IXmlTagOptions
+public sealed class XmlTagOptions : IXmlTagOptions
 {
     public XmlTagOptions()
     {

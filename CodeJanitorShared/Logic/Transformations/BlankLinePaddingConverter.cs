@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeJanitor.Properties;
@@ -15,7 +15,7 @@ namespace CodeJanitor.Logic.Transformations;
 /// (same safe pattern as <see cref="ReturnThrowBlankLinePaddingConverter"/>).
 /// </summary>
 
-public class BlankLinePaddingConverter : ISourceTransformation
+public sealed class BlankLinePaddingConverter : ISourceTransformation
 {
     private static readonly Regex CaseStatementPattern = new Regex(
         @"(^[ \t]*)(break;|return(?:[ \t][^;\r\n]*)?;)\r?\n([ \t]*)(case\b|default\s*:)",

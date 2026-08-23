@@ -1,4 +1,4 @@
-﻿using CodeJanitor.Helpers;
+using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using System;
 using System.Globalization;
@@ -11,7 +11,7 @@ namespace CodeJanitor.UI.Converters;
 /// A converter that finds the highest complexity item for a specified parent.
 /// </summary>
 
-public class CodeItemParentHighestComplexityConverter : IValueConverter
+public sealed class CodeItemParentHighestComplexityConverter : IValueConverter
 {
     /// <summary>
     /// The default <see cref="CodeItemParentHighestComplexityConverter" />.
@@ -30,7 +30,7 @@ public class CodeItemParentHighestComplexityConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var parent = value as ICodeItemParent;
-        if (parent == null) return null;
+        if (parent is null) return null;
 
         var childrenWithComplexity = parent.GetChildrenRecursive().OfType<ICodeItemComplexity>().ToArray();
 
