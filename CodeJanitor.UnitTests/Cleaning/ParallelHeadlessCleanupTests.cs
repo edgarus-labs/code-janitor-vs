@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using System;
@@ -116,8 +116,15 @@ public sealed class ParallelHeadlessCleanupTests
         Assert.AreEqual("33%", vm.ProgressPercentText);
     }
 
+    /// <summary>
+    /// Provides a test-specific implementation of the base progress view model for validating cleanup progress dialog behavior.
+    /// </summary>
     private sealed class TestProgressViewModel : CodeJanitor.UI.Dialogs.CleanupProgress.BaseProgressViewModel
     {
+        /// <summary>
+        /// Handles the execution of the cancel command without performing any action, serving as a no-op override for scenarios where cancellation is explicitly ignored.
+        /// </summary>
+        /// <param name="parameter">The parameter.</param>
         protected override void OnCancelCommandExecuted(object parameter)
         {
         }

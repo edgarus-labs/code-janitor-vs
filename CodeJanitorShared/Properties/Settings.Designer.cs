@@ -2691,6 +2691,18 @@ namespace CodeJanitor.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool Feature_RemoveXmlDoc {
+            get {
+                return ((bool)(this["Feature_RemoveXmlDoc"]));
+            }
+            set {
+                this["Feature_RemoveXmlDoc"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool Feature_AiExplainMethod {
             get {
                 return ((bool)(this["Feature_AiExplainMethod"]));

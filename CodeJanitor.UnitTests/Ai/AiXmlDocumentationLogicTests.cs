@@ -40,8 +40,33 @@ public string BuildName(string firstName, string lastName)
         StringAssert.Contains(updated, "/// Builds a combined display name.");
         StringAssert.Contains(updated, "<param name=\"firstName\">The first name.</param>");
         StringAssert.Contains(updated, "<param name=\"lastName\">The last name.</param>");
-        StringAssert.Contains(updated, "<returns>A string value produced by this method.</returns>");
+        StringAssert.Contains(updated, "<returns>The string result.</returns>");
         StringAssert.Contains(updated, "<exception cref=\"ArgumentException\">");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsPositionalRecordWithParamTags()
+    {
+        var source = @"namespace RecipeVault.Application.Abstractions.CQRS;
+
+public sealed record CreateRecipeCommand(
+    string Title,
+    string Description,
+    Guid AuthorId,
+    List<CreateIngredientDto> Ingredients,
+    List<CreateStepDto> Steps
+) : ICommand<CreateRecipeResponse>;
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, _ => "Represents a command to create a new recipe with the specified details.", 10);
+
+        StringAssert.Contains(updated, "/// <summary>");
+        StringAssert.Contains(updated, "/// Represents a command to create a new recipe with the specified details.");
+        StringAssert.Contains(updated, "<param name=\"Title\">The title.</param>");
+        StringAssert.Contains(updated, "<param name=\"Description\">The description.</param>");
+        StringAssert.Contains(updated, "<param name=\"AuthorId\">The unique identifier of the author.</param>");
+        StringAssert.Contains(updated, "<param name=\"Ingredients\">The collection of ingredients.</param>");
+        StringAssert.Contains(updated, "<param name=\"Steps\">The collection of steps.</param>");
     }
 
     [TestMethod]
@@ -58,6 +83,31 @@ public string BuildName(string firstName, string lastName)
         StringAssert.Contains(lines[memberIndex - 1], "///", "A blank line separates the documentation from the member.");
         Assert.AreEqual("    public int Get(int x)", lines[memberIndex], "The member lost its original indentation.");
         StringAssert.StartsWith(lines[memberIndex - 1], "    ///", "The documentation block is not aligned with the member.");
+    }
+
+    [TestMethod]
+    public void NormalizeSentence_StripsThinkingProcessAndDraftsFromReasoningModels()
+    {
+        var rawThinking = "Thinking Process: 1. **Analyze the Request:** * Input: C# type information. 2. **Determine Meaning:** Interface for CQRS. 3. **Drafting:** * Draft 1: Represents a command. * Draft 2: Defines a command contract.";
+        var result = InvokeNormalizeSentence(rawThinking);
+        Assert.AreEqual("Defines a command contract.", result);
+
+        var rawXmlThink = "<think>\nLet's analyze this method.\nIt calculates the sum.\n</think>\nCalculates the sum of two integers.";
+        var result2 = InvokeNormalizeSentence(rawXmlThink);
+        Assert.AreEqual("Calculates the sum of two integers.", result2);
+
+        var rawPreamble = "Here is the summary sentence: Performs the validation of the given request.";
+        var result3 = InvokeNormalizeSentence(rawPreamble);
+        Assert.AreEqual("Performs the validation of the given request.", result3);
+    }
+
+    private static string InvokeNormalizeSentence(string text)
+    {
+        var type = Type.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic, CodeJanitor.VS2026")
+                   ?? Type.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic, CodeJanitor");
+        var method = type.GetMethod("NormalizeSentence", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+        return (string)method.Invoke(null, new object[] { text });
     }
 
     [TestMethod]

@@ -668,6 +668,9 @@
     <Setting Name="Feature_AddXmlDoc" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="Feature_RemoveXmlDoc" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
     <Setting Name="Feature_AiExplainMethod" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>

@@ -54,6 +54,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\BaseCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\BuildProgressToolWindowCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AddXmlDocCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\RemoveXmlDocCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiExplainCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiGenerateUnitTestsCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\AiCleanRefactorCommand.cs" />
@@ -148,6 +149,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\InsertExplicitAccessModifierLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\InsertWhitespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveRegionLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveXmlDocumentationLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveWhitespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveByteOrderMarkLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\UpdateLogic.cs" />

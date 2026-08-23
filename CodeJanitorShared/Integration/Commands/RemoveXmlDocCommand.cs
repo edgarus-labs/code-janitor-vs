@@ -1,10 +1,8 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
-using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
-using CodeJanitor.UI.Dialogs.CleanupProgress;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,44 +13,43 @@ using Task = System.Threading.Tasks.Task;
 namespace CodeJanitor.Integration.Commands;
 
 /// <summary>
-/// A command that generates XML documentation comments for C# methods in the selected scope or active document.
+/// A command that removes XML documentation comments from C# files in the selected scope or active document.
 /// </summary>
-internal sealed class AddXmlDocCommand : BaseCommand
+internal sealed class RemoveXmlDocCommand : BaseCommand
 {
     /// <summary>
     /// The large scope warning threshold.
     /// </summary>
     private const int LargeScopeWarningThreshold = 50;
-
     /// <summary>
     /// The very large scope warning threshold.
     /// </summary>
     private const int VeryLargeScopeWarningThreshold = 200;
 
-    private readonly AiXmlDocumentationLogic _aiXmlDocumentationLogic;
+    private readonly RemoveXmlDocumentationLogic _removeXmlDocumentationLogic;
     private readonly CodeCleanupAvailabilityLogic _codeCleanupAvailabilityLogic;
 
-    internal AddXmlDocCommand(CodeJanitorPackage package)
-        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorAddXmlDoc)
+    internal RemoveXmlDocCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorRemoveXmlDoc)
     {
-        _aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(Package);
+        _removeXmlDocumentationLogic = RemoveXmlDocumentationLogic.GetInstance(Package);
         _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(Package);
     }
 
     /// <summary>
-    /// Gets or sets the instance.
+    /// Gets the singleton instance of this command.
     /// </summary>
-    public static AddXmlDocCommand Instance { get; private set; }
+    public static RemoveXmlDocCommand Instance { get; private set; }
 
     /// <summary>
-    /// Initializes a singleton instance of this command and monitors the Feature_AddXmlDoc setting.
+    /// Initializes a singleton instance of this command and monitors the Feature_RemoveXmlDoc setting.
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A task.</returns>
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
-        Instance = new AddXmlDocCommand(package);
-        await package.SettingsMonitor.WatchAsync(s => s.Feature_AddXmlDoc, Instance.SwitchAsync);
+        Instance = new RemoveXmlDocCommand(package);
+        await package.SettingsMonitor.WatchAsync(s => s.Feature_RemoveXmlDoc, Instance.SwitchAsync);
     }
 
     /// <summary>
@@ -75,25 +72,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
         if (!_codeCleanupAvailabilityLogic.IsCleanupEnvironmentAvailable())
         {
             MessageBox.Show(Resources.CleanupCannotRunWhileDebugging,
-                            "CodeJanitor Add XMLDoc",
-                            MessageBoxButton.OK, MessageBoxImage.Warning);
-
-            return;
-        }
-
-        if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled)
-        {
-            MessageBox.Show("AI-assisted XML documentation is disabled. You can enable and configure it in CodeJanitor Options -> Cleaning -> Update.",
-                            "CodeJanitor Add XMLDoc",
-                            MessageBoxButton.OK, MessageBoxImage.Warning);
-
-            return;
-        }
-
-        if (!AiXmlDocumentationLogic.IsConfigurationPresent())
-        {
-            MessageBox.Show("AI XML documentation endpoint URL or API key is not configured. Please configure them in CodeJanitor Options -> Cleaning -> Update.",
-                            "CodeJanitor Add XMLDoc",
+                            "CodeJanitor Remove XMLDoc",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
 
             return;
@@ -103,7 +82,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
         if (projectItems.Count == 0)
         {
             MessageBox.Show("No C# files found in current scope.",
-                            "CodeJanitor Add XMLDoc",
+                            "CodeJanitor Remove XMLDoc",
                             MessageBoxButton.OK, MessageBoxImage.Information);
 
             return;
@@ -114,17 +93,37 @@ internal sealed class AddXmlDocCommand : BaseCommand
             return;
         }
 
+        var changedCount = 0;
+
         using (new ActiveDocumentRestorer(Package))
         {
-            var viewModel = new XmlDocProgressViewModel(Package, projectItems);
-            var window = new CleanupProgressWindow { DataContext = viewModel };
+            var totalCount = projectItems.Count;
+            var current = 0;
 
-            window.ShowModal();
+            foreach (var projectItem in projectItems)
+            {
+                current++;
+
+                if (projectItem is not null)
+                {
+                    Package.IDE.StatusBar.Text = $"CodeJanitor removing XML documentation {current}/{totalCount}: {projectItem.Name}";
+                }
+
+                if (_removeXmlDocumentationLogic.RemoveXmlDoc(projectItem))
+                {
+                    changedCount++;
+                }
+            }
         }
+
+        Package.IDE.StatusBar.Text = $"CodeJanitor Remove XMLDoc completed: removed XML documentation from {changedCount} of {projectItems.Count} file(s).";
+        MessageBox.Show($"Processed {projectItems.Count} file(s). Removed XML documentation from {changedCount} file(s).",
+                        "CodeJanitor Remove XMLDoc",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
-    /// Shows a modal Yes/No confirmation dialog with wording scaled by file count thresholds and returns true only if the user clicks Yes.
+    /// Shows a modal Yes/No confirmation dialog with wording scaled by file count thresholds.
     /// </summary>
     /// <param name="fileCount">The file count.</param>
     /// <returns>True if confirmed, otherwise false.</returns>
@@ -136,13 +135,13 @@ internal sealed class AddXmlDocCommand : BaseCommand
         }
 
         var message = fileCount > VeryLargeScopeWarningThreshold
-            ? $"You are about to run Add XMLDoc on {fileCount:N0} files. This may make many AI API requests and take significant time. Continue?"
+            ? $"You are about to run Remove XMLDoc on {fileCount:N0} files. This will modify many files across the solution. Continue?"
             : fileCount > LargeScopeWarningThreshold
-                ? $"You are about to run Add XMLDoc on {fileCount:N0} files. Continue?"
-                : $"Run Add XMLDoc on {fileCount:N0} files?";
+                ? $"You are about to run Remove XMLDoc on {fileCount:N0} files. Continue?"
+                : $"Remove XMLDoc from {fileCount:N0} files?";
 
         return MessageBox.Show(message,
-                               "CodeJanitor Add XMLDoc Confirmation",
+                               "CodeJanitor Remove XMLDoc Confirmation",
                                MessageBoxButton.YesNo,
                                MessageBoxImage.Question,
                                MessageBoxResult.No)
@@ -150,9 +149,8 @@ internal sealed class AddXmlDocCommand : BaseCommand
     }
 
     /// <summary>
-    /// Returns distinct project items from selected UI hierarchy roots that pass XML documentation checks,
-    /// prioritizing Solution Explorer selection (Solution, Solution Folder, Project, Folder, File),
-    /// or falling back to the active document when editing.
+    /// Returns distinct project items from selected UI hierarchy roots that pass checks,
+    /// prioritizing Solution Explorer selection, or falling back to the active document.
     /// </summary>
     /// <returns>Sequence of project items.</returns>
     private IEnumerable<ProjectItem> GetScopeProjectItems()
@@ -168,7 +166,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
         // If a single ProjectItem (file) is selected in Solution Explorer
         if (selectedScopeRoots.Count == 1 && selectedScopeRoots[0] is ProjectItem singleProjectItem)
         {
-            if (_aiXmlDocumentationLogic.CanDocumentProjectItem(singleProjectItem))
+            if (_removeXmlDocumentationLogic.CanRemoveXmlDocProjectItem(singleProjectItem))
             {
                 return new[] { singleProjectItem };
             }
@@ -176,7 +174,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
 
         var selectedProjectItems = selectedScopeRoots
             .SelectMany(SolutionHelper.GetItemsRecursively<ProjectItem>)
-            .Where(projectItem => _aiXmlDocumentationLogic.CanDocumentProjectItem(projectItem));
+            .Where(projectItem => _removeXmlDocumentationLogic.CanRemoveXmlDocProjectItem(projectItem));
 
         var selectedScopedDistinct = DistinctByFilePath(selectedProjectItems).ToList();
         if (selectedScopedDistinct.Count > 0)
@@ -186,7 +184,7 @@ internal sealed class AddXmlDocCommand : BaseCommand
 
         // 2. Fallback to active document if editing
         var activeDoc = Package.ActiveDocument;
-        if (activeDoc?.ProjectItem is not null && _aiXmlDocumentationLogic.CanDocumentProjectItem(activeDoc.ProjectItem))
+        if (activeDoc?.ProjectItem is not null && _removeXmlDocumentationLogic.CanRemoveXmlDocProjectItem(activeDoc.ProjectItem))
         {
             return new[] { activeDoc.ProjectItem };
         }
@@ -195,25 +193,21 @@ internal sealed class AddXmlDocCommand : BaseCommand
     }
 
     /// <summary>
-    /// Returns ProjectItems in encounter order, skipping duplicates by file path.
+    /// project items from the specified sequence, filtering out duplicates by comparing file paths case-insensitively.
     /// </summary>
-    /// <param name="projectItems">The project items.</param>
-    /// <returns>Distinct project items by file path.</returns>
-    private static IEnumerable<ProjectItem> DistinctByFilePath(IEnumerable<ProjectItem> projectItems)
+    /// <param name="items">The collection of items.</param>
+    /// <returns>A collection of ienumerable items.</returns>
+    private static IEnumerable<ProjectItem> DistinctByFilePath(IEnumerable<ProjectItem> items)
     {
-        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var projectItem in projectItems)
+        foreach (var item in items)
         {
-            var filePath = projectItem.GetFileName();
-            if (string.IsNullOrWhiteSpace(filePath))
+            var path = item.GetFileName();
+            if (string.IsNullOrWhiteSpace(path) || seen.Add(path))
             {
-                continue;
-            }
-
-            if (seenPaths.Add(filePath))
-            {
-                yield return projectItem;
+                yield return item;
             }
         }
     }

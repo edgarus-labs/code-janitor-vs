@@ -28,7 +28,7 @@ internal static class Vsix
     /// <summary>
     /// The version.
     /// </summary>
-    public const string Version = "0.1.0.48";
+    public const string Version = "0.1.0.55";
 
     /// <summary>
     /// The author.

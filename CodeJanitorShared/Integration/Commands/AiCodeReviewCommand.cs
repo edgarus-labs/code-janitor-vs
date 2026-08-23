@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Ai;
 using CodeJanitor.Model.CodeItems;
@@ -22,6 +22,9 @@ internal sealed class AiCodeReviewCommand : BaseCommand
         _logic = AiCodeReviewLogic.GetInstance(Package);
     }
 
+    /// <summary>
+    /// Gets or sets the instance.
+    /// </summary>
     public static AiCodeReviewCommand Instance { get; private set; }
 
     /// <summary>

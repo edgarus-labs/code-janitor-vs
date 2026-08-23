@@ -103,7 +103,13 @@ public abstract class BaseProgressViewModel : Bindable
                 return "0%";
             }
 
-            var pct = Math.Min(100, Math.Max(0, (int)Math.Round((double)ProcessedCount / CountTotal * 100)));
+            if (ProcessedCount >= CountTotal)
+            {
+                return "100%";
+            }
+
+            var pct = Math.Min(99, Math.Max(0, (int)Math.Floor((double)ProcessedCount / CountTotal * 100)));
+
             return $"{pct}%";
         }
     }

@@ -37,6 +37,7 @@
 			<GroupBox Header="AI Assistant">
 				<StackPanel>
 					<CheckBox Content="Add XMLDoc" IsChecked="{Binding AddXmlDoc}" />
+					<CheckBox Content="Remove XMLDoc" IsChecked="{Binding RemoveXmlDoc}" />
 					<CheckBox Content="AI: Explain &amp; Simplify Method" IsChecked="{Binding AiExplainMethod}" />
 					<CheckBox Content="AI: Generate Unit Tests" IsChecked="{Binding AiGenerateUnitTests}" />
 					<CheckBox Content="AI: Clean Code &amp; Guard Clauses Refactor" IsChecked="{Binding AiCleanRefactor}" />

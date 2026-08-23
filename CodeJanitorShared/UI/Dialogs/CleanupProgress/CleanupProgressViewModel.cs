@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -22,12 +22,24 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     private readonly BackgroundWorker _backgroundWorker;
     private readonly Stopwatch _batchStopwatch;
 
+    /// <summary>
+    /// the progress state for an ongoing operation, tracking the target file name along with the number of completed and total work items.
+    /// </summary>
     private sealed class ProgressReportState
     {
+        /// <summary>
+        /// Gets or sets the file name.
+        /// </summary>
         public string FileName { get; set; }
 
+        /// <summary>
+        /// Gets or sets the completed.
+        /// </summary>
         public int Completed { get; set; }
 
+        /// <summary>
+        /// Gets or sets the total.
+        /// </summary>
         public int Total { get; set; }
     }
 

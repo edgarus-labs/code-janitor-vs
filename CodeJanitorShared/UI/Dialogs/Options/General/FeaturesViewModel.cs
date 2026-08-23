@@ -31,6 +31,7 @@ public sealed class FeaturesViewModel : OptionsPageViewModel
             new Mapping(x => ActiveSettings.Feature_SpadeToolWindow, x => SpadeToolWindow),
             new Mapping(x => ActiveSettings.Feature_SwitchFile, x => SwitchFile),
             new Mapping(x => ActiveSettings.Feature_AddXmlDoc, x => AddXmlDoc),
+            new Mapping(x => ActiveSettings.Feature_RemoveXmlDoc, x => RemoveXmlDoc),
             new Mapping(x => ActiveSettings.Feature_AiExplainMethod, x => AiExplainMethod),
             new Mapping(x => ActiveSettings.Feature_AiGenerateUnitTests, x => AiGenerateUnitTests),
             new Mapping(x => ActiveSettings.Feature_AiCleanRefactor, x => AiCleanRefactor),
@@ -209,6 +210,15 @@ public sealed class FeaturesViewModel : OptionsPageViewModel
     /// Gets or sets the add xml doc.
     /// </summary>
     public bool AddXmlDoc
+    {
+        get => GetPropertyValue<bool>();
+        set => SetPropertyValue(value);
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Remove XMLDoc feature is enabled.
+    /// </summary>
+    public bool RemoveXmlDoc
     {
         get => GetPropertyValue<bool>();
         set => SetPropertyValue(value);

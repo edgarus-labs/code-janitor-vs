@@ -293,6 +293,16 @@
         </Strings>
       </Button>
 
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorRemoveXmlDoc" priority="0x0105" type="Button">
+        <Icon guid="GuidImageRemoveRegion" id="IconRemoveRegion" />
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>TextChanges</CommandFlag>
+        <Strings>
+          <ButtonText>&amp;Remove XML Documentation</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorAiExplainMethod" priority="0x0110" type="Button">
         <Icon guid="GuidImageFind" id="IconFind" />
         <CommandFlag>DefaultInvisible</CommandFlag>

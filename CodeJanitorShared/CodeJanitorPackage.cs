@@ -357,6 +357,7 @@ public sealed class CodeJanitorPackage : AsyncPackage
     {
         await AboutCommand.InitializeAsync(this);
         await AddXmlDocCommand.InitializeAsync(this);
+        await RemoveXmlDocCommand.InitializeAsync(this);
         await AiExplainCommand.InitializeAsync(this);
         await AiGenerateUnitTestsCommand.InitializeAsync(this);
         await AiCleanRefactorCommand.InitializeAsync(this);

@@ -237,6 +237,9 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
         _batchStopwatch.Stop();
         UpdateExecutionSummary();
 
+        // Close the progress dialog immediately so the UI window is never stuck open
+        DialogResult = true;
+
         if (e.Error is not null)
         {
             OutputWindowHelper.WarningWriteLine(
@@ -254,27 +257,7 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
             OutputWindowHelper.InfoWriteLine(
                 $"Add XMLDoc batch completed. Processed {CountTotal} file(s). Changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
             _package.IDE.StatusBar.Text = $"CodeJanitor Add XMLDoc completed: changed {ChangedCount} of {CountTotal} file(s).";
-
-            if (CountTotal == 1)
-            {
-                var fileName = CurrentFileName ?? "the file";
-                var message = ChangedCount > 0
-                    ? $"XML documentation added successfully to {fileName}."
-                    : $"No missing XML documentation found in {fileName}.";
-
-                MessageBox.Show(message,
-                                "CodeJanitor Add XMLDoc",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                MessageBox.Show($"Processed {CountTotal} file(s). Changed {ChangedCount} file(s).",
-                                "CodeJanitor Add XMLDoc",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
-            }
         }
-
-        DialogResult = true;
     }
 
     /// <summary>

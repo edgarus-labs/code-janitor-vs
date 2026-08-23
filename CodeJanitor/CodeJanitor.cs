@@ -369,6 +369,11 @@ internal sealed partial class PackageIds
     public const int CmdIDCodeJanitorAiTargetCoverage = 0x3B50;
 
     /// <summary>
+    /// The cmd idcode janitor remove xml doc.
+    /// </summary>
+    public const int CmdIDCodeJanitorRemoveXmlDoc = 0x3B60;
+
+    /// <summary>
     /// The cmd idcode janitor build progress tool window.
     /// </summary>
     public const int CmdIDCodeJanitorBuildProgressToolWindow = 0x1100;

@@ -312,11 +312,11 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <param name="maxTokens">The max tokens.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A bool value produced by this method.</returns>
-    internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256, CancellationToken cancellationToken = default(CancellationToken))
+    internal bool TryGenerateDocumentation(string prompt, out string completionText, out string errorMessage, int maxTokens = 256, CancellationToken cancellationToken = default(CancellationToken), string systemPrompt = null)
     {
         var safeMaxTokens = maxTokens > 0 ? maxTokens : 256;
 
-        return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage, MaxAttempts, cancellationToken);
+        return TrySendChatCompletion(prompt, safeMaxTokens, out completionText, out errorMessage, MaxAttempts, cancellationToken, systemPrompt);
     }
 
     /// <summary>
@@ -328,8 +328,9 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <param name="errorMessage">The error message.</param>
     /// <param name="maxAttempts">The max attempts.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="systemPrompt">The system prompt.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage, int maxAttempts = MaxAttempts, CancellationToken cancellationToken = default(CancellationToken))
+    private bool TrySendChatCompletion(string userPrompt, int maxTokens, out string completionText, out string errorMessage, int maxAttempts = MaxAttempts, CancellationToken cancellationToken = default(CancellationToken), string systemPrompt = null)
     {
         completionText = null;
         errorMessage = null;
@@ -341,7 +342,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             return false;
         }
 
-        var requestJson = BuildRequestJson(userPrompt, maxTokens);
+        var requestJson = BuildRequestJson(userPrompt, maxTokens, systemPrompt);
         string lastError = null;
         Exception lastException = null;
 

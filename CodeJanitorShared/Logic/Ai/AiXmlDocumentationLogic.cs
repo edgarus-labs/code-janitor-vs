@@ -1,4 +1,4 @@
-using EnvDTE;
+﻿using EnvDTE;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -182,17 +182,36 @@ internal sealed class AiXmlDocumentationLogic
         /// </summary>
         public int FallbacksUsed { get; set; }
 
+        /// <summary>
+        /// Gets or sets the estimated tokens used.
+        /// </summary>
         public int EstimatedTokensUsed { get; set; }
 
+        /// <summary>
+        /// Gets or sets the elapsed milliseconds.
+        /// </summary>
         public long ElapsedMilliseconds { get; set; }
     }
 
+    /// <summary>
+    /// whether the AI XML documentation cleaning endpoint URL is configured in the application settings.
+    /// </summary>
+    /// <returns>true if the condition is met; otherwise, false.</returns>
     internal static bool IsConfigurationPresent()
     {
         return OpenAiCompatibleClient.IsEndpointConfigured(
             Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl);
     }
 
+    /// <summary>
+    /// Asynchronously tests connectivity to the specified OpenAI-compatible AI endpoint using the supplied credentials and returns the outcome of the connection attempt.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <param name="apiKey">The api key.</param>
+    /// <param name="apiKeyHeader">The api key header.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="timeoutSeconds">The timeout seconds.</param>
+    /// <returns>A task representing the asynchronous operation. The task result contains the open ai compatible client.connection test result.</returns>
     internal static async Task<OpenAiCompatibleClient.ConnectionTestResult> ValidateConnectionAsync(
         string endpointUrl,
         string apiKey,
@@ -412,6 +431,10 @@ internal sealed class AiXmlDocumentationLogic
         return true;
     }
 
+    /// <summary>
+    /// Applies AI-generated XML documentation comments to the specified text document by invoking the configured AI client, optionally previewing changes before replacing the document content.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
     internal void ApplyXmlDocumentation(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -447,6 +470,11 @@ internal sealed class AiXmlDocumentationLogic
         startPoint.ReplaceText(endPoint, updatedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
 
+    /// <summary>
+    /// Applies AI-generated XML documentation comments to the provided source string when AI cleaning is enabled and preview mode is disabled, delegating to an internal processor via the configured client, or returns the source unchanged otherwise.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The string result.</returns>
     internal string ApplyXmlDocumentationToSource(string source)
     {
         if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled ||
@@ -477,6 +505,11 @@ internal sealed class AiXmlDocumentationLogic
         return client is null ? source : ApplyXmlDocumentationToSourceInternal(source, client);
     }
 
+    /// <summary>
+    /// Generates AI-produced XML documentation comments for the specified text document and applies the changes to the document after displaying a preview and obtaining user confirmation.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="client">The client.</param>
     private void ApplyXmlDocumentationWithPreview(TextDocument textDocument, OpenAiCompatibleClient client)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -524,6 +557,12 @@ internal sealed class AiXmlDocumentationLogic
         startPoint.ReplaceText(endPoint, updatedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
 
+    /// <summary>
+    /// Applies AI-generated XML documentation to the provided source text using the supplied OpenAI-compatible client, records run statistics, writes a diagnostic summary to the output window, and returns the updated source.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="client">The client.</param>
+    /// <returns>The string result.</returns>
     private static string ApplyXmlDocumentationToSourceInternal(string source, OpenAiCompatibleClient client)
     {
         var options = LoadRunOptionsFromSettings();
@@ -548,6 +587,13 @@ internal sealed class AiXmlDocumentationLogic
         return updatedText;
     }
 
+    /// <summary>
+    /// Generates AI-based XML documentation for the members in the specified source file using the provided summary provider, applying default run options and returning the resulting documentation output.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="summaryProvider">The summary provider.</param>
+    /// <param name="maxMethodsPerFile">The max methods per file.</param>
+    /// <returns>The string result.</returns>
     internal static string GenerateXmlDocumentationForSource(string source, Func<MemberDeclarationSyntax, string> summaryProvider, int maxMethodsPerFile)
     {
         var options = new AiXmlDocumentationRunOptions
@@ -569,6 +615,14 @@ internal sealed class AiXmlDocumentationLogic
         return GenerateXmlDocumentationForSourceInternal(source, summaryProvider, options, new AiXmlDocumentationRunStats());
     }
 
+    /// <summary>
+    /// Parses the provided C# source, identifies documentable members according to the supplied options, and inserts their generated XML documentation summaries in reverse token order while enforcing method-count, timeout, and cancellation constraints.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="summaryProvider">The summary provider.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="stats">The stats.</param>
+    /// <returns>The string result.</returns>
     private static string GenerateXmlDocumentationForSourceInternal(string source, Func<MemberDeclarationSyntax, string> summaryProvider, AiXmlDocumentationRunOptions options, AiXmlDocumentationRunStats stats)
     {
         if (string.IsNullOrWhiteSpace(source) || summaryProvider is null)
@@ -657,6 +711,10 @@ internal sealed class AiXmlDocumentationLogic
         return builder.ToString();
     }
 
+    /// <summary>
+    /// Loads and returns an AiXmlDocumentationRunOptions instance populated from the application settings, applying positive-value fallbacks to numeric limits and the configured toggles for deterministic fallback, filtering rules, and change previewing.
+    /// </summary>
+    /// <returns>The ai xml documentation run options result.</returns>
     private static AiXmlDocumentationRunOptions LoadRunOptionsFromSettings()
     {
         return new AiXmlDocumentationRunOptions
@@ -677,11 +735,21 @@ internal sealed class AiXmlDocumentationLogic
         };
     }
 
+    /// <summary>
+    /// Returns the specified value when it is positive, or the provided fallback when the value is zero or negative.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="fallback">The fallback.</param>
+    /// <returns>The int result.</returns>
     private static int PositiveOrDefault(int value, int fallback)
     {
         return value > 0 ? value : fallback;
     }
 
+    /// <summary>
+    /// Creates and configures an OpenAI-compatible client using the AI XML documentation cleaning settings, including endpoint URL, API key, model, timeout, and context window size.
+    /// </summary>
+    /// <returns>The open ai compatible client result.</returns>
     private static OpenAiCompatibleClient CreateClientFromSettings()
     {
         return CreateClient(
@@ -693,6 +761,16 @@ internal sealed class AiXmlDocumentationLogic
                 PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072));
     }
 
+    /// <summary>
+    /// Creates and returns a new OpenAI-compatible client instance using the specified endpoint, credentials, model, and timeout settings, or returns null when the endpoint is not configured.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <param name="apiKey">The api key.</param>
+    /// <param name="apiKeyHeader">The api key header.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="timeoutSeconds">The timeout seconds.</param>
+    /// <param name="contextWindowTokens">The context window tokens.</param>
+    /// <returns>The open ai compatible client result.</returns>
     private static OpenAiCompatibleClient CreateClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens = 0)
     {
         if (!OpenAiCompatibleClient.IsEndpointConfigured(endpointUrl))
@@ -709,6 +787,10 @@ internal sealed class AiXmlDocumentationLogic
                 contextWindowTokens);
     }
 
+    /// <summary>
+    /// es the configured API key for AI XML documentation cleaning by first attempting to unprotect the encrypted setting for the current user and falling back to the legacy plain-text setting when unavailable.
+    /// </summary>
+    /// <returns>The string result.</returns>
     private static string GetConfiguredApiKey()
     {
         var encrypted = Settings.Default.Cleaning_AiXmlDocumentationApiKeyEncrypted;
@@ -1035,7 +1117,22 @@ internal sealed class AiXmlDocumentationLogic
         stats.EstimatedTokensUsed += estimatedTokens;
         stats.AttemptedMethods++;
 
-        if (!client.TryGenerateDocumentation(prompt, out var completion, out var error, options.MaxTokensPerRequest, RunToken) || string.IsNullOrWhiteSpace(completion))
+        const string systemPrompt =
+            "You are a principal .NET software architect and technical writer authoring official Microsoft-standard XML documentation comments (<summary>).\n" +
+            "Your task is to write a single-sentence, professional, production-grade summary for the given C# code element.\n" +
+            "Rules:\n" +
+            "1. Output EXACTLY ONE concise, high-quality summary sentence in plain text. No XML tags, no markdown quotes, no preambles, no reasoning, no thinking steps.\n" +
+            "2. Never output generic or vague filler like 'Performs the operation.', 'Represents the class.', 'Executes the method.', or 'Contains data.'.\n" +
+            "3. Use standard .NET conventions:\n" +
+            "   - Commands (e.g., CreateRecipeCommand): 'Represents a command to create a new recipe with the specified details.'\n" +
+            "   - Queries (e.g., GetRecipeByIdQuery): 'Represents a query to retrieve recipe details by identifier.'\n" +
+            "   - DTOs / Records / Models: 'Represents the data structure containing {domain} details.'\n" +
+            "   - Interfaces: 'Defines a contract for {domain} operations.'\n" +
+            "   - Methods: start with third-person singular present tense active verbs ('Creates...', 'Calculates...', 'Asynchronously processes...', 'Handles...').\n" +
+            "   - Enums: 'Specifies the available {category} options.'\n" +
+            "4. Pay close attention to the element name, base types, interfaces, parameters, and properties to deduce the exact business domain semantics.";
+
+        if (!client.TryGenerateDocumentation(prompt, out var completion, out var error, options.MaxTokensPerRequest, RunToken, systemPrompt) || string.IsNullOrWhiteSpace(completion))
         {
             if (RunToken.IsCancellationRequested)
             {
@@ -1081,18 +1178,21 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         return
-            "Analyze this C# method and produce exactly one concise summary sentence (plain text only, no XML, no quotes). " +
-            "Mention key behavior and side effects.\n" +
-            "Signature:\n" + signature + "\n" +
+            "Generate a professional C# XML documentation <summary> sentence for the following C# method:\n" +
+            "Signature: " + signature + "\n" +
             "Method body:\n" + Truncate(bodyText, options.MaxInputCharsPerMethod) + "\n" +
-            "Detected thrown exceptions: " + exceptionList;
+            "Detected thrown exceptions: " + exceptionList + "\n\n" +
+            "Guidelines:\n" +
+            "- Start with a third-person singular active verb (e.g., 'Asynchronously retrieves...', 'Executes the...', 'Validates and parses...').\n" +
+            "- Describe what the method does and any important outcome or side effect.\n" +
+            "- Do NOT output vague generic filler like 'Performs the operation.' or 'Executes the action.'\n" +
+            "- Output ONLY the single summary sentence (plain text, no XML, no quotes, no reasoning).";
     }
 
     /// <summary>
-    /// Describes a type by its declaration header and member names only - including member bodies
-    /// would blow up the context for little gain.
+    /// Describes a type by its declaration header, base types/interfaces, constructor parameters (for records),
+    /// and member signatures.
     /// </summary>
-
     private static string BuildTypePrompt(BaseTypeDeclarationSyntax type, AiXmlDocumentationRunOptions options)
     {
         var header = type.Identifier.ValueText;
@@ -1103,11 +1203,22 @@ internal sealed class AiXmlDocumentationLogic
             : "class";
 
         var memberNames = new List<string>();
+
+        // For positional records (e.g. record Foo(int A, string B)), extract parameters
+        if (type is RecordDeclarationSyntax recordDeclaration && recordDeclaration.ParameterList is not null)
+        {
+            foreach (var parameter in recordDeclaration.ParameterList.Parameters)
+            {
+                var paramType = parameter.Type?.ToString() ?? "object";
+                memberNames.Add(parameter.Identifier.ValueText + " (" + paramType + ")");
+            }
+        }
+
         if (type is TypeDeclarationSyntax typeDeclaration)
         {
             foreach (var member in typeDeclaration.Members)
             {
-                if (member is PropertyDeclarationSyntax p) memberNames.Add(p.Identifier.ValueText);
+                if (member is PropertyDeclarationSyntax p) memberNames.Add(p.Identifier.ValueText + " (" + (p.Type?.ToString() ?? "property") + ")");
                 else if (member is MethodDeclarationSyntax m) memberNames.Add(m.Identifier.ValueText + "()");
                 else if (member is FieldDeclarationSyntax f) memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
             }
@@ -1117,35 +1228,40 @@ internal sealed class AiXmlDocumentationLogic
             memberNames.AddRange(enumDeclaration.Members.Select(x => x.Identifier.ValueText));
         }
 
+        var baseTypes = type.BaseList?.Types.Select(t => t.Type.ToString()).ToList();
+        var baseListText = baseTypes is not null && baseTypes.Count > 0
+            ? string.Join(", ", baseTypes)
+            : "none";
+
         var members = memberNames.Count == 0 ? "none" : string.Join(", ", memberNames);
 
-        return
-            "Analyze this C# type and produce exactly one concise summary sentence (plain text only, no XML, no quotes). " +
-            "Describe what the type represents, not how it is implemented.\n" +
-            "Kind: " + kind + "\n" +
-            "Name: " + header + "\n" +
-            "Members: " + Truncate(members, options.MaxInputCharsPerMethod);
-    }
-
-    /// <summary>
-    /// Builds a documentation summary string for a property by detecting its accessors—using a get accessor or expression body to set `hasGet`, and a set or init accessor for `hasSet`—then concatenating a verb (&quot;Gets or sets&quot;, &quot;Sets&quot;, or &quot;Gets&quot;) with &quot; the &quot; and the lowercased, split identifier name plus a period, with no side effects.
-    /// </summary>
-    /// <param name="property">The property.</param>
-    /// <returns>A string value produced by this method.</returns>
-    private static string BuildPropertySummary(PropertyDeclarationSyntax property)
-    {
-        var accessors = property.AccessorList?.Accessors;
-        var hasGet = accessors?.Any(x => x.IsKind(SyntaxKind.GetAccessorDeclaration)) ?? property.ExpressionBody is not null;
-        var hasSet = accessors?.Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration) || x.IsKind(SyntaxKind.InitAccessorDeclaration)) ?? false;
-
-        if (!hasGet && !hasSet && property.Initializer is not null)
+        var declarationSignature = type.Modifiers.ToString() + " " + kind + " " + header;
+        if (type is RecordDeclarationSyntax rec && rec.ParameterList is not null)
         {
-            hasGet = true;
+            declarationSignature += rec.ParameterList.ToString();
+        }
+        if (type.BaseList is not null)
+        {
+            declarationSignature += " " + type.BaseList.ToString();
         }
 
-        var verb = hasGet && hasSet ? "Gets or sets" : hasSet ? "Sets" : "Gets";
-
-        return verb + " the " + SplitIdentifier(property.Identifier.ValueText).ToLowerInvariant() + ".";
+        return
+            "Generate a professional C# XML documentation <summary> sentence for the following C# " + kind + ":\n" +
+            "Declaration: " + declarationSignature + "\n" +
+            "Kind: " + kind + "\n" +
+            "Name: " + header + "\n" +
+            "Implemented interfaces / base types: " + baseListText + "\n" +
+            "Parameters / Properties / Members: " + Truncate(members, options.MaxInputCharsPerMethod) + "\n\n" +
+            "Guidelines:\n" +
+            "- If this is a Command (e.g. implements ICommand, IRequest, or ends with 'Command'): start with 'Represents a command to {action}...' or 'Defines the command for {action}...' describing what action will be initiated and what data it carries.\n" +
+            "- If this is a Query (e.g. implements IQuery, IRequest, or ends with 'Query'): start with 'Represents a query to retrieve {noun}...'.\n" +
+            "- If this is a DTO, response, or event (e.g. ends with 'Dto', 'Response', 'Event'): start with 'Represents {noun}...' describing the data it encapsulates.\n" +
+            "- If this is an Interface: start with 'Defines a contract for...' or 'Provides an abstraction for...'.\n" +
+            "- If this is a marker interface with no members: state that it serves as a marker/indicator contract for type checking or pipeline dispatch.\n" +
+            "- If this is a Class/Struct/Record: start with 'Represents...' or 'Provides...' describing its primary responsibility.\n" +
+            "- If this is an Enum: start with 'Specifies...' or 'Defines constants for...'.\n" +
+            "- Do NOT output vague generic filler like 'Performs the operation.' or 'Represents the object.' Be specific to the domain name and properties.\n" +
+            "- Output ONLY the single summary sentence (plain text, no XML, no quotes, no reasoning).";
     }
 
     /// <summary>
@@ -1277,6 +1393,9 @@ internal sealed class AiXmlDocumentationLogic
     /// start of that line rather than at the declaration token.
     /// </summary>
 
+    /// <summary>
+    /// Finds the start index of the line containing the character at the specified index.
+    /// </summary>
     private static int GetLineStart(string text, int index)
     {
         var lineStart = text.LastIndexOf('\n', Math.Max(0, Math.Min(index, text.Length) - 1));
@@ -1285,13 +1404,10 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
-    /// an XML documentation comment block string for a member by appending an indented `&lt;summary&gt;` element, and for methods additionally appending `&lt;param&gt;` elements for each parameter, a `&lt;returns&gt;` element (unless the return type is void), and alphabetically-ordered `&lt;exception&gt;` elements using XML-escaped content.
+    /// Builds an XML documentation comment block string for a member by appending an indented &lt;summary&gt; element,
+    /// and for methods, constructors, and positional records additionally appending &lt;param&gt; elements, a &lt;returns&gt; element,
+    /// and ordered &lt;exception&gt; elements.
     /// </summary>
-    /// <param name="indent">The indent.</param>
-    /// <param name="member">The member.</param>
-    /// <param name="summary">The summary.</param>
-    /// <param name="exceptionTypes">The exception types.</param>
-    /// <returns>A string value produced by this method.</returns>
     private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes)
     {
         var sb = new StringBuilder();
@@ -1300,71 +1416,235 @@ internal sealed class AiXmlDocumentationLogic
         sb.Append(indent).Append("/// ").AppendLine(XmlEscape(summary));
         sb.Append(indent).AppendLine("/// </summary>");
 
-        var method = member as MethodDeclarationSyntax;
-        if (method is null)
+        // 1. Positional records or primary constructors parameters
+        IEnumerable<ParameterSyntax> parameters = null;
+        if (member is MethodDeclarationSyntax method)
         {
-            return sb.ToString();
+            parameters = method.ParameterList?.Parameters;
+        }
+        else if (member is ConstructorDeclarationSyntax constructor)
+        {
+            parameters = constructor.ParameterList?.Parameters;
+        }
+        else if (member is RecordDeclarationSyntax record)
+        {
+            parameters = record.ParameterList?.Parameters;
         }
 
-        foreach (var parameter in method.ParameterList.Parameters)
+        if (parameters is not null)
         {
-            var parameterName = parameter.Identifier.ValueText;
-            if (!string.IsNullOrWhiteSpace(parameterName))
+            foreach (var parameter in parameters)
             {
-                sb.Append(indent)
-                    .Append("/// <param name=\"")
-                    .Append(parameterName)
-                    .Append("\">")
-                    .Append(XmlEscape(BuildParameterDescription(parameterName)))
-                    .AppendLine("</param>");
+                var parameterName = parameter.Identifier.ValueText;
+                if (!string.IsNullOrWhiteSpace(parameterName))
+                {
+                    var paramType = parameter.Type?.ToString();
+                    sb.Append(indent)
+                        .Append("/// <param name=\"")
+                        .Append(parameterName)
+                        .Append("\">")
+                        .Append(XmlEscape(BuildParameterDescription(parameterName, paramType)))
+                        .AppendLine("</param>");
+                }
             }
         }
 
-        var returnsVoid = method.ReturnType is not null && method.ReturnType.ToString() == "void";
-        if (!returnsVoid)
+        // 2. Return description for methods
+        if (member is MethodDeclarationSyntax m)
         {
-            sb.Append(indent)
-                .Append("/// <returns>")
-                .Append(XmlEscape(BuildReturnDescription(method.ReturnType?.ToString())))
-                .AppendLine("</returns>");
+            var returnTypeStr = m.ReturnType?.ToString();
+            var returnsVoid = string.Equals(returnTypeStr, "void", StringComparison.OrdinalIgnoreCase);
+
+            if (!returnsVoid && !string.IsNullOrWhiteSpace(returnTypeStr))
+            {
+                sb.Append(indent)
+                    .Append("/// <returns>")
+                    .Append(XmlEscape(BuildReturnDescription(returnTypeStr, m.Identifier.ValueText)))
+                    .AppendLine("</returns>");
+            }
         }
 
-        foreach (var exceptionType in exceptionTypes.OrderBy(x => x, StringComparer.Ordinal))
+        // 3. Exceptions
+        if (exceptionTypes is not null)
         {
-            sb.Append(indent)
-                .Append("/// <exception cref=\"")
-                .Append(XmlEscape(exceptionType))
-                .Append("\">")
-                .Append(XmlEscape("Thrown when method validation or execution fails for this exception type."))
-                .AppendLine("</exception>");
+            foreach (var exceptionType in exceptionTypes.OrderBy(x => x, StringComparer.Ordinal))
+            {
+                sb.Append(indent)
+                    .Append("/// <exception cref=\"")
+                    .Append(XmlEscape(exceptionType))
+                    .Append("\">")
+                    .Append(XmlEscape("Thrown when an error occurs during execution."))
+                    .AppendLine("</exception>");
+            }
         }
 
         return sb.ToString();
     }
 
     /// <summary>
-    /// s a human-readable description string for a parameter by splitting the identifier on casing boundaries, lowercasing the result, and prefixing it with &quot;The &quot; and suffixing it with a period.
+    /// Builds a professional, context-aware description for a parameter based on its name and type.
     /// </summary>
-    /// <param name="parameterName">The parameter name.</param>
-    /// <returns>A string value produced by this method.</returns>
-    private static string BuildParameterDescription(string parameterName)
+    private static string BuildParameterDescription(string parameterName, string parameterType = null)
     {
-        return "The " + SplitIdentifier(parameterName).ToLowerInvariant() + ".";
+        if (string.IsNullOrWhiteSpace(parameterName))
+        {
+            return "The parameter value.";
+        }
+
+        if (string.Equals(parameterName, "cancellationToken", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(parameterType, "CancellationToken", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The cancellation token to monitor for cancellation requests.";
+        }
+
+        if (string.Equals(parameterName, "id", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The unique identifier.";
+        }
+
+        if (parameterName.EndsWith("Id", StringComparison.OrdinalIgnoreCase) && parameterName.Length > 2)
+        {
+            var entity = parameterName.Substring(0, parameterName.Length - 2);
+
+            return "The unique identifier of the " + SplitIdentifier(entity).ToLowerInvariant() + ".";
+        }
+
+        if (parameterName.EndsWith("Dto", StringComparison.OrdinalIgnoreCase) ||
+            parameterName.EndsWith("Request", StringComparison.OrdinalIgnoreCase) ||
+            parameterName.EndsWith("Command", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The " + SplitIdentifier(parameterName).ToLowerInvariant() + " containing the operation data.";
+        }
+
+        var split = SplitIdentifier(parameterName).ToLowerInvariant();
+
+        if (parameterType is not null && (parameterType.StartsWith("List<") || parameterType.StartsWith("IList<") || parameterType.StartsWith("IEnumerable<") || parameterType.StartsWith("IReadOnlyList<") || parameterType.EndsWith("[]")))
+        {
+            return "The collection of " + split + ".";
+        }
+
+        return "The " + split + ".";
     }
 
     /// <summary>
-    /// BuildReturnDescription returns a formatted description string, defaulting to &quot;result of operation.&quot; when the input returnType is null, empty, or whitespace, otherwise prefixing the type with &quot;A &quot; and appending &quot; value produced by this method.&quot;, with no side effects.
+    /// Builds a professional, context-aware description for a method return type.
     /// </summary>
-    /// <param name="returnType">The return type.</param>
-    /// <returns>A string value produced by this method.</returns>
-    private static string BuildReturnDescription(string returnType)
+    private static string BuildReturnDescription(string returnType, string methodName = null)
     {
         if (string.IsNullOrWhiteSpace(returnType))
         {
             return "The result of the operation.";
         }
 
-        return "A " + returnType + " value produced by this method.";
+        if (string.Equals(returnType, "bool", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(returnType, "Boolean", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(methodName) &&
+                (methodName.StartsWith("Is", StringComparison.OrdinalIgnoreCase) ||
+                 methodName.StartsWith("Has", StringComparison.OrdinalIgnoreCase) ||
+                 methodName.StartsWith("Can", StringComparison.OrdinalIgnoreCase) ||
+                 methodName.StartsWith("Try", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "true if the condition is met; otherwise, false.";
+            }
+
+            return "true if the operation succeeded; otherwise, false.";
+        }
+
+        if (string.Equals(returnType, "Task", StringComparison.OrdinalIgnoreCase))
+        {
+            return "A task representing the asynchronous operation.";
+        }
+
+        if (string.Equals(returnType, "ValueTask", StringComparison.OrdinalIgnoreCase))
+        {
+            return "A value task representing the asynchronous operation.";
+        }
+
+        if (returnType.StartsWith("Task<", StringComparison.OrdinalIgnoreCase) && returnType.EndsWith(">"))
+        {
+            var inner = returnType.Substring(5, returnType.Length - 6).Trim();
+            if (string.Equals(inner, "bool", StringComparison.OrdinalIgnoreCase))
+            {
+                return "A task representing the asynchronous operation. The task result is true if successful; otherwise, false.";
+            }
+
+            return "A task representing the asynchronous operation. The task result contains the " + CleanGenericTypeName(inner) + ".";
+        }
+
+        if (returnType.StartsWith("ValueTask<", StringComparison.OrdinalIgnoreCase) && returnType.EndsWith(">"))
+        {
+            var inner = returnType.Substring(10, returnType.Length - 11).Trim();
+
+            return "A value task representing the asynchronous operation. The task result contains the " + CleanGenericTypeName(inner) + ".";
+        }
+
+        if (returnType.StartsWith("IEnumerable<") || returnType.StartsWith("IReadOnlyList<") || returnType.StartsWith("List<") || returnType.EndsWith("[]"))
+        {
+            return "A collection of " + CleanGenericTypeName(returnType) + " items.";
+        }
+
+        return "The " + CleanGenericTypeName(returnType) + " result.";
+    }
+
+    /// <summary>
+    /// Converts a generic type name into a simplified, lowercase identifier by stripping generic arguments and array brackets, returning &quot;result&quot; when the input is null, empty, or whitespace.
+    /// </summary>
+    /// <param name="typeName">The type name.</param>
+    /// <returns>The string result.</returns>
+    private static string CleanGenericTypeName(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            return "result";
+        }
+
+        var idx = typeName.IndexOf('<');
+        var baseName = idx > 0 ? typeName.Substring(0, idx) : typeName;
+        baseName = baseName.Replace("[]", string.Empty);
+
+        return SplitIdentifier(baseName).ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Builds a documentation summary string for a property following official .NET documentation conventions.
+    /// </summary>
+    private static string BuildPropertySummary(PropertyDeclarationSyntax property)
+    {
+        var accessors = property.AccessorList?.Accessors;
+        var hasGet = accessors?.Any(x => x.IsKind(SyntaxKind.GetAccessorDeclaration)) ?? property.ExpressionBody is not null;
+        var hasSet = accessors?.Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration) || x.IsKind(SyntaxKind.InitAccessorDeclaration)) ?? false;
+
+        if (!hasGet && !hasSet && property.Initializer is not null)
+        {
+            hasGet = true;
+        }
+
+        var propType = property.Type?.ToString() ?? string.Empty;
+        var isBool = string.Equals(propType, "bool", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(propType, "Boolean", StringComparison.OrdinalIgnoreCase);
+
+        var propName = property.Identifier.ValueText;
+        var split = SplitIdentifier(propName).ToLowerInvariant();
+
+        if (isBool)
+        {
+            return hasGet && hasSet
+                ? "Gets or sets a value indicating whether " + split + "."
+                : hasSet
+                    ? "Sets a value indicating whether " + split + "."
+                    : "Gets a value indicating whether " + split + ".";
+        }
+
+        var verb = hasGet && hasSet ? "Gets or sets" : hasSet ? "Sets" : "Gets";
+
+        if (propType.StartsWith("List<") || propType.StartsWith("IList<") || propType.StartsWith("IReadOnlyList<") ||
+            propType.StartsWith("IEnumerable<") || propType.StartsWith("ICollection<") || propType.EndsWith("[]"))
+        {
+            return verb + " the collection of " + split + ".";
+        }
+
+        return verb + " the " + split + ".";
     }
 
     /// <summary>
@@ -1376,7 +1656,33 @@ internal sealed class AiXmlDocumentationLogic
     {
         if (member is BaseTypeDeclarationSyntax type)
         {
-            return "Represents " + SplitIdentifier(type.Identifier.ValueText).ToLowerInvariant() + ".";
+            var typeName = type.Identifier.ValueText;
+            if (type is InterfaceDeclarationSyntax)
+            {
+                return "Defines a contract for " + SplitIdentifier(typeName).ToLowerInvariant() + ".";
+            }
+            if (typeName.EndsWith("Command", StringComparison.OrdinalIgnoreCase))
+            {
+                var action = typeName.Substring(0, typeName.Length - "Command".Length);
+                var split = SplitIdentifier(action).ToLowerInvariant();
+
+                return "Represents a command to " + (string.IsNullOrWhiteSpace(split) ? "execute the operation" : split) + ".";
+            }
+            if (typeName.EndsWith("Query", StringComparison.OrdinalIgnoreCase))
+            {
+                var noun = typeName.Substring(0, typeName.Length - "Query".Length);
+                var split = SplitIdentifier(noun).ToLowerInvariant();
+
+                return "Represents a query to retrieve " + (string.IsNullOrWhiteSpace(split) ? "the requested data" : split) + ".";
+            }
+            if (typeName.EndsWith("Dto", StringComparison.OrdinalIgnoreCase) ||
+                typeName.EndsWith("Response", StringComparison.OrdinalIgnoreCase) ||
+                typeName.EndsWith("Request", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Represents the data structure for " + SplitIdentifier(typeName).ToLowerInvariant() + ".";
+            }
+
+            return "Represents " + SplitIdentifier(typeName).ToLowerInvariant() + ".";
         }
 
         if (member is PropertyDeclarationSyntax property)
@@ -1400,8 +1706,10 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         var method = (MethodDeclarationSyntax)member;
+        var methodName = method.Identifier.ValueText;
+        var splitMethod = SplitIdentifier(methodName).ToLowerInvariant();
 
-        return "Performs " + SplitIdentifier(method.Identifier.ValueText).ToLowerInvariant() + ".";
+        return "Executes " + (string.IsNullOrWhiteSpace(splitMethod) ? "the method" : splitMethod) + ".";
     }
 
     /// <summary>
@@ -1448,19 +1756,77 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
-    /// izes a sentence by collapsing whitespace, trimming surrounding quotes (&quot;, &apos;, `), appending a period if it lacks sentence-ending punctuation, and returning the fallback &quot;Performs operation.&quot; when the input is null or empty.
+    /// Sanitizes an AI completion by stripping thinking process, chain-of-thought blocks (<think>...</think>, "Thinking Process:", etc.), markdown code fences, and preambles.
+    /// </summary>
+    internal static string SanitizeAiCompletion(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        var cleaned = text.Trim();
+
+        // 1. Remove XML/HTML thinking tags: <think>...</think>, <thought>...</thought>, etc.
+        cleaned = Regex.Replace(cleaned, @"<think>[\s\S]*?</think>", string.Empty, RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @"<thought>[\s\S]*?</thought>", string.Empty, RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @"<reasoning>[\s\S]*?</reasoning>", string.Empty, RegexOptions.IgnoreCase);
+        // If an unclosed <think> tag was cut off by max_tokens, strip everything after <think>
+        cleaned = Regex.Replace(cleaned, @"<think>[\s\S]*$", string.Empty, RegexOptions.IgnoreCase);
+
+        // 2. Strip explicit "Thinking Process:" or "Thought:" blocks if present
+        if (Regex.IsMatch(cleaned, @"^(?:\*{0,2})Thinking Process(?:\*{0,2})\s*:", RegexOptions.IgnoreCase))
+        {
+            // If the model produced drafts like "Draft 1:", "Draft 2:", or "Summary:", try to pick the last non-empty draft
+            var draftMatches = Regex.Matches(cleaned, @"(?:Draft\s*\d+|Final Draft|Summary)\s*(?:\([^)]*\))?\s*:\s*\*?\*?([^\n\r*]+)", RegexOptions.IgnoreCase);
+            if (draftMatches.Count > 0)
+            {
+                var candidate = draftMatches[draftMatches.Count - 1].Groups[1].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(candidate) && candidate.Length > 5)
+                {
+                    cleaned = candidate;
+                }
+                else
+                {
+                    // Strip the entire thinking process prefix
+                    cleaned = string.Empty;
+                }
+            }
+            else
+            {
+                cleaned = string.Empty;
+            }
+        }
+
+        // 3. Remove markdown backticks and code fences if any
+        cleaned = Regex.Replace(cleaned, @"^```[a-zA-Z]*\s*", string.Empty);
+        cleaned = Regex.Replace(cleaned, @"\s*```$", string.Empty);
+
+        // 4. Remove common introductory preambles (e.g., "Here is the summary:", "Summary:", "Description:")
+        cleaned = Regex.Replace(cleaned, @"^(?:Here is (?:the|a) (?:concise )?summary(?:\s+sentence)?:\s*|Summary:\s*|Description:\s*)", string.Empty, RegexOptions.IgnoreCase);
+
+        // 5. Remove any leading XML comment markers if the model hallucinated them
+        cleaned = Regex.Replace(cleaned, @"^(?:\s*///\s*(?:<summary>)?\s*)+", string.Empty, RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @"(?:\s*///\s*</summary>\s*)+$", string.Empty, RegexOptions.IgnoreCase);
+
+        return cleaned.Trim();
+    }
+
+    /// <summary>
+    /// Normalizes a sentence by stripping reasoning/thinking artifacts, collapsing whitespace, trimming surrounding quotes, appending a period if lacking ending punctuation, and returning the fallback "Performs the operation." when empty.
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string NormalizeSentence(string text)
+    internal static string NormalizeSentence(string text)
     {
-        var compact = Regex.Replace(text ?? string.Empty, "\\s+", " ").Trim();
+        var sanitized = SanitizeAiCompletion(text);
+        var compact = Regex.Replace(sanitized ?? string.Empty, "\\s+", " ").Trim();
         if (string.IsNullOrEmpty(compact))
         {
             return "Performs the operation.";
         }
 
-        compact = compact.Trim('"', '\'', '`');
+        compact = compact.Trim('"', '\'', '`', '*');
         if (!compact.EndsWith(".", StringComparison.Ordinal) &&
             !compact.EndsWith("!", StringComparison.Ordinal) &&
             !compact.EndsWith("?", StringComparison.Ordinal))
@@ -1486,6 +1852,12 @@ internal sealed class AiXmlDocumentationLogic
             .Replace("'", "&apos;");
     }
 
+    /// <summary>
+    /// Returns the specified text unchanged if it is null, empty, or within the maximum length; otherwise, truncates the text to the specified maximum length and appends a period.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="maxLength">The max length.</param>
+    /// <returns>The string result.</returns>
     private static string Truncate(string text, int maxLength)
     {
         if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
@@ -1496,6 +1868,13 @@ internal sealed class AiXmlDocumentationLogic
         return text.Substring(0, maxLength) + "...";
     }
 
+    /// <summary>
+    /// Constructs a formatted line-by-line diff preview comparing the original and updated text, limited to the specified maximum number of changed lines and marked as truncated when that threshold is reached.
+    /// </summary>
+    /// <param name="originalText">The original text.</param>
+    /// <param name="updatedText">The updated text.</param>
+    /// <param name="maxChangedLines">The max changed lines.</param>
+    /// <returns>The string result.</returns>
     private static string BuildChangesPreview(string originalText, string updatedText, int maxChangedLines)
     {
         var oldLines = (originalText ?? string.Empty).Replace("\r\n", "\n").Split('\n');
