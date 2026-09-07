@@ -444,6 +444,16 @@ internal sealed partial class PackageIds
     public const int CmdIDCodeJanitorOptions = 0x2200;
 
     /// <summary>
+    /// The cmd idcode janitor export repository settings.
+    /// </summary>
+    public const int CmdIDCodeJanitorExportRepositorySettings = 0x2210;
+
+    /// <summary>
+    /// The cmd idcode janitor import repository settings.
+    /// </summary>
+    public const int CmdIDCodeJanitorImportRepositorySettings = 0x2220;
+
+    /// <summary>
     /// The cmd idcode janitor read only toggle.
     /// </summary>
     public const int CmdIDCodeJanitorReadOnlyToggle = 0x2300;

@@ -69,6 +69,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CollapseAllSolutionExplorerCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CollapseSelectedSolutionExplorerCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\CommentFormatCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ExportRepositorySettingsCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\ImportRepositorySettingsCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FindInSolutionExplorerCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\JoinLinesCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Integration\Commands\FixNamespaceCommand.cs" />
@@ -149,6 +151,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\InsertExplicitAccessModifierLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\InsertWhitespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveRegionLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RepositoryCleanupSettings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveXmlDocumentationLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveWhitespaceLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveByteOrderMarkLogic.cs" />

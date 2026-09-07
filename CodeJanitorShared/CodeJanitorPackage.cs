@@ -376,6 +376,8 @@ public sealed class CodeJanitorPackage : AsyncPackage
         await FixNamespaceCommand.InitializeAsync(this);
         await FindInSolutionExplorerCommand.InitializeAsync(this);
         await JoinLinesCommand.InitializeAsync(this);
+        await ExportRepositorySettingsCommand.InitializeAsync(this);
+        await ImportRepositorySettingsCommand.InitializeAsync(this);
         await OptionsCommand.InitializeAsync(this);
         await ReadOnlyToggleCommand.InitializeAsync(this);
         await RemoveRegionCommand.InitializeAsync(this);

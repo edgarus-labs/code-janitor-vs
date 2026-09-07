@@ -61,6 +61,7 @@
     <Compile Include="Ai\AiCoverageTargetLogicTests.cs" />
     <Compile Include="Ai\GitHubCopilotDetectorTests.cs" />
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
+    <Compile Include="Cleaning\RepositoryCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\RemoveXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />

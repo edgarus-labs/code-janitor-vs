@@ -616,6 +616,14 @@
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuMetaGroup" />
     </CommandPlacement>
 
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorExportRepositorySettings" priority="0x0300">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuMetaGroup" />
+    </CommandPlacement>
+
+    <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorImportRepositorySettings" priority="0x0400">
+      <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorMenuMetaGroup" />
+    </CommandPlacement>
+
     <CommandPlacement guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorSpadeOptions" priority="0x0100">
       <Parent guid="GuidCodeJanitorMenuSet" id="GroupIDCodeJanitorToolbarSpadeMetaGroup" />
     </CommandPlacement>
@@ -801,6 +809,8 @@
       <IDSymbol name="CmdIDCodeJanitorFindInSolutionExplorer" value="0x2000" />
       <IDSymbol name="CmdIDCodeJanitorJoinLines" value="0x2100" />
       <IDSymbol name="CmdIDCodeJanitorOptions" value="0x2200" />
+      <IDSymbol name="CmdIDCodeJanitorExportRepositorySettings" value="0x2210" />
+      <IDSymbol name="CmdIDCodeJanitorImportRepositorySettings" value="0x2220" />
       <IDSymbol name="CmdIDCodeJanitorReadOnlyToggle" value="0x2300" />
       <IDSymbol name="CmdIDCodeJanitorRemoveRegion" value="0x2400" />
       <IDSymbol name="CmdIDCodeJanitorReorganizeActiveCode" value="0x2500" />

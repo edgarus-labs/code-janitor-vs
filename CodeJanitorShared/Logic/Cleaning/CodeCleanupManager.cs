@@ -501,9 +501,11 @@ internal sealed class CodeCleanupManager
             }
 
             var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
-            var fileHadBom = Settings.Default.Cleaning_RemoveByteOrderMark &&
+            var removeByteOrderMark = RepositoryCleanupSettings.LoadForFile(projectItemFileName)
+                .TryGetBoolean("Cleaning_RemoveByteOrderMark", Settings.Default.Cleaning_RemoveByteOrderMark);
+            var fileHadBom = removeByteOrderMark &&
                              RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
-            var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark
+            var targetEncoding = removeByteOrderMark
                 ? new UTF8Encoding(false)
                 : encoding;
 
@@ -709,22 +711,28 @@ internal sealed class CodeCleanupManager
     internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
     {
         var editorConfig = EditorConfigHelper.LoadCSharpOptions(filePath);
+        var repositoryOverrides = RepositoryCleanupSettings.LoadForFile(filePath);
+        bool IsEnabled(string settingName, bool fallback) => repositoryOverrides.TryGetBoolean(settingName, fallback);
         var transformations = new List<ISourceTransformation>();
 
-        // Region directives are policy-only structure and should always be removed.
-        transformations.Add(new RegionDirectiveRemover());
+        // Region directives are policy-only structure and are removed unless the repository
+        // policy (.codejanitor) explicitly opts out via removeRegions.
+        if (repositoryOverrides.RemoveRegions ?? true)
+        {
+            transformations.Add(new RegionDirectiveRemover());
+        }
 
-        if (Settings.Default.Cleaning_RemoveByteOrderMark)
+        if (IsEnabled("Cleaning_RemoveByteOrderMark", Settings.Default.Cleaning_RemoveByteOrderMark))
         {
             transformations.Add(new ByteOrderMarkConverter());
         }
 
-        if (Settings.Default.Cleaning_MoveUsingsOutsideNamespace)
+        if (IsEnabled("Cleaning_MoveUsingsOutsideNamespace", Settings.Default.Cleaning_MoveUsingsOutsideNamespace))
         {
             transformations.Add(new MoveUsingsOutsideNamespaceConverter());
         }
 
-        if (Settings.Default.Cleaning_ConvertToFileScopedNamespace)
+        if (IsEnabled("Cleaning_ConvertToFileScopedNamespace", Settings.Default.Cleaning_ConvertToFileScopedNamespace))
         {
             var fileScopedConverter = new FileScopedNamespaceConverter();
             if (!fileScopedConverter.HasMultipleNamespaces(source))
@@ -733,133 +741,138 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (Settings.Default.Cleaning_ConvertToVarWhenApparent)
+        if (IsEnabled("Cleaning_ConvertToVarWhenApparent", Settings.Default.Cleaning_ConvertToVarWhenApparent))
         {
             transformations.Add(new VarWhenApparentConverter());
         }
 
-        if (Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe)
+        if (IsEnabled("Cleaning_MakeFieldsReadonlyWhenSafe", Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe))
         {
             transformations.Add(new ReadonlyFieldConverter());
         }
 
-        if (Settings.Default.Cleaning_SealClassesWhenSafe)
+        if (IsEnabled("Cleaning_SealClassesWhenSafe", Settings.Default.Cleaning_SealClassesWhenSafe))
         {
             transformations.Add(new SealedClassConverter());
         }
 
-        if (Settings.Default.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)
+        if (IsEnabled("Cleaning_InsertBlankLineBeforeReturnAndThrowStatements", Settings.Default.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements))
         {
             transformations.Add(new ReturnThrowBlankLinePaddingConverter());
         }
 
-        if (Settings.Default.Cleaning_ConvertToCollectionExpressions)
+        if (IsEnabled("Cleaning_ConvertToCollectionExpressions", Settings.Default.Cleaning_ConvertToCollectionExpressions))
         {
             transformations.Add(new CollectionExpressionConverter());
         }
 
-        if (Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869)
+        if (IsEnabled("Cleaning_ReuseJsonSerializerOptionsForCA1869", Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869))
         {
             transformations.Add(new JsonSerializerOptionsReuseConverter());
         }
 
-        if (Settings.Default.Cleaning_SimplifySingleStatementLambdas)
+        if (IsEnabled("Cleaning_SimplifySingleStatementLambdas", Settings.Default.Cleaning_SimplifySingleStatementLambdas))
         {
             transformations.Add(new SingleStatementLambdaConverter());
         }
 
-        if (Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks)
+        if (IsEnabled("Cleaning_ConvertToPatternMatchingNullChecks", Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks))
         {
             transformations.Add(new NullCheckPatternMatchingConverter());
         }
 
-        if (Settings.Default.Cleaning_ConvertStringFormatToInterpolation)
+        if (IsEnabled("Cleaning_ConvertStringFormatToInterpolation", Settings.Default.Cleaning_ConvertStringFormatToInterpolation))
         {
             transformations.Add(new StringInterpolationConverter());
         }
 
-        if (Settings.Default.Cleaning_ConvertToStringNameOf)
+        if (IsEnabled("Cleaning_ConvertToStringNameOf", Settings.Default.Cleaning_ConvertToStringNameOf))
         {
             transformations.Add(new NameOfOperatorConverter());
         }
 
-        if (Settings.Default.Cleaning_InlineOutVariableDeclarations)
+        if (IsEnabled("Cleaning_InlineOutVariableDeclarations", Settings.Default.Cleaning_InlineOutVariableDeclarations))
         {
             transformations.Add(new OutVarInliningConverter());
         }
 
-        if (Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties ||
-            Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs)
+        if (IsEnabled("Cleaning_InsertExplicitAccessModifiersOnClasses", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnDelegates", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnEnumerations", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnEvents", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnFields", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnInterfaces", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnMethods", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnProperties", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties) ||
+            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnStructs", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs))
         {
             transformations.Add(new ExplicitAccessModifierConverter());
         }
 
-        if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements ||
-            Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)
+        if (IsEnabled("Cleaning_InsertBlankLinePaddingBeforeClasses", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterClasses", Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeDelegates", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterDelegates", Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeEnumerations", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterEnumerations", Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeEvents", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterEvents", Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeInterfaces", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterInterfaces", Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeMethods", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterMethods", Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeNamespaces", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterNamespaces", Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeStructs", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterStructs", Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks", Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeEndRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingAfterEndRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeCaseStatements", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements) ||
+            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeSingleLineComments", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments))
         {
             transformations.Add(new BlankLinePaddingConverter());
         }
 
-        if (Settings.Default.Cleaning_UpdateEndRegionDirectives)
+        if (IsEnabled("Cleaning_UpdateEndRegionDirectives", Settings.Default.Cleaning_UpdateEndRegionDirectives))
         {
             transformations.Add(new UpdateEndRegionDirectivesConverter());
         }
 
-        if (Settings.Default.Cleaning_UpdateSingleLineMethods)
+        if (IsEnabled("Cleaning_UpdateSingleLineMethods", Settings.Default.Cleaning_UpdateSingleLineMethods))
         {
             transformations.Add(new UpdateSingleLineMethodsConverter());
         }
 
-        if (Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)
+        if (IsEnabled("Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine", Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine))
         {
             transformations.Add(new UpdateAccessorsToBothBeSingleLineOrMultiLineConverter());
         }
 
-        if (Settings.Default.Formatting_CommentRunDuringCleanup)
+        if (IsEnabled("Formatting_CommentRunDuringCleanup", Settings.Default.Formatting_CommentRunDuringCleanup))
         {
             transformations.Add(new CommentFormatConverter());
         }
 
-        if (!string.IsNullOrWhiteSpace(Settings.Default.Cleaning_UpdateFileHeaderCSharp))
+        var fileHeader = repositoryOverrides.TryGetString("Cleaning_UpdateFileHeaderCSharp", Settings.Default.Cleaning_UpdateFileHeaderCSharp);
+        if (!string.IsNullOrWhiteSpace(fileHeader))
         {
-            transformations.Add(new DelegateSourceTransformation("Update C# file header", ApplyConfiguredCSharpFileHeader));
+            var fileHeaderPosition = (HeaderPosition)repositoryOverrides.TryGetInt32("Cleaning_UpdateFileHeader_HeaderPosition", Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition);
+            var fileHeaderUpdateMode = (HeaderUpdateMode)repositoryOverrides.TryGetInt32("Cleaning_UpdateFileHeader_HeaderUpdateMode", Settings.Default.Cleaning_UpdateFileHeader_HeaderUpdateMode);
+            transformations.Add(new DelegateSourceTransformation(
+                "Update C# file header",
+                text => ApplyConfiguredCSharpFileHeader(text, fileHeader, fileHeaderPosition, fileHeaderUpdateMode)));
         }
 
         if (string.Equals(editorConfig.IndentStyle, "space", StringComparison.OrdinalIgnoreCase))
@@ -868,14 +881,14 @@ internal sealed class CodeCleanupManager
             transformations.Add(new TabToSpaceConverter(tabSize));
         }
 
-        if (!Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements &&
-            editorConfig.SortSystemDirectivesFirst == true &&
-            editorConfig.SeparateImportDirectiveGroups != true)
+        if (!IsEnabled("Cleaning_RunVisualStudioRemoveAndSortUsingStatements", Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) &&
+            (repositoryOverrides.OrganizeUsings == true ||
+             (editorConfig.SortSystemDirectivesFirst == true && editorConfig.SeparateImportDirectiveGroups != true)))
         {
             transformations.Add(new UsingDirectiveOrganizer());
         }
 
-        if (Settings.Default.Cleaning_RemoveEndOfLineWhitespace)
+        if (IsEnabled("Cleaning_RemoveEndOfLineWhitespace", Settings.Default.Cleaning_RemoveEndOfLineWhitespace))
         {
             transformations.Add(new RemoveTrailingWhitespaceConverter());
         }
@@ -884,37 +897,37 @@ internal sealed class CodeCleanupManager
             transformations.Add(new RemoveTrailingWhitespaceConverter());
         }
 
-        if (Settings.Default.Cleaning_RemoveBlankLinesAtTop)
+        if (IsEnabled("Cleaning_RemoveBlankLinesAtTop", Settings.Default.Cleaning_RemoveBlankLinesAtTop))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines at top", RemoveBlankLinesAtTop));
         }
 
-        if (Settings.Default.Cleaning_RemoveBlankLinesAtBottom)
+        if (IsEnabled("Cleaning_RemoveBlankLinesAtBottom", Settings.Default.Cleaning_RemoveBlankLinesAtBottom))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines at bottom", RemoveBlankLinesAtBottom));
         }
 
-        if (Settings.Default.Cleaning_RemoveBlankLinesAfterAttributes)
+        if (IsEnabled("Cleaning_RemoveBlankLinesAfterAttributes", Settings.Default.Cleaning_RemoveBlankLinesAfterAttributes))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines after attributes", RemoveBlankLinesAfterAttributes));
         }
 
-        if (Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace)
+        if (IsEnabled("Cleaning_RemoveBlankLinesAfterOpeningBrace", Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines after opening brace", RemoveBlankLinesAfterOpeningBrace));
         }
 
-        if (Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace)
+        if (IsEnabled("Cleaning_RemoveBlankLinesBeforeClosingBrace", Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines before closing brace", RemoveBlankLinesBeforeClosingBrace));
         }
 
-        if (Settings.Default.Cleaning_RemoveBlankLinesBetweenChainedStatements)
+        if (IsEnabled("Cleaning_RemoveBlankLinesBetweenChainedStatements", Settings.Default.Cleaning_RemoveBlankLinesBetweenChainedStatements))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines between chained statements", RemoveBlankLinesBetweenChainedStatements));
         }
 
-        if (Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines)
+        if (IsEnabled("Cleaning_RemoveMultipleConsecutiveBlankLines", Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines))
         {
             transformations.Add(new NormalizeBlankLinesConverter());
         }
@@ -969,14 +982,20 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Applies the configured C# file header to the source by normalizing line endings and inserting or replacing it at the document start or after usings based on settings, returning the source unchanged if the header setting is blank or the position is unsupported.
+    /// Applies the configured C# file header to the source by normalizing line endings and inserting or replacing it at the document start or after usings, returning the source unchanged if the header is blank or the position is unsupported.
     /// </summary>
     /// <param name="source">The source.</param>
+    /// <param name="settingsFileHeader">The effective file header text.</param>
+    /// <param name="headerPosition">The effective header position.</param>
+    /// <param name="headerUpdateMode">The effective header update mode.</param>
     /// <returns>A string value produced by this method.</returns>
 
-    private static string ApplyConfiguredCSharpFileHeader(string source)
+    private static string ApplyConfiguredCSharpFileHeader(
+        string source,
+        string settingsFileHeader,
+        HeaderPosition headerPosition,
+        HeaderUpdateMode headerUpdateMode)
     {
-        var settingsFileHeader = Settings.Default.Cleaning_UpdateFileHeaderCSharp;
         if (string.IsNullOrWhiteSpace(settingsFileHeader))
         {
             return source;
@@ -988,9 +1007,6 @@ internal sealed class CodeCleanupManager
         {
             settingsFileHeader += newline;
         }
-
-        var headerPosition = (HeaderPosition)Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition;
-        var headerUpdateMode = (HeaderUpdateMode)Settings.Default.Cleaning_UpdateFileHeader_HeaderUpdateMode;
 
         switch (headerPosition)
         {

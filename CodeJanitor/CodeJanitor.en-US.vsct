@@ -244,6 +244,20 @@
         </Strings>
       </Button>
 
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorExportRepositorySettings" priority="0x0300" type="Button">
+        <Strings>
+          <ButtonText>Export Settings to .codejanitor</ButtonText>
+          <CommandName>CodeJanitor.ExportRepositorySettings</CommandName>
+        </Strings>
+      </Button>
+
+      <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorImportRepositorySettings" priority="0x0400" type="Button">
+        <Strings>
+          <ButtonText>Import Settings from .codejanitor</ButtonText>
+          <CommandName>CodeJanitor.ImportRepositorySettings</CommandName>
+        </Strings>
+      </Button>
+
       <Button guid="GuidCodeJanitorMenuSet" id="CmdIDCodeJanitorReadOnlyToggle" priority="0x0100" type="Button">
         <Icon guid="GuidImageUnlock" id="IconUnlock" />
         <CommandFlag>DefaultInvisible</CommandFlag>
