@@ -110,9 +110,22 @@
 						<Button
 							Margin="12,0,0,0"
 							Padding="10,2"
-							Command="{Binding TestAiXmlDocumentationConnectionCommand}"
-							Content="Test Connection" />
+							Command="{Binding TestAiApiConnectionCommand}"
+							Content="Test API Connection"
+							ToolTip="Checks that the endpoint is reachable and the API key is accepted, independent of the model name." />
+						<Button
+							Margin="6,0,0,0"
+							Padding="10,2"
+							Command="{Binding TestAiModelCommand}"
+							Content="Test Model"
+							ToolTip="Sends a simple probe prompt to the configured model and checks that a valid response comes back." />
 					</StackPanel>
+
+					<TextBlock
+						Margin="0,4,0,0"
+						FontStyle="Italic"
+						Text="{Binding AiXmlDocumentationConnectionStatus}"
+						TextWrapping="Wrap" />
 
 					<StackPanel Margin="0,6,0,0" Orientation="Horizontal">
 						<TextBlock VerticalAlignment="Center" Text="Max parallel files" />
@@ -193,12 +206,6 @@
 					<CheckBox Content="Ignore unit test methods (Fact/Theory/TestMethod/etc.)" IsChecked="{Binding AiXmlDocumentationIgnoreTestMethods}" />
 					<TextBlock Margin="0,6,0,0" Text="Ignore regex (full member path Namespace.Type.Method)" />
 					<TextBox Text="{Binding AiXmlDocumentationIgnorePattern, UpdateSourceTrigger=PropertyChanged}" />
-
-					<TextBlock
-						Margin="0,8,0,0"
-						FontStyle="Italic"
-						Text="{Binding AiXmlDocumentationConnectionStatus}"
-						TextWrapping="Wrap" />
 				</StackPanel>
 			</GroupBox>
 			<GroupBox Margin="0,8,0,0" Header="AI Unit Test Generation">

@@ -15,6 +15,24 @@ Code Janitor combines the established CodeMaid feature set with ongoing moderniz
 - Fix and normalize namespaces.
 - Show a one-time cleanup options dialog for selected-scope cleanup.
 
+### C# text cleanup preview
+
+The selected-scope cleanup options dialog includes **Preview C# Text Changes**.
+It builds a plan using the configured deterministic C# text transformations without
+writing source files or invoking AI. The preview provides:
+
+- a native, read-only Visual Studio side-by-side diff, with before/after text fallback;
+- per-file inclusion and per-file rule selection, recalculated from the original text;
+- rule outcomes: Changed, No change or Excluded;
+- explicit skip/error statuses;
+- application of the approved result to editor buffers, rejecting stale input;
+- existing undo-transaction integration, without automatic file saving.
+
+This is not a preview of the complete editor cleanup workflow. AI, type splitting,
+namespace fixing, reorganization, Visual Studio formatting and encoding changes
+are outside this first increment. **Start Cleanup** retains its existing behavior.
+See [Cleanup Preview](cleanup-preview.md) for instructions and limitations.
+
 ## Code organization
 
 - Reorganize members according to configured conventions.

@@ -33,10 +33,18 @@ The current development branch includes:
 - configurable XMLDoc filters, controls and budget limits;
 - secure settings for AI-assisted operations;
 - a one-time cleanup options dialog for selected-scope cleanup;
+- a C# text cleanup preview with a native Visual Studio diff, per-file and per-rule selection, and stale-buffer protection;
 - dedicated Razor formatter options and tests;
 - continued maintenance of the original cleaning, navigation and code-organization features.
 
 AI-assisted features are opt-in and designed to provide explicit scope and budget controls. They do not run silently over an entire solution.
+
+To preview deterministic C# changes, select files or folders in Solution Explorer,
+run **Cleanup Selected Code**, and choose **Preview C# Text Changes**. Review the
+diff and rules, then use **Apply to Editors** to update selected buffers without
+saving files. This preview does not run AI, split types, change encoding, or invoke
+editor-only cleanup steps. See the [cleanup preview guide](docs/cleanup-preview.md)
+for scope, safety behavior and the manual verification checklist.
 
 The project is currently under active development. Releases and marketplace publication will follow after the modernization and verification work reaches a stable milestone.
 
@@ -66,6 +74,7 @@ The original project supports a broad range of languages and file types, includi
 - [Development guide](docs/development.md)
 - [Architecture overview](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
+- [Sequential feature delivery plan](docs/todo/feature-delivery-plan.md)
 - [Licensing and attribution](docs/licensing.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)

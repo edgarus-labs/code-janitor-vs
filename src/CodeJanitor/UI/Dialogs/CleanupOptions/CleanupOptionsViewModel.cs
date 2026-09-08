@@ -1,9 +1,9 @@
-using CodeJanitor.Properties;
-using CodeJanitor.UI.Dialogs.Options;
-using CodeJanitor.UI.Dialogs.Options.Cleaning;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.Options;
+using CodeJanitor.UI.Dialogs.Options.Cleaning;
 
 namespace CodeJanitor.UI.Dialogs.CleanupOptions;
 
@@ -121,6 +121,16 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// Gets the command that confirms and starts cleanup.
     /// </summary>
     public DelegateCommand StartCleanupCommand => _startCleanupCommand ?? (_startCleanupCommand = new DelegateCommand(_ => DialogResult = true));
+
+    internal bool PreviewRequested { get; private set; }
+
+    private DelegateCommand _previewCleanupCommand;
+
+    public DelegateCommand PreviewCleanupCommand => _previewCleanupCommand ?? (_previewCleanupCommand = new DelegateCommand(_ =>
+    {
+        PreviewRequested = true;
+        DialogResult = true;
+    }));
 
     private DelegateCommand _cancelCommand;
 

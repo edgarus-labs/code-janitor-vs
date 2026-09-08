@@ -16,6 +16,24 @@ Shared logic contains cleaning, formatting, organization and parsing behavior th
 
 Unit tests protect behavior that is especially sensitive to source syntax, including code cleaning and Razor formatting.
 
+### Cleanup preview
+
+`CodeCleanupManager.CreateHeadlessCSharpPipeline` builds the same configured text
+pipeline used by ordinary headless C# cleanup. `SourceTransformationPipeline.Preview`
+returns immutable original/output snapshots and per-step outcomes; excluded rule
+indices are evaluated in the original pipeline order. `Run` and `Preview` share
+the execution loop to avoid behavior drift.
+
+The selected-scope command captures source snapshots, presents the preview and
+applies only selected results to editor buffers after an ordinal source comparison.
+It does not save files or invoke ordinary cleanup after approval. The WPF dialog
+hosts Visual Studio's read-only difference viewer over in-memory buffers, disposing
+the viewer/buffer when the selection changes or the dialog closes. A text fallback
+is available when the native difference service cannot be used.
+
+This first increment does not plan disk operations, encoding changes, AI calls or
+editor-only cleanup. See [Cleanup Preview](cleanup-preview.md) for the boundary.
+
 ### Deployment
 
 The VSIX manifest, package registration and deployment scripts define how the extension is installed and loaded by Visual Studio.

@@ -15,9 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor.UnitTests", "CodeJanitor.UnitTests\CodeJanitor.UnitTests.csproj", "{27C78B2A-18BC-4CE0-BCB1-DB4C30D805BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor.UnitTests", "tests\CodeJanitor.UnitTests\CodeJanitor.UnitTests.csproj", "{27C78B2A-18BC-4CE0-BCB1-DB4C30D805BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor", "CodeJanitor\CodeJanitor.csproj", "{6D3EDF86-D2F8-4779-8A95-052227ED56A9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeJanitor", "src\CodeJanitor\CodeJanitor.csproj", "{6D3EDF86-D2F8-4779-8A95-052227ED56A9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BC760612-3651-44E4-9D0D-06FBA79F9596}"
 EndProject

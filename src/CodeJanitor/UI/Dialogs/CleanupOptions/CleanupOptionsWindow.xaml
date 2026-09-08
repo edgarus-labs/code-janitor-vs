@@ -76,6 +76,11 @@
 			Background="{StaticResource FCodeJanitorGray}">
 			<StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
 				<Button
+					Command="{Binding PreviewCleanupCommand}"
+					Content="_Preview C# Text Changes"
+					MinWidth="190"
+					Style="{StaticResource ButtonDialog}" />
+				<Button
 					Command="{Binding StartCleanupCommand}"
 					Content="_Start Cleanup"
 					IsDefault="True"

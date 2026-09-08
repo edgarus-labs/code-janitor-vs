@@ -181,14 +181,74 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     }
 
     /// <summary>
-    /// Sends an authenticated POST request with a probe prompt to the configured AI XML documentation endpoint using a cancellable HttpClient, then returns a `ConnectionTestResult` indicating success, an HTTP/status error, a missing/malformed response body, a timeout, or any thrown exception.
+    /// Sends an authenticated probe request to the configured endpoint and checks only the
+    /// transport/HTTP-level outcome (reachable and authenticated), independent of whether the
+    /// configured model name is valid. Use <see cref="TestModelAsync" /> to additionally verify
+    /// the model itself produces a usable response.
     /// </summary>
     /// <returns>A Task&lt;ConnectionTestResult&gt; value produced by this method.</returns>
-    internal async Task<ConnectionTestResult> TestConnectionAsync()
+    internal async Task<ConnectionTestResult> TestApiConnectionAsync()
     {
         if (!IsEndpointConfigured(EndpointUrl))
         {
-            return new ConnectionTestResult { ErrorMessage = "AI XML documentation endpoint is not configured." };
+            return new ConnectionTestResult { ErrorMessage = "AI endpoint is not configured." };
+        }
+
+        var requestJson = BuildRequestJson("Reply with exactly: OK", 16);
+        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
+        using (var httpClient = new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan })
+        using (var message = new HttpRequestMessage(HttpMethod.Post, EndpointUrl))
+        {
+            ApplyAuthentication(message.Headers);
+            message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+            try
+            {
+                using (var response = await httpClient.SendAsync(message, timeout.Token).ConfigureAwait(false))
+                {
+                    // Any response from the server (even a model/validation error) proves the
+                    // endpoint is reachable at the HTTP layer; only auth failures are a real
+                    // "API connection" failure here, since model correctness is tested separately.
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                        return new ConnectionTestResult
+                        {
+                            ErrorMessage = $"AI endpoint rejected the request ({(int)response.StatusCode} {response.ReasonPhrase}). Check the API key. {Truncate(responseText, 512)}"
+                        };
+                    }
+
+                    return new ConnectionTestResult { Succeeded = true };
+                }
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                return new ConnectionTestResult
+                {
+                    ErrorMessage = $"Connection test timed out after {TimeoutSeconds} seconds."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ConnectionTestResult { ErrorMessage = ex.Message };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sends an authenticated POST request with a probe prompt to the configured AI endpoint using
+    /// the configured model, then returns a `ConnectionTestResult` indicating success, an
+    /// HTTP/status error, a missing/malformed response body, a timeout, or any thrown exception.
+    /// Use this to verify the configured model name actually works, as opposed to
+    /// <see cref="TestApiConnectionAsync" /> which only checks endpoint reachability/authentication.
+    /// </summary>
+    /// <returns>A Task&lt;ConnectionTestResult&gt; value produced by this method.</returns>
+    internal async Task<ConnectionTestResult> TestModelAsync()
+    {
+        if (!IsEndpointConfigured(EndpointUrl))
+        {
+            return new ConnectionTestResult { ErrorMessage = "AI endpoint is not configured." };
         }
 
         var requestJson = BuildRequestJson("Reply with exactly: OK", 512);
@@ -208,7 +268,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                     {
                         return new ConnectionTestResult
                         {
-                            ErrorMessage = $"AI endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}. {Truncate(responseText, 512)}"
+                            ErrorMessage = $"Model '{Model}' request failed with {(int)response.StatusCode} {response.ReasonPhrase}. {Truncate(responseText, 512)}"
                         };
                     }
 
@@ -217,7 +277,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                     {
                         return new ConnectionTestResult
                         {
-                            ErrorMessage = $"AI endpoint response did not contain message content. Response: {Truncate(responseText, 512)}"
+                            ErrorMessage = $"Model '{Model}' response did not contain message content. Response: {Truncate(responseText, 512)}"
                         };
                     }
 
@@ -228,7 +288,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             {
                 return new ConnectionTestResult
                 {
-                    ErrorMessage = $"Connection test timed out after {TimeoutSeconds} seconds."
+                    ErrorMessage = $"Model test timed out after {TimeoutSeconds} seconds."
                 };
             }
             catch (Exception ex)

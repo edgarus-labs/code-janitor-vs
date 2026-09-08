@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using CodeJanitor.UI.Dialogs.CleanupOptions;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -135,6 +136,130 @@ public sealed class SourceTransformationPipelineTests
         Assert.IsTrue(names.Contains("Readonly Field"));
         Assert.IsTrue(names.Contains("Sealed Class"));
         Assert.IsTrue(names.Contains("File-Scoped Namespace"));
+    }
+
+    [TestMethod]
+    public void PreviewFile_RuleChangesRecomputeFromOriginalAndFileExclusionPreventsApply()
+    {
+        var source = "\tclass C {}";
+        var file = new CleanupPreviewFile("Example.cs", source,
+            new SourceTransformationPipeline(new TabToSpaceConverter(), new EnsureFinalNewlineConverter()));
+
+        file.Rules[0].Include = false;
+        Assert.AreEqual(new EnsureFinalNewlineConverter().Apply(source), file.UpdatedSource);
+        file.Rules[0].Include = true;
+        Assert.AreEqual(new EnsureFinalNewlineConverter().Apply(new TabToSpaceConverter().Apply(source)), file.UpdatedSource);
+        file.Include = false;
+        Assert.IsFalse(file.TryApply(source, _ => Assert.Fail("Excluded files must not be applied.")));
+    }
+
+    [TestMethod]
+    public void PreviewViewModel_DisablesApplyWithoutSelectedChanges()
+    {
+        var file = new CleanupPreviewFile("Example.cs", "\tclass C {}",
+            new SourceTransformationPipeline(new TabToSpaceConverter()));
+        var viewModel = new CleanupPreviewViewModel(new[] { file });
+
+        Assert.IsTrue(viewModel.ApplyCommand.CanExecute(null));
+        file.Include = false;
+        Assert.IsFalse(viewModel.ApplyCommand.CanExecute(null));
+        file.Include = true;
+        file.Rules[0].Include = false;
+        Assert.IsFalse(viewModel.ApplyCommand.CanExecute(null));
+    }
+
+    [TestMethod]
+    public void Preview_ApplyRejectsStaleSourceWithoutCallingWriter()
+    {
+        var preview = new SourceTransformationPipeline(new TabToSpaceConverter()).Preview("\tclass C {}");
+        var called = false;
+
+        Assert.IsFalse(preview.TryApply("class UserEdit {}", _ => called = true));
+        Assert.IsFalse(called);
+    }
+
+    [TestMethod]
+    public void Preview_ApplyWritesExactlyTheApprovedResult()
+    {
+        var source = "\tclass C {}";
+        var preview = new SourceTransformationPipeline(new TabToSpaceConverter()).Preview(source);
+        string applied = null;
+
+        Assert.IsTrue(preview.TryApply(source, updated => applied = updated));
+        Assert.AreEqual(preview.UpdatedSource, applied);
+    }
+
+    [TestMethod]
+    public void Preview_ApplyDoesNotWriteWhenNothingChanged()
+    {
+        var source = "class C {}";
+        var preview = new SourceTransformationPipeline().Preview(source);
+
+        Assert.IsTrue(preview.TryApply(source, _ => Assert.Fail("Unchanged text must not be written.")));
+    }
+
+    [TestMethod]
+    public void Preview_MatchesRunAndReportsChangesInOrder()
+    {
+        var pipeline = new SourceTransformationPipeline(new TabToSpaceConverter(), new EnsureFinalNewlineConverter());
+        var source = "class C {\n\tint value;\n}";
+
+        var preview = pipeline.Preview(source);
+
+        Assert.AreEqual(source, preview.OriginalSource);
+        Assert.AreEqual(pipeline.Run(source), preview.UpdatedSource);
+        Assert.IsTrue(preview.HasChanges);
+        Assert.AreEqual(2, preview.Steps.Count);
+        Assert.AreEqual(0, preview.Steps[0].Index);
+        Assert.AreEqual(pipeline.Transformations[1].Name, preview.Steps[1].Name);
+        Assert.IsTrue(preview.Steps.All(step => step.Included && step.Changed));
+    }
+
+    [TestMethod]
+    public void Preview_ExcludedStepIsNotAppliedAndDoesNotAffectLaterSteps()
+    {
+        var pipeline = new SourceTransformationPipeline(new TabToSpaceConverter(), new EnsureFinalNewlineConverter());
+        var source = "class C {\n\tint value;\n}";
+
+        var preview = pipeline.Preview(source, new System.Collections.Generic.HashSet<int> { 0 });
+
+        Assert.AreEqual(new EnsureFinalNewlineConverter().Apply(source), preview.UpdatedSource);
+        Assert.IsFalse(preview.Steps[0].Included);
+        Assert.IsFalse(preview.Steps[0].Changed);
+        Assert.IsTrue(preview.Steps[1].Changed);
+    }
+
+    [TestMethod]
+    public void Preview_UnchangedSourceReportsNoChanges()
+    {
+        var pipeline = new SourceTransformationPipeline(new TabToSpaceConverter());
+        var preview = pipeline.Preview("class C {}\n");
+
+        Assert.IsFalse(preview.HasChanges);
+        Assert.IsFalse(preview.Steps.Single().Changed);
+        Assert.IsTrue(preview.Steps.Single().Included);
+    }
+
+    [TestMethod]
+    public void Preview_EmptyAndNullSourceMatchRun()
+    {
+        var pipeline = new SourceTransformationPipeline(new TabToSpaceConverter());
+
+        Assert.AreEqual(pipeline.Run(null), pipeline.Preview(null).UpdatedSource);
+        Assert.AreEqual(pipeline.Run(string.Empty), pipeline.Preview(string.Empty).UpdatedSource);
+        Assert.AreEqual(0, pipeline.Preview(null).Steps.Count);
+    }
+
+    [TestMethod]
+    public void Preview_AllStepsExcludedPreservesSource()
+    {
+        var pipeline = new SourceTransformationPipeline(new TabToSpaceConverter(), new EnsureFinalNewlineConverter());
+        var source = "\tclass C {}";
+        var preview = pipeline.Preview(source, new System.Collections.Generic.HashSet<int> { 0, 1 });
+
+        Assert.AreEqual(source, preview.UpdatedSource);
+        Assert.IsFalse(preview.HasChanges);
+        Assert.IsTrue(preview.Steps.All(step => !step.Included));
     }
 
     private static string repr(string s)

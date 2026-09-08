@@ -42,6 +42,11 @@ Behavior that must stay in lockstep with the VS Code extension lives in `shared/
 
 ## Experimental hive
 
+For changes to cleanup preview, follow the explicit
+[Visual Studio verification checklist](cleanup-preview.md#visual-studio-verification-checklist).
+Its native diff host and editor integration cannot be validated by the headless
+unit tests alone.
+
 Visual Studio extension changes should be tested in an experimental instance before being considered ready. This is especially important for:
 
 - package registration;

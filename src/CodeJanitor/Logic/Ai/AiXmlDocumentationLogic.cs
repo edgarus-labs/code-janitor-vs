@@ -1,10 +1,3 @@
-﻿using EnvDTE;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,6 +8,13 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Ai;
 
@@ -204,7 +204,8 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
-    /// Asynchronously tests connectivity to the specified OpenAI-compatible AI endpoint using the supplied credentials and returns the outcome of the connection attempt.
+    /// Asynchronously tests reachability and authentication of the specified OpenAI-compatible AI
+    /// endpoint, independent of whether the configured model name is valid.
     /// </summary>
     /// <param name="endpointUrl">The endpoint url.</param>
     /// <param name="apiKey">The api key.</param>
@@ -212,7 +213,7 @@ internal sealed class AiXmlDocumentationLogic
     /// <param name="model">The model.</param>
     /// <param name="timeoutSeconds">The timeout seconds.</param>
     /// <returns>A task representing the asynchronous operation. The task result contains the open ai compatible client.connection test result.</returns>
-    internal static async Task<OpenAiCompatibleClient.ConnectionTestResult> ValidateConnectionAsync(
+    internal static async Task<OpenAiCompatibleClient.ConnectionTestResult> ValidateApiConnectionAsync(
         string endpointUrl,
         string apiKey,
         string apiKeyHeader,
@@ -228,7 +229,36 @@ internal sealed class AiXmlDocumentationLogic
             };
         }
 
-        return await client.TestConnectionAsync().ConfigureAwait(false);
+        return await client.TestApiConnectionAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asynchronously verifies that the configured model produces a usable response from the
+    /// specified OpenAI-compatible AI endpoint.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <param name="apiKey">The api key.</param>
+    /// <param name="apiKeyHeader">The api key header.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="timeoutSeconds">The timeout seconds.</param>
+    /// <returns>A task representing the asynchronous operation. The task result contains the open ai compatible client.connection test result.</returns>
+    internal static async Task<OpenAiCompatibleClient.ConnectionTestResult> ValidateModelAsync(
+        string endpointUrl,
+        string apiKey,
+        string apiKeyHeader,
+        string model,
+        int timeoutSeconds)
+    {
+        var client = CreateClient(endpointUrl, apiKey, apiKeyHeader, model, timeoutSeconds);
+        if (client is null)
+        {
+            return new OpenAiCompatibleClient.ConnectionTestResult
+            {
+                ErrorMessage = "AI XML documentation endpoint URL is missing or invalid."
+            };
+        }
+
+        return await client.TestModelAsync().ConfigureAwait(false);
     }
 
     /// <summary>

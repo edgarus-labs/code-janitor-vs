@@ -6,6 +6,7 @@ This directory contains project, engineering and migration documentation.
 
 - [Project origin and relationship with CodeMaid](project-origin.md)
 - [Features](features.md)
+- [Cleanup preview help and verification](cleanup-preview.md)
 - [Development guide](development.md)
 - [Architecture overview](architecture.md)
 - [Roadmap](roadmap.md)
@@ -31,3 +32,4 @@ The repository also contains the historical Visual Studio 2026 migration records
 
 - [Migration TODO](todo/migration-todo.md)
 - [Post-migration backlog](todo/post-migration-backlog.md)
+- [Sequential feature delivery plan](todo/feature-delivery-plan.md)

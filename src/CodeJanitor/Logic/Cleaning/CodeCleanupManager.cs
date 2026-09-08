@@ -1,15 +1,3 @@
-using EnvDTE;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
-using CodeJanitor.Logic.Formatting;
-using CodeJanitor.Logic.Transformations;
-using CodeJanitor.Logic.Reorganizing;
-using CodeJanitor.Model;
-using CodeJanitor.Model.CodeItems;
-using CodeJanitor.Properties;
-using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -20,6 +8,18 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Formatting;
+using CodeJanitor.Logic.Reorganizing;
+using CodeJanitor.Logic.Transformations;
+using CodeJanitor.Model;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -29,7 +29,7 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <remarks>
 ///
 /// Note: All POSIXRegEx text replacements search against '\n' but insert/replace with
-///       Environment.NewLine. This handles line endings correctly.
+/// Environment.NewLine. This handles line endings correctly.
 /// </remarks>
 
 internal sealed class CodeCleanupManager
@@ -710,6 +710,11 @@ internal sealed class CodeCleanupManager
 
     internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
     {
+        return CreateHeadlessCSharpPipeline(source, filePath).Run(source);
+    }
+
+    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(string source, string filePath)
+    {
         var editorConfig = EditorConfigHelper.LoadCSharpOptions(filePath);
         var repositoryOverrides = RepositoryCleanupSettings.LoadForFile(filePath);
         bool IsEnabled(string settingName, bool fallback) => repositoryOverrides.TryGetBoolean(settingName, fallback);
@@ -934,14 +939,7 @@ internal sealed class CodeCleanupManager
 
         transformations.Add(new EnsureFinalNewlineConverter());
 
-        if (transformations.Count == 0)
-        {
-            return source;
-        }
-
-        var pipeline = new SourceTransformationPipeline(transformations);
-
-        return pipeline.Run(source);
+        return new SourceTransformationPipeline(transformations);
     }
 
     /// <summary>

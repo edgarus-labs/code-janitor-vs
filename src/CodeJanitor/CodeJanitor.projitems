@@ -298,6 +298,10 @@
       <DependentUpon>AiCoverageProgressDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupPreviewViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupPreviewWindow.xaml.cs">
+      <DependentUpon>CleanupPreviewWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml.cs">
       <DependentUpon>CleanupOptionsWindow.xaml</DependentUpon>
     </Compile>
@@ -391,6 +395,10 @@
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupProgress\CleanupProgressWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupPreviewWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="$(MSBuildThisFileDirectory)UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

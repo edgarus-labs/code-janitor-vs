@@ -12,8 +12,10 @@ namespace CodeJanitor.UI.Dialogs.Options.XmlDoc;
 /// </summary>
 public sealed class XmlDocViewModel : OptionsPageViewModel
 {
-    private bool _isTestingAiXmlDocumentationConnection;
-    private DelegateCommand _testAiXmlDocumentationConnectionCommand;
+    private bool _isTestingAiApiConnection;
+    private bool _isTestingAiModel;
+    private DelegateCommand _testAiApiConnectionCommand;
+    private DelegateCommand _testAiModelCommand;
     private DelegateCommand _detectCopilotCommand;
     private DelegateCommand _fetchCopilotModelsCommand;
     private ObservableCollection<string> _availableCopilotModels;
@@ -545,12 +547,21 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets the test-connection command for the AI XML documentation endpoint.
+    /// Gets the command that tests reachability/authentication of the configured AI endpoint,
+    /// independent of whether the configured model name is valid.
     /// </summary>
-    public DelegateCommand TestAiXmlDocumentationConnectionCommand => _testAiXmlDocumentationConnectionCommand
-        ?? (_testAiXmlDocumentationConnectionCommand = new DelegateCommand(
-            OnTestAiXmlDocumentationConnectionCommandExecuted,
-            parameter => !_isTestingAiXmlDocumentationConnection));
+    public DelegateCommand TestAiApiConnectionCommand => _testAiApiConnectionCommand
+        ?? (_testAiApiConnectionCommand = new DelegateCommand(
+            OnTestAiApiConnectionCommandExecuted,
+            parameter => !_isTestingAiApiConnection));
+
+    /// <summary>
+    /// Gets the command that verifies the configured model produces a usable response.
+    /// </summary>
+    public DelegateCommand TestAiModelCommand => _testAiModelCommand
+        ?? (_testAiModelCommand = new DelegateCommand(
+            OnTestAiModelCommandExecuted,
+            parameter => !_isTestingAiModel));
 
     /// <summary>
     /// Gets a short status text for the endpoint connectivity test.
@@ -693,7 +704,7 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
 
         AiXmlDocumentationConnectionStatus = !IsAiXmlDocumentationEndpointConfigured
             ? "Set a valid endpoint URL (e.g. http://192.168.1.52:20128/v1 or https://api.openai.com/v1)."
-            : "Click 'Test Connection' to verify connectivity.";
+            : "Click 'Test API Connection' and 'Test Model' to verify connectivity.";
 
         RaisePropertyChanged(nameof(IsAiXmlDocumentationEndpointConfigured));
     }
@@ -737,10 +748,12 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// utes the AI XML documentation connection test by validating the configured endpoint asynchronously via the joinable task factory, updating the connection status message and can-execute state before, during, and after the test based on whether an endpoint URL is configured and the success of the validation call.
+    /// Executes the API-connection test by validating endpoint reachability/authentication
+    /// asynchronously via the joinable task factory, updating the connection status message and
+    /// can-execute state before, during, and after the test.
     /// </summary>
     /// <param name="parameter">The parameter.</param>
-    private void OnTestAiXmlDocumentationConnectionCommandExecuted(object parameter)
+    private void OnTestAiApiConnectionCommandExecuted(object parameter)
     {
         if (!IsAiXmlDocumentationEndpointConfigured)
         {
@@ -749,9 +762,9 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
             return;
         }
 
-        _isTestingAiXmlDocumentationConnection = true;
-        TestAiXmlDocumentationConnectionCommand.RaiseCanExecuteChanged();
-        AiXmlDocumentationConnectionStatus = $"Testing connection (timeout: {AiXmlDocumentationTimeoutSeconds}s)...";
+        _isTestingAiApiConnection = true;
+        TestAiApiConnectionCommand.RaiseCanExecuteChanged();
+        AiXmlDocumentationConnectionStatus = $"Testing API connection (timeout: {AiXmlDocumentationTimeoutSeconds}s)...";
 
         var endpointUrl = IsCustomProvider ? CustomEndpointUrl : CopilotEndpointUrl;
         var apiKey = IsCustomProvider ? CustomApiKey : CopilotApiKey;
@@ -761,7 +774,7 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
 
         Package.JoinableTaskFactory.RunAsync(async delegate
         {
-            var result = await AiXmlDocumentationLogic.ValidateConnectionAsync(
+            var result = await AiXmlDocumentationLogic.ValidateApiConnectionAsync(
                 endpointUrl,
                 apiKey,
                 apiKeyHeader,
@@ -771,11 +784,56 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
             await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             AiXmlDocumentationConnectionStatus = result.Succeeded
-                ? "Connection successful."
-                : $"Connection failed: {result.ErrorMessage}";
+                ? "API connection successful."
+                : $"API connection failed: {result.ErrorMessage}";
 
-            _isTestingAiXmlDocumentationConnection = false;
-            TestAiXmlDocumentationConnectionCommand.RaiseCanExecuteChanged();
+            _isTestingAiApiConnection = false;
+            TestAiApiConnectionCommand.RaiseCanExecuteChanged();
+        });
+    }
+
+    /// <summary>
+    /// Executes the model test by asking the configured model to respond to a simple probe prompt
+    /// asynchronously via the joinable task factory, updating the connection status message and
+    /// can-execute state before, during, and after the test.
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
+    private void OnTestAiModelCommandExecuted(object parameter)
+    {
+        if (!IsAiXmlDocumentationEndpointConfigured)
+        {
+            AiXmlDocumentationConnectionStatus = "Endpoint URL is missing or invalid.";
+
+            return;
+        }
+
+        _isTestingAiModel = true;
+        TestAiModelCommand.RaiseCanExecuteChanged();
+        AiXmlDocumentationConnectionStatus = $"Testing model (timeout: {AiXmlDocumentationTimeoutSeconds}s)...";
+
+        var endpointUrl = IsCustomProvider ? CustomEndpointUrl : CopilotEndpointUrl;
+        var apiKey = IsCustomProvider ? CustomApiKey : CopilotApiKey;
+        var apiKeyHeader = IsCustomProvider ? CustomApiKeyHeader : CopilotApiKeyHeader;
+        var model = IsCustomProvider ? CustomModel : CopilotModel;
+        var timeoutSeconds = AiXmlDocumentationTimeoutSeconds;
+
+        Package.JoinableTaskFactory.RunAsync(async delegate
+        {
+            var result = await AiXmlDocumentationLogic.ValidateModelAsync(
+                endpointUrl,
+                apiKey,
+                apiKeyHeader,
+                model,
+                timeoutSeconds);
+
+            await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            AiXmlDocumentationConnectionStatus = result.Succeeded
+                ? "Model test successful."
+                : $"Model test failed: {result.ErrorMessage}";
+
+            _isTestingAiModel = false;
+            TestAiModelCommand.RaiseCanExecuteChanged();
         });
     }
 
@@ -877,7 +935,7 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
     private void OnAiXmlDocumentationConfigurationChanged()
     {
         AiXmlDocumentationConnectionStatus = IsAiXmlDocumentationEndpointConfigured
-            ? "Click 'Test Connection' to verify connectivity."
+            ? "Click 'Test API Connection' and 'Test Model' to verify connectivity."
             : "Set a valid endpoint URL (e.g. http://192.168.1.52:20128/v1 or https://api.openai.com/v1).";
 
         RaisePropertyChanged(nameof(IsAiXmlDocumentationEndpointConfigured));

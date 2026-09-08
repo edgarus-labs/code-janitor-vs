@@ -6,6 +6,10 @@ This file records changes made in Code Janitor after the project became an indep
 
 ### Added
 
+- Selected-scope C# text cleanup preview with native read-only diff, per-file/rule
+	selection and stale-buffer protection. Applies approved text to editors without
+	saving files; AI, type splitting and editor-only operations are not included.
+- Cleanup preview help, runtime verification checklist and sequential feature delivery plan.
 - Safe Razor and Blazor formatter.
 - Razor formatter settings and configuration UI.
 - Formatting support for Razor control blocks, including `@try`, `@catch` and `@finally`.

@@ -32,6 +32,20 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
+    public void Preview_UsesSameConfiguredPipelineWithoutWritingSourceFile()
+    {
+        var filePath = Path.Combine(_tempDirectory, "Preview.cs");
+        var source = "namespace Demo;\r\n#region Sample\r\nclass C {}\r\n#endregion\r\n";
+        File.WriteAllText(filePath, source);
+
+        var preview = CodeCleanupManager.CreateHeadlessCSharpPipeline(source, filePath).Preview(source);
+
+        Assert.AreEqual(CodeCleanupManager.ApplyHeadlessCSharpTransformations(source, filePath), preview.UpdatedSource);
+        Assert.AreEqual(source, File.ReadAllText(filePath));
+        Assert.IsTrue(preview.HasChanges);
+    }
+
+    [TestMethod]
     public void ApplyHeadlessCSharpTransformations_PreservesFileScopedNamespace_WhenEditorConfigWhitespaceRulesApply()
     {
         File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),

@@ -50,17 +50,86 @@ public sealed class SourceTransformationPipeline
 
     public string Run(string source)
     {
+        return Execute(source, null, null);
+    }
+
+    public PreviewResult Preview(string source, ISet<int> excludedTransformations = null)
+    {
+        var steps = new List<PreviewStep>();
+        var updatedSource = Execute(source, excludedTransformations, steps);
+
+        return new PreviewResult(source, updatedSource, steps.AsReadOnly());
+    }
+
+    private string Execute(string source, ISet<int> excludedTransformations, IList<PreviewStep> steps)
+    {
         if (string.IsNullOrEmpty(source))
         {
             return source;
         }
 
         var current = source;
-        foreach (var transformation in _transformations)
+        for (var index = 0; index < _transformations.Count; index++)
         {
-            current = transformation.Apply(current) ?? current;
+            var transformation = _transformations[index];
+            var included = excludedTransformations?.Contains(index) != true;
+            var updated = included ? transformation.Apply(current) ?? current : current;
+            steps?.Add(new PreviewStep(index, transformation.Name, included,
+                !string.Equals(current, updated, StringComparison.Ordinal)));
+            current = updated;
         }
 
         return current;
+    }
+
+    public sealed class PreviewResult
+    {
+        internal PreviewResult(string originalSource, string updatedSource, IReadOnlyList<PreviewStep> steps)
+        {
+            OriginalSource = originalSource;
+            UpdatedSource = updatedSource;
+            Steps = steps;
+        }
+
+        public string OriginalSource { get; }
+        public string UpdatedSource { get; }
+        public IReadOnlyList<PreviewStep> Steps { get; }
+        public bool HasChanges => !string.Equals(OriginalSource, UpdatedSource, StringComparison.Ordinal);
+
+        public bool TryApply(string currentSource, Action<string> replaceSource)
+        {
+            if (!string.Equals(OriginalSource, currentSource, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (HasChanges)
+            {
+                if (replaceSource is null)
+                {
+                    throw new ArgumentNullException(nameof(replaceSource));
+                }
+
+                replaceSource(UpdatedSource);
+            }
+
+            return true;
+        }
+    }
+
+    public sealed class PreviewStep
+    {
+        internal PreviewStep(int index, string name, bool included, bool changed)
+        {
+            Index = index;
+            Name = name;
+            Included = included;
+            Changed = changed;
+        }
+
+        public int Index { get; }
+        public string Name { get; }
+        public bool Included { get; }
+        public bool Changed { get; }
     }
 }

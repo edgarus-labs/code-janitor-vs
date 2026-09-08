@@ -1,16 +1,17 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.CleanupOptions;
 using CodeJanitor.UI.Dialogs.CleanupProgress;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -118,11 +119,108 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
                 ? new TemporaryCleanupSettingsScope(optionsViewModel.TemporarySettings)
                 : null)
             {
+                if (optionsViewModel.PreviewRequested)
+                {
+                    PreviewCleanup(selectedProjectItems);
+
+                    return;
+                }
+
                 var viewModel = new CleanupProgressViewModel(Package, selectedProjectItems);
                 var window = new CleanupProgressWindow { DataContext = viewModel };
 
                 window.ShowModal();
             }
+        }
+    }
+
+    private void PreviewCleanup(IReadOnlyList<ProjectItem> projectItems)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var itemsByPreview = new Dictionary<CleanupPreviewFile, ProjectItem>();
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in projectItems)
+        {
+            var path = item.Name;
+            CleanupPreviewFile preview;
+            try
+            {
+                path = item.FileNames[1];
+                if (!seenPaths.Add(path))
+                {
+                    continue;
+                }
+
+                if (!string.Equals(Path.GetExtension(path), ".cs", StringComparison.OrdinalIgnoreCase))
+                {
+                    preview = new CleanupPreviewFile(path, null, null, "Skipped: C# text preview only");
+                }
+                else
+                {
+                    var document = item.Document?.Object("TextDocument") as TextDocument;
+                    var source = document is null
+                        ? File.ReadAllText(path)
+                        : document.StartPoint.CreateEditPoint().GetText(document.EndPoint);
+                    preview = new CleanupPreviewFile(path, source, CodeCleanupManager.CreateHeadlessCSharpPipeline(source, path));
+                }
+            }
+            catch (Exception exception)
+            {
+                preview = new CleanupPreviewFile(path, null, null, "Skipped: " + exception.Message);
+            }
+
+            itemsByPreview.Add(preview, item);
+        }
+
+        var viewModel = new CleanupPreviewViewModel(itemsByPreview.Keys.ToList());
+        new CleanupPreviewWindow { DataContext = viewModel }.ShowModal();
+        if (viewModel.DialogResult != true || !CodeCleanupAvailabilityLogic.IsCleanupEnvironmentAvailable())
+        {
+            return;
+        }
+
+        var applied = 0;
+        var errors = new List<string>();
+        foreach (var entry in itemsByPreview.Where(entry => entry.Key.Include && entry.Key.CanApply))
+        {
+            try
+            {
+                var document = entry.Value.Document ?? entry.Value.Open(Constants.vsViewKindCode)?.Document;
+                if (document is null || document.ReadOnly || !(document.Object("TextDocument") is TextDocument textDocument))
+                {
+                    errors.Add(entry.Key.Path + ": skipped (editor unavailable or read-only).");
+                    continue;
+                }
+
+                var start = textDocument.StartPoint.CreateEditPoint();
+                var currentSource = start.GetText(textDocument.EndPoint);
+                if (!entry.Key.TryApply(currentSource, updated =>
+                {
+                    ThreadHelper.ThrowIfNotOnUIThread();
+                    using (new UndoTransactionHelper(Package, "Apply C# Text Cleanup Preview"))
+                    {
+                        start.ReplaceText(textDocument.EndPoint, updated, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+                    }
+                }))
+                {
+                    errors.Add(entry.Key.Path + ": skipped (changed since preview; create a new preview).");
+                    continue;
+                }
+
+                applied++;
+            }
+            catch (Exception exception)
+            {
+                errors.Add(entry.Key.Path + ": " + exception.Message);
+            }
+        }
+
+        var summary = $"Applied preview to {applied} editor buffer(s). No files were saved.";
+        Package.IDE.StatusBar.Text = summary;
+        if (errors.Count > 0)
+        {
+            MessageBox.Show(summary + Environment.NewLine + string.Join(Environment.NewLine, errors),
+                "C# Text Cleanup Preview", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

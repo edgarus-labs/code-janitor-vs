@@ -11,7 +11,7 @@
     <RootNamespace>CodeJanitor.UnitTests</RootNamespace>
     <AssemblyName>CodeJanitor.UnitTests</AssemblyName>
     <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\CodeJanitor.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\..\CodeJanitor.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -50,7 +50,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\GlobalAssemblyInfo.cs">
+    <Compile Include="..\..\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="CachedSettingSetTests.cs" />
@@ -118,13 +118,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CodeJanitor\CodeJanitor.csproj">
+    <ProjectReference Include="..\..\src\CodeJanitor\CodeJanitor.csproj">
       <Project>{6D3EDF86-D2F8-4779-8A95-052227ED56A9}</Project>
       <Name>CodeJanitor</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\CodeJanitor.snk">
+    <None Include="..\..\CodeJanitor.snk">
       <Link>Properties\CodeJanitor.snk</Link>
     </None>
     <None Include="app.config" />
