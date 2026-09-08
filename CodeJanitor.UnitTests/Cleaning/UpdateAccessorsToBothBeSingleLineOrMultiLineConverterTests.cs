@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Text.RegularExpressions;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
@@ -79,5 +80,66 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
         var result = _converter.Apply(source);
         // Events with only add/remove should not be processed if only one present
         Assert.IsTrue(result.Contains("MyEvent"));
+    }
+
+    [TestMethod]
+    public void PropertyWithSingleLineGetterAndMultiLineSetter_CompressesSetter()
+    {
+        var source = "public class C { private int _value; public int Value { get { return _value; } set\r\n{\r\n_value = value;\r\n} } }";
+
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(Regex.IsMatch(result, @"set\s*\{\s*_value\s*=\s*value;\s*\}"));
+    }
+
+    [TestMethod]
+    public void PropertyWithMultiLineGetterAndSingleLineSetter_ExpandsSetter()
+    {
+        var source = "public class C { private int _value; public int Value { get\r\n{\r\nreturn _value;\r\n} set { _value = value; } } }";
+
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(Regex.IsMatch(result, @"public\s+int\s+Value\s*\{.*get.*set.*\}", RegexOptions.Singleline));
+    }
+
+    [TestMethod]
+    public void EventWithInconsistentAccessors_CompressesSecondAccessor()
+    {
+        var source = "public class C { private System.EventHandler _changed; public event System.EventHandler Changed { add { _changed += value; } remove\r\n{\r\n_changed -= value;\r\n} } }";
+
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(Regex.IsMatch(result, @"remove\s*\{\s*_changed\s*-=\s*value;\s*\}"));
+    }
+
+    [TestMethod]
+    public void AbstractPropertyWithoutAccessorBodies_ReturnsUnchanged()
+    {
+        var source = "public abstract class C { public abstract int Value { get; set; } }";
+
+        var result = _converter.Apply(source);
+
+        Assert.AreEqual(source, result);
+    }
+
+    [TestMethod]
+    public void ExpressionBodiedAccessors_ReturnUnchanged()
+    {
+        var source = "public class C { private int _value; public int Value { get => _value; set => _value = value; } }";
+
+        var result = _converter.Apply(source);
+
+        Assert.AreEqual(source, result);
+    }
+
+    [TestMethod]
+    public void MultiStatementAccessor_IsNotCompressed()
+    {
+        var source = "public class C { private int _value; public int Value { get { return _value; } set\r\n{\r\n_value = value;\r\nSystem.Console.WriteLine(value);\r\n} } }";
+
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(result.Contains("System.Console.WriteLine(value);"));
+        Assert.IsTrue(result.Contains("set\r\n{"));
     }
 }

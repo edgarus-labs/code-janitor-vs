@@ -8,21 +8,21 @@ Date: 2026-07-30
    in the native Settings UI as raw serialized strings (e.g. `"Destructors||3||Destructors"`).
    Replaced with a proper grid, using the same `Setting.ObjectArray` primitive that backs
    grid-style UIs like the NuGet Package Manager sources list:
-   - `CodeJanitor.VS2026/NativeSettings/ReorganizingNativeSettings.cs` - single
+  - `CodeJanitor/NativeSettings/ReorganizingNativeSettings.cs` - single
      `Setting.ObjectArray MemberTypes` (3 columns: Type [readonly], Order [int], Display name
      [string]; 12 fixed rows, `AllowAdditionsAndRemovals = false`). Rows had to be written out
      as literal inline `new ArraySettingItem { ... }` entries - the `[VisualStudioContribution]`
      source generator statically parses these initializers and rejects any local helper
      *method* call with `CEE0018 (compile-time constant evaluation failed)`.
-   - New `CodeJanitor.VS2026/NativeSettings/MemberTypeArrayItem.cs` - implements
+  - New `CodeJanitor/NativeSettings/MemberTypeArrayItem.cs` - implements
      `IArraySettingItemConvertible`, bridges grid rows to/from the existing
      `CodeJanitor.Helpers.MemberTypeSetting` serialized-string type. Registered in
-     `CodeJanitor.VS2026.csproj`'s explicit `<Compile Include>` list
+    `CodeJanitor.csproj`'s explicit `<Compile Include>` list
      (`EnableDefaultItems=false`).
-   - `CodeJanitor.VS2026/NativeSettings/CodeJanitorNativeSettingsExtension.cs` - updated the 3
+  - `CodeJanitor/NativeSettings/CodeJanitorNativeSettingsExtension.cs` - updated the 3
      bridge points (settings array, push-to-native-store batch, change-handler) to use the
      single `MemberTypes` setting instead of the old 12 raw-string settings.
-   - Verified: `CodeJanitor.VS2026.csproj` builds with `/p:DeployExtension=false`, 0 errors.
+  - Verified: `CodeJanitor.csproj` builds with `/p:DeployExtension=false`, 0 errors.
 
 2. **Fixed a real bug in `scripts/deploy-exp.ps1`.** `devenv /rootsuffix Exp /updateconfiguration`
    hands the actual pkgdef merge off to a background `devenv.exe` worker process (visible with

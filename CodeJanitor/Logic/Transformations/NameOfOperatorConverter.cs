@@ -78,8 +78,9 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
             var changed = false;
             var currentArgumentList = visited.ArgumentList;
 
-            foreach (var arg in visited.ArgumentList.Arguments)
+            for (var argumentIndex = 0; argumentIndex < currentArgumentList.Arguments.Count; argumentIndex++)
             {
+                var arg = currentArgumentList.Arguments[argumentIndex];
                 if (arg.Expression is LiteralExpressionSyntax stringLiteral &&
                     stringLiteral.IsKind(SyntaxKind.StringLiteralExpression))
                 {

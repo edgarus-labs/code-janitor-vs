@@ -116,4 +116,39 @@ public sealed class CommentFormatConverterTests
         Assert.IsTrue(result.Contains("\n"));
         Assert.IsFalse(result.Contains("\r\n"));
     }
+
+    [TestMethod]
+    public void Name_ReturnsCorrectName()
+    {
+        Assert.AreEqual("Format comments", _converter.Name);
+    }
+
+    [TestMethod]
+    public void MultiLineComment_WithAsteriskContinuationLines_AlignsWithBaseIndentation()
+    {
+        var source = "    /*\r\n    * line 1\r\n    * line 2\r\n    */\r\n    public class MyClass { }";
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(result.Contains("    * line 1"));
+        Assert.IsTrue(result.Contains("    * line 2"));
+    }
+
+    [TestMethod]
+    public void MultiLineComment_WithoutAsteriskContinuationLines_PreservesLines()
+    {
+        var source = "    /*\r\n    content line 1\r\n    content line 2\r\n    */\r\n    public class MyClass { }";
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(result.Contains("    content line 1"));
+        Assert.IsTrue(result.Contains("    content line 2"));
+    }
+
+    [TestMethod]
+    public void PreservesCarriageReturnNewlineStyle()
+    {
+        var source = "// comment 1\r// comment 2";
+        var result = _converter.Apply(source);
+
+        Assert.IsTrue(result.Contains("\r"));
+    }
 }

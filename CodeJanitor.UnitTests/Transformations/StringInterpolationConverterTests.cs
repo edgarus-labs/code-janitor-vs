@@ -127,4 +127,46 @@ public class C
         Assert.IsNull(_converter.Apply(null));
         Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_SystemStringFormatAndStringFormat_ConvertsProperly()
+    {
+        var input = "public class C { public string M(int x) => System.String.Format(\"Val: {0}\", x) + String.Format(\" Other: {0}\", x); }";
+        var expected = "public class C { public string M(int x) => $\"Val: {x}\" + $\" Other: {x}\"; }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_FormatStringWithEscapedCharacters_EscapesProperly()
+    {
+        var input = "public class C { public string M(string s) => string.Format(\"Quote: \\\"{0}\\\"\\r\\nTab:\\t{0}\", s); }";
+        var expected = "public class C { public string M(string s) => $\"Quote: \\\"{s}\\\"\\r\\nTab:\\t{s}\"; }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_OutOfBoundsOrNoPlaceholder_Skipped()
+    {
+        var input1 = "public class C { public string M(int x) => string.Format(\"No placeholder\", x); }";
+        Assert.AreEqual(input1, _converter.Apply(input1));
+
+        var input2 = "public class C { public string M(int x) => string.Format(\"Index: {5}\", x); }";
+        Assert.AreEqual(input2, _converter.Apply(input2));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_OtherTypeFormatOrSingleArgument_Skipped()
+    {
+        var input1 = "public class C { public string M(int x) => OtherClass.Format(\"{0}\", x); }";
+        Assert.AreEqual(input1, _converter.Apply(input1));
+
+        var input2 = "public class C { public string M(string s) => string.Format(s); }";
+        Assert.AreEqual(input2, _converter.Apply(input2));
+    }
 }

@@ -71,4 +71,16 @@ public sealed class GitHubCopilotDetectorTests
         task2.Wait();
         Assert.AreEqual("tid=12345;exp=999", task2.Result);
     }
+
+    [TestMethod]
+    public void ExchangeGitHubTokenForCopilotTokenAsync_StripsQuotesAndBearerPrefixBeforeExchange()
+    {
+        // The token has no "tid=" marker, so it falls through to the network exchange attempt,
+        // which fails in this sandboxed test environment and falls back to returning the
+        // cleaned (quote-trimmed, "Bearer " prefix stripped) token.
+        var task = GitHubCopilotDetector.ExchangeGitHubTokenForCopilotTokenAsync("\"Bearer sometoken123\"");
+        task.Wait();
+
+        Assert.AreEqual("sometoken123", task.Result);
+    }
 }

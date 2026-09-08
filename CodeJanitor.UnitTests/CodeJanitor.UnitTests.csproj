@@ -60,11 +60,13 @@
     <Compile Include="Ai\AiFeaturesLogicTests.cs" />
     <Compile Include="Ai\AiCoverageTargetLogicTests.cs" />
     <Compile Include="Ai\GitHubCopilotDetectorTests.cs" />
+    <Compile Include="Ai\CodeBranchDescriptorTests.cs" />
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
     <Compile Include="Cleaning\RepositoryCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\RemoveXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
+    <Compile Include="Cleaning\InsertBlankLinePaddingLogicTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitFileProcessorTests.cs" />
     <Compile Include="Cleaning\BlankLinePaddingConverterTests.cs" />
     <Compile Include="Cleaning\ExplicitAccessModifierConverterTests.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="SettingsConfigurationSyncTests.cs" />
     <Compile Include="Cleaning\RemoveByteOrderMarkLogicTests.cs" />
     <Compile Include="Transformations\ByteOrderMarkConverterTests.cs" />
+    <Compile Include="Transformations\RegionDirectiveRemoverTests.cs" />
     <Compile Include="Transformations\NullCheckPatternMatchingConverterTests.cs" />
     <Compile Include="Transformations\StringInterpolationConverterTests.cs" />
     <Compile Include="Transformations\NameOfOperatorConverterTests.cs" />
@@ -115,9 +118,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CodeJanitor.VS2026\CodeJanitor.VS2026.csproj">
+    <ProjectReference Include="..\CodeJanitor\CodeJanitor.csproj">
       <Project>{6D3EDF86-D2F8-4779-8A95-052227ED56A9}</Project>
-      <Name>CodeJanitor.VS2026</Name>
+      <Name>CodeJanitor</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

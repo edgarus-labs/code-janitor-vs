@@ -123,6 +123,44 @@ public sealed class FileScopedNamespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    public void NameAndApply_WorkCorrectly()
+    {
+        var converter = new FileScopedNamespaceConverter();
+        Assert.AreEqual("File-Scoped Namespace", converter.Name);
+
+        var input = "namespace A\r\n{\r\n    class C { }\r\n}\r\n";
+        var expected = "namespace A;\r\n\r\nclass C { }\r\n";
+        Assert.AreEqual(expected, converter.Apply(input));
+
+        Assert.IsNull(converter.Apply(null));
+        Assert.AreEqual(string.Empty, converter.Apply(string.Empty));
+        Assert.IsFalse(converter.HasMultipleNamespaces(null));
+        Assert.IsFalse(converter.HasMultipleNamespaces(string.Empty));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Dedent_HandlesTabsAndEmptyBody()
+    {
+        var tabInput = "namespace A\n{\n\tclass C\n\t{\n\t}\n}\n";
+        var expectedTab = "namespace A;\n\nclass C\n{\n}\n";
+        Assert.AreEqual(expectedTab, _converter.ConvertToFileScoped(tabInput));
+
+        var emptyInput = "namespace A\n{\n}\n";
+        var expectedEmpty = "namespace A;\n";
+        Assert.AreEqual(expectedEmpty, _converter.ConvertToFileScoped(emptyInput));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void MissingBraceOrMalformed_ReturnsUnchanged()
+    {
+        var input = "namespace A";
+        Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public void HasMultipleNamespaces_NoNamespace_ReturnsFalse()
     {
         var input = "class C\r\n{\r\n}\r\n";

@@ -74,4 +74,13 @@ public sealed class JsonSerializerOptionsReuseConverterTests
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndNullOrEmpty_HandledCorrectly()
+    {
+        Assert.AreEqual("CA1869 JsonSerializerOptions Reuse", _converter.Name);
+        Assert.IsNull(_converter.Apply(null));
+        Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
+    }
 }

@@ -1,14 +1,14 @@
 namespace CodeJanitor;
 
 /// <summary>
-/// The Vsix class represents metadata for a Visual Studio extension package, containing its identifier, name, description, language, version, author, and tags.
+/// presents the metadata of a Visual Studio Extension (VSIX) package, including its identification, descriptive details, supported language, versioning, authorship, and categorization tags.
 /// </summary>
 internal static class Vsix
 {
     /// <summary>
     /// The id.
     /// </summary>
-    public const string Id = "4c82e17d-927e-42d2-8460-b473ac7df316";
+    public const string Id = "b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2";
 
     /// <summary>
     /// The name.
@@ -18,7 +18,7 @@ internal static class Vsix
     /// <summary>
     /// The description.
     /// </summary>
-    public const string Description = "CodeJanitor is an open source Visual Studio extension to cleanup and simplify our C#, C++, F#, VB, PHP, PowerShell, R, JSON, XAML, XML, ASP, HTML, CSS, LESS, SCSS, JavaScript and TypeScript coding.";
+    public const string Description = "CodeJanitor (a fork of CodeMaid) is an open source Visual Studio extension to cleanup and simplify our C#, C++, F#, VB, PHP, PowerShell, R, JSON, XAML, XML, ASP, HTML, CSS, LESS, SCSS, JavaScript and TypeScript coding.";
 
     /// <summary>
     /// The language.

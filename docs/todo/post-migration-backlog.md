@@ -73,7 +73,7 @@ Wspolny wniosek techniczny: wieksza czesc tych funkcji jest bezpieczniejsza i do
   - Priorytet: Medium
   - Status: DONE (code-complete; pozostaje manualna weryfikacja runtime w VS)
   - Zrobione (TDD, ADR-0005/0006):
-    - INamespaceScopeConverter + FileScopedNamespaceConverter (Roslyn) w CodeJanitorShared/Logic/Transformations.
+    - INamespaceScopeConverter + FileScopedNamespaceConverter (Roslyn) w CodeJanitor/Logic/Transformations.
     - 7 testow jednostkowych (RED->GREEN). Suite 176 -> 183, 0 errors.
     - Integracja: ustawienie Cleaning_ConvertToFileScopedNamespace (default False, opt-in) w Settings.settings/Designer/app.config.
     - FileScopedNamespaceLogic (cienka warstwa DTE) wpieta w CodeCleanupManager.RunCodeCleanupCSharp (przed interpretacja code model).
@@ -124,7 +124,7 @@ Wspolny wniosek techniczny: wieksza czesc tych funkcji jest bezpieczniejsza i do
 - BL-011 Oznaczanie metod jako `static` gdy nie odwoluja sie do instancji (optymalizacja)
   - Priorytet: Low
   - Status: TODO
-  - Obszar: cala baza kodu (CodeMaidShared/CodeJanitorShared + projekty VSIX)
+  - Obszar: cala baza kodu (CodeJanitor + projekt testowy)
   - Kontekst: metody w klasach, ktore nie odwoluja sie do innych metod instancyjnych ani do wlasciwosci/pol instancji, powinny byc zmieniane na `static` tam, gdzie to mozliwe (Roslyn IDE0062 "Make local function static" / analogiczna regula dla metod czlonkowskich, mniejszy narzut na wywolanie, jasniejszy kontrakt braku zaleznosci od stanu instancji).
   - Uwaga: nie dotyczy metod wirtualnych/nadpisywanych, metod z interfejsow, oraz tych uzywanych jako delegaty/event handlery, gdzie zmiana sygnatury mogloby zerwac powiazania.
   - Kryterium done: przeglad kandydatow (np. przez analizator Roslyn), zmiana bezpiecznych przypadkow na `static`, build 0 errors, testy bez regresji.

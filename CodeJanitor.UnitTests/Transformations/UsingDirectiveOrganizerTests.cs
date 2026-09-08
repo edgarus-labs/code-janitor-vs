@@ -169,4 +169,26 @@ public sealed class UsingDirectiveOrganizerTests
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndApply_WorkCorrectly()
+    {
+        var transformation = new UsingDirectiveOrganizer();
+        Assert.AreEqual("Sort using directives", transformation.Name);
+
+        var input = "using B;\nusing A;\n";
+        var expected = "using A;\nusing B;\n";
+        Assert.AreEqual(expected, transformation.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void MultipleAliasesAndStaticUsings_SortedProperly()
+    {
+        var input = "using Z = System.Int32;\nusing A = System.String;\nusing static System.Math;\nusing static System.Console;\n";
+        var expected = "using static System.Console;\nusing static System.Math;\nusing A = System.String;\nusing Z = System.Int32;\n";
+
+        Assert.AreEqual(expected, _organizer.Organize(input));
+    }
 }

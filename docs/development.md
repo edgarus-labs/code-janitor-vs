@@ -36,6 +36,10 @@ Particular care is required for:
 - idempotence, meaning that running a formatter twice produces the same result as running it once;
 - files that the formatter cannot safely parse.
 
+## Shared transformation corpus
+
+Behavior that must stay in lockstep with the VS Code extension lives in `shared/tests/transformations` as JSON fixtures (input, settings, required and forbidden output substrings). The same files are executed by `SharedTransformationCorpusTests` (MSTest) here and by `test/sharedTransformationCorpus.test.ts` (Vitest) in the VS Code repository. When a change alters shared cleanup behavior, add or update a fixture instead of writing two disconnected native tests; when the implementations legitimately diverge (Roslyn semantic analysis vs. the VS Code lexical parser), document the divergence in the fixture description or leave the case out of the corpus.
+
 ## Experimental hive
 
 Visual Studio extension changes should be tested in an experimental instance before being considered ready. This is especially important for:

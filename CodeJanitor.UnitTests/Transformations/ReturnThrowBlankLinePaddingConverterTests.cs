@@ -110,4 +110,18 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     {
         Assert.IsNull(_converter.Apply(null));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndSingleLineIfWithoutBlock_HandledCorrectly()
+    {
+        Assert.AreEqual("Blank Line Before Return/Throw", _converter.Name);
+
+        var input = "class C { void M(bool b) { if (b) return; } }";
+        Assert.AreEqual(input, _converter.Apply(input));
+
+        var unixInput = "class C\n{\n    int M()\n    {\n        int x = 1;\n        return x;\n    }\n}\n";
+        var expectedUnix = "class C\n{\n    int M()\n    {\n        int x = 1;\n\n        return x;\n    }\n}\n";
+        Assert.AreEqual(expectedUnix, _converter.Apply(unixInput));
+    }
 }

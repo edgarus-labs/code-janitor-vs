@@ -123,4 +123,23 @@ public sealed class CollectionExpressionConverterTests
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndNullOrEmpty_HandledCorrectly()
+    {
+        Assert.AreEqual("Collection Expression", _converter.Name);
+        Assert.IsNull(_converter.Apply(null));
+        Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ConvertsArrayPropertyInitializer()
+    {
+        var input = "class C { public int[] Items { get; } = new int[] { 1, 2 }; }";
+        var expected = "class C { public int[] Items { get; } = [1, 2]; }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
 }

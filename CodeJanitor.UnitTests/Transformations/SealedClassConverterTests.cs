@@ -148,4 +148,34 @@ public sealed class SealedClassConverterTests
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndNullOrEmpty_HandledCorrectly()
+    {
+        var converter = new SealedClassConverter();
+        Assert.AreEqual("Sealed Class", converter.Name);
+        Assert.IsNull(converter.Apply(null));
+        Assert.AreEqual(string.Empty, converter.Apply(string.Empty));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void QualifiedAndAliasBaseTypes_IdentifiesBaseClass()
+    {
+        var input = "class Animal { } class Dog : global::Animal { } class Cat : MyNamespace.Animal { }";
+        var expected = "class Animal { } sealed class Dog : global::Animal { } sealed class Cat : MyNamespace.Animal { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileScopedNamespace_SealsTopLevelClass()
+    {
+        var input = "namespace N;\r\nclass Foo { }";
+        var expected = "namespace N;\r\nsealed class Foo { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
 }

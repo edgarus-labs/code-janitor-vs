@@ -187,4 +187,53 @@ public sealed class RemoveByteOrderMarkLogicTests
         Assert.IsFalse(modified);
         Assert.IsTrue(RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(filePath)));
     }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void StripByteOrderMark_OtherEncodings_ConvertsToUtf8WithoutBom()
+    {
+        var text = "Hello Encoded";
+
+        // UTF-16 BE
+        var utf16Be = new UTF8Encoding(false).GetBytes(text);
+        var utf16BeBytes = Encoding.BigEndianUnicode.GetPreamble();
+        var utf16BeText = Encoding.BigEndianUnicode.GetBytes(text);
+        var combined16Be = new byte[utf16BeBytes.Length + utf16BeText.Length];
+        Buffer.BlockCopy(utf16BeBytes, 0, combined16Be, 0, utf16BeBytes.Length);
+        Buffer.BlockCopy(utf16BeText, 0, combined16Be, utf16BeBytes.Length, utf16BeText.Length);
+        var stripped16Be = RemoveByteOrderMarkLogic.StripByteOrderMark(combined16Be);
+        Assert.AreEqual(text, Encoding.UTF8.GetString(stripped16Be));
+
+        // UTF-32 LE
+        var utf32LePreamble = Encoding.UTF32.GetPreamble();
+        var utf32LeText = Encoding.UTF32.GetBytes(text);
+        var combined32Le = new byte[utf32LePreamble.Length + utf32LeText.Length];
+        Buffer.BlockCopy(utf32LePreamble, 0, combined32Le, 0, utf32LePreamble.Length);
+        Buffer.BlockCopy(utf32LeText, 0, combined32Le, utf32LePreamble.Length, utf32LeText.Length);
+        var stripped32Le = RemoveByteOrderMarkLogic.StripByteOrderMark(combined32Le);
+        Assert.AreEqual(text, Encoding.UTF8.GetString(stripped32Le));
+
+        // UTF-32 BE
+        var utf32BeEnc = new UTF32Encoding(true, true);
+        var utf32BePreamble = utf32BeEnc.GetPreamble();
+        var utf32BeText = utf32BeEnc.GetBytes(text);
+        var combined32Be = new byte[utf32BePreamble.Length + utf32BeText.Length];
+        Buffer.BlockCopy(utf32BePreamble, 0, combined32Be, 0, utf32BePreamble.Length);
+        Buffer.BlockCopy(utf32BeText, 0, combined32Be, utf32BePreamble.Length, utf32BeText.Length);
+        var stripped32Be = RemoveByteOrderMarkLogic.StripByteOrderMark(combined32Be);
+        Assert.AreEqual(text, Encoding.UTF8.GetString(stripped32Be));
+
+        // Null / Empty
+        Assert.AreEqual(0, RemoveByteOrderMarkLogic.StripByteOrderMark((byte[])null).Length);
+        Assert.AreEqual(0, RemoveByteOrderMarkLogic.StripByteOrderMark(new byte[0]).Length);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void RemoveByteOrderMark_InvalidPathOrNonExistent_ReturnsFalse()
+    {
+        Assert.IsFalse(_logic.RemoveByteOrderMark((string)null));
+        Assert.IsFalse(_logic.RemoveByteOrderMark(string.Empty));
+        Assert.IsFalse(_logic.RemoveByteOrderMark(Path.Combine(_tempDirectory, "nonexistent.cs")));
+    }
 }

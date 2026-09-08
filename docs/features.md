@@ -61,6 +61,30 @@ The legacy Options experience is being replaced by the native Visual Studio sett
 
 The current development branch includes an organized settings tree containing approximately 191 settings in 21 categories. This improves discoverability, aligns the extension with Visual Studio conventions and creates a clearer foundation for future configuration work.
 
+## Repository-level settings (.codejanitor)
+
+Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-janitor.json`) file shared with the VS Code extension. The file is discovered by walking up from the cleaned file's directory; the nearest file wins. Unknown keys, wrong value types and invalid JSON are ignored.
+
+```json
+{
+  "cleanup": {
+    "convertToFileScopedNamespace": true,
+    "insertBlankLinePadding": false,
+    "removeRegions": false,
+    "fileHeaderCSharp": "// Copyright (c) Example",
+    "fileHeaderPosition": "documentStart",
+    "fileHeaderUpdateMode": "replace"
+  }
+}
+```
+
+The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group aliases `insertBlankLinePadding` and `insertExplicitAccessModifiers` (individual keys override the alias), and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization independent of `.editorconfig`).
+
+Two commands manage the file from the Code Janitor menu:
+
+- **Export Settings to .codejanitor** writes the current user settings next to the solution file.
+- **Import Settings from .codejanitor** applies the repository file to the current user settings.
+
 ## Navigation and workflow
 
 - Find the active file in Solution Explorer.

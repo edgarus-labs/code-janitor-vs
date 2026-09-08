@@ -12,8 +12,8 @@ $vsixInstaller = Join-Path $vsRoot "VSIXInstaller.exe"
 $msbuild = "C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe"
 
 $repoRoot = "C:\Dev\codemaid"
-$project = Join-Path $repoRoot "CodeJanitor.VS2026\CodeJanitor.VS2026.csproj"
-$vsix = Join-Path $repoRoot "CodeJanitor.VS2026\bin\$Configuration\net472\CodeJanitor.VS2026.vsix"
+$project = Join-Path $repoRoot "CodeJanitor\CodeJanitor.csproj"
+$vsix = Join-Path $repoRoot "CodeJanitor\bin\$Configuration\net472\CodeJanitor.vsix"
 $expHive = "C:\Users\gawdprpl\AppData\Local\Microsoft\VisualStudio\18.0_ec255184Exp"
 $vsInstanceId = "ec255184"
 
@@ -136,7 +136,7 @@ function Test-PkgDefMerged {
         $fs.Close()
     }
     $text = [System.Text.Encoding]::Unicode.GetString($bytes)
-    return $text.Contains("CodeJanitor.VS2026.pkgdef")
+    return $text.Contains("CodeJanitor.pkgdef")
 }
 
 if (-not (Test-PkgDefMerged)) {
@@ -144,7 +144,7 @@ if (-not (Test-PkgDefMerged)) {
     & $devenv /rootsuffix Exp /updateconfiguration
     Wait-UpdateConfigurationWorker
     if (-not (Test-PkgDefMerged)) {
-        # NOTE: this check has proven unreliable for CodeJanitor.VS2026 (a hybrid VSSDK +
+        # NOTE: this check has proven unreliable for CodeJanitor (a hybrid VSSDK +
         # VisualStudio.Extensibility extension) - it has repeatedly reported "not merged" here
         # even when the extension loads and works correctly (Options page, menus, and
         # Extensions > Manage Extensions all show CodeJanitor as installed/enabled). Treat as a

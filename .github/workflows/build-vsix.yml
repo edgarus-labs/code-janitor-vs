@@ -55,12 +55,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $sourceFiles = @(
-            'CodeJanitor/source.extension.cs',
-            'CodeJanitor.VS2026/source.extension.cs'
+            'CodeJanitor/source.extension.cs'
           )
           $manifestFiles = @(
-            'CodeJanitor/source.extension.vsixmanifest',
-            'CodeJanitor.VS2026/source.extension.vsixmanifest'
+            'CodeJanitor/source.extension.vsixmanifest'
           )
 
           foreach ($file in $sourceFiles) {
@@ -91,7 +89,7 @@ jobs:
 
           $vsixFiles = Get-ChildItem -Path . -Recurse -Filter *.vsix |
             Where-Object {
-              $_.FullName -match '\\bin\\Release\\' -and
+              $_.FullName -match '\\CodeJanitor\\bin\\Release\\' -and
               $_.FullName -notmatch '\\obj\\'
             }
 
@@ -100,16 +98,7 @@ jobs:
           }
 
           foreach ($file in $vsixFiles) {
-            if ($file.FullName -match '\\CodeJanitor\\bin\\Release\\') {
-              $artifactName = "CodeJanitor-VS2019-$env:VSIX_VERSION.vsix"
-            }
-            elseif ($file.FullName -match '\\CodeJanitor\.VS2026\\bin\\Release\\') {
-              $artifactName = "CodeJanitor-VS2022Plus-$env:VSIX_VERSION.vsix"
-            }
-            else {
-              throw "Unrecognized VSIX output path: $($file.FullName)"
-            }
-
+            $artifactName = "CodeJanitor-VS2022Plus-$env:VSIX_VERSION.vsix"
             Copy-Item -Path $file.FullName -Destination (Join-Path artifacts $artifactName) -Force
           }
 

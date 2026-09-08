@@ -274,4 +274,78 @@ public sealed class ReadonlyFieldConverterTests
 
         Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndApply_WorkCorrectly()
+    {
+        var input = "class C { private int _x; public C() { _x = 1; } }";
+        var expected = "class C { private readonly int _x; public C() { _x = 1; } }";
+
+        var converter = new ReadonlyFieldConverter();
+        Assert.AreEqual("Readonly Field", converter.Name);
+        Assert.AreEqual(expected, converter.Apply(input));
+        Assert.IsNull(converter.Apply(null));
+        Assert.AreEqual(string.Empty, converter.Apply(string.Empty));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void VolatileAndInternalAndProtectedFields_Unchanged()
+    {
+        var input1 = "class C { private volatile int _x; public C() { _x = 1; } }";
+        Assert.AreEqual(input1, _converter.AddReadonlyWhenSafe(input1));
+
+        var input2 = "class C { internal int _x; public C() { _x = 1; } }";
+        Assert.AreEqual(input2, _converter.AddReadonlyWhenSafe(input2));
+
+        var input3 = "class C { protected int _x; public C() { _x = 1; } }";
+        Assert.AreEqual(input3, _converter.AddReadonlyWhenSafe(input3));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void UnaryIncrementsAndDecrements_StayMutable()
+    {
+        var input1 = "class C { private int _x; void M() { _x--; } }";
+        Assert.AreEqual(input1, _converter.AddReadonlyWhenSafe(input1));
+
+        var input2 = "class C { private int _x; void M() { ++_x; } }";
+        Assert.AreEqual(input2, _converter.AddReadonlyWhenSafe(input2));
+
+        var input3 = "class C { private int _x; void M() { --_x; } }";
+        Assert.AreEqual(input3, _converter.AddReadonlyWhenSafe(input3));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ParenthesizedAssignmentAndConditionalAccess_HandledCorrectly()
+    {
+        var input = "class C { private int _x; public C() { (_x) = 1; } }";
+        var expected = "class C { private readonly int _x; public C() { (_x) = 1; } }";
+        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void MismatchedConstructorStaticness_StaysMutable()
+    {
+        // Static field assigned in instance constructor -> stays mutable
+        var input1 = "class C { private static int _x; public C() { _x = 1; } }";
+        Assert.AreEqual(input1, _converter.AddReadonlyWhenSafe(input1));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void WritesInDestructorLocalFunctionOrProperty_StaysMutable()
+    {
+        var input1 = "class C { private int _x; ~C() { _x = 0; } }";
+        Assert.AreEqual(input1, _converter.AddReadonlyWhenSafe(input1));
+
+        var input2 = "class C { private int _x; public C() { void Init() { _x = 1; } Init(); } }";
+        Assert.AreEqual(input2, _converter.AddReadonlyWhenSafe(input2));
+
+        var input3 = "class C { private int _x; public int X { get => _x; set => _x = value; } }";
+        Assert.AreEqual(input3, _converter.AddReadonlyWhenSafe(input3));
+    }
 }

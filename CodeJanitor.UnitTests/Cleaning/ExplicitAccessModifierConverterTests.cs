@@ -290,4 +290,50 @@ public sealed class ExplicitAccessModifierConverterTests
         var result = _converter.Apply(source);
         StringAssert.Contains(result, "internal record Point");
     }
+
+    [TestMethod]
+    public void NestedRecord_WithoutModifier_GetsPrivate()
+    {
+        var source = "class Outer { record Point(int X, int Y); }";
+        var result = _converter.Apply(source);
+        StringAssert.Contains(result, "private record Point");
+    }
+
+    [TestMethod]
+    public void CustomEvent_WithoutModifier_GetsPrivate()
+    {
+        var source = "class Foo { event System.Action Done { add { } remove { } } }";
+        var result = _converter.Apply(source);
+        StringAssert.Contains(result, "private event System.Action Done");
+    }
+
+    [TestMethod]
+    public void NameAndNullOrEmpty_HandledCorrectly()
+    {
+        Assert.AreEqual("Explicit Access Modifiers", _converter.Name);
+        Assert.IsNull(_converter.Apply(null));
+        Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
+    }
+
+    [TestMethod]
+    public void DisabledSettings_LeaveDeclarationsUnmodified()
+    {
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents = false;
+
+        var source = "struct S { } enum E { } interface I { } delegate void D(); class C { void M() { } int P { get; } event System.Action Ev; }";
+        var result = _converter.Apply(source);
+        Assert.IsFalse(result.Contains("internal struct"));
+        Assert.IsFalse(result.Contains("internal enum"));
+        Assert.IsFalse(result.Contains("internal interface"));
+        Assert.IsFalse(result.Contains("internal delegate"));
+        Assert.IsFalse(result.Contains("private void M"));
+        Assert.IsFalse(result.Contains("private int P"));
+        Assert.IsFalse(result.Contains("private event"));
+    }
 }

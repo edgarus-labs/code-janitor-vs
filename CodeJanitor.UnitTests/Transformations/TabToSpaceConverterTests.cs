@@ -95,4 +95,19 @@ public sealed class TabToSpaceConverterTests
         Assert.AreEqual(expected, transformation.Apply(input));
         Assert.AreEqual("Convert tabs to spaces", transformation.Name);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Constructor_InvalidTabSize_ThrowsArgumentOutOfRangeException()
+    {
+        try
+        {
+            _ = new TabToSpaceConverter(0);
+            Assert.Fail("Expected ArgumentOutOfRangeException was not thrown.");
+        }
+        catch (System.ArgumentOutOfRangeException)
+        {
+            // Expected
+        }
+    }
 }

@@ -75,4 +75,32 @@ public sealed class SingleStatementLambdaConverterTests
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NameAndNullOrEmpty_HandledCorrectly()
+    {
+        Assert.AreEqual("Single Statement Lambda", _converter.Name);
+        Assert.IsNull(_converter.Apply(null));
+        Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void SimplifiesAsyncAnonymousDelegate()
+    {
+        var input = "using System; using System.Threading.Tasks; class C { Func<Task<int>> f = async delegate { return await Task.FromResult(1); }; }";
+        var expected = "using System; using System.Threading.Tasks; class C { Func<Task<int>> f = async () => await Task.FromResult(1); }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void AnonymousDelegateWithMultipleStatements_NotSimplified()
+    {
+        var input = "using System; class C { Action a = delegate { Log(); DoWork(); }; void Log(){} void DoWork(){} }";
+
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
 }

@@ -1,25 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
-  <Metadata>
-    <Identity Publisher="John Doe" Version="0.1" Id="4c82e17d-927e-42d2-8460-b473ac7df316" Language="en-US" />
-    <DisplayName>CodeJanitor</DisplayName>
-    <Description xml:space="preserve">CodeJanitor is an open source Visual Studio extension to cleanup and simplify our C#, C++, F#, VB, PHP, PowerShell, R, JSON, XAML, XML, ASP, HTML, CSS, LESS, SCSS, JavaScript and TypeScript coding.</Description>
-    <MoreInfo>http://www.CodeJanitor.net/</MoreInfo>
-    <License>LICENSE.txt</License>
-    <Icon>CodeJanitor.png</Icon>
-    <PreviewImage>CodeJanitor_Large.png</PreviewImage>
-    <Tags>build, code, c#, beautify, cleanup, cleaning, digging, reorganizing, formatting</Tags>
-  </Metadata>
-  <Installation>
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[16.0, 17.0)" />
-  </Installation>
-  <Dependencies>
-    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
-  </Dependencies>
-  <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[16.0,)" DisplayName="Visual Studio core editor" />
-  </Prerequisites>
-  <Assets>
-    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
-  </Assets>
+    <Metadata>
+        <Identity Publisher="John Doe" Version="0.1.0.55" Id="b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2" Language="en-US" />
+        <DisplayName>CodeJanitor</DisplayName>
+        <Description xml:space="preserve">CodeJanitor (a fork of CodeMaid) is an open source Visual Studio extension to cleanup and simplify our C#, C++, F#, VB, PHP, PowerShell, R, JSON, XAML, XML, ASP, HTML, CSS, LESS, SCSS, JavaScript and TypeScript coding.</Description>
+        <MoreInfo>http://www.CodeJanitor.net/</MoreInfo>
+        <License>LICENSE.txt</License>
+        <Icon>CodeJanitor.png</Icon>
+        <PreviewImage>CodeJanitor_Large.png</PreviewImage>
+        <Tags>build, code, c#, beautify, cleanup, cleaning, digging, reorganizing, formatting</Tags>
+    </Metadata>
+    <Installation ExtensionType="VSSDK+VisualStudio.Extensibility">
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 19.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0, 19.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0, 19.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+    </Installation>
+    <Dependencies>
+        <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
+    </Dependencies>
+    <Prerequisites>
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,19.0)" DisplayName="Visual Studio core editor" />
+    </Prerequisites>
+    <Assets>
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+    </Assets>
 </PackageManifest>
