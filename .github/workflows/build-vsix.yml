@@ -55,10 +55,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $sourceFiles = @(
-            'CodeJanitor/source.extension.cs'
+            'src/CodeJanitor/source.extension.cs'
           )
           $manifestFiles = @(
-            'CodeJanitor/source.extension.vsixmanifest'
+            'src/CodeJanitor/source.extension.vsixmanifest'
           )
 
           foreach ($file in $sourceFiles) {
