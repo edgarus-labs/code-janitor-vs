@@ -61,7 +61,30 @@ internal sealed class AddXmlDocCommand : BaseCommand
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        Enabled = Package.IDE.Solution.IsOpen || (Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp);
+        var hasActiveCSharpDoc = Package.ActiveDocument is not null && Package.ActiveDocument.GetCodeLanguage() == CodeLanguage.CSharp;
+        Enabled = Package.IDE.Solution.IsOpen || hasActiveCSharpDoc;
+
+        var activeWindow = Package.IDE.ActiveWindow;
+        if (activeWindow is not null && activeWindow.Type == vsWindowType.vsWindowTypeDocument && hasActiveCSharpDoc)
+        {
+            Text = "Add XMLDoc for current file";
+        }
+        else
+        {
+            var selectedRoots = UIHierarchyHelper.GetSelectedUIHierarchyItems(Package)
+                .Select(item => item.Object)
+                .Where(item => item is not null)
+                .ToList();
+
+            if (selectedRoots.Count == 1 && selectedRoots[0] is ProjectItem singleProjectItem && _aiXmlDocumentationLogic.CanDocumentProjectItem(singleProjectItem))
+            {
+                Text = "Add XMLDoc for current file";
+            }
+            else
+            {
+                Text = "&Add XML Documentation...";
+            }
+        }
     }
 
     /// <summary>
@@ -159,7 +182,18 @@ internal sealed class AddXmlDocCommand : BaseCommand
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        // 1. Check selection in Solution Explorer first
+        // 1. If the active window is a document editor, prioritize the active document
+        var activeWindow = Package.IDE.ActiveWindow;
+        if (activeWindow is not null && activeWindow.Type == vsWindowType.vsWindowTypeDocument)
+        {
+            var activeDoc = Package.ActiveDocument;
+            if (activeDoc?.ProjectItem is not null && _aiXmlDocumentationLogic.CanDocumentProjectItem(activeDoc.ProjectItem))
+            {
+                return new[] { activeDoc.ProjectItem };
+            }
+        }
+
+        // 2. Otherwise check selection in Solution Explorer
         var selectedScopeRoots = UIHierarchyHelper.GetSelectedUIHierarchyItems(Package)
             .Select(item => item.Object)
             .Where(item => item is not null)
@@ -184,11 +218,11 @@ internal sealed class AddXmlDocCommand : BaseCommand
             return selectedScopedDistinct;
         }
 
-        // 2. Fallback to active document if editing
-        var activeDoc = Package.ActiveDocument;
-        if (activeDoc?.ProjectItem is not null && _aiXmlDocumentationLogic.CanDocumentProjectItem(activeDoc.ProjectItem))
+        // 3. Fallback to active document if any
+        var fallbackDoc = Package.ActiveDocument;
+        if (fallbackDoc?.ProjectItem is not null && _aiXmlDocumentationLogic.CanDocumentProjectItem(fallbackDoc.ProjectItem))
         {
-            return new[] { activeDoc.ProjectItem };
+            return new[] { fallbackDoc.ProjectItem };
         }
 
         return Enumerable.Empty<ProjectItem>();

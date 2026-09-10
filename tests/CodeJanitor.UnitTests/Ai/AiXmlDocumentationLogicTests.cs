@@ -1,11 +1,13 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -577,6 +579,122 @@ public int Second(int y)
             Assert.IsFalse(succeeded);
             StringAssert.Contains(errorMessage, "timed out after 1 seconds");
             Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"API connection test took {stopwatch.Elapsed}.");
+        }
+        finally
+        {
+            serverCancellation.Cancel();
+            listener.Stop();
+            await serverTask;
+            serverCancellation.Dispose();
+        }
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_GetModelsEndpointUrl_ComputesExpectedUrls()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("GetModelsEndpointUrl", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        Assert.AreEqual("https://api.openai.com/v1/models", method.Invoke(null, new object[] { "https://api.openai.com/v1" }));
+        Assert.AreEqual("https://api.openai.com/v1/models", method.Invoke(null, new object[] { "https://api.openai.com/v1/chat/completions" }));
+        Assert.AreEqual("https://api.openai.com/v1/models", method.Invoke(null, new object[] { "https://api.openai.com/v1/completions" }));
+        Assert.AreEqual("https://api.openai.com/v1/models", method.Invoke(null, new object[] { "https://api.openai.com/v1/messages" }));
+        Assert.AreEqual("http://localhost:11434/v1/models", method.Invoke(null, new object[] { "http://localhost:11434/v1" }));
+        Assert.AreEqual("http://localhost:11434/models", method.Invoke(null, new object[] { "http://localhost:11434" }));
+    }
+
+    [TestMethod]
+    public void OpenAiCompatibleClient_ParseModelIds_ExtractsOpenAiAndOllamaFormats()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
+        var method = clientType.GetMethod("ParseModelIds", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method);
+
+        // OpenAI format
+        var openAiJson = "{\"object\":\"list\",\"data\":[{\"id\":\"gpt-4o\",\"object\":\"model\"},{\"id\":\"claude-3-5-sonnet\",\"object\":\"model\"}]}";
+        var openAiModels = (List<string>)method.Invoke(null, new object[] { openAiJson });
+        Assert.AreEqual(2, openAiModels.Count);
+        Assert.IsTrue(openAiModels.Contains("gpt-4o"));
+        Assert.IsTrue(openAiModels.Contains("claude-3-5-sonnet"));
+
+        // Ollama format
+        var ollamaJson = "{\"models\":[{\"name\":\"llama3:latest\"},{\"name\":\"codellama:7b\"}]}";
+        var ollamaModels = (List<string>)method.Invoke(null, new object[] { ollamaJson });
+        Assert.AreEqual(2, ollamaModels.Count);
+        Assert.IsTrue(ollamaModels.Contains("llama3:latest"));
+        Assert.IsTrue(ollamaModels.Contains("codellama:7b"));
+    }
+
+    [TestMethod]
+    public async Task OpenAiCompatibleClient_TestApiConnectionAsync_SendsGetRequestToModels()
+    {
+        var receivedMethod = string.Empty;
+        var receivedPath = string.Empty;
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var serverCancellation = new CancellationTokenSource();
+        var serverTask = Task.Run(async () =>
+        {
+            try
+            {
+                using (var connection = await listener.AcceptTcpClientAsync())
+                using (var stream = connection.GetStream())
+                {
+                    var buffer = new byte[4096];
+                    var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+                    var request = Encoding.UTF8.GetString(buffer, 0, read);
+                    var firstLine = request.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)[0];
+                    var parts = firstLine.Split(' ');
+                    if (parts.Length >= 2)
+                    {
+                        receivedMethod = parts[0];
+                        receivedPath = parts[1];
+                    }
+
+                    var responseBody = "{\"data\":[{\"id\":\"model-abc\"}]}";
+                    var responseBytes = Encoding.UTF8.GetBytes(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + responseBody.Length + "\r\nConnection: close\r\n\r\n" + responseBody);
+                    await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
+                }
+            }
+            catch
+            {
+            }
+        });
+
+        try
+        {
+            var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+            var clientType = assembly.GetType("CodeJanitor.Logic.Ai.OpenAiCompatibleClient", throwOnError: true);
+            var client = Activator.CreateInstance(
+                clientType,
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { $"http://127.0.0.1:{port}/v1", "test-key", "Authorization", null, 5 },
+                culture: null);
+            var method = clientType.GetMethod("TestApiConnectionAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.IsNotNull(method);
+
+            var testTask = (Task)method.Invoke(client, null);
+            await testTask;
+
+            var result = testTask.GetType().GetProperty("Result").GetValue(testTask);
+            var resultType = result.GetType();
+            var succeeded = (bool)resultType.GetProperty("Succeeded", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(result);
+            var availableModels = (List<string>)resultType.GetProperty("AvailableModels", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(result);
+
+            Assert.IsTrue(succeeded);
+            Assert.AreEqual("GET", receivedMethod);
+            Assert.AreEqual("/v1/models", receivedPath);
+            Assert.AreEqual(1, availableModels.Count);
+            Assert.AreEqual("model-abc", availableModels[0]);
         }
         finally
         {

@@ -19,6 +19,8 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
     private DelegateCommand _detectCopilotCommand;
     private DelegateCommand _fetchCopilotModelsCommand;
     private ObservableCollection<string> _availableCopilotModels;
+    private DelegateCommand _fetchCustomModelsCommand;
+    private ObservableCollection<string> _availableCustomModels;
     private string _copilotStatusText;
 
     /// <summary>
@@ -157,6 +159,31 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
             }
 
             return _availableCopilotModels;
+        }
+    }
+
+    /// <summary>
+    /// Command to dynamically fetch available models from the custom AI endpoint.
+    /// </summary>
+    public DelegateCommand FetchCustomModelsCommand => _fetchCustomModelsCommand ?? (_fetchCustomModelsCommand = new DelegateCommand(OnFetchCustomModelsCommandExecuted));
+
+    /// <summary>
+    /// Gets the collection of available models for the custom OpenAI-compatible provider.
+    /// </summary>
+    public ObservableCollection<string> AvailableCustomModels
+    {
+        get
+        {
+            if (_availableCustomModels is null)
+            {
+                _availableCustomModels = new ObservableCollection<string>();
+                if (!string.IsNullOrWhiteSpace(CustomModel))
+                {
+                    _availableCustomModels.Add(CustomModel);
+                }
+            }
+
+            return _availableCustomModels;
         }
     }
 
@@ -702,6 +729,11 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
             AiMockingLibrary = "Moq";
         }
 
+        if (!string.IsNullOrWhiteSpace(CustomModel) && !AvailableCustomModels.Contains(CustomModel))
+        {
+            AvailableCustomModels.Add(CustomModel);
+        }
+
         AiXmlDocumentationConnectionStatus = !IsAiXmlDocumentationEndpointConfigured
             ? "Set a valid endpoint URL (e.g. http://192.168.1.52:20128/v1 or https://api.openai.com/v1)."
             : "Click 'Test API Connection' and 'Test Model' to verify connectivity.";
@@ -769,7 +801,6 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
         var endpointUrl = IsCustomProvider ? CustomEndpointUrl : CopilotEndpointUrl;
         var apiKey = IsCustomProvider ? CustomApiKey : CopilotApiKey;
         var apiKeyHeader = IsCustomProvider ? CustomApiKeyHeader : CopilotApiKeyHeader;
-        var model = IsCustomProvider ? CustomModel : CopilotModel;
         var timeoutSeconds = AiXmlDocumentationTimeoutSeconds;
 
         Package.JoinableTaskFactory.RunAsync(async delegate
@@ -778,17 +809,109 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
                 endpointUrl,
                 apiKey,
                 apiKeyHeader,
-                model,
-                timeoutSeconds);
+                model: null,
+                timeoutSeconds: timeoutSeconds);
 
             await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            AiXmlDocumentationConnectionStatus = result.Succeeded
-                ? "API connection successful."
-                : $"API connection failed: {result.ErrorMessage}";
+            if (result.Succeeded)
+            {
+                AiXmlDocumentationConnectionStatus = result.AvailableModels.Count > 0
+                    ? $"API connection successful. Found {result.AvailableModels.Count} model(s)."
+                    : "API connection successful.";
+
+                if (IsCustomProvider && result.AvailableModels.Count > 0)
+                {
+                    var previousSelection = CustomModel;
+                    AvailableCustomModels.Clear();
+                    foreach (var model in result.AvailableModels)
+                    {
+                        AvailableCustomModels.Add(model);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(previousSelection) && AvailableCustomModels.Contains(previousSelection))
+                    {
+                        CustomModel = previousSelection;
+                    }
+                    else if (string.IsNullOrWhiteSpace(CustomModel))
+                    {
+                        CustomModel = AvailableCustomModels.FirstOrDefault() ?? string.Empty;
+                    }
+                }
+            }
+            else
+            {
+                AiXmlDocumentationConnectionStatus = $"API connection failed: {result.ErrorMessage}";
+            }
 
             _isTestingAiApiConnection = false;
             TestAiApiConnectionCommand.RaiseCanExecuteChanged();
+        });
+    }
+
+    /// <summary>
+    /// Fetches available models from the custom AI endpoint asynchronously via GET /models.
+    /// </summary>
+    /// <param name="parameter">The parameter.</param>
+    private void OnFetchCustomModelsCommandExecuted(object parameter)
+    {
+        if (!OpenAiCompatibleClient.IsEndpointConfigured(CustomEndpointUrl))
+        {
+            AiXmlDocumentationConnectionStatus = "Endpoint URL is missing or invalid.";
+
+            return;
+        }
+
+        var previousSelection = CustomModel;
+        var endpointUrl = CustomEndpointUrl;
+        var apiKey = CustomApiKey;
+        var apiKeyHeader = CustomApiKeyHeader;
+        var timeoutSeconds = AiXmlDocumentationTimeoutSeconds;
+
+        AiXmlDocumentationConnectionStatus = "Fetching available models...";
+
+        Package.JoinableTaskFactory.RunAsync(async delegate
+        {
+            var result = await AiXmlDocumentationLogic.ValidateApiConnectionAsync(
+                endpointUrl,
+                apiKey,
+                apiKeyHeader,
+                model: null,
+                timeoutSeconds: timeoutSeconds);
+
+            await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            if (result.Succeeded)
+            {
+                var models = result.AvailableModels;
+                if (models is not null && models.Count > 0)
+                {
+                    AvailableCustomModels.Clear();
+                    foreach (var model in models)
+                    {
+                        AvailableCustomModels.Add(model);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(previousSelection) && AvailableCustomModels.Contains(previousSelection))
+                    {
+                        CustomModel = previousSelection;
+                    }
+                    else if (string.IsNullOrWhiteSpace(CustomModel))
+                    {
+                        CustomModel = AvailableCustomModels.FirstOrDefault() ?? string.Empty;
+                    }
+
+                    AiXmlDocumentationConnectionStatus = $"Found {models.Count} model(s).";
+                }
+                else
+                {
+                    AiXmlDocumentationConnectionStatus = "API connection successful, but no models were returned by the endpoint.";
+                }
+            }
+            else
+            {
+                AiXmlDocumentationConnectionStatus = $"Failed to fetch models: {result.ErrorMessage}";
+            }
         });
     }
 

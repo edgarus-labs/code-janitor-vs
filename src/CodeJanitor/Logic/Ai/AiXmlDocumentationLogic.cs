@@ -217,8 +217,8 @@ internal sealed class AiXmlDocumentationLogic
         string endpointUrl,
         string apiKey,
         string apiKeyHeader,
-        string model,
-        int timeoutSeconds)
+        string model = null,
+        int timeoutSeconds = 30)
     {
         var client = CreateClient(endpointUrl, apiKey, apiKeyHeader, model, timeoutSeconds);
         if (client is null)
@@ -230,6 +230,29 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         return await client.TestApiConnectionAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asynchronously fetches available models from the specified AI endpoint.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <param name="apiKey">The api key.</param>
+    /// <param name="apiKeyHeader">The api key header.</param>
+    /// <param name="timeoutSeconds">The timeout seconds.</param>
+    /// <returns>A list of available model names/IDs.</returns>
+    internal static async Task<List<string>> FetchAvailableModelsAsync(
+        string endpointUrl,
+        string apiKey,
+        string apiKeyHeader,
+        int timeoutSeconds = 30)
+    {
+        var client = CreateClient(endpointUrl, apiKey, apiKeyHeader, null, timeoutSeconds);
+        if (client is null)
+        {
+            return new List<string>();
+        }
+
+        return await client.FetchAvailableModelsAsync().ConfigureAwait(false);
     }
 
     /// <summary>
