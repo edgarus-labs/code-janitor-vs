@@ -40,6 +40,11 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         /// Gets or sets the error message.
         /// </summary>
         internal string ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Gets the list of available models discovered during the connection test.
+        /// </summary>
+        internal List<string> AvailableModels { get; set; } = new List<string>();
     }
 
     internal OpenAiCompatibleClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds)
@@ -181,10 +186,123 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     }
 
     /// <summary>
-    /// Sends an authenticated probe request to the configured endpoint and checks only the
-    /// transport/HTTP-level outcome (reachable and authenticated), independent of whether the
-    /// configured model name is valid. Use <see cref="TestModelAsync" /> to additionally verify
-    /// the model itself produces a usable response.
+    /// Computes the models endpoint URL from the given endpoint URL.
+    /// Strips known completion suffixes and appends /models.
+    /// </summary>
+    /// <param name="endpointUrl">The endpoint url.</param>
+    /// <returns>A string value representing the models endpoint URL.</returns>
+    internal static string GetModelsEndpointUrl(string endpointUrl)
+    {
+        if (string.IsNullOrWhiteSpace(endpointUrl))
+        {
+            return endpointUrl;
+        }
+
+        var url = endpointUrl.Trim();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+        {
+            return url;
+        }
+
+        if (url.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase))
+        {
+            return url.Substring(0, url.Length - "/chat/completions".Length).TrimEnd('/') + "/models";
+        }
+
+        if (url.EndsWith("/completions", StringComparison.OrdinalIgnoreCase))
+        {
+            return url.Substring(0, url.Length - "/completions".Length).TrimEnd('/') + "/models";
+        }
+
+        if (url.EndsWith("/messages", StringComparison.OrdinalIgnoreCase))
+        {
+            return url.Substring(0, url.Length - "/messages".Length).TrimEnd('/') + "/models";
+        }
+
+        if (url.EndsWith("/generate", StringComparison.OrdinalIgnoreCase))
+        {
+            return url.Substring(0, url.Length - "/generate".Length).TrimEnd('/') + "/models";
+        }
+
+        url = url.TrimEnd('/');
+        return url + "/models";
+    }
+
+    /// <summary>
+    /// Parses available model identifiers from an OpenAI-compatible /models JSON response.
+    /// Supports standard OpenAI format (data[].id) and Ollama/alternative format (models[].name / id).
+    /// </summary>
+    /// <param name="json">The response JSON string.</param>
+    /// <returns>A list of model names or IDs sorted alphabetically.</returns>
+    internal static List<string> ParseModelIds(string json)
+    {
+        var models = new List<string>();
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return models;
+        }
+
+        try
+        {
+            var serializer = new JavaScriptSerializer();
+            var dict = serializer.Deserialize<Dictionary<string, object>>(json);
+            if (dict is null)
+            {
+                return models;
+            }
+
+            if (dict.TryGetValue("data", out var dataObj) && dataObj is IList dataList)
+            {
+                foreach (var item in dataList)
+                {
+                    if (item is Dictionary<string, object> modelDict &&
+                        modelDict.TryGetValue("id", out var idObj) && idObj is not null)
+                    {
+                        var id = idObj.ToString().Trim();
+                        if (!string.IsNullOrEmpty(id) && !models.Contains(id))
+                        {
+                            models.Add(id);
+                        }
+                    }
+                }
+            }
+            else if (dict.TryGetValue("models", out var modelsObj) && modelsObj is IList modelsList)
+            {
+                foreach (var item in modelsList)
+                {
+                    if (item is Dictionary<string, object> modelDict)
+                    {
+                        object nameObj = null;
+                        if (modelDict.TryGetValue("name", out nameObj) ||
+                            modelDict.TryGetValue("id", out nameObj) ||
+                            modelDict.TryGetValue("model", out nameObj))
+                        {
+                            if (nameObj is not null)
+                            {
+                                var id = nameObj.ToString().Trim();
+                                if (!string.IsNullOrEmpty(id) && !models.Contains(id))
+                                {
+                                    models.Add(id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Best effort parsing: return any models collected
+        }
+
+        models.Sort(StringComparer.OrdinalIgnoreCase);
+        return models;
+    }
+
+    /// <summary>
+    /// Sends an authenticated GET request to the models endpoint (e.g. /v1/models) to verify endpoint
+    /// reachability and authentication without invoking or loading any specific model into memory.
+    /// If successful, returns the list of available models.
     /// </summary>
     /// <returns>A Task&lt;ConnectionTestResult&gt; value produced by this method.</returns>
     internal async Task<ConnectionTestResult> TestApiConnectionAsync()
@@ -194,44 +312,125 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             return new ConnectionTestResult { ErrorMessage = "AI endpoint is not configured." };
         }
 
-        var requestJson = BuildRequestJson("Reply with exactly: OK", 16);
-        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
+        var modelsUrl = GetModelsEndpointUrl(EndpointUrl);
+        var timeoutSeconds = TimeoutSeconds > 0 ? TimeoutSeconds : 30;
+
+        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
         using (var httpClient = new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan })
-        using (var message = new HttpRequestMessage(HttpMethod.Post, EndpointUrl))
+        {
+            var result = await QueryModelsEndpointAsync(httpClient, modelsUrl, timeout.Token).ConfigureAwait(false);
+            if (result.Succeeded || result.IsAuthError)
+            {
+                return result.ToConnectionTestResult();
+            }
+
+            // Fallback: if modelsUrl returned 404 and didn't include "/v1", try with "/v1/models"
+            if (result.StatusCode == System.Net.HttpStatusCode.NotFound &&
+                !modelsUrl.Contains("/v1/") &&
+                !modelsUrl.EndsWith("/v1/models", StringComparison.OrdinalIgnoreCase))
+            {
+                var v1Url = modelsUrl.EndsWith("/models", StringComparison.OrdinalIgnoreCase)
+                    ? modelsUrl.Substring(0, modelsUrl.Length - "/models".Length).TrimEnd('/') + "/v1/models"
+                    : null;
+
+                if (!string.IsNullOrEmpty(v1Url))
+                {
+                    var fallbackResult = await QueryModelsEndpointAsync(httpClient, v1Url, timeout.Token).ConfigureAwait(false);
+                    if (fallbackResult.Succeeded || fallbackResult.IsAuthError)
+                    {
+                        return fallbackResult.ToConnectionTestResult();
+                    }
+                }
+            }
+
+            return result.ToConnectionTestResult();
+        }
+    }
+
+    /// <summary>
+    /// Fetches the available models from the endpoint via GET /models.
+    /// </summary>
+    /// <returns>List of model IDs or names.</returns>
+    internal async Task<List<string>> FetchAvailableModelsAsync()
+    {
+        var result = await TestApiConnectionAsync().ConfigureAwait(false);
+        return result.AvailableModels;
+    }
+
+    private sealed class ModelsFetchResult
+    {
+        internal bool Succeeded { get; set; }
+        internal bool IsAuthError { get; set; }
+        internal System.Net.HttpStatusCode? StatusCode { get; set; }
+        internal string ErrorMessage { get; set; }
+        internal List<string> AvailableModels { get; set; } = new List<string>();
+
+        internal ConnectionTestResult ToConnectionTestResult()
+        {
+            return new ConnectionTestResult
+            {
+                Succeeded = Succeeded,
+                ErrorMessage = ErrorMessage,
+                AvailableModels = AvailableModels
+            };
+        }
+    }
+
+    private async Task<ModelsFetchResult> QueryModelsEndpointAsync(HttpClient httpClient, string url, CancellationToken cancellationToken)
+    {
+        using (var message = new HttpRequestMessage(HttpMethod.Get, url))
         {
             ApplyAuthentication(message.Headers);
-            message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
             try
             {
-                using (var response = await httpClient.SendAsync(message, timeout.Token).ConfigureAwait(false))
+                using (var response = await httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false))
                 {
-                    // Any response from the server (even a model/validation error) proves the
-                    // endpoint is reachable at the HTTP layer; only auth failures are a real
-                    // "API connection" failure here, since model correctness is tested separately.
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                        response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                     {
                         var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                        return new ConnectionTestResult
+                        return new ModelsFetchResult
                         {
+                            IsAuthError = true,
+                            StatusCode = response.StatusCode,
                             ErrorMessage = $"AI endpoint rejected the request ({(int)response.StatusCode} {response.ReasonPhrase}). Check the API key. {Truncate(responseText, 512)}"
                         };
                     }
 
-                    return new ConnectionTestResult { Succeeded = true };
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        var models = ParseModelIds(responseText);
+
+                        return new ModelsFetchResult
+                        {
+                            Succeeded = true,
+                            StatusCode = response.StatusCode,
+                            AvailableModels = models
+                        };
+                    }
+
+                    var errText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                    return new ModelsFetchResult
+                    {
+                        StatusCode = response.StatusCode,
+                        ErrorMessage = $"AI endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}. {Truncate(errText, 512)}"
+                    };
                 }
             }
-            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return new ConnectionTestResult
+                return new ModelsFetchResult
                 {
                     ErrorMessage = $"Connection test timed out after {TimeoutSeconds} seconds."
                 };
             }
             catch (Exception ex)
             {
-                return new ConnectionTestResult { ErrorMessage = ex.Message };
+                return new ModelsFetchResult { ErrorMessage = ex.Message };
             }
         }
     }

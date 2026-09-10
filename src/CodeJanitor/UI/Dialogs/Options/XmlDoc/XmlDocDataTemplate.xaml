@@ -87,8 +87,25 @@
 						<TextBlock Margin="0,6,0,0" Text="API key header (Authorization / api-key / x-api-key)" />
 						<TextBox Text="{Binding CustomApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />
 
-						<TextBlock Margin="0,6,0,0" Text="Model or deployment name (optional)" />
-						<TextBox Text="{Binding CustomModel, UpdateSourceTrigger=PropertyChanged}" />
+						<TextBlock Margin="0,6,0,2" Text="Model or deployment name (select from available or enter manually)" />
+						<Grid Margin="0,2,0,0">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*" />
+								<ColumnDefinition Width="Auto" />
+							</Grid.ColumnDefinitions>
+							<ComboBox
+								Grid.Column="0"
+								IsEditable="True"
+								ItemsSource="{Binding AvailableCustomModels}"
+								Text="{Binding CustomModel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+							<Button
+								Grid.Column="1"
+								Margin="8,0,0,0"
+								Padding="8,2"
+								Command="{Binding FetchCustomModelsCommand}"
+								Content="Refresh Models"
+								ToolTip="Query AI endpoint for live available models via GET /models" />
+						</Grid>
 					</StackPanel>
 
 					<StackPanel Margin="0,8,0,0" Orientation="Horizontal">
