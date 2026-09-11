@@ -914,9 +914,7 @@ internal sealed class AiXmlDocumentationLogic
             }
         }
 
-        if (options.IgnoreTestMethods && member is BaseTypeDeclarationSyntax testType &&
-            (testType.Identifier.ValueText.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
-             testType.Identifier.ValueText.EndsWith("Test", StringComparison.OrdinalIgnoreCase)))
+        if (options.IgnoreTestMethods && member is BaseTypeDeclarationSyntax testType && IsLikelyTestType(testType))
         {
             filteredCounter++;
 
@@ -1062,6 +1060,13 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
+        if (options.IgnoreTestMethods && IsLikelyTestType(constructor.Parent as TypeDeclarationSyntax))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
         if (!string.IsNullOrWhiteSpace(options.IgnorePattern) && MatchesIgnorePattern(constructor, options.IgnorePattern))
         {
             filteredCounter++;
@@ -1070,6 +1075,34 @@ internal sealed class AiXmlDocumentationLogic
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Resolves the containing type's name and its kind ("record", "struct", or "class") for the specified constructor, defaulting the name to &quot;instance&quot; when the constructor has no containing type declaration.
+    /// </summary>
+    /// <param name="constructor">The constructor.</param>
+    /// <returns>A tuple of the containing type name and its kind.</returns>
+    private static (string ContainingTypeName, string TypeKind) GetContainingTypeInfo(ConstructorDeclarationSyntax constructor)
+    {
+        var containingTypeName = (constructor.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? "instance";
+        var typeKind = constructor.Parent is RecordDeclarationSyntax ? "record"
+            : constructor.Parent is StructDeclarationSyntax ? "struct"
+            : "class";
+
+        return (containingTypeName, typeKind);
+    }
+
+    /// <summary>
+    /// Determines whether a type's name ends with &quot;Tests&quot; or &quot;Test&quot; (case-insensitive), the naming convention used to identify test classes.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>A bool value produced by this method.</returns>
+    private static bool IsLikelyTestType(BaseTypeDeclarationSyntax type)
+    {
+        var name = type?.Identifier.ValueText ?? string.Empty;
+
+        return name.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Test", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1119,10 +1152,7 @@ internal sealed class AiXmlDocumentationLogic
             return true;
         }
 
-        var containingTypeName = (method.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? string.Empty;
-
-        return containingTypeName.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
-               containingTypeName.EndsWith("Test", StringComparison.OrdinalIgnoreCase);
+        return IsLikelyTestType(method.Parent as TypeDeclarationSyntax);
     }
 
     /// <summary>
@@ -1146,7 +1176,7 @@ internal sealed class AiXmlDocumentationLogic
             {
                 MethodDeclarationSyntax m => m.Identifier.ValueText,
                 ConstructorDeclarationSyntax c => c.Identifier.ValueText,
-                _ => string.Empty
+                _ => throw new NotSupportedException("Unsupported member kind for ignore-pattern matching: " + member.GetType().Name)
             };
             var fullName = string.IsNullOrWhiteSpace(containingNamespace)
                 ? containingType + "." + memberName
@@ -1154,8 +1184,10 @@ internal sealed class AiXmlDocumentationLogic
 
             return Regex.IsMatch(fullName, ignorePattern, RegexOptions.IgnoreCase);
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is ArgumentException || ex is RegexMatchTimeoutException)
         {
+            OutputWindowHelper.DiagnosticWriteLine("AI XMLDoc ignore pattern is invalid: '" + ignorePattern + "'", ex);
+
             return false;
         }
     }
@@ -1344,10 +1376,7 @@ internal sealed class AiXmlDocumentationLogic
             exceptionList = "none detected";
         }
 
-        var containingTypeName = (constructor.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? "instance";
-        var typeKind = constructor.Parent is RecordDeclarationSyntax ? "record"
-            : constructor.Parent is StructDeclarationSyntax ? "struct"
-            : "class";
+        var (containingTypeName, typeKind) = GetContainingTypeInfo(constructor);
 
         return
             "Generate a professional C# XML documentation <summary> sentence for the following C# constructor of " + typeKind + " '" + containingTypeName + "':\n" +
@@ -1880,10 +1909,7 @@ internal sealed class AiXmlDocumentationLogic
 
         if (member is ConstructorDeclarationSyntax constructor)
         {
-            var containingType = (constructor.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? "instance";
-            var typeKind = constructor.Parent is RecordDeclarationSyntax ? "record"
-                : constructor.Parent is StructDeclarationSyntax ? "struct"
-                : "class";
+            var (containingType, typeKind) = GetContainingTypeInfo(constructor);
             var hasParams = constructor.ParameterList?.Parameters.Count > 0;
 
             return hasParams
