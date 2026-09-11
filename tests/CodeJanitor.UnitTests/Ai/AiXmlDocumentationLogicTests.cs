@@ -16,6 +16,16 @@ namespace CodeJanitor.UnitTests.Ai;
 [TestClass]
 public sealed class AiXmlDocumentationLogicTests
 {
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var beginRunMethod = logicType.GetMethod("BeginRun", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(beginRunMethod, "Could not locate BeginRun via reflection.");
+        beginRunMethod.Invoke(null, null);
+    }
+
     [TestMethod]
     public void GenerateXmlDocumentationForSource_InsertsSummaryParamReturnsAndException()
     {
@@ -325,6 +335,39 @@ public void DoWork()
 
         Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"));
         StringAssert.Contains(updated, "public void DoWork()");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSourceInternal_IgnoresConstructorsInLikelyTestTypesWhenEnabled()
+    {
+        var source = @"
+namespace Demo;
+
+public class SampleTests
+{
+public SampleTests()
+{
+}
+}
+
+public class RealService
+{
+public RealService()
+{
+}
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentationInternal(
+            source,
+            _ => "Generated docs.",
+            (options, optionsType) => SetProperty(optionsType, options, "IgnoreTestMethods", true));
+
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"), "Only the RealService type and its constructor should be documented; the test type and its constructor must be skipped.");
+
+        var sampleTestsCtorIndex = updated.IndexOf("public SampleTests()", StringComparison.Ordinal);
+        var lineStart = updated.LastIndexOf('\n', sampleTestsCtorIndex);
+        Assert.IsFalse(updated.Substring(0, lineStart).TrimEnd().EndsWith("</summary>", StringComparison.Ordinal), "The SampleTests constructor should not have been documented.");
     }
 
     [TestMethod]
@@ -897,7 +940,9 @@ public int Second(int y)
 
         beginRunMethod.Invoke(null, null);
 
-        var source = @"
+        try
+        {
+            var source = @"
 namespace Demo;
 
 public class Sample
@@ -906,22 +951,358 @@ public class Sample
     public int MethodTwo() => 2;
 }
 ";
-        var callCount = 0;
-        var updated = InvokeGenerateXmlDocumentation(source, m =>
+            var callCount = 0;
+            var updated = InvokeGenerateXmlDocumentation(source, m =>
+            {
+                callCount++;
+                cancelRunMethod.Invoke(null, null);
+
+                return "Summary";
+            }, 10);
+
+            Assert.AreEqual(1, callCount, "Should abort immediately after cancellation without continuing to other methods.");
+        }
+        finally
         {
-            callCount++;
-            cancelRunMethod.Invoke(null, null);
+            beginRunMethod.Invoke(null, null);
+        }
+    }
 
-            return "Summary";
-        }, 10);
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsRecordConstructorAndMethodsWithParametersAndExceptions()
+    {
+        var source = @"
+namespace Demo;
 
-        Assert.AreEqual(1, callCount, "Should abort immediately after cancellation without continuing to other methods.");
+/// <summary>
+/// Represents retention policy for backups.
+/// </summary>
+public record BackupRetention
+{
+    public BackupRetention(int days)
+    {
+        if (days <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(days), ""Days must be greater than zero."");
+        }
+
+        Days = days;
+    }
+
+    public int Days { get; }
+
+    public bool IsExpired(DateTime timestamp)
+    {
+        return DateTime.UtcNow - timestamp > TimeSpan.FromDays(Days);
+    }
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 10);
+
+        Assert.AreEqual(4, CountOccurrences(updated, "/// <summary>"), "Should have doc for record (existing), constructor, property, and method.");
+        StringAssert.Contains(updated, "Represents retention policy for backups.");
+        StringAssert.Contains(updated, "Summary for BackupRetention.");
+        StringAssert.Contains(updated, "<param name=\"days\">");
+        StringAssert.Contains(updated, "<exception cref=\"ArgumentOutOfRangeException\">");
+        StringAssert.Contains(updated, "Summary for Days.");
+        StringAssert.Contains(updated, "Summary for IsExpired.");
+        StringAssert.Contains(updated, "<param name=\"timestamp\">");
+        StringAssert.Contains(updated, "<returns>");
+    }
+
+    [TestMethod]
+    public void BuildFallbackSummary_GeneratesExpectedSummaryForConstructors()
+    {
+        var source = @"
+public record BackupRetention
+{
+    public BackupRetention(int days) { }
+}
+
+public class NormalClass
+{
+    public NormalClass() { }
+}
+
+public class ConfiguredClass
+{
+    public ConfiguredClass(int retries) { }
+}
+
+public struct PointStruct
+{
+    public PointStruct() { }
+}
+
+public struct SizedStruct
+{
+    public SizedStruct(int size) { }
+}
+";
+        var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source);
+        var ctors = tree.GetRoot().DescendantNodes().OfType<ConstructorDeclarationSyntax>().ToList();
+
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var fallbackMethod = logicType.GetMethod("BuildFallbackSummary", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(fallbackMethod);
+
+        var recordSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[0] });
+        var classSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[1] });
+        var classWithParamsSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[2] });
+        var structSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[3] });
+        var structWithParamsSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[4] });
+
+        Assert.AreEqual("Initializes a new instance of the BackupRetention record with the specified parameters.", recordSummary);
+        Assert.AreEqual("Initializes a new instance of the NormalClass class.", classSummary);
+        Assert.AreEqual("Initializes a new instance of the ConfiguredClass class with the specified parameters.", classWithParamsSummary);
+        Assert.AreEqual("Initializes a new instance of the PointStruct struct.", structSummary);
+        Assert.AreEqual("Initializes a new instance of the SizedStruct struct with the specified parameters.", structWithParamsSummary);
+    }
+
+    [TestMethod]
+    public void CanDocumentConstructor_ExcludesStaticConstructor()
+    {
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+static Sample()
+{
+}
+
+public Sample(int value)
+{
+}
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 10);
+
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"), "Type and instance constructor should be documented; the static constructor must be excluded.");
+
+        var staticCtorIndex = updated.IndexOf("static Sample()", StringComparison.Ordinal);
+        var lineStart = updated.LastIndexOf('\n', staticCtorIndex);
+        Assert.IsFalse(updated.Substring(0, lineStart).TrimEnd().EndsWith("</summary>", StringComparison.Ordinal), "The static constructor should not have been documented.");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSourceInternal_IgnoresObsoleteConstructorWhenEnabled()
+    {
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+[Obsolete]
+public Sample(int legacyValue)
+{
+}
+
+public Sample()
+{
+}
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentationInternal(
+            source,
+            _ => "Generated docs.",
+            (options, optionsType) => SetProperty(optionsType, options, "IgnoreObsolete", true));
+
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"), "Type and the non-obsolete constructor should be documented; the [Obsolete] constructor must be skipped.");
+
+        var obsoleteAttributeIndex = updated.IndexOf("[Obsolete]", StringComparison.Ordinal);
+        var lineStart = updated.LastIndexOf('\n', obsoleteAttributeIndex);
+        Assert.IsFalse(updated.Substring(0, lineStart).TrimEnd().EndsWith("</summary>", StringComparison.Ordinal), "The [Obsolete] constructor should not have been documented.");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSourceInternal_IgnoresConstructorsMatchingRegex()
+    {
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+public Sample()
+{
+}
+
+public Sample(int skipThisOne)
+{
+}
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentationInternal(
+            source,
+            _ => "Generated docs.",
+            (options, optionsType) => SetProperty(optionsType, options, "IgnorePattern", "Demo.Sample.Sample$"));
+
+        Assert.AreEqual(1, CountOccurrences(updated, "/// <summary>"), "Every constructor named Sample matches the fully-qualified-name pattern and should be excluded, leaving only the type documented.");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSourceInternal_SkipsConstructorThatAlreadyHasDocComment()
+    {
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+/// <summary>
+/// Existing constructor docs.
+/// </summary>
+public Sample(int value)
+{
+}
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentationInternal(
+            source,
+            _ => "Generated docs.",
+            (options, optionsType) => { });
+
+        Assert.AreEqual(2, CountOccurrences(updated, "/// <summary>"), "Type gets a generated doc; the constructor already has a doc comment and must be left untouched (not duplicated).");
+        Assert.AreEqual(1, CountOccurrences(updated, "Existing constructor docs."), "The constructor's existing doc comment must be preserved exactly once.");
+        Assert.AreEqual(1, CountOccurrences(updated, "Generated docs."), "Only the type should receive a newly generated summary; the already-documented constructor must not.");
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_RespectsMethodLimitAcrossConstructors()
+    {
+        var source = @"
+namespace Demo;
+
+public class First
+{
+public First(int value)
+{
+}
+}
+
+public class Second
+{
+public Second(int value)
+{
+}
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 1);
+
+        Assert.AreEqual(1, CountOccurrences(updated, "/// <summary>"), "Only one AI-eligible member (the first type) should be documented when the budget is 1; the constructor consumes the same budget.");
+        StringAssert.Contains(updated, "Summary for First.");
+        Assert.IsFalse(updated.Contains("Summary for Second."));
+
+        var firstCtorIndex = updated.IndexOf("public First(int value)", StringComparison.Ordinal);
+        var lineStart = updated.LastIndexOf('\n', firstCtorIndex);
+        Assert.IsFalse(updated.Substring(0, lineStart).TrimEnd().EndsWith("</summary>", StringComparison.Ordinal), "The First constructor should also be excluded by the exhausted budget.");
+    }
+
+    [TestMethod]
+    public void BuildConstructorPrompt_IncludesTypeKindSignatureAndDetectedExceptions()
+    {
+        var source = @"
+namespace Demo;
+
+public record BackupRetention
+{
+    public BackupRetention(int days)
+    {
+        if (days <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(days));
+        }
+    }
+}
+";
+        var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source);
+        var constructor = tree.GetRoot().DescendantNodes().OfType<ConstructorDeclarationSyntax>().Single();
+
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var optionsType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic+AiXmlDocumentationRunOptions", throwOnError: true);
+        var promptMethod = logicType.GetMethod("BuildConstructorPrompt", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(promptMethod);
+
+        var options = Activator.CreateInstance(optionsType);
+        SetProperty(optionsType, options, "MaxInputCharsPerMethod", 2500);
+
+        var prompt = (string)promptMethod.Invoke(null, new object[] { constructor, options });
+
+        StringAssert.Contains(prompt, "constructor of record 'BackupRetention'");
+        StringAssert.Contains(prompt, "public BackupRetention(int days)");
+        Assert.IsFalse(prompt.Contains("Days = days"), "The constructor body should be excluded from the stripped signature line.");
+        StringAssert.Contains(prompt, "Detected thrown exceptions: ArgumentOutOfRangeException");
+    }
+
+    [TestMethod]
+    public void MatchesIgnorePattern_ReturnsFalseWithoutThrowingForAnInvalidRegex()
+    {
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+public void DoWork()
+{
+}
+}
+";
+
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var method = logicType.GetMethod("MatchesIgnorePattern", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(method, "Could not locate MatchesIgnorePattern via reflection.");
+
+        var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source);
+        var methodNode = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single();
+
+        var matched = (bool)method.Invoke(null, new object[] { methodNode, "(unterminated[" });
+
+        Assert.IsFalse(matched, "An invalid regex pattern must not match, and must not throw out of MatchesIgnorePattern.");
+    }
+
+    [TestMethod]
+    public void MatchesIgnorePattern_ThrowsForAnUnsupportedMemberKind()
+    {
+        var source = @"
+namespace Demo;
+
+public class Sample
+{
+}
+";
+
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var method = logicType.GetMethod("MatchesIgnorePattern", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(method, "Could not locate MatchesIgnorePattern via reflection.");
+
+        var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source);
+        var typeNode = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+
+        try
+        {
+            method.Invoke(null, new object[] { typeNode, "Sample" });
+            Assert.Fail("Expected a NotSupportedException for an unsupported member kind.");
+        }
+        catch (TargetInvocationException ex)
+        {
+            Assert.IsInstanceOfType(ex.InnerException, typeof(NotSupportedException), "An unsupported member kind should fail loudly rather than silently degrade to a wrong match.");
+        }
     }
 
     private static string GetMemberName(MemberDeclarationSyntax member)
     {
         if (member is BaseTypeDeclarationSyntax type) return type.Identifier.ValueText;
         if (member is MethodDeclarationSyntax method) return method.Identifier.ValueText;
+        if (member is ConstructorDeclarationSyntax constructor) return constructor.Identifier.ValueText;
         if (member is PropertyDeclarationSyntax property) return property.Identifier.ValueText;
         if (member is FieldDeclarationSyntax field) return field.Declaration.Variables.FirstOrDefault()?.Identifier.ValueText ?? "Field";
 

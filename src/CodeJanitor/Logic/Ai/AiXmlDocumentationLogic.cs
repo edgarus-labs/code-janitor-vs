@@ -704,10 +704,10 @@ internal sealed class AiXmlDocumentationLogic
 
         var methodLimit = PositiveOrDefault(options.MaxMethodsPerFile, 25);
 
-        // Methods and types that require AI requests are subject to MaxMethodsPerFile.
+        // Methods, constructors, and types that require AI requests are subject to MaxMethodsPerFile.
         // Deterministic members (fields, properties, indexers, events) don't consume AI requests and are fully documented in one pass.
-        var aiCandidates = eligibleMethods.Where(x => x is MethodDeclarationSyntax || x is BaseTypeDeclarationSyntax).ToList();
-        var deterministicMembers = eligibleMethods.Where(x => !(x is MethodDeclarationSyntax || x is BaseTypeDeclarationSyntax)).ToList();
+        var aiCandidates = eligibleMethods.Where(x => x is MethodDeclarationSyntax || x is ConstructorDeclarationSyntax || x is BaseTypeDeclarationSyntax).ToList();
+        var deterministicMembers = eligibleMethods.Where(x => !(x is MethodDeclarationSyntax || x is ConstructorDeclarationSyntax || x is BaseTypeDeclarationSyntax)).ToList();
 
         if (aiCandidates.Count > methodLimit)
         {
@@ -752,7 +752,7 @@ internal sealed class AiXmlDocumentationLogic
 
             var summary = NormalizeSentence(rawSummary);
 
-            var exceptions = method is MethodDeclarationSyntax methodForExceptions
+            var exceptions = method is BaseMethodDeclarationSyntax methodForExceptions
                 ? DetectThrownExceptions(methodForExceptions).ToList()
                 : new List<string>();
             var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions);
@@ -874,6 +874,11 @@ internal sealed class AiXmlDocumentationLogic
             return CanDocumentMethod(method, options, ref filteredCounter);
         }
 
+        if (member is ConstructorDeclarationSyntax constructor)
+        {
+            return CanDocumentConstructor(constructor, options, ref filteredCounter);
+        }
+
         if (!(member is BaseTypeDeclarationSyntax) &&
             !(member is PropertyDeclarationSyntax) &&
             !(member is FieldDeclarationSyntax) &&
@@ -909,9 +914,7 @@ internal sealed class AiXmlDocumentationLogic
             }
         }
 
-        if (options.IgnoreTestMethods && member is BaseTypeDeclarationSyntax testType &&
-            (testType.Identifier.ValueText.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
-             testType.Identifier.ValueText.EndsWith("Test", StringComparison.OrdinalIgnoreCase)))
+        if (options.IgnoreTestMethods && member is BaseTypeDeclarationSyntax testType && IsLikelyTestType(testType))
         {
             filteredCounter++;
 
@@ -1012,6 +1015,97 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
+    /// Returns true only for non-static, non-extern constructors with a body that lack an existing documentation comment and do not match the configured ignore options, incrementing the `filteredCounter` for each option-based exclusion.
+    /// </summary>
+    /// <param name="constructor">The constructor.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="filteredCounter">The filtered counter.</param>
+    /// <returns>A bool value produced by this method.</returns>
+    private static bool CanDocumentConstructor(ConstructorDeclarationSyntax constructor, AiXmlDocumentationRunOptions options, ref int filteredCounter)
+    {
+        if (constructor is null)
+        {
+            return false;
+        }
+
+        if (constructor.Modifiers.Any(x => x.IsKind(SyntaxKind.StaticKeyword) || x.IsKind(SyntaxKind.ExternKeyword)))
+        {
+            return false;
+        }
+
+        if (constructor.Body is null && constructor.ExpressionBody is null)
+        {
+            return false;
+        }
+
+        if (HasDocumentationComment(constructor))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (options.IgnoreObsolete && HasAnyAttribute(constructor, "Obsolete"))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (options.IgnoreGeneratedCode && (HasAnyAttribute(constructor, "GeneratedCode", "CompilerGenerated") ||
+                                            HasAnyAttribute(constructor.Parent as MemberDeclarationSyntax, "GeneratedCode", "CompilerGenerated")))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (options.IgnoreTestMethods && IsLikelyTestType(constructor.Parent as TypeDeclarationSyntax))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.IgnorePattern) && MatchesIgnorePattern(constructor, options.IgnorePattern))
+        {
+            filteredCounter++;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves the containing type's name and its kind ("record", "struct", or "class") for the specified constructor, defaulting the name to &quot;instance&quot; when the constructor has no containing type declaration.
+    /// </summary>
+    /// <param name="constructor">The constructor.</param>
+    /// <returns>A tuple of the containing type name and its kind.</returns>
+    private static (string ContainingTypeName, string TypeKind) GetContainingTypeInfo(ConstructorDeclarationSyntax constructor)
+    {
+        var containingTypeName = (constructor.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? "instance";
+        var typeKind = constructor.Parent is RecordDeclarationSyntax ? "record"
+            : constructor.Parent is StructDeclarationSyntax ? "struct"
+            : "class";
+
+        return (containingTypeName, typeKind);
+    }
+
+    /// <summary>
+    /// Determines whether a type's name ends with &quot;Tests&quot; or &quot;Test&quot; (case-insensitive), the naming convention used to identify test classes.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>A bool value produced by this method.</returns>
+    private static bool IsLikelyTestType(BaseTypeDeclarationSyntax type)
+    {
+        var name = type?.Identifier.ValueText ?? string.Empty;
+
+        return name.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith("Test", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Returns true if the member declaration contains any attribute whose name (ignoring namespace, case, and the &quot;Attribute&quot; suffix) matches one of the supplied target names; returns false when the declaration is null or no match is found.
     /// </summary>
     /// <param name="declaration">The declaration.</param>
@@ -1058,19 +1152,16 @@ internal sealed class AiXmlDocumentationLogic
             return true;
         }
 
-        var containingTypeName = (method.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? string.Empty;
-
-        return containingTypeName.EndsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
-               containingTypeName.EndsWith("Test", StringComparison.OrdinalIgnoreCase);
+        return IsLikelyTestType(method.Parent as TypeDeclarationSyntax);
     }
 
     /// <summary>
-    /// Determines whether a method&apos;s fully qualified name (namespace.type.method) matches the given regex pattern case-insensitively, returning false for null/whitespace patterns or any exception.
+    /// Determines whether a member&apos;s fully qualified name (namespace.type.member) matches the given regex pattern case-insensitively, returning false for null/whitespace patterns or any exception.
     /// </summary>
-    /// <param name="method">The method.</param>
+    /// <param name="member">The member.</param>
     /// <param name="ignorePattern">The ignore pattern.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool MatchesIgnorePattern(MethodDeclarationSyntax method, string ignorePattern)
+    private static bool MatchesIgnorePattern(MemberDeclarationSyntax member, string ignorePattern)
     {
         if (string.IsNullOrWhiteSpace(ignorePattern))
         {
@@ -1079,16 +1170,24 @@ internal sealed class AiXmlDocumentationLogic
 
         try
         {
-            var containingType = (method.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? string.Empty;
-            var containingNamespace = method.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString() ?? string.Empty;
+            var containingType = (member.Parent as TypeDeclarationSyntax)?.Identifier.ValueText ?? string.Empty;
+            var containingNamespace = member.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString() ?? string.Empty;
+            var memberName = member switch
+            {
+                MethodDeclarationSyntax m => m.Identifier.ValueText,
+                ConstructorDeclarationSyntax c => c.Identifier.ValueText,
+                _ => throw new NotSupportedException("Unsupported member kind for ignore-pattern matching: " + member.GetType().Name)
+            };
             var fullName = string.IsNullOrWhiteSpace(containingNamespace)
-                ? containingType + "." + method.Identifier.ValueText
-                : containingNamespace + "." + containingType + "." + method.Identifier.ValueText;
+                ? containingType + "." + memberName
+                : containingNamespace + "." + containingType + "." + memberName;
 
             return Regex.IsMatch(fullName, ignorePattern, RegexOptions.IgnoreCase);
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is ArgumentException || ex is RegexMatchTimeoutException)
         {
+            OutputWindowHelper.DiagnosticWriteLine("AI XMLDoc ignore pattern is invalid: '" + ignorePattern + "'", ex);
+
             return false;
         }
     }
@@ -1157,9 +1256,19 @@ internal sealed class AiXmlDocumentationLogic
             return null;
         }
 
-        var prompt = member is MethodDeclarationSyntax method
-            ? BuildMethodPrompt(method, options)
-            : BuildTypePrompt((BaseTypeDeclarationSyntax)member, options);
+        string prompt;
+        if (member is MethodDeclarationSyntax method)
+        {
+            prompt = BuildMethodPrompt(method, options);
+        }
+        else if (member is ConstructorDeclarationSyntax constructor)
+        {
+            prompt = BuildConstructorPrompt(constructor, options);
+        }
+        else
+        {
+            prompt = BuildTypePrompt((BaseTypeDeclarationSyntax)member, options);
+        }
 
         var estimatedTokens = EstimateRequestTokens(prompt, options.MaxTokensPerRequest);
         if (stats.EstimatedTokensUsed + estimatedTokens > options.MaxEstimatedTokensPerCleanup)
@@ -1243,6 +1352,45 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
+    /// Constructs an AI analysis prompt string for a ConstructorDeclarationSyntax by composing its stripped signature,
+    /// optionally truncated body text, and a comma-separated list of detected thrown exceptions.
+    /// </summary>
+    /// <param name="constructor">The constructor.</param>
+    /// <param name="options">The options.</param>
+    /// <returns>A string prompt for the AI model.</returns>
+    private static string BuildConstructorPrompt(ConstructorDeclarationSyntax constructor, AiXmlDocumentationRunOptions options)
+    {
+        var signature = constructor.WithBody(null)
+            .WithExpressionBody(null)
+            .WithSemicolonToken(default(SyntaxToken))
+            .NormalizeWhitespace()
+            .ToFullString();
+
+        var bodyText = constructor.Body is not null
+            ? constructor.Body.ToFullString().Trim()
+            : constructor.ExpressionBody?.ToFullString().Trim() ?? string.Empty;
+
+        var exceptionList = string.Join(", ", DetectThrownExceptions(constructor));
+        if (string.IsNullOrWhiteSpace(exceptionList))
+        {
+            exceptionList = "none detected";
+        }
+
+        var (containingTypeName, typeKind) = GetContainingTypeInfo(constructor);
+
+        return
+            "Generate a professional C# XML documentation <summary> sentence for the following C# constructor of " + typeKind + " '" + containingTypeName + "':\n" +
+            "Signature: " + signature + "\n" +
+            "Constructor body:\n" + Truncate(bodyText, options.MaxInputCharsPerMethod) + "\n" +
+            "Detected thrown exceptions: " + exceptionList + "\n\n" +
+            "Guidelines:\n" +
+            "- Standard Microsoft style for constructors: 'Initializes a new instance of the " + containingTypeName + " " + typeKind + ".' or 'Initializes a new instance of the " + containingTypeName + " " + typeKind + " with the specified parameters.'\n" +
+            "- Describe any validation or initialization done by the constructor.\n" +
+            "- Do NOT output vague generic filler.\n" +
+            "- Output ONLY the single summary sentence (plain text, no XML, no quotes, no reasoning).";
+    }
+
+    /// <summary>
     /// Describes a type by its declaration header, base types/interfaces, constructor parameters (for records),
     /// and member signatures.
     /// </summary>
@@ -1273,6 +1421,7 @@ internal sealed class AiXmlDocumentationLogic
             {
                 if (member is PropertyDeclarationSyntax p) memberNames.Add(p.Identifier.ValueText + " (" + (p.Type?.ToString() ?? "property") + ")");
                 else if (member is MethodDeclarationSyntax m) memberNames.Add(m.Identifier.ValueText + "()");
+                else if (member is ConstructorDeclarationSyntax c) memberNames.Add(c.Identifier.ValueText + "()");
                 else if (member is FieldDeclarationSyntax f) memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
             }
         }
@@ -1382,7 +1531,7 @@ internal sealed class AiXmlDocumentationLogic
     /// </summary>
     /// <param name="method">The method.</param>
     /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
-    private static IEnumerable<string> DetectThrownExceptions(MethodDeclarationSyntax method)
+    private static IEnumerable<string> DetectThrownExceptions(BaseMethodDeclarationSyntax method)
     {
         var exceptions = new HashSet<string>(StringComparer.Ordinal);
 
@@ -1756,6 +1905,16 @@ internal sealed class AiXmlDocumentationLogic
         if (member is EventDeclarationSyntax || member is EventFieldDeclarationSyntax)
         {
             return BuildEventSummary(member);
+        }
+
+        if (member is ConstructorDeclarationSyntax constructor)
+        {
+            var (containingType, typeKind) = GetContainingTypeInfo(constructor);
+            var hasParams = constructor.ParameterList?.Parameters.Count > 0;
+
+            return hasParams
+                ? "Initializes a new instance of the " + containingType + " " + typeKind + " with the specified parameters."
+                : "Initializes a new instance of the " + containingType + " " + typeKind + ".";
         }
 
         var method = (MethodDeclarationSyntax)member;
