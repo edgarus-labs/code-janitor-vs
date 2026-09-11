@@ -16,6 +16,15 @@ namespace CodeJanitor.UnitTests.Ai;
 [TestClass]
 public sealed class AiXmlDocumentationLogicTests
 {
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var beginRunMethod = logicType.GetMethod("BeginRun", BindingFlags.NonPublic | BindingFlags.Static);
+        beginRunMethod?.Invoke(null, null);
+    }
+
     [TestMethod]
     public void GenerateXmlDocumentationForSource_InsertsSummaryParamReturnsAndException()
     {
@@ -897,7 +906,9 @@ public int Second(int y)
 
         beginRunMethod.Invoke(null, null);
 
-        var source = @"
+        try
+        {
+            var source = @"
 namespace Demo;
 
 public class Sample
@@ -906,22 +917,100 @@ public class Sample
     public int MethodTwo() => 2;
 }
 ";
-        var callCount = 0;
-        var updated = InvokeGenerateXmlDocumentation(source, m =>
+            var callCount = 0;
+            var updated = InvokeGenerateXmlDocumentation(source, m =>
+            {
+                callCount++;
+                cancelRunMethod.Invoke(null, null);
+
+                return "Summary";
+            }, 10);
+
+            Assert.AreEqual(1, callCount, "Should abort immediately after cancellation without continuing to other methods.");
+        }
+        finally
         {
-            callCount++;
-            cancelRunMethod.Invoke(null, null);
+            beginRunMethod.Invoke(null, null);
+        }
+    }
 
-            return "Summary";
-        }, 10);
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_DocumentsRecordConstructorAndMethodsWithParametersAndExceptions()
+    {
+        var source = @"
+namespace Demo;
 
-        Assert.AreEqual(1, callCount, "Should abort immediately after cancellation without continuing to other methods.");
+/// <summary>
+/// Represents retention policy for backups.
+/// </summary>
+public record BackupRetention
+{
+    public BackupRetention(int days)
+    {
+        if (days <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(days), ""Days must be greater than zero."");
+        }
+
+        Days = days;
+    }
+
+    public int Days { get; }
+
+    public bool IsExpired(DateTime timestamp)
+    {
+        return DateTime.UtcNow - timestamp > TimeSpan.FromDays(Days);
+    }
+}
+";
+
+        var updated = InvokeGenerateXmlDocumentation(source, m => "Summary for " + GetMemberName(m) + ".", 10);
+
+        Assert.AreEqual(4, CountOccurrences(updated, "/// <summary>"), "Should have doc for record (existing), constructor, property, and method.");
+        StringAssert.Contains(updated, "Represents retention policy for backups.");
+        StringAssert.Contains(updated, "Summary for BackupRetention.");
+        StringAssert.Contains(updated, "<param name=\"days\">");
+        StringAssert.Contains(updated, "<exception cref=\"ArgumentOutOfRangeException\">");
+        StringAssert.Contains(updated, "Summary for Days.");
+        StringAssert.Contains(updated, "Summary for IsExpired.");
+        StringAssert.Contains(updated, "<param name=\"timestamp\">");
+        StringAssert.Contains(updated, "<returns>");
+    }
+
+    [TestMethod]
+    public void BuildFallbackSummary_GeneratesExpectedSummaryForConstructors()
+    {
+        var source = @"
+public record BackupRetention
+{
+    public BackupRetention(int days) { }
+}
+
+public class NormalClass
+{
+    public NormalClass() { }
+}
+";
+        var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source);
+        var ctors = tree.GetRoot().DescendantNodes().OfType<ConstructorDeclarationSyntax>().ToList();
+
+        var assembly = typeof(CodeJanitor.Properties.Settings).Assembly;
+        var logicType = assembly.GetType("CodeJanitor.Logic.Ai.AiXmlDocumentationLogic", throwOnError: true);
+        var fallbackMethod = logicType.GetMethod("BuildFallbackSummary", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(fallbackMethod);
+
+        var recordSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[0] });
+        var classSummary = (string)fallbackMethod.Invoke(null, new object[] { ctors[1] });
+
+        Assert.AreEqual("Initializes a new instance of the BackupRetention record with the specified parameters.", recordSummary);
+        Assert.AreEqual("Initializes a new instance of the NormalClass class.", classSummary);
     }
 
     private static string GetMemberName(MemberDeclarationSyntax member)
     {
         if (member is BaseTypeDeclarationSyntax type) return type.Identifier.ValueText;
         if (member is MethodDeclarationSyntax method) return method.Identifier.ValueText;
+        if (member is ConstructorDeclarationSyntax constructor) return constructor.Identifier.ValueText;
         if (member is PropertyDeclarationSyntax property) return property.Identifier.ValueText;
         if (member is FieldDeclarationSyntax field) return field.Declaration.Variables.FirstOrDefault()?.Identifier.ValueText ?? "Field";
 
