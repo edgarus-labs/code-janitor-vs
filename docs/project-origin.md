@@ -10,7 +10,7 @@ It is not presented as CodeMaid, and it is not presented as an official project 
 
 ## Why the fork was created
 
-CodeMaid provided a valuable and widely used set of code-cleaning and code-navigation features for Visual Studio. The original project is no longer actively maintained, while the Visual Studio platform and the .NET ecosystem continue to evolve.
+CodeMaid provided a valuable and widely used set of code-cleaning and code-navigation features for Visual Studio. This fork provides an independent development path as the Visual Studio platform and the .NET ecosystem evolve.
 
 The fork was created to:
 
@@ -55,4 +55,4 @@ The Code Janitor changelog records changes made after the fork. The original Cod
 - Original repository: https://github.com/codecadwallader/codemaid
 - Original project website: https://www.codemaid.net
 - Original license: LGPL-3.0
-- Code Janitor repository: https://github.com/Edgarus79/code-janitor
+- Code Janitor repository: https://github.com/edgarus-labs/code-janitor-vs
