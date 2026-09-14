@@ -17,7 +17,7 @@ See the [preview help](cleanup-preview.md) for the exact supported scope.
 
 - Establish the Code Janitor identity and transparent fork documentation.
 - Add Visual Studio 2026 installation compatibility.
-- Migrate the legacy Options experience to native Visual Studio settings.
+- Provide grouped WPF pages in Visual Studio's Options dialog.
 - Organize the settings model into clear categories.
 - Add a safe Razor and Blazor formatter.
 - Add Razor control-block support and regression tests.
@@ -28,7 +28,7 @@ See the [preview help](cleanup-preview.md) for the exact supported scope.
 
 ## Near-term priorities
 
-- Complete the modernization of the Visual Studio settings experience.
+- Improve the existing WPF settings experience.
 - Expand Razor and Blazor formatting coverage.
 - Expand XMLDoc cleanup safely across supported C# constructs.
 - Increase automated test coverage for formatting, AI boundaries and cleaning behavior.

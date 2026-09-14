@@ -1,4 +1,6 @@
-# Status: Reorganizing member-type grid implemented, but extension not appearing in Exp VS after deploy
+# Historical NativeSettings deployment investigation
+
+> Historical note (2026-09-14): The experimental NativeSettings bridge and its VisualStudio.Extensibility dependencies have been removed. Code Janitor uses classic WPF pages under Tools > Options > Code Janitor. NativeSettings migration and deployment tasks below are superseded; other historical backlog items have not been revalidated. See [current settings documentation](../features.md#settings).
 
 Date: 2026-07-30
 
@@ -38,7 +40,7 @@ Date: 2026-07-30
      `/updateconfiguration` retried once automatically, **"pkgdef merge verified in
      privateregistry.bin."** printed, devenv Exp launched at the end.
 
-## Current unresolved problem
+## Problem recorded at the time
 
 Despite the deploy script now completing successfully end-to-end (build OK, install OK, pkgdef
 merge verified present in `privateregistry.bin`, devenv relaunched), **the user reports "Code
@@ -50,7 +52,7 @@ This is a genuine open issue - the previously-known failure mode (pkgdef merge s
 completing) has been fixed and verified, yet the symptom persists, so there is likely a
 **second, different root cause** still to be found.
 
-## Not yet investigated (next steps for next session)
+## Historical follow-up ideas
 
 - Check `ActivityLog.xml` in the Exp hive
   (`%LOCALAPPDATA%\Microsoft\VisualStudio\18.0_ec255184Exp\ActivityLog.xml`) for load errors /

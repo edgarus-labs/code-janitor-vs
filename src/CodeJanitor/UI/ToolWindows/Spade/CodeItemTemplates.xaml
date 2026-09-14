@@ -72,9 +72,6 @@
 			Source="{Binding Converter={x:Static cnv:CodeItemToImageConverter.VS2012Light}}"
 			UseLayoutRounding="True" />
 		<DataTemplate.Triggers>
-			<DataTrigger Binding="{Binding DataContext.Package.IDEVersion, RelativeSource={RelativeSource FindAncestor, AncestorType=spade:SpadeView}, Converter={x:Static cnv:IsGreaterThanOrEqualToConverter.Default}, ConverterParameter=11}" Value="False">
-				<Setter TargetName="image" Property="Source" Value="{Binding Converter={x:Static cnv:CodeItemToImageConverter.VS2010}}" />
-			</DataTrigger>
 			<MultiDataTrigger>
 				<MultiDataTrigger.Conditions>
 					<Condition Binding="{Binding DataContext.Package.IDEVersion, RelativeSource={RelativeSource FindAncestor, AncestorType=spade:SpadeView}, Converter={x:Static cnv:IsGreaterThanOrEqualToConverter.Default}, ConverterParameter=11}" Value="True" />

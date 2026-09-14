@@ -1,9 +1,6 @@
-# Code Janitor
+# Code Janitor for Visual Studio
 
-[![Build VSIX](https://github.com/edgarus-labs/code-janitor/actions/workflows/build-vsix.yml/badge.svg)](https://github.com/edgarus-labs/code-janitor/actions/workflows/build-vsix.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0.55-blue.svg)](https://github.com/edgarus-labs/code-janitor/releases)
-[![Tests](https://img.shields.io/badge/tests-706%20passed-brightgreen.svg)](https://github.com/edgarus-labs/code-janitor)
-[![Code Coverage](https://img.shields.io/badge/coverage-59.38%25%20core%20logic-yellow.svg)](https://github.com/edgarus-labs/code-janitor)
+[![Build VSIX](https://github.com/edgarus-labs/code-janitor-vs/actions/workflows/build-vsix.yml/badge.svg)](https://github.com/edgarus-labs/code-janitor-vs/actions/workflows/build-vsix.yml)
 [![Visual Studio](https://img.shields.io/badge/Visual%20Studio-2022%2B-purple.svg)](https://visualstudio.microsoft.com/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](LICENSE.txt)
 
@@ -13,19 +10,26 @@ Code Janitor is an independently maintained open-source Visual Studio extension 
 
 ## Why this project exists
 
-CodeMaid became a widely used Visual Studio extension for improving code quality and developer productivity. However, the original project is no longer actively maintained while Visual Studio and the .NET ecosystem continue to evolve.
+CodeMaid became a widely used Visual Studio extension for improving code quality and developer productivity. This fork provides a separate maintenance and development path as Visual Studio and the .NET ecosystem evolve.
 
 Code Janitor exists to provide an independently maintained development path for this valuable open-source codebase. The project preserves the proven capabilities of CodeMaid while improving compatibility, maintainability and support for current development workflows.
 
 The name **Code Janitor** distinguishes this project from the original CodeMaid project and makes clear that it has a new, independent maintainer and roadmap.
+
+## Installation
+
+Download a `.vsix` package from [GitHub Releases](https://github.com/edgarus-labs/code-janitor-vs/releases), if available, close Visual Studio, and run the package to install it. Restart Visual Studio after installation. To build from source, follow the [development guide](docs/development.md).
+
+The current VSIX manifest targets 64-bit Visual Studio Community, Professional and Enterprise versions 17.x and 18.x (Visual Studio 2022 and 2026). Check each release for version-specific requirements.
+
+For Visual Studio Code, use the separate [Code Janitor for VS Code](https://github.com/edgarus-labs/code-janitor-vscode) extension; the two extensions have different feature sets.
 
 ## Current development
 
 The current development branch includes:
 
 - Visual Studio 2026 installation compatibility;
-- migration from the legacy Options window to the native Visual Studio settings system;
-- a structured settings tree covering approximately 191 settings in 21 categories;
+- grouped WPF settings pages under **Tools > Options > Code Janitor**;
 - a safe Razor formatter for Blazor applications;
 - Razor control-block formatting for `@if`, `@else`, `@for`, `@foreach`, `@while`, `@switch`, `@try`, `@catch` and `@finally`;
 - namespace fixing and cleanup;
@@ -46,7 +50,7 @@ saving files. This preview does not run AI, split types, change encoding, or inv
 editor-only cleanup steps. See the [cleanup preview guide](docs/cleanup-preview.md)
 for scope, safety behavior and the manual verification checklist.
 
-The project is currently under active development. Releases and marketplace publication will follow after the modernization and verification work reaches a stable milestone.
+The `develop` branch contains ongoing work and may differ from packaged releases. Consult the [release notes](https://github.com/edgarus-labs/code-janitor-vs/releases) for the capabilities of each build.
 
 ## Features inherited and continued from CodeMaid
 
