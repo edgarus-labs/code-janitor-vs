@@ -18,6 +18,8 @@
     <EnableDefaultItems>false</EnableDefaultItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UICulture>en-US</UICulture>
+    <VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+    <UseWpf>true</UseWpf>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
     <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
     <IncludeDebugSymbolsInVSIXContainer>true</IncludeDebugSymbolsInVSIXContainer>
@@ -52,6 +54,9 @@
     <Prefer32Bit>false</Prefer32Bit>
     <DeployExtension>False</DeployExtension>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectCapability Include="CreateVsixContainer" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
