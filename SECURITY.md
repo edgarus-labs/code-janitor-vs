@@ -28,4 +28,6 @@ Security reports may include issues involving:
 - deployment and update mechanisms;
 - sensitive data exposure through logs or diagnostics.
 
-Code Janitor does not intentionally transmit source code or user files to external services.
+Optional AI-assisted operations send source-code context to the configured AI provider. Review the provider, endpoint and applicable data-handling terms before using these operations with private code. Ordinary deterministic cleanup does not require an AI request.
+
+Include unintended disclosure through AI requests or credential handling in security reports.
