@@ -29,8 +29,7 @@ For Visual Studio Code, use the separate [Code Janitor for VS Code](https://gith
 The current development branch includes:
 
 - Visual Studio 2026 installation compatibility;
-- migration from the legacy Options window to the native Visual Studio settings system;
-- a structured settings tree covering approximately 191 settings in 21 categories;
+- grouped WPF settings pages under **Tools > Options > Code Janitor**;
 - a safe Razor formatter for Blazor applications;
 - Razor control-block formatting for `@if`, `@else`, `@for`, `@foreach`, `@while`, `@switch`, `@try`, `@catch` and `@finally`;
 - namespace fixing and cleanup;

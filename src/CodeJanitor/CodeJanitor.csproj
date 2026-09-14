@@ -15,7 +15,6 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\CodeJanitor.snk</AssemblyOriginatorKeyFile>
     <TargetFramework>net472</TargetFramework>
-    <VssdkCompatibleExtension>true</VssdkCompatibleExtension>
     <EnableDefaultItems>false</EnableDefaultItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UICulture>en-US</UICulture>
@@ -30,13 +29,6 @@
     <StartArguments>/rootsuffix Exp</StartArguments>
     <LangVersion>latest</LangVersion>
     <RuntimeIdentifier>win</RuntimeIdentifier>
-    <!-- The VisualStudio.Extensibility native settings bridge (NativeSettings\*) is parked:
-         CodeJanitorNativeSettingsExtension.InitializeAsync never reliably activates in this VS
-         version (ServiceUnavailableException / never fires at all - see repo memory notes), so
-         the classic WPF Options UI was restored as the actual settings UI. Kept compiled out
-         (not deleted) so it can be re-enabled later by flipping this to true, without having to
-         reconstruct everything from git history again. -->
-    <EnableNativeSettings Condition="'$(EnableNativeSettings)' == ''">false</EnableNativeSettings>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,7 +36,6 @@
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE;CODEJANITOR_VS2022PLUS</DefineConstants>
-    <DefineConstants Condition="'$(EnableNativeSettings)' == 'true'">$(DefineConstants);CODEJANITOR_NATIVE_SETTINGS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -95,23 +86,6 @@
     <Compile Include="source.extension.cs">
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
-    <Compile Include="NativeSettings\PlaceholderExtension.cs" />
-    <Compile Include="NativeSettings\CodeJanitorNativeSettingsExtension.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\NativeSettingCategories.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\GeneralNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\FeaturesNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\CleaningNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\CollapsingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\DiggingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\FindingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\FormattingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\ProgressingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\ReorganizingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\MemberTypeArrayItem.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\ThirdPartyNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\SwitchingNativeSettings.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\ExportRulesCommand.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
-    <Compile Include="NativeSettings\ImportRulesCommand.cs" Condition="'$(EnableNativeSettings)' == 'true'" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Integration\Images\IDE\progressToolWindow.png">
@@ -441,165 +415,6 @@
     <Resource Include="UI\ToolWindows\Spade\Images\VS2012_Light\Structure_Protected.png">
       <Link>UI\ToolWindows\Spade\Images\VS2012_Light\Structure_Protected.png</Link>
     </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\EnumItem.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\EnumItem.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\EnumItem_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\EnumItem_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\EnumItem_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\EnumItem_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\EnumItem_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\EnumItem_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Class.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Class.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Class_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Class_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Class_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Class_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Class_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Class_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Constant.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Constant.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Constant_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Constant_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Constant_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Constant_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Constant_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Constant_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Delegate.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Delegate.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Delegate_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Delegate_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Delegate_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Delegate_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Delegate_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Delegate_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Enum.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Enum.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Enum_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Enum_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Enum_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Enum_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Enum_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Enum_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Event.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Event.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Event_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Event_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Event_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Event_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Event_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Event_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Field.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Field.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Field_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Field_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Field_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Field_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Field_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Field_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Interface.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Interface.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Interface_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Interface_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Interface_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Interface_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Interface_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Interface_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Method.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Method.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodConstructor.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodConstructor.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodConstructor_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodConstructor_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodConstructor_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodConstructor_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodConstructor_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodConstructor_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodDestructor.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodDestructor.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodDestructor_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodDestructor_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodDestructor_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodDestructor_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\MethodDestructor_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\MethodDestructor_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Method_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Method_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Method_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Method_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Method_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Method_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Property.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Property.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Property_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Property_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Property_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Property_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Property_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Property_Protected.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Region.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Region.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Structure.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Structure.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Structure_Friend.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Structure_Friend.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Structure_Private.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Structure_Private.png</Link>
-    </Resource>
-    <Resource Include="UI\ToolWindows\Spade\Images\VS2010\Structure_Protected.png">
-      <Link>UI\ToolWindows\Spade\Images\VS2010\Structure_Protected.png</Link>
-    </Resource>
     <Resource Include="UI\Themes\Images\CollapsedDark.png">
       <Link>UI\Themes\Images\CollapsedDark.png</Link>
     </Resource>
@@ -757,9 +572,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility" Version="17.14.2098" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp">
       <Version>5.9.0</Version>
     </PackageReference>

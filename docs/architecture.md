@@ -6,7 +6,7 @@ Code Janitor is a Visual Studio extension built around the original CodeMaid ext
 
 ### Visual Studio integration
 
-This area contains the package, commands, tool windows, settings registration and VSIX deployment metadata required to run inside Visual Studio.
+This area contains the package, commands, tool windows, settings registration and VSIX deployment metadata required to run inside Visual Studio. Settings use WPF pages registered with the classic Visual Studio SDK. The unused VisualStudio.Extensibility bridge and its SDK dependencies have been removed.
 
 ### Shared logic
 
@@ -43,7 +43,7 @@ The VSIX manifest, package registration and deployment scripts define how the ex
 The current modernization direction is:
 
 - reduce coupling to legacy Visual Studio UI patterns;
-- use native Visual Studio settings where appropriate;
+- maintain the grouped WPF Options pages;
 - isolate formatting logic from shell integration;
 - increase regression-test coverage;
 - preserve safe behavior for files that cannot be parsed confidently;

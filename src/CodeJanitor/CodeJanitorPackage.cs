@@ -249,12 +249,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
             await RegisterCommandsAsync();
             await RegisterEventListenersAsync();
 
-#if CODEJANITOR_NATIVE_SETTINGS
-            // Fire-and-forget: this retries with delays (the VisualStudioExtensibility service
-            // is often not yet available this early in package init), so it must not block the
-            // rest of package initialization.
-            _ = InitializeNativeSettingsBridgeAsync(cancellationToken);
-#endif
         }
         catch (Exception ex)
         {
@@ -272,55 +266,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
         }
     }
 
-#if CODEJANITOR_NATIVE_SETTINGS
-    private CodeJanitor.NativeSettings.CodeJanitorNativeSettingsExtension _nativeSettingsBridge;
-
-    /// <summary>
-    /// Wires up the VisualStudio.Extensibility native settings bridge
-    /// (<see cref="CodeJanitor.NativeSettings.CodeJanitorNativeSettingsExtension"/>) from this
-    /// classic package, which reliably loads on every VS startup. The extension's own
-    /// IExtensionInitializer.InitializeAsync activation was found to never fire on its own
-    /// for this hybrid VSSDK/Extensibility extension type (see repo memory notes) - obtaining
-    /// VisualStudioExtensibility via GetServiceAsync is the documented, supported way for an
-    /// existing VSSDK package to use VisualStudio.Extensibility APIs in-proc. The service is
-    /// frequently not ready yet this early in VS startup (ServiceUnavailableException), so
-    /// this retries a few times with a delay before giving up.
-    /// </summary>
-    private async Task InitializeNativeSettingsBridgeAsync(CancellationToken cancellationToken)
-    {
-        const int maxAttempts = 10;
-        var delay = TimeSpan.FromSeconds(3);
-
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                var extensibility = await this.GetServiceAsync<
-                    Microsoft.VisualStudio.Extensibility.VisualStudioExtensibility,
-                    Microsoft.VisualStudio.Extensibility.VisualStudioExtensibility>();
-                if (extensibility == null)
-                {
-                    OutputWindowHelper.WarningWriteLine("Native settings bridge: VisualStudioExtensibility service was not available.");
-                    return;
-                }
-
-                _nativeSettingsBridge = new CodeJanitor.NativeSettings.CodeJanitorNativeSettingsExtension();
-                await _nativeSettingsBridge.InitializeAsync(null, null, extensibility, cancellationToken);
-                return;
-            }
-            catch (Exception ex) when (attempt < maxAttempts)
-            {
-                OutputWindowHelper.DiagnosticWriteLine($"Native settings bridge: attempt {attempt}/{maxAttempts} failed, retrying in {delay.TotalSeconds}s.", ex);
-                await Task.Delay(delay, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                OutputWindowHelper.ExceptionWriteLine("Unable to initialize the native settings bridge", ex);
-                return;
-            }
-        }
-    }
-#endif
 
     /// <summary>
     /// Called when a DispatcherUnhandledException is raised by Visual Studio.

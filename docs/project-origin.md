@@ -42,8 +42,7 @@ Code Janitor retains substantial functionality and source code derived from Code
 Code Janitor also contains independent work, including:
 
 - Visual Studio 2026 compatibility;
-- migration to the native Visual Studio settings system;
-- a new organized settings structure;
+- grouped settings pages integrated with Visual Studio's Options dialog;
 - Razor and Blazor formatting support;
 - new tests and bug fixes;
 - new documentation, development processes and project governance.

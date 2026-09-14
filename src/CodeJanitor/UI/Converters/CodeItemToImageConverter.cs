@@ -14,11 +14,6 @@ namespace CodeJanitor.UI.Converters;
 public sealed class CodeItemToImageConverter : IValueConverter
 {
     /// <summary>
-    /// A <see cref="CodeItemToImageConverter" /> that retrieves VS2010 based images.
-    /// </summary>
-    public static CodeItemToImageConverter VS2010 = new CodeItemToImageConverter { ImagePath = "VS2010" };
-
-    /// <summary>
     /// A <see cref="CodeItemToImageConverter" /> that retrieves VS2012 light based images.
     /// </summary>
     public static CodeItemToImageConverter VS2012Light = new CodeItemToImageConverter { ImagePath = "VS2012_Light" };

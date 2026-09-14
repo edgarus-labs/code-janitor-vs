@@ -73,11 +73,9 @@ The feature is designed to help improve or complete XML documentation while keep
 
 AI-assisted processing is opt-in. The project does not treat AI processing as a replacement for compiler diagnostics, code review or developer judgment. Sensitive or proprietary code should only be processed when the user has reviewed the configured provider and deployment model.
 
-## Settings modernization
+## Settings
 
-The legacy Options experience is being replaced by the native Visual Studio settings system.
-
-The current development branch includes an organized settings tree containing approximately 191 settings in 21 categories. This improves discoverability, aligns the extension with Visual Studio conventions and creates a clearer foundation for future configuration work.
+Settings are provided by grouped WPF pages under **Tools > Options > Code Janitor**, registered through the classic Visual Studio SDK. The experimental VisualStudio.Extensibility settings bridge has been removed; it is not part of the extension's current feature set.
 
 ## Repository-level settings (.codejanitor)
 
