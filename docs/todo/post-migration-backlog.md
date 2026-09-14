@@ -1,5 +1,7 @@
 # Post Migration Backlog
 
+> Historical note (2026-09-14): The experimental NativeSettings bridge and its VisualStudio.Extensibility dependencies have been removed. Code Janitor uses classic WPF pages under Tools > Options > Code Janitor. NativeSettings migration and deployment tasks below are superseded; other historical backlog items have not been revalidated. See [current settings documentation](../features.md#settings).
+
 ## Cel dokumentu
 Uporzadkowany backlog prac po podstawowej migracji do VS2026.
 
