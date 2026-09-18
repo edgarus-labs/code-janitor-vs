@@ -4,6 +4,7 @@ using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace CodeJanitor.UnitTests.Cleaning;
@@ -221,7 +222,7 @@ public class Fleet
 
         Assert.AreEqual(1, result.FailedFiles, "A file whose transformed output has syntax errors must be counted as failed.");
         Assert.AreEqual(0, result.ChangedFiles, "A file that failed syntax verification must not also be counted as changed.");
-        CollectionAssert.DoesNotContain(result.ModifiedFilePaths, filePath, "A file that failed syntax verification must not be reported as a modified path.");
+        Assert.IsFalse(result.ModifiedFilePaths.Contains(filePath), "A file that failed syntax verification must not be reported as a modified path.");
     }
 
     /// <summary>
