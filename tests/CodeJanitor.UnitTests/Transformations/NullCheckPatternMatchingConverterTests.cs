@@ -155,4 +155,150 @@ public class C
         Assert.IsNull(_converter.Apply(null));
         Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_EqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
+    {
+        var input = @"
+using System.Collections.Generic;
+using System.Linq;
+
+class C
+{
+    void M(IEnumerable<string> items)
+    {
+        var found = items.Any(x => x == null);
+    }
+}";
+
+        var actual = _converter.Apply(input);
+
+        // Deliberately conservative: this lambda has no semantic model to confirm its delegate type,
+        // so it could still be bound to Expression<Func<T, bool>> (e.g. IQueryable .Where/.Any), which
+        // would fail to compile with CS8122 if rewritten to `is null`.
+        StringAssert.Contains(actual, "x == null");
+        Assert.IsFalse(actual.Contains("x is null"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_NotEqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
+    {
+        var input = @"
+using System.Collections.Generic;
+using System.Linq;
+
+class C
+{
+    void M(IEnumerable<string> items)
+    {
+        var found = items.Any(x => x != null);
+    }
+}";
+
+        var actual = _converter.Apply(input);
+
+        StringAssert.Contains(actual, "x != null");
+        Assert.IsFalse(actual.Contains("is not null"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_EqualsNullInsideBlockBodiedLambda_ConvertsToIsNull()
+    {
+        var input = @"
+using System.Collections.Generic;
+using System.Linq;
+
+class C
+{
+    void M(IEnumerable<string> items)
+    {
+        var found = items.Any(x =>
+        {
+            return x == null;
+        });
+    }
+}";
+
+        var actual = _converter.Apply(input);
+
+        // A block-bodied lambda can never be compiled to an expression tree (CS0834), so this is
+        // always safe to convert.
+        StringAssert.Contains(actual, "x is null");
+        Assert.IsFalse(actual.Contains("== null"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_EqualsNullInsideAsyncLambda_ConvertsToIsNull()
+    {
+        var input = @"
+using System;
+using System.Threading.Tasks;
+
+class C
+{
+    void M()
+    {
+        Func<string, Task<bool>> f = async x => await Task.FromResult(x == null);
+    }
+}";
+
+        var actual = _converter.Apply(input);
+
+        // An async lambda can never be compiled to an expression tree (CS1989), so this is always
+        // safe to convert.
+        StringAssert.Contains(actual, "x is null");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_EqualsNullInsideAnonymousMethod_ConvertsToIsNull()
+    {
+        var input = @"
+using System;
+
+class C
+{
+    void M()
+    {
+        Func<string, bool> f = delegate (string x)
+        {
+            return x == null;
+        };
+    }
+}";
+
+        var actual = _converter.Apply(input);
+
+        // An anonymous method can never be compiled to an expression tree (CS1946), so this is
+        // always safe to convert.
+        StringAssert.Contains(actual, "x is null");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_EqualsNullInQueryWhereClause_LeavesUnchanged()
+    {
+        var input = @"
+using System.Collections.Generic;
+using System.Linq;
+
+class C
+{
+    void M(IEnumerable<string> items)
+    {
+        var result = from x in items where x == null select x;
+    }
+}";
+
+        var actual = _converter.Apply(input);
+
+        // Deliberately conservative: a query clause's condition cannot rule out an IQueryable
+        // source being translated to an expression tree, so it is never rewritten.
+        StringAssert.Contains(actual, "x == null");
+        Assert.IsFalse(actual.Contains("x is null"));
+    }
 }
