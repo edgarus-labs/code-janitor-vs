@@ -116,6 +116,77 @@ public sealed class ParallelHeadlessCleanupTests
         Assert.AreEqual("33%", vm.ProgressPercentText);
     }
 
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesVirtualMemberClassUnsealed()
+    {
+        Settings.Default.Cleaning_SealClassesWhenSafe = true;
+
+        var filePath = Path.Combine(_tempDirectory, "VirtualClass.cs");
+        var content = "namespace Demo;\r\n\r\npublic class Foo\r\n{\r\n    public virtual string Name { get; set; }\r\n}\r\n";
+        File.WriteAllText(filePath, content);
+
+        var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { filePath });
+
+        Assert.AreEqual(0, result.FailedFiles);
+        var text = File.ReadAllText(filePath);
+        Assert.IsFalse(text.Contains("sealed class Foo"), "Class with virtual property must not be sealed.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesBaseClassUnsealed_WhenGenericConstraintOrDerivedTypeInAnotherFile()
+    {
+        Settings.Default.Cleaning_SealClassesWhenSafe = true;
+
+        var baseFile = Path.Combine(_tempDirectory, "Result.cs");
+        var derivedFile = Path.Combine(_tempDirectory, "ResultOfT.cs");
+        var handlerFile = Path.Combine(_tempDirectory, "Handler.cs");
+
+        File.WriteAllText(baseFile, "namespace Demo;\r\n\r\npublic class Result\r\n{\r\n    public bool Success { get; set; }\r\n}\r\n");
+        File.WriteAllText(derivedFile, "namespace Demo;\r\n\r\npublic class Result<T> : Result\r\n{\r\n    public T Value { get; set; }\r\n}\r\n");
+        File.WriteAllText(handlerFile, "namespace Demo;\r\n\r\npublic class Handler<T> where T : Result\r\n{\r\n}\r\n");
+
+        var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { baseFile, derivedFile, handlerFile });
+
+        Assert.AreEqual(0, result.FailedFiles);
+        var baseText = File.ReadAllText(baseFile);
+        Assert.IsFalse(baseText.Contains("sealed class Result\r\n") || baseText.Contains("sealed class Result\n"), "Base class used in generic constraint or derived type in another file must not be sealed.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesInterlockedFieldMutable_InNestedType()
+    {
+        Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = true;
+
+        var filePath = Path.Combine(_tempDirectory, "Fleet.cs");
+        var content = @"namespace Demo;
+
+public class Fleet
+{
+    private int _active;
+
+    public int Active => _active;
+
+    private class NestedHelper
+    {
+        public void Increment(Fleet fleet)
+        {
+            System.Threading.Interlocked.Increment(ref fleet._active);
+        }
+    }
+}
+";
+        File.WriteAllText(filePath, content);
+
+        var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { filePath });
+
+        Assert.AreEqual(0, result.FailedFiles);
+        var text = File.ReadAllText(filePath);
+        Assert.IsFalse(text.Contains("readonly int _active"), "Field mutated via Interlocked.Increment in nested class must not be marked readonly.");
+    }
+
     /// <summary>
     /// Provides a test-specific implementation of the base progress view model for validating cleanup progress dialog behavior.
     /// </summary>

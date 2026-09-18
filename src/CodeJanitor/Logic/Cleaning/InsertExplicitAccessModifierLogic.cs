@@ -281,6 +281,15 @@ internal sealed class InsertExplicitAccessModifierLogic
                 continue;
             }
 
+            // Hard stop for generic methods or methods with where constraints:
+            // EnvDTE's code model does not correctly handle modern generic method syntax
+            // (such as attributes on type parameters or expression bodies) and will inject
+            // access modifier tokens into invalid positions (e.g. Bug 2: Find<[Attr] T>private ...).
+            if (methodDeclaration.Contains("<") || methodDeclaration.Contains("where ") || methodDeclaration.Contains("typeof("))
+            {
+                continue;
+            }
+
             if (!IsAccessModifierExplicitlySpecifiedOnCodeElement(methodDeclaration, codeFunction.Access))
             {
                 // Set the access value to itself to cause the code to be added.

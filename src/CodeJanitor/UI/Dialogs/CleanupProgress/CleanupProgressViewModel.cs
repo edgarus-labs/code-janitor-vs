@@ -290,10 +290,39 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             OutputWindowHelper.InfoWriteLine(
                 $"Cleanup batch canceled. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
         }
+        else if (stats.FailedItems > 0)
+        {
+            OutputWindowHelper.WarningWriteLine(
+                $"Cleanup batch completed with failures. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            MessageBox.Show($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         else
         {
             OutputWindowHelper.InfoWriteLine(
                 $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+        }
+
+        // Run post-cleanup build verification if Visual Studio build context is available
+        if (Package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
+        {
+            try
+            {
+                OutputWindowHelper.InfoWriteLine("Running post-cleanup build verification...");
+                Package.IDE.Solution.SolutionBuild.Build(true);
+                if (Package.IDE.Solution.SolutionBuild.LastBuildInfo > 0)
+                {
+                    OutputWindowHelper.WarningWriteLine(
+                        $"Post-cleanup build verification reported {Package.IDE.Solution.SolutionBuild.LastBuildInfo} failed project(s).");
+                }
+                else
+                {
+                    OutputWindowHelper.InfoWriteLine("Post-cleanup build verification passed: solution compiled successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification could not be executed: {ex.Message}");
+            }
         }
 
         // Close the dialog.

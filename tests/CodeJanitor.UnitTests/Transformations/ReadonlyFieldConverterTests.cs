@@ -348,4 +348,98 @@ public sealed class ReadonlyFieldConverterTests
         var input3 = "class C { private int _x; public int X { get => _x; set => _x = value; } }";
         Assert.AreEqual(input3, _converter.AddReadonlyWhenSafe(input3));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FieldMutatedViaInterlockedInNestedType_StaysMutable()
+    {
+        var input = @"class Fleet
+{
+    private int _active;
+
+    private class NestedHelper
+    {
+        public void Increment(Fleet fleet)
+        {
+            System.Threading.Interlocked.Increment(ref fleet._active);
+        }
+    }
+}";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FieldMutatedViaInterlockedDecrementInNestedType_StaysMutable()
+    {
+        var input = @"class Fleet
+{
+    private int _active;
+
+    private class NestedHelper
+    {
+        public void Decrement(Fleet fleet)
+        {
+            System.Threading.Interlocked.Decrement(ref fleet._active);
+        }
+    }
+}";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FieldAssignedInNestedTypeMethod_StaysMutable()
+    {
+        var input = @"class Fleet
+{
+    private int _active;
+
+    private class NestedHelper
+    {
+        public void Set(Fleet fleet)
+        {
+            fleet._active = 10;
+        }
+    }
+}";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FieldAddressOfTakenInUnsafeContext_StaysMutable()
+    {
+        var input = @"unsafe class C
+{
+    private int _x;
+
+    public void M()
+    {
+        int* p = &_x;
+    }
+}";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FieldAddressOfTakenThroughInstanceInUnsafeContext_StaysMutable()
+    {
+        var input = @"unsafe class C
+{
+    private int _x;
+
+    public void M(C other)
+    {
+        int* p = &other._x;
+    }
+}";
+
+        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
+    }
 }

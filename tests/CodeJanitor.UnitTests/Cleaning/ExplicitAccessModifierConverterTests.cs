@@ -336,4 +336,25 @@ public sealed class ExplicitAccessModifierConverterTests
         Assert.IsFalse(result.Contains("private int P"));
         Assert.IsFalse(result.Contains("private event"));
     }
+
+    [TestMethod]
+    public void GenericMethodWithAttributeOnTypeParameter_IsNotCorrupted()
+    {
+        var source = @"public class Service
+{
+    public static T? Find<[SomeAttribute] T>(System.Guid id)
+        where T : SomeBaseType =>
+        GetAll<T>().FirstOrDefault(item => item.Id == id);
+
+    public void Inspect<T>()
+    {
+        var fields = typeof(T).GetFields();
+    }
+}";
+        var result = _converter.Apply(source);
+        Assert.AreEqual(source, result);
+        Assert.IsFalse(result.Contains("private readonly ("));
+        Assert.IsFalse(result.Contains("private SomeBaseType"));
+        Assert.IsFalse(result.Contains("private GetFields"));
+    }
 }

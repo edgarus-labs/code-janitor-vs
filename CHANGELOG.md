@@ -18,6 +18,7 @@ This file records changes made in Code Janitor after the project became an indep
 - Advanced XMLDoc controls, filters and budget limits.
 - One-time cleanup options dialog for selected-scope cleanup.
 - Documentation describing project origin, attribution, licensing, architecture and roadmap.
+- Script `scripts/test-cleanup-build.ps1` for running post-cleanup build verification.
 
 ### Changed
 
@@ -26,6 +27,13 @@ This file records changes made in Code Janitor after the project became an indep
 - Organized approximately 191 settings into 21 categories.
 - Removed the legacy classic Options UI after the native settings migration.
 - Added secure configuration boundaries for AI-assisted operations.
+
+### Fixed
+
+- Fixed "Seal Classes" cleanup breaking compilation on classes declaring `virtual` members (`CS0549`), classes used as generic type constraints (`where T : ThatType`, `CS0701`), or classes with subclasses across the solution (`CS0509`). Added solution-wide disqualified type discovery before applying class sealing.
+- Fixed "Make Fields Readonly" cleanup adding `readonly` to private fields mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)` and `Interlocked.Decrement(ref field)`) or writes inside nested types, or fields whose address is taken directly (`&field`, `CS0192`).
+- Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.
+- Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
 
 ## CodeMaid history
 
