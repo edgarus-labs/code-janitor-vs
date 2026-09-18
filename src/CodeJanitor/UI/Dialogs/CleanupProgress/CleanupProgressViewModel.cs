@@ -54,6 +54,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         _package = package;
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
+        CodeCleanupManager.SetCurrentBatchDisqualifiedTypes(
+            CodeCleanupManager.DiscoverSolutionDisqualifiedTypes(package));
         _batchStopwatch = Stopwatch.StartNew();
 
         var cleanupItems = items.ToList();
@@ -148,7 +150,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     try
                     {
                         var filePath = projectItem.GetFileName();
-                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(filePath);
+                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(filePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
                         if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed)
                         {
                             CodeCleanupManager.IncrementHeadlessChanged();
@@ -275,6 +277,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// </param>
     private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
+        // Clear the batch-scoped solution-wide disqualified types first, before any other
+        // logic that could throw, so a later standalone single-document cleanup (e.g.
+        // cleanup-on-save) never reuses a stale set from this completed batch.
+        CodeCleanupManager.SetCurrentBatchDisqualifiedTypes(null);
+
         _batchStopwatch.Stop();
         ProcessedCount = CountTotal;
         UpdateExecutionSummary();

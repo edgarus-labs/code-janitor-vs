@@ -36,6 +36,27 @@ public sealed class InsertExplicitAccessModifierLogicTests
     }
 
     [TestMethod]
+    public void IsGenericMethodDeclaration_ReturnsTrue_ForMethodsWithOwnTypeParameters()
+    {
+        Assert.IsTrue(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public static T? Find<[SomeAttribute] T>"));
+        Assert.IsTrue(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public void Inspect<T>"));
+        Assert.IsTrue(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("T Method<T, TResult>"));
+    }
+
+    [TestMethod]
+    public void IsGenericMethodDeclaration_ReturnsFalse_ForNonGenericMethodsIncludingGenericReturnTypes()
+    {
+        // Regression for a false-positive bug: a generic RETURN type must not be mistaken for
+        // the method's own type-parameter list, since the method name is captured after it.
+        Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public List<int> GetItems"));
+        Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public Task<Foo> RunAsync"));
+        Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public IEnumerable<T> Items"));
+        Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public void DoWork"));
+        Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration(null));
+        Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration(string.Empty));
+    }
+
+    [TestMethod]
     public void InsertExplicitAccessModifiers_WhenSettingsDisabled_DoesNotThrow()
     {
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses = false;

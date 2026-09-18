@@ -178,6 +178,7 @@ internal sealed class CodeCleanupManager
                                                .ToList());
 
     private CleanupExecutionStats _cleanupExecutionStats;
+    private IReadOnlyCollection<string> _currentBatchDisqualifiedTypes;
 
     /// <summary>
     /// The singleton instance of the <see cref="CodeCleanupManager" /> class.
@@ -342,7 +343,7 @@ internal sealed class CodeCleanupManager
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
             // and the cleanup progress dialog's Cancel button remains responsive.
-            var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName));
+            var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName, _currentBatchDisqualifiedTypes));
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -426,7 +427,7 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var projectItemFileName = projectItem.GetFileName();
-        var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName);
+        var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName, _currentBatchDisqualifiedTypes);
 
         if (outcome.SplitOperationOccurred)
         {
@@ -1023,7 +1024,7 @@ internal sealed class CodeCleanupManager
                              .OfType<BaseListSyntax>()
                              .SelectMany(b => b.Types))
                 {
-                    var name = GetSimpleTypeName(baseType.Type);
+                    var name = SealedClassConverter.GetSimpleName(baseType.Type);
                     if (!string.IsNullOrEmpty(name))
                     {
                         disqualified.Add(name);
@@ -1035,7 +1036,7 @@ internal sealed class CodeCleanupManager
                              .SelectMany(c => c.Constraints)
                              .OfType<TypeConstraintSyntax>())
                 {
-                    var name = GetSimpleTypeName(constraint.Type);
+                    var name = SealedClassConverter.GetSimpleName(constraint.Type);
                     if (!string.IsNullOrEmpty(name))
                     {
                         disqualified.Add(name);
@@ -1078,23 +1079,6 @@ internal sealed class CodeCleanupManager
         }
 
         return new HashSet<string>(StringComparer.Ordinal);
-    }
-
-    private static string GetSimpleTypeName(TypeSyntax type)
-    {
-        switch (type)
-        {
-            case NullableTypeSyntax nullable:
-                return GetSimpleTypeName(nullable.ElementType);
-            case SimpleNameSyntax simple:
-                return simple.Identifier.Text;
-            case QualifiedNameSyntax qualified:
-                return GetSimpleTypeName(qualified.Right);
-            case AliasQualifiedNameSyntax alias:
-                return GetSimpleTypeName(alias.Name);
-            default:
-                return type?.ToString() ?? string.Empty;
-        }
     }
 
     /// <summary>
@@ -1478,6 +1462,73 @@ internal sealed class CodeCleanupManager
     internal void ResetCleanupExecutionStats()
     {
         _cleanupExecutionStats = default(CleanupExecutionStats);
+    }
+
+    /// <summary>
+    /// Sets the solution-wide disqualified class-sealing type names (base types, generic
+    /// constraints) to use for the remainder of the current cleanup batch. A batch orchestrator
+    /// (e.g. <c>CleanupProgressViewModel</c>) should call this once, on the UI thread, before
+    /// starting a batch, and clear it (pass null) once the batch completes. Outside an active
+    /// batch, cleanup falls back to the narrower per-file/per-directory heuristic so that a
+    /// single-document cleanup (e.g. cleanup-on-save) never triggers a full solution rescan.
+    /// </summary>
+    /// <param name="disqualifiedTypes">The batch-scoped disqualified type names, or null to clear.</param>
+
+    internal void SetCurrentBatchDisqualifiedTypes(IReadOnlyCollection<string> disqualifiedTypes)
+    {
+        _currentBatchDisqualifiedTypes = disqualifiedTypes;
+    }
+
+    /// <summary>
+    /// Gets the solution-wide disqualified type names for the currently active cleanup batch,
+    /// or null when no batch is active.
+    /// </summary>
+
+    internal IReadOnlyCollection<string> GetCurrentBatchDisqualifiedTypes()
+    {
+        return _currentBatchDisqualifiedTypes;
+    }
+
+    /// <summary>
+    /// Discovers class-sealing disqualified type names (base types, generic constraints) across
+    /// every C# file in the given solution. Must run on the UI thread since it enumerates EnvDTE
+    /// project items; callers running on a background thread must call this beforehand and pass
+    /// the resulting plain <see cref="HashSet{T}" /> across the thread boundary. Returns null
+    /// when the solution is unavailable or enumeration fails, so callers can fall back safely.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+
+    internal static HashSet<string> DiscoverSolutionDisqualifiedTypes(CodeJanitorPackage package)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (package?.IDE?.Solution is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var csFiles = SolutionHelper.GetAllItemsInSolution<ProjectItem>(package.IDE.Solution)
+                .Select(item =>
+                {
+                    try
+                    {
+                        return item.GetFileName();
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                })
+                .Where(f => !string.IsNullOrEmpty(f) && f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+
+            return DiscoverDisqualifiedTypes(csFiles);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

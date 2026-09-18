@@ -281,11 +281,14 @@ internal sealed class InsertExplicitAccessModifierLogic
                 continue;
             }
 
-            // Hard stop for generic methods or methods with where constraints:
-            // EnvDTE's code model does not correctly handle modern generic method syntax
-            // (such as attributes on type parameters or expression bodies) and will inject
-            // access modifier tokens into invalid positions (e.g. Bug 2: Find<[Attr] T>private ...).
-            if (methodDeclaration.Contains("<") || methodDeclaration.Contains("where ") || methodDeclaration.Contains("typeof("))
+            // Hard stop for generic methods (methods that declare their own type parameter
+            // list, e.g. Find<T> or Find<[SomeAttribute] T>): EnvDTE's code model does not
+            // correctly regenerate the header when a member's Access property is set on such
+            // a method, and can inject the access modifier token at an invalid position
+            // (Bug 2: Find<[Attr] T>private ...). See IsGenericMethodDeclaration for the
+            // precise detection rule and why a plain generic RETURN type (List<int> GetItems())
+            // must NOT trigger this hard stop.
+            if (IsGenericMethodDeclaration(methodDeclaration))
             {
                 continue;
             }
@@ -387,6 +390,29 @@ internal sealed class InsertExplicitAccessModifierLogic
     internal static bool IsFixedFieldDeclaration(string fieldDeclaration)
     {
         return IsKeywordSpecified(fieldDeclaration, "fixed");
+    }
+
+    /// <summary>
+    /// Determines whether the given method declaration text is for a generic method (i.e. one
+    /// that declares its own type parameter list, such as <c>Find&lt;T&gt;</c> or
+    /// <c>Find&lt;[SomeAttribute] T&gt;</c>).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="CodeElementHelper.GetMethodDeclaration" /> captures declaration text from the
+    /// method header up to (but not including) the method's own parameter list. A method that
+    /// declares its own type parameters therefore always has that captured text end in
+    /// <c>&gt;</c> immediately before the parameter list. A plain generic RETURN type (e.g.
+    /// <c>List&lt;int&gt; GetItems()</c>) does not share this shape, since the method name
+    /// identifier is captured last and the text ends with that name, not with <c>&gt;</c>.
+    /// </remarks>
+    /// <param name="methodDeclaration">The method declaration text.</param>
+    /// <returns>True if the declaration is for a generic method, otherwise false.</returns>
+
+    internal static bool IsGenericMethodDeclaration(string methodDeclaration)
+    {
+        var trimmed = methodDeclaration?.TrimEnd();
+
+        return !string.IsNullOrEmpty(trimmed) && trimmed.EndsWith(">", StringComparison.Ordinal);
     }
 
     /// <summary>

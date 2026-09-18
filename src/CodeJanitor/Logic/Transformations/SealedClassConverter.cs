@@ -189,9 +189,11 @@ public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransf
     }
 
     /// <summary>
-    /// Recursively extracts the rightmost simple identifier from a TypeSyntax.
+    /// Recursively extracts the rightmost simple identifier from a TypeSyntax. Shared with
+    /// <see cref="CodeJanitor.Logic.Cleaning.CodeCleanupManager" />'s solution-wide disqualified
+    /// type discovery, so this is the single implementation both must stay in sync with.
     /// </summary>
-    private static string GetSimpleName(TypeSyntax type)
+    internal static string GetSimpleName(TypeSyntax type)
     {
         switch (type)
         {
@@ -208,7 +210,7 @@ public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransf
                 return GetSimpleName(alias.Name);
 
             default:
-                return type.ToString();
+                return type?.ToString() ?? string.Empty;
         }
     }
 
