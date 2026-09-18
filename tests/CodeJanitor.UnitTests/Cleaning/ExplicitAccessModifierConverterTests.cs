@@ -336,4 +336,35 @@ public sealed class ExplicitAccessModifierConverterTests
         Assert.IsFalse(result.Contains("private int P"));
         Assert.IsFalse(result.Contains("private event"));
     }
+
+    [TestMethod]
+    public void GenericMethodWithAttributeOnTypeParameter_InsertsModifierWithoutCorruption()
+    {
+        // No explicit access modifier, so PrependModifier must actually run for both methods -
+        // this is the code path Bug 2 corrupted (in the separate EnvDTE-based
+        // InsertExplicitAccessModifierLogic; see IsGenericMethodDeclaration for that fix).
+        // This test guards the pure-Roslyn ExplicitAccessModifierConverter, which builds the
+        // new modifier list from the parsed syntax tree and is structurally immune to Bug 2,
+        // but must still insert correctly around generic type parameters, attributes on type
+        // parameters, where-clauses, and typeof(T) member access without corruption.
+        var source = @"public class Service
+{
+    static T? Find<[SomeAttribute] T>(System.Guid id)
+        where T : SomeBaseType =>
+        GetAll<T>().FirstOrDefault(item => item.Id == id);
+
+    void Inspect<T>()
+    {
+        var fields = typeof(T).GetFields();
+    }
+}";
+        var result = _converter.Apply(source);
+        StringAssert.Contains(result, "private static T? Find<[SomeAttribute] T>");
+        StringAssert.Contains(result, "private void Inspect<T>");
+        StringAssert.Contains(result, "where T : SomeBaseType");
+        StringAssert.Contains(result, "typeof(T).GetFields()");
+        Assert.IsFalse(result.Contains("private readonly ("));
+        Assert.IsFalse(result.Contains("private SomeBaseType"));
+        Assert.IsFalse(result.Contains("private GetFields"));
+    }
 }

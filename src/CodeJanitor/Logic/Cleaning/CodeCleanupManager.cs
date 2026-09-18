@@ -17,6 +17,7 @@ using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using EnvDTE;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.Shell;
@@ -177,6 +178,7 @@ internal sealed class CodeCleanupManager
                                                .ToList());
 
     private CleanupExecutionStats _cleanupExecutionStats;
+    private IReadOnlyCollection<string> _currentBatchDisqualifiedTypes;
 
     /// <summary>
     /// The singleton instance of the <see cref="CodeCleanupManager" /> class.
@@ -341,7 +343,7 @@ internal sealed class CodeCleanupManager
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
             // and the cleanup progress dialog's Cancel button remains responsive.
-            var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName));
+            var outcome = await Task.Run(() => TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName, _currentBatchDisqualifiedTypes));
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -425,7 +427,7 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var projectItemFileName = projectItem.GetFileName();
-        var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName);
+        var outcome = TryRunHeadlessPreCleanupForCSharpCore(projectItemFileName, _currentBatchDisqualifiedTypes);
 
         if (outcome.SplitOperationOccurred)
         {
@@ -450,7 +452,9 @@ internal sealed class CodeCleanupManager
     /// <param name="projectItemFileName">The full path of the C# file to clean up.</param>
     /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
 
-    internal HeadlessPreCleanupOutcome TryRunHeadlessPreCleanupForCSharpCore(string projectItemFileName)
+    internal HeadlessPreCleanupOutcome TryRunHeadlessPreCleanupForCSharpCore(
+        string projectItemFileName,
+        IReadOnlyCollection<string> solutionDisqualifiedTypes = null)
     {
         var createdFiles = new List<string>();
 
@@ -500,7 +504,7 @@ internal sealed class CodeCleanupManager
                 }
             }
 
-            var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName);
+            var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName, solutionDisqualifiedTypes);
             var removeByteOrderMark = RepositoryCleanupSettings.LoadForFile(projectItemFileName)
                 .TryGetBoolean("Cleaning_RemoveByteOrderMark", Settings.Default.Cleaning_RemoveByteOrderMark);
             var fileHadBom = removeByteOrderMark &&
@@ -644,6 +648,7 @@ internal sealed class CodeCleanupManager
         };
 
         var manager = GetInstance(null);
+        var solutionDisqualifiedTypes = DiscoverDisqualifiedTypes(filesList);
 
         Parallel.ForEach(filesList, options, file =>
         {
@@ -651,13 +656,40 @@ internal sealed class CodeCleanupManager
 
             try
             {
-                var outcome = manager.TryRunHeadlessPreCleanupForCSharpCore(file);
+                var outcome = manager.TryRunHeadlessPreCleanupForCSharpCore(file, solutionDisqualifiedTypes);
                 var isChanged = outcome.Result == HeadlessCleanupResult.Changed;
+                Exception syntaxError = null;
 
                 if (isChanged)
                 {
-                    Interlocked.Increment(ref changedCount);
-                    modifiedPaths.Add(file);
+                    // Syntax verification on transformed output: a transformation that
+                    // corrupts the file's syntax must be reported as a failure, not a
+                    // successful change.
+                    try
+                    {
+                        var transformedText = File.ReadAllText(file);
+                        var tree = CSharpSyntaxTree.ParseText(transformedText);
+                        var errors = tree.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+                        if (errors.Count > 0)
+                        {
+                            syntaxError = new InvalidOperationException($"Cleanup produced {errors.Count} syntax error(s) in '{file}': {errors[0].GetMessage()}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        syntaxError = ex;
+                    }
+
+                    if (syntaxError != null)
+                    {
+                        failures.TryAdd(file, syntaxError);
+                        Interlocked.Increment(ref failedCount);
+                    }
+                    else
+                    {
+                        Interlocked.Increment(ref changedCount);
+                        modifiedPaths.Add(file);
+                    }
                 }
                 else
                 {
@@ -670,7 +702,8 @@ internal sealed class CodeCleanupManager
                     FilePath = file,
                     ProcessedCount = currentProcessed,
                     TotalCount = total,
-                    Changed = isChanged
+                    Changed = isChanged && syntaxError is null,
+                    Error = syntaxError
                 });
             }
             catch (Exception ex)
@@ -710,10 +743,21 @@ internal sealed class CodeCleanupManager
 
     internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
     {
-        return CreateHeadlessCSharpPipeline(source, filePath).Run(source);
+        return ApplyHeadlessCSharpTransformations(source, filePath, null);
     }
 
-    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(string source, string filePath)
+    internal static string ApplyHeadlessCSharpTransformations(
+        string source,
+        string filePath,
+        IReadOnlyCollection<string> solutionDisqualifiedTypes)
+    {
+        return CreateHeadlessCSharpPipeline(source, filePath, solutionDisqualifiedTypes).Run(source);
+    }
+
+    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(
+        string source,
+        string filePath,
+        IReadOnlyCollection<string> solutionDisqualifiedTypes = null)
     {
         var editorConfig = EditorConfigHelper.LoadCSharpOptions(filePath);
         var repositoryOverrides = RepositoryCleanupSettings.LoadForFile(filePath);
@@ -758,7 +802,8 @@ internal sealed class CodeCleanupManager
 
         if (IsEnabled("Cleaning_SealClassesWhenSafe", Settings.Default.Cleaning_SealClassesWhenSafe))
         {
-            transformations.Add(new SealedClassConverter());
+            var disqualified = solutionDisqualifiedTypes ?? DiscoverDisqualifiedTypesForFile(filePath);
+            transformations.Add(new SealedClassConverter(disqualified));
         }
 
         if (IsEnabled("Cleaning_InsertBlankLineBeforeReturnAndThrowStatements", Settings.Default.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements))
@@ -770,6 +815,7 @@ internal sealed class CodeCleanupManager
         {
             transformations.Add(new CollectionExpressionConverter());
         }
+
 
         if (IsEnabled("Cleaning_ReuseJsonSerializerOptionsForCA1869", Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869))
         {
@@ -948,6 +994,91 @@ internal sealed class CodeCleanupManager
     internal static string ApplyHeadlessCSharpTransformationsForCreatedFile(string source, string filePath)
     {
         return ApplyHeadlessCSharpTransformations(source, filePath);
+    }
+    /// <summary>
+    /// Discovers types across multiple files that should not be sealed, such as types used as
+    /// base classes in <c>BaseListSyntax</c> or generic type constraints in <c>where T : Base</c>.
+    /// </summary>
+    internal static HashSet<string> DiscoverDisqualifiedTypes(IEnumerable<string> filePaths)
+    {
+        var disqualified = new HashSet<string>(StringComparer.Ordinal);
+        if (filePaths is null)
+        {
+            return disqualified;
+        }
+
+        foreach (var file in filePaths)
+        {
+            if (string.IsNullOrEmpty(file) || !File.Exists(file) || !file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            try
+            {
+                var text = File.ReadAllText(file);
+                var tree = CSharpSyntaxTree.ParseText(text);
+                var root = tree.GetRoot();
+
+                foreach (var baseType in root.DescendantNodes()
+                             .OfType<BaseListSyntax>()
+                             .SelectMany(b => b.Types))
+                {
+                    var name = SealedClassConverter.GetSimpleName(baseType.Type);
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        disqualified.Add(name);
+                    }
+                }
+
+                foreach (var constraint in root.DescendantNodes()
+                             .OfType<TypeParameterConstraintClauseSyntax>()
+                             .SelectMany(c => c.Constraints)
+                             .OfType<TypeConstraintSyntax>())
+                {
+                    var name = SealedClassConverter.GetSimpleName(constraint.Type);
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        disqualified.Add(name);
+                    }
+                }
+            }
+            catch
+            {
+                // Non-fatal if a file cannot be parsed during discovery
+            }
+        }
+
+        return disqualified;
+    }
+
+    /// <summary>
+    /// Discovers disqualified types from sibling C# files in the directory containing <paramref name="filePath"/>.
+    /// </summary>
+    internal static HashSet<string> DiscoverDisqualifiedTypesForFile(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
+            return new HashSet<string>(StringComparer.Ordinal);
+        }
+
+        try
+        {
+            var dir = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+            {
+                var csFiles = Directory.GetFiles(dir, "*.cs", SearchOption.TopDirectoryOnly);
+                if (csFiles.Length > 1)
+                {
+                    return DiscoverDisqualifiedTypes(csFiles);
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return new HashSet<string>(StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -1331,6 +1462,73 @@ internal sealed class CodeCleanupManager
     internal void ResetCleanupExecutionStats()
     {
         _cleanupExecutionStats = default(CleanupExecutionStats);
+    }
+
+    /// <summary>
+    /// Sets the solution-wide disqualified class-sealing type names (base types, generic
+    /// constraints) to use for the remainder of the current cleanup batch. A batch orchestrator
+    /// (e.g. <c>CleanupProgressViewModel</c>) should call this once, on the UI thread, before
+    /// starting a batch, and clear it (pass null) once the batch completes. Outside an active
+    /// batch, cleanup falls back to the narrower per-file/per-directory heuristic so that a
+    /// single-document cleanup (e.g. cleanup-on-save) never triggers a full solution rescan.
+    /// </summary>
+    /// <param name="disqualifiedTypes">The batch-scoped disqualified type names, or null to clear.</param>
+
+    internal void SetCurrentBatchDisqualifiedTypes(IReadOnlyCollection<string> disqualifiedTypes)
+    {
+        _currentBatchDisqualifiedTypes = disqualifiedTypes;
+    }
+
+    /// <summary>
+    /// Gets the solution-wide disqualified type names for the currently active cleanup batch,
+    /// or null when no batch is active.
+    /// </summary>
+
+    internal IReadOnlyCollection<string> GetCurrentBatchDisqualifiedTypes()
+    {
+        return _currentBatchDisqualifiedTypes;
+    }
+
+    /// <summary>
+    /// Discovers class-sealing disqualified type names (base types, generic constraints) across
+    /// every C# file in the given solution. Must run on the UI thread since it enumerates EnvDTE
+    /// project items; callers running on a background thread must call this beforehand and pass
+    /// the resulting plain <see cref="HashSet{T}" /> across the thread boundary. Returns null
+    /// when the solution is unavailable or enumeration fails, so callers can fall back safely.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+
+    internal static HashSet<string> DiscoverSolutionDisqualifiedTypes(CodeJanitorPackage package)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (package?.IDE?.Solution is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var csFiles = SolutionHelper.GetAllItemsInSolution<ProjectItem>(package.IDE.Solution)
+                .Select(item =>
+                {
+                    try
+                    {
+                        return item.GetFileName();
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                })
+                .Where(f => !string.IsNullOrEmpty(f) && f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+
+            return DiscoverDisqualifiedTypes(csFiles);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

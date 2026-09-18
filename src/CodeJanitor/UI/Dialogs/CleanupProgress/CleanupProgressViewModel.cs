@@ -19,6 +19,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 /// </summary>
 public sealed class CleanupProgressViewModel : BaseProgressViewModel
 {
+    private readonly CodeJanitorPackage _package;
     private readonly BackgroundWorker _backgroundWorker;
     private readonly Stopwatch _batchStopwatch;
 
@@ -50,8 +51,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// <param name="items">The items to cleanup.</param>
     public CleanupProgressViewModel(CodeJanitorPackage package, IEnumerable<object> items)
     {
+        _package = package;
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
+        CodeCleanupManager.SetCurrentBatchDisqualifiedTypes(
+            CodeCleanupManager.DiscoverSolutionDisqualifiedTypes(package));
         _batchStopwatch = Stopwatch.StartNew();
 
         var cleanupItems = items.ToList();
@@ -146,7 +150,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     try
                     {
                         var filePath = projectItem.GetFileName();
-                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(filePath);
+                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(filePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
                         if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed)
                         {
                             CodeCleanupManager.IncrementHeadlessChanged();
@@ -273,6 +277,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// </param>
     private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
+        // Clear the batch-scoped solution-wide disqualified types first, before any other
+        // logic that could throw, so a later standalone single-document cleanup (e.g.
+        // cleanup-on-save) never reuses a stale set from this completed batch.
+        CodeCleanupManager.SetCurrentBatchDisqualifiedTypes(null);
+
         _batchStopwatch.Stop();
         ProcessedCount = CountTotal;
         UpdateExecutionSummary();
@@ -290,13 +299,43 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             OutputWindowHelper.InfoWriteLine(
                 $"Cleanup batch canceled. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
         }
+        else if (stats.FailedItems > 0)
+        {
+            OutputWindowHelper.WarningWriteLine(
+                $"Cleanup batch completed with failures. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            MessageBox.Show($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         else
         {
             OutputWindowHelper.InfoWriteLine(
                 $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
         }
 
-        // Close the dialog.
+        // Run post-cleanup build verification only when the batch completed cleanly
+        // (not canceled, no worker error, no per-file failures) and Visual Studio's
+        // build context is available.
+        if (!e.Cancelled && e.Error is null && stats.FailedItems == 0 &&
+            _package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
+        {
+            try
+            {
+                OutputWindowHelper.InfoWriteLine("Running post-cleanup build verification...");
+                _package.IDE.Solution.SolutionBuild.Build(true);
+                if (_package.IDE.Solution.SolutionBuild.LastBuildInfo > 0)
+                {
+                    OutputWindowHelper.WarningWriteLine(
+                        $"Post-cleanup build verification reported {_package.IDE.Solution.SolutionBuild.LastBuildInfo} failed project(s).");
+                }
+                else
+                {
+                    OutputWindowHelper.InfoWriteLine("Post-cleanup build verification passed: solution compiled successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification could not be executed: {ex.Message}");
+            }
+        }
         DialogResult = true;
     }
 

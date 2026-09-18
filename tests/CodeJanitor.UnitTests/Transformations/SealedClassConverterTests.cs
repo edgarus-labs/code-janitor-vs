@@ -178,4 +178,80 @@ public sealed class SealedClassConverterTests
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassWithVirtualProperty_StaysUnsealed()
+    {
+        var input = "public class Foo : SomeBaseType { public virtual OtherType SomeProperty { get; } }";
+
+        Assert.AreEqual(input, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassWithVirtualMethod_StaysUnsealed()
+    {
+        var input = "public class Foo { public virtual void DoWork() { } }";
+
+        Assert.AreEqual(input, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassWithVirtualIndexer_StaysUnsealed()
+    {
+        var input = "public class Foo { public virtual int this[int i] => i; }";
+
+        Assert.AreEqual(input, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassWithVirtualEvent_StaysUnsealed()
+    {
+        var input = "public class Foo { public virtual event System.EventHandler Changed; }";
+
+        Assert.AreEqual(input, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassUsedInGenericConstraintInSameFile_StaysUnsealed()
+    {
+        var input = "public class Result { } public class Handler<T> where T : Result { }";
+        var expected = "public class Result { } public sealed class Handler<T> where T : Result { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassWithExternalDerivedTypeOrConstraint_StaysUnsealed()
+    {
+        var input = "public class Result { }";
+        var disqualified = new[] { "Result" };
+
+        Assert.AreEqual(input, _converter.SealWhenSafe(input, disqualified));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ConverterWithConstructorDisqualifiedTypes_WhenInvokedViaParameterlessSealWhenSafe_PreservesDisqualifiedTypes()
+    {
+        IClassSealingConverter converter = new SealedClassConverter(new[] { "Result" });
+        var input = "public class Result { }";
+
+        Assert.AreEqual(input, converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassUsedInNullableGenericConstraintInSameFile_StaysUnsealed()
+    {
+        var input = "public class Result { } public class Handler<T> where T : Result? { }";
+        var expected = "public class Result { } public sealed class Handler<T> where T : Result? { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
 }

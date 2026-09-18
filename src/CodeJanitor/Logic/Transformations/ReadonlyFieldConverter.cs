@@ -112,7 +112,7 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         var fieldName = fieldDecl.Declaration.Variables[0].Identifier.Text;
         var declaringTypeName = typeDecl.Identifier.Text;
 
-        var scopeNodes = typeDecl.DescendantNodes(n => n == typeDecl || !(n is TypeDeclarationSyntax));
+        var scopeNodes = typeDecl.DescendantNodes().ToList();
 
         // Any ref or out argument (or ref expression) referencing this field or its sub-members
         // makes it unsafe to add readonly (both in methods and in constructors).
@@ -134,6 +134,15 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
                 return false;
             }
         }
+        foreach (var prefix in scopeNodes.OfType<PrefixUnaryExpressionSyntax>())
+        {
+            if (prefix.IsKind(SyntaxKind.AddressOfExpression) &&
+                GetFieldAccessKind(prefix.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
+            {
+                return false;
+            }
+        }
+
 
         var writeNodes = new List<SyntaxNode>();
 

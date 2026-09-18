@@ -7,13 +7,16 @@ namespace CodeJanitor.Logic.Cleaning;
 
 /// <summary>
 /// A class for encapsulating the logic of adding the <c>sealed</c> modifier to classes that
-/// are provably safe to seal from a single file, during cleanup.
+/// are provably safe to seal, during cleanup.
 /// </summary>
 /// <remarks>
 /// This is a thin integration layer over the pure, unit-tested
-/// <see cref="IClassSealingConverter" /> (see ADR-0005 / ADR-0006 / ADR-0007). Sealing changes
-/// the API surface and this converter cannot see derived types declared in other files of the
-/// same assembly, so the corresponding setting defaults to disabled.
+/// <see cref="IClassSealingConverter" /> (see ADR-0005 / ADR-0006 / ADR-0007). When this
+/// cleanup runs as part of an orchestrated multi-file batch (see
+/// <see cref="CleanupProgressViewModel" />), the converter is also given the current batch's
+/// solution-wide disqualified type names (base types, generic constraints), so cross-file
+/// safety is enforced for those batches. Outside a batch (e.g. cleanup-on-save of a single
+/// document), only in-file safety checks apply, to avoid a full-solution rescan on every save.
 /// </remarks>
 
 internal sealed class SealedClassLogic
@@ -66,7 +69,13 @@ internal sealed class SealedClassLogic
         var startPoint = textDocument.StartPoint.CreateEditPoint();
         var originalText = startPoint.GetText(textDocument.EndPoint);
 
-        var convertedText = _converter.SealWhenSafe(originalText);
+        // Use the current batch's solution-wide disqualified types when this cleanup is
+        // running as part of an orchestrated multi-file batch (see CleanupProgressViewModel).
+        // Outside a batch (e.g. cleanup-on-save of a single document), no solution-wide scan
+        // is performed here to avoid a full-solution rescan on every save; only the in-file
+        // safety checks (virtual members, same-file constraints) apply in that case.
+        var externalDisqualifiedTypeNames = CodeCleanupManager.GetInstance(_package).GetCurrentBatchDisqualifiedTypes();
+        var convertedText = _converter.SealWhenSafe(originalText, externalDisqualifiedTypeNames);
         if (convertedText == originalText)
         {
             return;
