@@ -657,10 +657,13 @@ internal sealed class CodeCleanupManager
             {
                 var outcome = manager.TryRunHeadlessPreCleanupForCSharpCore(file, solutionDisqualifiedTypes);
                 var isChanged = outcome.Result == HeadlessCleanupResult.Changed;
+                Exception syntaxError = null;
 
                 if (isChanged)
                 {
-                    // Syntax verification on transformed output
+                    // Syntax verification on transformed output: a transformation that
+                    // corrupts the file's syntax must be reported as a failure, not a
+                    // successful change.
                     try
                     {
                         var transformedText = File.ReadAllText(file);
@@ -668,19 +671,24 @@ internal sealed class CodeCleanupManager
                         var errors = tree.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
                         if (errors.Count > 0)
                         {
-                            var syntaxEx = new InvalidOperationException($"Cleanup produced {errors.Count} syntax error(s) in '{file}': {errors[0].GetMessage()}");
-                            failures.TryAdd(file, syntaxEx);
-                            Interlocked.Increment(ref failedCount);
+                            syntaxError = new InvalidOperationException($"Cleanup produced {errors.Count} syntax error(s) in '{file}': {errors[0].GetMessage()}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        failures.TryAdd(file, ex);
-                        Interlocked.Increment(ref failedCount);
+                        syntaxError = ex;
                     }
 
-                    Interlocked.Increment(ref changedCount);
-                    modifiedPaths.Add(file);
+                    if (syntaxError != null)
+                    {
+                        failures.TryAdd(file, syntaxError);
+                        Interlocked.Increment(ref failedCount);
+                    }
+                    else
+                    {
+                        Interlocked.Increment(ref changedCount);
+                        modifiedPaths.Add(file);
+                    }
                 }
                 else
                 {
@@ -693,7 +701,8 @@ internal sealed class CodeCleanupManager
                     FilePath = file,
                     ProcessedCount = currentProcessed,
                     TotalCount = total,
-                    Changed = isChanged
+                    Changed = isChanged && syntaxError is null,
+                    Error = syntaxError
                 });
             }
             catch (Exception ex)
@@ -1075,6 +1084,8 @@ internal sealed class CodeCleanupManager
     {
         switch (type)
         {
+            case NullableTypeSyntax nullable:
+                return GetSimpleTypeName(nullable.ElementType);
             case SimpleNameSyntax simple:
                 return simple.Identifier.Text;
             case QualifiedNameSyntax qualified:

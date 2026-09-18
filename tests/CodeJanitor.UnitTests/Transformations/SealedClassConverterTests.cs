@@ -234,4 +234,24 @@ public sealed class SealedClassConverterTests
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input, disqualified));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ConverterWithConstructorDisqualifiedTypes_WhenInvokedViaParameterlessSealWhenSafe_PreservesDisqualifiedTypes()
+    {
+        IClassSealingConverter converter = new SealedClassConverter(new[] { "Result" });
+        var input = "public class Result { }";
+
+        Assert.AreEqual(input, converter.SealWhenSafe(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ClassUsedInNullableGenericConstraintInSameFile_StaysUnsealed()
+    {
+        var input = "public class Result { } public class Handler<T> where T : Result? { }";
+        var expected = "public class Result { } public sealed class Handler<T> where T : Result? { }";
+
+        Assert.AreEqual(expected, _converter.SealWhenSafe(input));
+    }
 }

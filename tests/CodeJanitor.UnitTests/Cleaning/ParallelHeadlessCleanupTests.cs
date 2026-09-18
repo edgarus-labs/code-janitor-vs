@@ -156,6 +156,25 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesBaseClassUnsealed_WhenNullableGenericConstraintInAnotherFile()
+    {
+        Settings.Default.Cleaning_SealClassesWhenSafe = true;
+
+        var baseFile = Path.Combine(_tempDirectory, "Result.cs");
+        var handlerFile = Path.Combine(_tempDirectory, "Handler.cs");
+
+        File.WriteAllText(baseFile, "namespace Demo;\r\n\r\npublic class Result\r\n{\r\n    public bool Success { get; set; }\r\n}\r\n");
+        File.WriteAllText(handlerFile, "namespace Demo;\r\n\r\npublic class Handler<T> where T : Result?\r\n{\r\n}\r\n");
+
+        var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { baseFile, handlerFile });
+
+        Assert.AreEqual(0, result.FailedFiles);
+        var baseText = File.ReadAllText(baseFile);
+        Assert.IsFalse(baseText.Contains("sealed class Result\r\n") || baseText.Contains("sealed class Result\n"), "Base class used in a nullable generic constraint in another file must not be sealed.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformationsToFiles_LeavesInterlockedFieldMutable_InNestedType()
     {
         Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = true;
@@ -185,6 +204,24 @@ public class Fleet
         Assert.AreEqual(0, result.FailedFiles);
         var text = File.ReadAllText(filePath);
         Assert.IsFalse(text.Contains("readonly int _active"), "Field mutated via Interlocked.Increment in nested class must not be marked readonly.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ApplyHeadlessCSharpTransformationsToFiles_WhenTransformedOutputHasSyntaxErrors_DoesNotCountFileAsChanged()
+    {
+        var filePath = Path.Combine(_tempDirectory, "Broken.cs");
+        // Pre-existing (unfixable) syntax error: unterminated method body. The BOM removal
+        // setting (enabled in TestInitialize) makes this "Changed" via encoding alone, even
+        // though no transformation can repair the missing closing brace.
+        var content = "namespace Demo;\r\n\r\npublic class Foo\r\n{\r\n    public void M()\r\n    {\r\n";
+        File.WriteAllText(filePath, content, new System.Text.UTF8Encoding(true));
+
+        var result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { filePath });
+
+        Assert.AreEqual(1, result.FailedFiles, "A file whose transformed output has syntax errors must be counted as failed.");
+        Assert.AreEqual(0, result.ChangedFiles, "A file that failed syntax verification must not also be counted as changed.");
+        CollectionAssert.DoesNotContain(result.ModifiedFilePaths, filePath, "A file that failed syntax verification must not be reported as a modified path.");
     }
 
     /// <summary>

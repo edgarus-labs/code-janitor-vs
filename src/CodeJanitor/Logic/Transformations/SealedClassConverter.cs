@@ -48,7 +48,7 @@ public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransf
     public string Apply(string source) => SealWhenSafe(source, _externalDisqualifiedTypeNames);
 
     /// <inheritdoc />
-    public string SealWhenSafe(string source) => SealWhenSafe(source, null);
+    public string SealWhenSafe(string source) => SealWhenSafe(source, _externalDisqualifiedTypeNames);
 
     /// <inheritdoc />
     public string SealWhenSafe(string source, IReadOnlyCollection<string> externalDisqualifiedTypeNames)
@@ -195,6 +195,9 @@ public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransf
     {
         switch (type)
         {
+            case NullableTypeSyntax nullable:
+                return GetSimpleName(nullable.ElementType);
+
             case SimpleNameSyntax simple:
                 return simple.Identifier.Text;
 

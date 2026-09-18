@@ -304,8 +304,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
         }
 
-        // Run post-cleanup build verification if Visual Studio build context is available
-        if (_package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
+        // Run post-cleanup build verification only when the batch completed cleanly
+        // (not canceled, no worker error, no per-file failures) and Visual Studio's
+        // build context is available.
+        if (!e.Cancelled && e.Error is null && stats.FailedItems == 0 &&
+            _package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
         {
             try
             {

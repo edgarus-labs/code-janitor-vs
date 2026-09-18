@@ -22,18 +22,20 @@ Write-Host "Solution: $SolutionPath"
 Write-Host "Configuration: $Configuration"
 
 if (-not (Test-Path $SolutionPath)) {
-    Write-Error "Solution file not found: $SolutionPath"
+    [Console]::Error.WriteLine("Solution file not found: $SolutionPath")
     exit 1
 }
 
-# Determine build tool (dotnet or msbuild)
+# Determine build tool (dotnet or msbuild). msbuild is preferred: CodeJanitor.sln contains a
+# legacy .NET Framework VSIX project (CodeJanitor.csproj) that requires the VSSDK MSBuild
+# targets and cannot be built by the dotnet CLI (see ADR-0001).
 $buildTool = $null
-if (Get-Command "dotnet" -ErrorAction SilentlyContinue) {
-    $buildTool = "dotnet"
-} elseif (Get-Command "msbuild" -ErrorAction SilentlyContinue) {
+if (Get-Command "msbuild" -ErrorAction SilentlyContinue) {
     $buildTool = "msbuild"
+} elseif (Get-Command "dotnet" -ErrorAction SilentlyContinue) {
+    $buildTool = "dotnet"
 } else {
-    Write-Error "Neither dotnet CLI nor msbuild could be found on PATH."
+    [Console]::Error.WriteLine("Neither dotnet CLI nor msbuild could be found on PATH.")
     exit 1
 }
 
@@ -49,7 +51,7 @@ if ($buildTool -eq "dotnet") {
 }
 
 if ($buildExitCode -ne 0) {
-    Write-Error "Post-cleanup build verification FAILED with exit code $buildExitCode. The solution does not compile cleanly."
+    [Console]::Error.WriteLine("Post-cleanup build verification FAILED with exit code $buildExitCode. The solution does not compile cleanly.")
     exit $buildExitCode
 }
 
