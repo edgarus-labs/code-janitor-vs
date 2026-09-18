@@ -19,6 +19,7 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 /// </summary>
 public sealed class CleanupProgressViewModel : BaseProgressViewModel
 {
+    private readonly CodeJanitorPackage _package;
     private readonly BackgroundWorker _backgroundWorker;
     private readonly Stopwatch _batchStopwatch;
 
@@ -50,6 +51,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// <param name="items">The items to cleanup.</param>
     public CleanupProgressViewModel(CodeJanitorPackage package, IEnumerable<object> items)
     {
+        _package = package;
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
         _batchStopwatch = Stopwatch.StartNew();
@@ -303,16 +305,16 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         }
 
         // Run post-cleanup build verification if Visual Studio build context is available
-        if (Package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
+        if (_package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
         {
             try
             {
                 OutputWindowHelper.InfoWriteLine("Running post-cleanup build verification...");
-                Package.IDE.Solution.SolutionBuild.Build(true);
-                if (Package.IDE.Solution.SolutionBuild.LastBuildInfo > 0)
+                _package.IDE.Solution.SolutionBuild.Build(true);
+                if (_package.IDE.Solution.SolutionBuild.LastBuildInfo > 0)
                 {
                     OutputWindowHelper.WarningWriteLine(
-                        $"Post-cleanup build verification reported {Package.IDE.Solution.SolutionBuild.LastBuildInfo} failed project(s).");
+                        $"Post-cleanup build verification reported {_package.IDE.Solution.SolutionBuild.LastBuildInfo} failed project(s).");
                 }
                 else
                 {
@@ -324,8 +326,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification could not be executed: {ex.Message}");
             }
         }
-
-        // Close the dialog.
         DialogResult = true;
     }
 

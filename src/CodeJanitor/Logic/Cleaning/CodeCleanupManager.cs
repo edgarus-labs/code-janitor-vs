@@ -17,6 +17,7 @@ using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using EnvDTE;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.Shell;
@@ -730,10 +731,15 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source text.</param>
     /// <returns>Transformed source text.</returns>
 
+    internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
+    {
+        return ApplyHeadlessCSharpTransformations(source, filePath, null);
+    }
+
     internal static string ApplyHeadlessCSharpTransformations(
         string source,
         string filePath,
-        IReadOnlyCollection<string> solutionDisqualifiedTypes = null)
+        IReadOnlyCollection<string> solutionDisqualifiedTypes)
     {
         return CreateHeadlessCSharpPipeline(source, filePath, solutionDisqualifiedTypes).Run(source);
     }
