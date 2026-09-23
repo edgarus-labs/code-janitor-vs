@@ -78,7 +78,6 @@ The original project supports a broad range of languages and file types, includi
 - [Development guide](docs/development.md)
 - [Architecture overview](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
-- [Sequential feature delivery plan](docs/todo/feature-delivery-plan.md)
 - [Licensing and attribution](docs/licensing.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)

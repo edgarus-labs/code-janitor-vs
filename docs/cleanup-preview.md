@@ -76,5 +76,3 @@ native diff rendering, editor undo behavior or the installed extension.
    ordinary **Start Cleanup** still follows its original workflow.
 8. Verify keyboard navigation, high DPI, smaller window sizes and light/dark
    themes. Open and close the preview repeatedly to check diff-viewer cleanup.
-
-See the [delivery plan](todo/feature-delivery-plan.md) for subsequent increments.

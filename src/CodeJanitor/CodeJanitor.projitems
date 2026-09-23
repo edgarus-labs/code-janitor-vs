@@ -116,6 +116,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CopilotDetectionResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CoverageEvaluationResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupAvailabilityLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CleanupBatchPartitioner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\EditorConfigDiagnosticCleanupLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />

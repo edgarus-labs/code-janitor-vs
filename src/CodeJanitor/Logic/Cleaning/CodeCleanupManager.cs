@@ -1571,7 +1571,11 @@ internal sealed class CodeCleanupManager
 
     internal void RecordCleanupFailure(string filePath, Exception exception)
     {
-        _cleanupExecutionStats.FailedItems++;
+        lock (_cleanupStatsLock)
+        {
+            _cleanupExecutionStats.FailedItems++;
+        }
+
         OutputWindowHelper.ExceptionWriteLine(
             $"Cleanup failed for '{filePath}'", exception);
     }
@@ -1633,7 +1637,10 @@ internal sealed class CodeCleanupManager
 
     internal CleanupExecutionStats GetCleanupExecutionStats()
     {
-        return _cleanupExecutionStats;
+        lock (_cleanupStatsLock)
+        {
+            return _cleanupExecutionStats;
+        }
     }
 
     /// <summary>
