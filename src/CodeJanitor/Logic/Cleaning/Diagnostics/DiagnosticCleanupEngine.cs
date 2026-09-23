@@ -40,8 +40,10 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// otherwise for the first diagnostic of the group only. A fix is accepted only when its operations contain exactly one
 /// solution change, that change merely changes document texts, and it does not increase the number of compiler errors
 /// of any changed project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
-/// are never executed. A rejected group is not retried in the same run. Passes repeat until no actionable diagnostic
-/// can make progress or <see cref="DiagnosticCleanupOptions.MaxPasses" /> fixes were applied.
+/// are never executed by the engine: those of accepted fixes are handed to the host in
+/// <see cref="DiagnosticCleanupResult.PostApplyOperations" />. A rejected group is not retried in the same run. Passes
+/// repeat until no actionable diagnostic can make progress or <see cref="DiagnosticCleanupOptions.MaxPasses" /> fixes
+/// were applied.
 /// </para>
 /// <para>
 /// Exceptions thrown by code fix providers propagate to the caller. Analyzer failures are reported by Roslyn without a
@@ -105,7 +107,7 @@ public sealed class DiagnosticCleanupEngine
     }
 
     private static DiagnosticCleanupResult CreateUnchangedResult(Solution solution) =>
-        new DiagnosticCleanupResult(solution, solution, Array.Empty<AppliedDiagnosticFix>(), Array.Empty<UnresolvedDiagnostic>());
+        new DiagnosticCleanupResult(solution, solution, Array.Empty<AppliedDiagnosticFix>(), Array.Empty<UnresolvedDiagnostic>(), Array.Empty<CodeActionOperation>());
 
     /// <summary>
     /// Gets the analyzers of the project and solution analyzer references (the latter are the host analyzers, e.g.
@@ -182,6 +184,8 @@ public sealed class DiagnosticCleanupEngine
 
         private readonly Dictionary<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider), int> _appliedCounts =
             new Dictionary<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider), int>();
+
+        private readonly List<CodeActionOperation> _postApplyOperations = new List<CodeActionOperation>();
 
         private Solution _errorCountSolution;
         private Dictionary<ProjectId, int> _errorCounts = new Dictionary<ProjectId, int>();
@@ -355,6 +359,7 @@ public sealed class DiagnosticCleanupEngine
                 }
 
                 RecordAppliedFixes(attempt.FixedDiagnostics, group.Key.Provider);
+                _postApplyOperations.AddRange(attempt.PostApplyOperations);
 
                 return attempt.Solution;
             }
@@ -397,9 +402,10 @@ public sealed class DiagnosticCleanupEngine
             }
 
             // Exactly one solution change is required (Roslyn allows at most one per action). Other operations are
-            // host/UI notifications, e.g. Visual Studio's symbol-renamed notification next to a rename: they are never
-            // executed and are ignored. Anything that would need them to complete the fix is still caught by the
-            // text-only validation and the compiler-error gate below.
+            // host/UI notifications, e.g. Visual Studio's symbol-renamed notification next to a rename: the engine never
+            // executes them, it hands those of accepted fixes to the host (DiagnosticCleanupResult.PostApplyOperations).
+            // Anything that would need them to complete the fix is still caught by the text-only validation and the
+            // compiler-error gate below.
             var applyChangesOperations = operations.OfType<ApplyChangesOperation>().ToList();
             if (applyChangesOperations.Count != 1)
             {
@@ -429,7 +435,9 @@ public sealed class DiagnosticCleanupEngine
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors);
             }
 
-            return FixAttempt.Accepted(candidate, fixedDiagnostics);
+            var postApplyOperations = operations.Where(operation => !(operation is ApplyChangesOperation)).ToImmutableArray();
+
+            return FixAttempt.Accepted(candidate, fixedDiagnostics, postApplyOperations);
         }
 
         /// <summary>
@@ -584,7 +592,7 @@ public sealed class DiagnosticCleanupEngine
             var appliedFixes = _appliedOrder.Select(key => new AppliedDiagnosticFix(key.DiagnosticId, key.Category, key.Provider.GetType().Name, _appliedCounts[key]));
             var unresolved = remainingPlans.Select(plan => CreateUnresolved(plan.Actionable, GetUnresolvedReason(plan)));
 
-            return new DiagnosticCleanupResult(originalSolution, solution, appliedFixes, unresolved);
+            return new DiagnosticCleanupResult(originalSolution, solution, appliedFixes, unresolved, _postApplyOperations);
         }
 
         /// <summary>
@@ -664,10 +672,15 @@ public sealed class DiagnosticCleanupEngine
 
     private sealed class FixAttempt
     {
-        private FixAttempt(Solution solution, ImmutableArray<ActionableDiagnostic> fixedDiagnostics, UnresolvedDiagnosticReason? rejection)
+        private FixAttempt(
+            Solution solution,
+            ImmutableArray<ActionableDiagnostic> fixedDiagnostics,
+            ImmutableArray<CodeActionOperation> postApplyOperations,
+            UnresolvedDiagnosticReason? rejection)
         {
             Solution = solution;
             FixedDiagnostics = fixedDiagnostics;
+            PostApplyOperations = postApplyOperations;
             Rejection = rejection;
         }
 
@@ -675,13 +688,18 @@ public sealed class DiagnosticCleanupEngine
 
         public ImmutableArray<ActionableDiagnostic> FixedDiagnostics { get; }
 
+        public ImmutableArray<CodeActionOperation> PostApplyOperations { get; }
+
         public UnresolvedDiagnosticReason? Rejection { get; }
 
-        public static FixAttempt Accepted(Solution solution, ImmutableArray<ActionableDiagnostic> fixedDiagnostics) =>
-            new FixAttempt(solution, fixedDiagnostics, null);
+        public static FixAttempt Accepted(
+            Solution solution,
+            ImmutableArray<ActionableDiagnostic> fixedDiagnostics,
+            ImmutableArray<CodeActionOperation> postApplyOperations) =>
+            new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null);
 
         public static FixAttempt Rejected(UnresolvedDiagnosticReason reason) =>
-            new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, reason);
+            new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason);
     }
 
     /// <summary>

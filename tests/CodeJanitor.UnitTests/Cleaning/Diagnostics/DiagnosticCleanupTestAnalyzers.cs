@@ -256,14 +256,14 @@ internal sealed class AddDocumentLegacyFieldCodeFixProvider : LegacyFieldCodeFix
 
 /// <summary>
 /// Renames the field (<c>legacy</c> to <c>renamed</c>) through a code action whose operation list is shaped by the
-/// test from the original and the renamed solution, e.g. the solution change next to a host notification (as Visual
-/// Studio's rename-based fixes return), two solution changes, or no solution change at all.
+/// test from the field name, the original and the renamed solution, e.g. the solution change next to a host
+/// notification (as Visual Studio's rename-based fixes return), two solution changes, or no solution change at all.
 /// </summary>
 internal sealed class CustomOperationsLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
 {
-    private readonly Func<Solution, Solution, IEnumerable<CodeActionOperation>> _createOperations;
+    private readonly Func<string, Solution, Solution, IEnumerable<CodeActionOperation>> _createOperations;
 
-    public CustomOperationsLegacyFieldCodeFixProvider(string diagnosticId, Func<Solution, Solution, IEnumerable<CodeActionOperation>> createOperations)
+    public CustomOperationsLegacyFieldCodeFixProvider(string diagnosticId, Func<string, Solution, Solution, IEnumerable<CodeActionOperation>> createOperations)
         : base(diagnosticId)
     {
         _createOperations = createOperations;
@@ -278,7 +278,7 @@ internal sealed class CustomOperationsLegacyFieldCodeFixProvider : LegacyFieldCo
             {
                 var renamed = await RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct).ConfigureAwait(false);
 
-                return _createOperations(context.Document.Project.Solution, renamed.Project.Solution);
+                return _createOperations(name, context.Document.Project.Solution, renamed.Project.Solution);
             }),
             context.Diagnostics);
     }
@@ -303,12 +303,19 @@ internal sealed class CustomOperationsLegacyFieldCodeFixProvider : LegacyFieldCo
 
 /// <summary>
 /// A host/UI notification operation that changes no text, like Visual Studio's symbol-renamed notification. Applying
-/// it fails, so a test using it also proves the engine never executes such operations.
+/// it fails, so a test using it also proves the engine never executes such operations itself.
 /// </summary>
 internal sealed class HostNotificationOperation : CodeActionOperation
 {
-    public override string Title => "Notify host";
+    private readonly string _subject;
+
+    public HostNotificationOperation(string subject)
+    {
+        _subject = subject;
+    }
+
+    public override string Title => "Notify host: " + _subject;
 
     public override void Apply(Workspace workspace, CancellationToken cancellationToken) =>
-        throw new InvalidOperationException("Host notifications must not be executed by an unattended cleanup.");
+        throw new InvalidOperationException("The engine must hand host notifications to the host instead of executing them.");
 }

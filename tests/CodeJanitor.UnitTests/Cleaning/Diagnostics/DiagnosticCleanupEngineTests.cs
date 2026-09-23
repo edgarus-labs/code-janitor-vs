@@ -484,6 +484,7 @@ public sealed class DiagnosticCleanupEngineTests
         Assert.IsTrue(result.IsComplete);
         Assert.AreEqual(0, result.AppliedFixes.Count);
         Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.AreEqual(0, result.PostApplyOperations.Count);
         Assert.AreEqual(0, probe.AnalyzedTreeCount, "No category enabled must not run any analyzer.");
 
         await CleanupAsync(solution, documentId, DiagnosticCleanupCategory.CodeStyle);
@@ -697,20 +698,62 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public async Task CleanupAsync_FixWithHostNotificationNextToItsSolutionChange_AppliesOnlyTheSolutionChange()
+    public async Task CleanupAsync_FixesWithHostNotifications_ApplyTheSolutionChangesAndHandTheNotificationsToTheHostInOrder()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0010", out var documentId);
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0010", "Performance"));
+        var documentId = workspace.AddDocument("Settings.cs", Lines(
+            "class Settings",
+            "{",
+            "    public int legacyFirst;",
+            "    public int legacySecond;",
+            "}"));
         var provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0010",
-            (_, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new HostNotificationOperation() });
+            (name, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new HostNotificationOperation(name) });
 
         var result = await CleanupAsync(workspace.CreateSolution(), documentId, provider);
 
         Assert.AreEqual(
-            LegacySettingsClass().Replace("legacyValue", "renamedValue"),
+            Lines(
+                "class Settings",
+                "{",
+                "    public int renamedFirst;",
+                "    public int renamedSecond;",
+                "}"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
-        Assert.AreEqual(1, result.AppliedFixes.Single().Count);
+        Assert.AreEqual(2, result.AppliedFixes.Single().Count);
+        CollectionAssert.AreEqual(
+            new[] { "Notify host: legacyFirst", "Notify host: legacySecond" },
+            result.PostApplyOperations.Select(operation => operation.Title).ToArray(),
+            "Each accepted fix's host operations are handed over exactly once, in the order the fixes were applied.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_RejectedFixWithHostNotification_HandsNoOperationToTheHost()
+    {
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0013", "Performance"));
+        var documentId = workspace.AddDocument("Settings.cs", Lines(
+            "class Settings",
+            "{",
+            "    public int legacyValue;",
+            "",
+            "    public int Read()",
+            "    {",
+            "        return legacyValue;",
+            "    }",
+            "}"));
+        var solution = workspace.CreateSolution();
+        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+            "CJT0013",
+            (name, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new HostNotificationOperation(name) });
+
+        var result = await CleanupAsync(solution, documentId, provider);
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, result.Unresolved.Single().Reason, "Renaming only the declaration breaks the reference.");
+        Assert.AreEqual(0, result.PostApplyOperations.Count);
     }
 
     [TestMethod]
@@ -721,7 +764,7 @@ public sealed class DiagnosticCleanupEngineTests
         var solution = workspace.CreateSolution();
         var provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0011",
-            (_, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new ApplyChangesOperation(renamed) });
+            (_, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new ApplyChangesOperation(renamed) });
 
         var result = await CleanupAsync(solution, documentId, provider);
 
@@ -737,7 +780,7 @@ public sealed class DiagnosticCleanupEngineTests
         var solution = workspace.CreateSolution();
         var provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0012",
-            (_, _) => new CodeActionOperation[] { new HostNotificationOperation() });
+            (name, _, _) => new CodeActionOperation[] { new HostNotificationOperation(name) });
 
         var result = await CleanupAsync(solution, documentId, provider);
 

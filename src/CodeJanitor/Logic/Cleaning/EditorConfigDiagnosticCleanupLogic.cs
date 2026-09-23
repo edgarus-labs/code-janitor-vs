@@ -318,6 +318,8 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             if (workspace.TryApplyChanges(result.ChangedSolution))
             {
                 LogResult(filePath, result, applied: true);
+                ApplyPostApplyOperations(workspace, filePath, result, cancellationToken);
+
                 return CreateOutcome(result, changed: true);
             }
 
@@ -327,6 +329,44 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         throw new InvalidOperationException(
             $"Visual Studio rejected the diagnostic fixes for '{filePath}' twice because the solution kept changing during cleanup. No diagnostic fixes were applied.");
+    }
+
+    /// <summary>
+    /// Executes, in order, the non-text operations of the accepted fixes (for example the rename
+    /// notification that lets Visual Studio update XAML and designer references). The engine never
+    /// executes them because they need the live host workspace; they only run once the text changes
+    /// were actually applied. The first failure stops the remaining operations and fails the file,
+    /// because the solution may now be only partially updated.
+    /// </summary>
+    /// <param name="workspace">The Visual Studio workspace the changes were applied to.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="result">The applied engine result.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ApplyPostApplyOperations(
+        Workspace workspace,
+        string filePath,
+        DiagnosticCleanupResult result,
+        CancellationToken cancellationToken)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var operations = result.PostApplyOperations;
+        for (var index = 0; index < operations.Count; index++)
+        {
+            var operation = operations[index];
+            try
+            {
+                operation.Apply(workspace, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Diagnostic fixes were applied to '{filePath}', but the follow-up operation '{operation.Title ?? operation.GetType().Name}' ({index + 1} of {operations.Count}) failed and the remaining {operations.Count - index - 1} operation(s) were skipped. Related references outside C# code (for example XAML or designer files) may not have been updated.",
+                    ex);
+            }
+        }
     }
 
     /// <summary>

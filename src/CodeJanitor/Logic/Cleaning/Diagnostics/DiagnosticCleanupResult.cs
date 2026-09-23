@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
 
 namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 
@@ -17,16 +18,22 @@ public sealed class DiagnosticCleanupResult
     /// <param name="changedSolution">The solution with all accepted fixes; only document texts differ.</param>
     /// <param name="appliedFixes">The applied fixes, in order of first application.</param>
     /// <param name="unresolved">The actionable diagnostics left in the cleaned document.</param>
+    /// <param name="postApplyOperations">
+    /// The operations, other than the solution change, of the accepted fixes, in order; the host executes them after
+    /// applying <paramref name="changedSolution" />.
+    /// </param>
     public DiagnosticCleanupResult(
         Solution originalSolution,
         Solution changedSolution,
         IEnumerable<AppliedDiagnosticFix> appliedFixes,
-        IEnumerable<UnresolvedDiagnostic> unresolved)
+        IEnumerable<UnresolvedDiagnostic> unresolved,
+        IEnumerable<CodeActionOperation> postApplyOperations)
     {
         OriginalSolution = originalSolution ?? throw new ArgumentNullException(nameof(originalSolution));
         ChangedSolution = changedSolution ?? throw new ArgumentNullException(nameof(changedSolution));
         AppliedFixes = (appliedFixes ?? throw new ArgumentNullException(nameof(appliedFixes))).ToList().AsReadOnly();
         Unresolved = (unresolved ?? throw new ArgumentNullException(nameof(unresolved))).ToList().AsReadOnly();
+        PostApplyOperations = (postApplyOperations ?? throw new ArgumentNullException(nameof(postApplyOperations))).ToList().AsReadOnly();
     }
 
     /// <summary>
@@ -49,6 +56,15 @@ public sealed class DiagnosticCleanupResult
     /// Gets the applied fixes, in order of first application.
     /// </summary>
     public IReadOnlyList<AppliedDiagnosticFix> AppliedFixes { get; }
+
+    /// <summary>
+    /// Gets the operations the accepted fixes returned next to their solution change (e.g. Visual Studio's
+    /// symbol-renamed notification, which lets designers and XAML follow a rename), in the order the fixes were
+    /// applied; empty when there are none. The engine never executes them and operations of rejected fixes are not
+    /// included: the host executes them, in order, after it has applied <see cref="ChangedSolution" />, the same way
+    /// Visual Studio applies a code action's solution change before its remaining operations.
+    /// </summary>
+    public IReadOnlyList<CodeActionOperation> PostApplyOperations { get; }
 
     /// <summary>
     /// Gets the actionable diagnostics left in the cleaned document.
