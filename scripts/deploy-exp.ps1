@@ -6,16 +6,35 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$vsRoot = "C:\Program Files\Microsoft Visual Studio\18\Professional\Common7\IDE"
+$vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+$vsPath = & $vswhere -latest -prerelease -property installationPath
+$vsInstanceId = & $vswhere -latest -prerelease -property instanceId
+if (-not $vsPath -or -not $vsInstanceId) {
+    throw "Visual Studio was not found by vswhere."
+}
+$vsMajor = (& $vswhere -latest -prerelease -property installationVersion).Split('.')[0]
+
+$vsRoot = Join-Path $vsPath "Common7\IDE"
 $devenv = Join-Path $vsRoot "devenv.exe"
 $vsixInstaller = Join-Path $vsRoot "VSIXInstaller.exe"
-$msbuild = "C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe"
+$msbuild = Join-Path $vsPath "MSBuild\Current\Bin\MSBuild.exe"
 
-$repoRoot = "C:\Dev\codemaid"
-$project = Join-Path $repoRoot "CodeJanitor\CodeJanitor.csproj"
-$vsix = Join-Path $repoRoot "CodeJanitor\bin\$Configuration\net472\CodeJanitor.vsix"
-$expHive = "C:\Users\gawdprpl\AppData\Local\Microsoft\VisualStudio\18.0_ec255184Exp"
-$vsInstanceId = "ec255184"
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$project = Join-Path $repoRoot "src\CodeJanitor\CodeJanitor.csproj"
+$vsix = Join-Path $repoRoot "src\CodeJanitor\bin\$Configuration\net472\win\CodeJanitor.vsix"
+$expHive = Join-Path $env:LOCALAPPDATA "Microsoft\VisualStudio\$vsMajor.0_${vsInstanceId}Exp"
+$extensionId = "b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2"
+
+function Get-InstalledExtensionFolders {
+    $extensionsRoot = Join-Path $expHive "Extensions"
+    if (-not (Test-Path $extensionsRoot)) {
+        return
+    }
+
+    Get-ChildItem $extensionsRoot -Recurse -Filter "extension.vsixmanifest" -ErrorAction SilentlyContinue |
+        Where-Object { Select-String -Path $_.FullName -Pattern $extensionId -SimpleMatch -Quiet } |
+        ForEach-Object { $_.Directory.FullName }
+}
 
 function Stop-ExpDevenv {
     # Only stop devenv.exe instances running the Exp hive (/rootsuffix Exp), never the user's main VS session.
@@ -32,22 +51,13 @@ Write-Host "[1/6] Stopping devenv Exp-hive instances (if any)..."
 Stop-ExpDevenv
 
 Write-Host "[2/6] Removing stale CodeJanitor extension install folders..."
-$extensionsRoot = Join-Path $expHive "Extensions"
-if (Test-Path $extensionsRoot) {
-    Get-ChildItem $extensionsRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-        $manifest = Join-Path $_.FullName "extension.vsixmanifest"
-        $isCodeJanitor = ($_.Name -eq "Steve Cadwallader") -or
-            ((Test-Path $manifest) -and (Select-String -Path $manifest -Pattern "<DisplayName>CodeJanitor</DisplayName>" -Quiet))
-
-        if ($isCodeJanitor) {
-            Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
-            if (Test-Path $_.FullName) {
-                Write-Host "  WARNING: could not remove $($_.FullName) (file lock?) - stop all Exp devenv/ServiceHub processes and retry."
-            }
-            else {
-                Write-Host "  removed stale install: $($_.FullName)"
-            }
-        }
+foreach ($folder in @(Get-InstalledExtensionFolders)) {
+    Remove-Item $folder -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $folder) {
+        Write-Host "  WARNING: could not remove $folder (file lock?) - stop all Exp devenv/ServiceHub processes and retry."
+    }
+    else {
+        Write-Host "  removed stale install: $folder"
     }
 }
 
@@ -77,18 +87,13 @@ if (-not (Test-Path $vsix)) {
 
 Write-Host "[4/6] Installing VSIX to Experimental hive..."
 $installLog = Join-Path $env:TEMP "codejanitor_vsix_install_exp.log"
-& $vsixInstaller /q /shutdownprocesses /instanceIds:$vsInstanceId /rootSuffix:Exp /logFile:$installLog $vsix
-$vsixExit = $LASTEXITCODE
+$vsixExit = (Start-Process $vsixInstaller -ArgumentList "/q", "/shutdownprocesses", "/instanceIds:$vsInstanceId", "/rootSuffix:Exp", "/logFile:`"$installLog`"", "`"$vsix`"" -Wait -PassThru).ExitCode
 
-# VSIXInstaller may return non-zero (e.g. 2001) even when install completed; trust the log marker.
-$installSucceeded = (Test-Path $installLog) -and
-    (Select-String -Path $installLog -Pattern "Install to Visual Studio .* completed successfully" -Quiet)
-
-if ((-not $installSucceeded) -or ($vsixExit -ne 0 -and $vsixExit -ne 2001)) {
-    throw "VSIX install/update failed (exit=$vsixExit). See log: $installLog"
+if (-not @(Get-InstalledExtensionFolders)) {
+    throw "VSIX install failed (exit=$vsixExit): the extension is not installed in $expHive. See log: $installLog"
 }
 
-Write-Host "  installer exit: $vsixExit (accepted)"
+Write-Host "  installer exit: $vsixExit"
 Write-Host "  install log: $installLog"
 
 Write-Host "[5/6] ResetSkipPkgs + UpdateConfiguration..."
