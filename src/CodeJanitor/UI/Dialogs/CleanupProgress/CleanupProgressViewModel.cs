@@ -192,6 +192,34 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             if (bw.CancellationPending)
             {
                 e.Cancel = true;
+
+                return;
+            }
+
+            // .editorconfig/Roslyn diagnostic cleanup reads and mutates the shared Visual Studio
+            // workspace, so it runs sequentially on the UI thread once the parallel headless pass has
+            // written every file.
+            foreach (var projectItem in projectItems)
+            {
+                if (bw.CancellationPending)
+                {
+                    e.Cancel = true;
+
+                    return;
+                }
+
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    try
+                    {
+                        await CodeCleanupManager.RunDiagnosticCleanupAsync(projectItem);
+                    }
+                    catch (Exception ex)
+                    {
+                        CodeCleanupManager.RecordCleanupFailure(projectItem.Name ?? "Unknown", ex);
+                    }
+                });
             }
 
             return;
@@ -287,35 +315,38 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         UpdateExecutionSummary();
 
         var stats = CodeCleanupManager.GetCleanupExecutionStats();
+        var counts = $"headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, diagnosticChanged={stats.DiagnosticChangedItems}, diagnosticUnresolved={stats.DiagnosticUnresolvedItems}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}";
 
         if (e.Error is not null)
         {
-            OutputWindowHelper.WarningWriteLine(
-                $"Cleanup batch failed after headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            OutputWindowHelper.WarningWriteLine($"Cleanup batch failed after {counts}.");
             MessageBox.Show(e.Error.Message, "CodeJanitor Cleanup Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         else if (e.Cancelled)
         {
-            OutputWindowHelper.InfoWriteLine(
-                $"Cleanup batch canceled. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            OutputWindowHelper.InfoWriteLine($"Cleanup batch canceled. Processed: {counts}.");
         }
         else if (stats.FailedItems > 0)
         {
-            OutputWindowHelper.WarningWriteLine(
-                $"Cleanup batch completed with failures. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            OutputWindowHelper.WarningWriteLine($"Cleanup batch completed with failures. Processed: {counts}.");
             MessageBox.Show($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        else if (stats.DiagnosticUnresolvedItems > 0)
+        {
+            OutputWindowHelper.WarningWriteLine($"Cleanup batch completed with unresolved diagnostics. Processed: {counts}.");
+            MessageBox.Show($"Cleanup completed, but {stats.DiagnosticUnresolvedItems} file(s) still have diagnostics that could not be fixed automatically. Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         else
         {
-            OutputWindowHelper.InfoWriteLine(
-                $"Cleanup batch completed. Processed: headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");
+            OutputWindowHelper.InfoWriteLine($"Cleanup batch completed. Processed: {counts}.");
         }
 
         // Run post-cleanup build verification only when the batch completed cleanly
         // (not canceled, no worker error, no per-file failures) and Visual Studio's
         // build context is available.
         if (!e.Cancelled && e.Error is null && stats.FailedItems == 0 &&
-            _package?.IDE?.Solution?.SolutionBuild != null && stats.HeadlessChangedItems > 0)
+            _package?.IDE?.Solution?.SolutionBuild != null &&
+            (stats.HeadlessChangedItems > 0 || stats.DiagnosticChangedItems > 0))
         {
             try
             {
@@ -345,7 +376,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     private void UpdateExecutionSummary()
     {
         var stats = CodeCleanupManager.GetCleanupExecutionStats();
-        ExecutionSummary = $"Changed: {stats.HeadlessChangedItems} | No-op: {stats.HeadlessNoOpItems} | Editor: {stats.EditorItems} | Failed: {stats.FailedItems} | Split: {stats.SplitOperations} ops / {stats.SplitCreatedFiles} files";
+        ExecutionSummary = $"Changed: {stats.HeadlessChangedItems} | No-op: {stats.HeadlessNoOpItems} | Editor: {stats.EditorItems} | Failed: {stats.FailedItems} | Split: {stats.SplitOperations} ops / {stats.SplitCreatedFiles} files | Diagnostics: {stats.DiagnosticChangedItems} fixed / {stats.DiagnosticUnresolvedItems} unresolved";
 
         ElapsedSummary = $"Processed: {ProcessedCount}/{CountTotal} | Elapsed: {_batchStopwatch.Elapsed:mm\\:ss}";
     }

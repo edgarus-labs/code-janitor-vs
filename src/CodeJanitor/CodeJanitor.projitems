@@ -117,6 +117,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Ai\CoverageEvaluationResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupAvailabilityLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\EditorConfigDiagnosticCleanupLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\JsonSerializerOptionsReuseLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\SingleStatementLambdaLogic.cs" />
@@ -157,6 +158,15 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\RemoveByteOrderMarkLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\UpdateLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\UsingStatementCleanupLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\AppliedDiagnosticFix.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\CodeFixProviderCatalog.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupCategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupCategoryClassifier.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\UnresolvedDiagnostic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\UnresolvedDiagnosticReason.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Digging\OutliningSynchronizationManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Formatting\CommentFormatLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Reorganizing\CodeReorganizationAvailabilityLogic.cs" />

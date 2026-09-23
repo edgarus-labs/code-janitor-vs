@@ -799,6 +799,105 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to .editorconfig and Roslyn diagnostics (C#).
+        /// </summary>
+        public static string EditorConfigDiagnosticCleanup {
+            get {
+                return ResourceManager.GetString("EditorConfigDiagnosticCleanup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Runs after the other cleanup steps. Uses the rules and severities from the file&apos;s effective .editorconfig (including nested files) and the existing Roslyn/analyzer code fixes. Only diagnostics with severity suggestion, warning or error are fixed; silent/none are ignored. Diagnostics without a safe automatic fix are reported in the CodeJanitor output pane and never modified..
+        /// </summary>
+        public static string EditorConfigDiagnosticCleanupDescription {
+            get {
+                return ResourceManager.GetString("EditorConfigDiagnosticCleanupDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply .editorconfig formatting rules (Roslyn formatting code fixes).
+        /// </summary>
+        public static string ApplyEditorConfigFormatting {
+            get {
+                return ResourceManager.GetString("ApplyEditorConfigFormatting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fixes formatting diagnostics reported by Roslyn&apos;s formatting analyzer for the file&apos;s .editorconfig settings..
+        /// </summary>
+        public static string ApplyEditorConfigFormattingToolTip {
+            get {
+                return ResourceManager.GetString("ApplyEditorConfigFormattingToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply .editorconfig naming rules (rename symbols that violate naming styles).
+        /// </summary>
+        public static string ApplyEditorConfigNaming {
+            get {
+                return ResourceManager.GetString("ApplyEditorConfigNaming", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Applies Roslyn&apos;s naming-style fix, which renames the symbol and updates its references in the solution..
+        /// </summary>
+        public static string ApplyEditorConfigNamingToolTip {
+            get {
+                return ResourceManager.GetString("ApplyEditorConfigNamingToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply .editorconfig code-style preferences (Roslyn IDE code-style fixes).
+        /// </summary>
+        public static string ApplyEditorConfigCodeStyle {
+            get {
+                return ResourceManager.GetString("ApplyEditorConfigCodeStyle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configure severity with dotnet_diagnostic.&lt;id&gt;.severity; the legacy &apos;option = value:severity&apos; suffix is not honored..
+        /// </summary>
+        public static string ApplyEditorConfigCodeStyleToolTip {
+            get {
+                return ResourceManager.GetString("ApplyEditorConfigCodeStyleToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply code fixes from other analyzers (for example analyzer NuGet packages).
+        /// </summary>
+        public static string ApplyAnalyzerCodeFixes {
+            get {
+                return ResourceManager.GetString("ApplyAnalyzerCodeFixes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Applies the first available code fix for other analyzer diagnostics. Fixes that would introduce compiler errors are rejected and reported..
+        /// </summary>
+        public static string ApplyAnalyzerCodeFixesToolTip {
+            get {
+                return ResourceManager.GetString("ApplyAnalyzerCodeFixesToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to CodeJanitor cleaned &apos;{0}&apos;, but some diagnostics were not fixed (see the CodeJanitor output pane).
+        /// </summary>
+        public static string CodeJanitorCleaned0WithUnresolvedDiagnostics {
+            get {
+                return ResourceManager.GetString("CodeJanitorCleaned0WithUnresolvedDiagnostics", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to CodeJanitor Join.
         /// </summary>
         public static string CodeJanitorJoin {
