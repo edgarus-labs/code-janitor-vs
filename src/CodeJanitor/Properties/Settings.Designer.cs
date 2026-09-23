@@ -1549,7 +1549,7 @@ namespace CodeJanitor.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("30")]
+        [global::System.Configuration.DefaultSettingValueAttribute("5")]
         public int Cleaning_AiXmlDocumentationTimeoutSeconds {
             get {
                 return ((int)(this["Cleaning_AiXmlDocumentationTimeoutSeconds"]));
@@ -1645,7 +1645,7 @@ namespace CodeJanitor.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("60")]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
         public int Cleaning_AiXmlDocumentationGlobalTimeoutSeconds {
             get {
                 return ((int)(this["Cleaning_AiXmlDocumentationGlobalTimeoutSeconds"]));
