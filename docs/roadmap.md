@@ -4,10 +4,9 @@ This roadmap describes the intended direction of Code Janitor. It is deliberatel
 
 ## Sequential feature delivery
 
-The [feature delivery plan](todo/feature-delivery-plan.md) tracks the scoped
-2026-09-08 proposals in implementation order: Preview Cleanup, Explain Cleanup,
-branch-aware cleanup, profiles, measured test verification, check mode/CLI, Blazor
-maintenance diagnostics, complexity navigation and AI context control.
+Planned increments, in order: Preview Cleanup, Explain Cleanup, branch-aware
+cleanup, profiles, measured test verification, check mode/CLI, Blazor maintenance
+diagnostics, complexity navigation and AI context control.
 
 The first C# text preview increment is implemented and automatically tested;
 Visual Studio runtime verification and broader preview coverage remain pending.

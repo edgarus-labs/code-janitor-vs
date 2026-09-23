@@ -125,9 +125,19 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 MaxDegreeOfParallelism = maxDegree
             };
 
+            var workItems = ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                return projectItems.Select(CreateWorkItem).ToList();
+            });
+
+            var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, workItem => workItem.IsOpen);
+            totalCount = parallelItems.Count + sequentialItems.Count;
+
             try
             {
-                Parallel.ForEach(projectItems, parallelOptions, (projectItem, loopState) =>
+                Parallel.ForEach(parallelItems, parallelOptions, (workItem, loopState) =>
                 {
                     if (bw.CancellationPending)
                     {
@@ -136,21 +146,13 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         return;
                     }
 
-                    string fileName = null;
-                    try
-                    {
-                        fileName = projectItem.Name;
-                    }
-                    catch
-                    {
-                    }
+                    var fileName = workItem.FileName;
 
                     bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
 
                     try
                     {
-                        var filePath = projectItem.GetFileName();
-                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(filePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
+                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(workItem.FilePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
                         if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed)
                         {
                             CodeCleanupManager.IncrementHeadlessChanged();
@@ -168,14 +170,14 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                                 foreach (var createdFile in outcome.CreatedFiles)
                                 {
-                                    CodeCleanupManager.AddGeneratedFileToProject(projectItem, createdFile);
+                                    CodeCleanupManager.AddGeneratedFileToProject(workItem.ProjectItem, createdFile);
                                 }
                             });
                         }
                     }
                     catch (Exception ex)
                     {
-                        CodeCleanupManager.RecordCleanupFailure(fileName ?? "Unknown", ex);
+                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
 
                     var currentCompleted = Interlocked.Increment(ref completedCount);
@@ -196,10 +198,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 return;
             }
 
-            // .editorconfig/Roslyn diagnostic cleanup reads and mutates the shared Visual Studio
-            // workspace, so it runs sequentially on the UI thread once the parallel headless pass has
-            // written every file.
-            foreach (var projectItem in projectItems)
+            foreach (var workItem in parallelItems)
             {
                 if (bw.CancellationPending)
                 {
@@ -213,13 +212,41 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        await CodeCleanupManager.RunDiagnosticCleanupAsync(projectItem);
+                        await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
                     }
                     catch (Exception ex)
                     {
-                        CodeCleanupManager.RecordCleanupFailure(projectItem.Name ?? "Unknown", ex);
+                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
                 });
+            }
+
+            foreach (var workItem in sequentialItems)
+            {
+                if (bw.CancellationPending)
+                {
+                    e.Cancel = true;
+
+                    return;
+                }
+
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    try
+                    {
+                        await CodeCleanupManager.CleanupAsync(workItem.ProjectItem);
+                    }
+                    catch (Exception ex)
+                    {
+                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath ?? workItem.FileName ?? "Unknown", ex);
+                    }
+                });
+
+                completedCount++;
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
             }
 
             return;
@@ -368,6 +395,45 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             }
         }
         DialogResult = true;
+    }
+
+    private static WorkItem CreateWorkItem(EnvDTE.ProjectItem projectItem)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        try
+        {
+            return new WorkItem(
+                projectItem,
+                projectItem.Name,
+                projectItem.GetFileName(),
+                projectItem.IsOpen[EnvDTE.Constants.vsViewKindTextView] || projectItem.IsOpen[EnvDTE.Constants.vsViewKindCode]);
+        }
+        catch (Exception ex)
+        {
+            OutputWindowHelper.ExceptionWriteLine("Unable to read a project item for cleanup", ex);
+
+            return new WorkItem(projectItem, null, null, false);
+        }
+    }
+
+    private sealed class WorkItem
+    {
+        public WorkItem(EnvDTE.ProjectItem projectItem, string fileName, string filePath, bool isOpen)
+        {
+            ProjectItem = projectItem;
+            FileName = fileName;
+            FilePath = filePath;
+            IsOpen = isOpen;
+        }
+
+        public EnvDTE.ProjectItem ProjectItem { get; }
+
+        public string FileName { get; }
+
+        public string FilePath { get; }
+
+        public bool IsOpen { get; }
     }
 
     /// <summary>
