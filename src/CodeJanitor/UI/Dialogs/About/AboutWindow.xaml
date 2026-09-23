@@ -85,27 +85,10 @@
 				<StackPanel Orientation="Horizontal">
 					<Button
 						Margin="0,0,16,0"
-						Click="OnWebsiteLinkClick"
-						Content="Website"
-						Style="{StaticResource underlineLinkButton}"
-						ToolTip="Launch CodeJanitor's website" />
-					<Button
-						Margin="0,0,16,0"
-						Click="OnVisualStudioMarketplaceLinkClick"
-						Content="Marketplace"
-						Style="{StaticResource underlineLinkButton}"
-						ToolTip="Download, Reviews - Visual Studio Marketplace" />
-					<Button
-						Margin="0,0,16,0"
 						Click="OnGitHubLinkClick"
 						Content="GitHub"
 						Style="{StaticResource underlineLinkButton}"
 						ToolTip="Code, Issues - GitHub" />
-					<Button
-						Click="OnTwitterLinkClick"
-						Content="Twitter"
-						Style="{StaticResource underlineLinkButton}"
-						ToolTip="Twitter" />
 				</StackPanel>
 			</StackPanel>
 		</Grid>
