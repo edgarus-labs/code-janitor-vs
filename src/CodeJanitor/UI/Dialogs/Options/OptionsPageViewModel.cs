@@ -1,0 +1,83 @@
+using CodeJanitor.Properties;
+using System.Collections.Generic;
+
+namespace CodeJanitor.UI.Dialogs.Options;
+
+/// <summary>
+/// The abstract base class for option pages.
+/// </summary>
+
+public abstract class OptionsPageViewModel : Bindable
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OptionsPageViewModel" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <param name="activeSettings">The active settings.</param>
+
+    protected OptionsPageViewModel(CodeJanitorPackage package, Settings activeSettings)
+    {
+        Package = package;
+        ActiveSettings = activeSettings;
+    }
+
+    /// <summary>
+    /// Gets the header.
+    /// </summary>
+    public abstract string Header { get; }
+
+    /// <summary>
+    /// Gets the hosting package.
+    /// </summary>
+    public CodeJanitorPackage Package { get; private set; }
+
+    /// <summary>
+    /// Gets the active settings.
+    /// </summary>
+    public Settings ActiveSettings { get; private set; }
+
+    private IEnumerable<OptionsPageViewModel> _children;
+
+    /// <summary>
+    /// Gets or sets the children.
+    /// </summary>
+
+    public IEnumerable<OptionsPageViewModel> Children
+    {
+        get
+        {
+            return _children ?? (_children = new OptionsPageViewModel[0]);
+        }
+        set
+        {
+            if (_children != value)
+            {
+                _children = value;
+                RaisePropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the list of settings to options mappings.
+    /// </summary>
+    protected SettingsToOptionsList Mappings { get; set; }
+
+    /// <summary>
+    /// Loads the settings.
+    /// </summary>
+
+    public virtual void LoadSettings()
+    {
+        Mappings?.CopySettingsToOptions();
+    }
+
+    /// <summary>
+    /// Saves the settings.
+    /// </summary>
+
+    public virtual void SaveSettings()
+    {
+        Mappings?.CopyOptionsToSettings();
+    }
+}

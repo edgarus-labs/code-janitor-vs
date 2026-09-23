@@ -1,0 +1,87 @@
+<ResourceDictionary
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:codeTree="clr-namespace:CodeJanitor.Model.CodeTree"
+	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Digging">
+	<DataTemplate DataType="{x:Type local:DiggingViewModel}">
+		<StackPanel>
+			<GroupBox Header="{x:Static p:Resources.General}">
+				<CheckBox Content="{x:Static p:Resources.SynchronizeOutliningWithTheCodeFile}" IsChecked="{Binding SynchronizeOutlining}" />
+			</GroupBox>
+
+			<GroupBox Header="{x:Static p:Resources.Display}">
+				<StackPanel>
+					<CheckBox Content="{x:Static p:Resources.ShowMethodParameters}" IsChecked="{Binding ShowMethodParameters}" />
+					<CheckBox Content="{x:Static p:Resources.ShowItemTypes}" IsChecked="{Binding ShowItemTypes}" />
+					<CheckBox Content="{x:Static p:Resources.ShowItemMetadata}" IsChecked="{Binding ShowItemMetadata}" />
+					<CheckBox Content="{x:Static p:Resources.ShowItemComplexityMcCabe}" IsChecked="{Binding ShowItemComplexity}" />
+					<Grid Margin="35,0,5,5" IsEnabled="{Binding ShowItemComplexity}">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto" />
+							<RowDefinition Height="Auto" />
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto" />
+							<ColumnDefinition Width="Auto" />
+						</Grid.ColumnDefinitions>
+
+						<TextBlock VerticalAlignment="Center" Text="{x:Static p:Resources.WarningThreshold}" />
+						<TextBox
+							Grid.Column="1"
+							Width="40"
+							Text="{Binding ComplexityWarningThreshold, UpdateSourceTrigger=PropertyChanged}"
+							TextAlignment="Right" />
+
+						<TextBlock
+							Grid.Row="1"
+							VerticalAlignment="Center"
+							Text="{x:Static p:Resources.AlertThreshold}" />
+						<TextBox
+							Grid.Row="1"
+							Grid.Column="1"
+							Width="40"
+							Text="{Binding ComplexityAlertThreshold, UpdateSourceTrigger=PropertyChanged}"
+							TextAlignment="Right" />
+					</Grid>
+				</StackPanel>
+			</GroupBox>
+
+			<GroupBox Header="{x:Static p:Resources.Sort}">
+				<StackPanel>
+					<StackPanel Orientation="Horizontal">
+						<TextBlock VerticalAlignment="Center" Text="{x:Static p:Resources.PrimarySortShouldBeBy}" />
+						<RadioButton Content="{x:Static p:Resources.FileOrder}" IsChecked="{Binding PrimarySortOrder, Converter={x:Static cnv:EnumToBooleanConverter.Default}, ConverterParameter={x:Static codeTree:CodeSortOrder.File}}" />
+						<RadioButton Content="{x:Static p:Resources.Type}" IsChecked="{Binding PrimarySortOrder, Converter={x:Static cnv:EnumToBooleanConverter.Default}, ConverterParameter={x:Static codeTree:CodeSortOrder.Type}}" />
+						<RadioButton Content="{x:Static p:Resources.Alphabetical}" IsChecked="{Binding PrimarySortOrder, Converter={x:Static cnv:EnumToBooleanConverter.Default}, ConverterParameter={x:Static codeTree:CodeSortOrder.Alpha}}" />
+					</StackPanel>
+
+					<StackPanel Orientation="Horizontal">
+						<TextBlock VerticalAlignment="Center" Text="{x:Static p:Resources.WhenSortingByTypeSecondarySortShouldBeBy}" />
+						<RadioButton Content="{x:Static p:Resources.FileOrder}" IsChecked="{Binding SecondarySortTypeByName, Converter={x:Static cnv:BooleanInverseConverter.Default}}" />
+						<RadioButton Content="{x:Static p:Resources.Alphabetical}" IsChecked="{Binding SecondarySortTypeByName}" />
+					</StackPanel>
+				</StackPanel>
+			</GroupBox>
+
+			<GroupBox Header="{x:Static p:Resources.Navigation}">
+				<StackPanel Orientation="Horizontal">
+					<TextBlock VerticalAlignment="Center" Text="{x:Static p:Resources.WhenNavigatingCenterOn}" />
+					<RadioButton Content="{x:Static p:Resources.WholeItem}" IsChecked="{Binding CenterOnWhole}" />
+					<RadioButton Content="{x:Static p:Resources.NameOnly}" IsChecked="{Binding CenterOnWhole, Converter={x:Static cnv:BooleanInverseConverter.Default}}" />
+				</StackPanel>
+			</GroupBox>
+
+			<GroupBox Header="{x:Static p:Resources.Visuals}">
+				<StackPanel Orientation="Horizontal">
+					<TextBlock VerticalAlignment="Center" Text="{x:Static p:Resources.IndentationMargin}" />
+					<TextBox
+						Width="40"
+						Text="{Binding IndentationMargin, UpdateSourceTrigger=PropertyChanged}"
+						TextAlignment="Right" />
+				</StackPanel>
+			</GroupBox>
+		</StackPanel>
+	</DataTemplate>
+</ResourceDictionary>

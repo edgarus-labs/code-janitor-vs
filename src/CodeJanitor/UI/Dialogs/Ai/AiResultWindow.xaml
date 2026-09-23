@@ -1,0 +1,151 @@
+<Window
+	x:Class="CodeJanitor.UI.Dialogs.Ai.AiResultWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:converters="clr-namespace:CodeJanitor.UI.Converters"
+	Title="{Binding Title}"
+	Width="820"
+	Height="600"
+	MinWidth="520"
+	MinHeight="380"
+	WindowStartupLocation="CenterOwner">
+	<Grid Background="#F8F9FA">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+
+		<!--  Header  -->
+		<Border
+			Grid.Row="0"
+			Padding="16,12"
+			Background="#007ACC"
+			BorderBrush="#005A9E"
+			BorderThickness="0,0,0,1">
+			<StackPanel>
+				<TextBlock
+					FontSize="16"
+					FontWeight="Bold"
+					Foreground="White"
+					Text="{Binding Title}" />
+				<TextBlock
+					Margin="0,4,0,0"
+					FontSize="12"
+					FontStyle="Italic"
+					Foreground="#D0E8FF"
+					Text="{Binding Header}" />
+			</StackPanel>
+		</Border>
+
+		<!--  Main Content  -->
+		<Grid Grid.Row="1" Margin="12,10,12,8">
+			<!--  Tab View when both analysis and code exist  -->
+			<TabControl
+				Background="White"
+				BorderBrush="#D0D7DE"
+				Visibility="{Binding HasCodeSnippet, Converter={x:Static converters:BooleanToVisibilityConverter.Default}}">
+				<TabItem Header="🤖 AI Analysis / Explanation">
+					<TextBox
+						Padding="10"
+						Background="White"
+						BorderThickness="0"
+						FontFamily="Segoe UI"
+						FontSize="13"
+						Foreground="#24292F"
+						IsReadOnly="True"
+						ScrollViewer.VerticalScrollBarVisibility="Auto"
+						Text="{Binding ContentText, Mode=OneWay}"
+						TextWrapping="Wrap" />
+				</TabItem>
+				<TabItem Header="💻 Generated Code / Refactoring">
+					<TextBox
+						Padding="10"
+						Background="#1E1E1E"
+						BorderThickness="0"
+						FontFamily="Consolas, Cascadia Code, Courier New"
+						FontSize="12"
+						Foreground="#D4D4D4"
+						IsReadOnly="True"
+						ScrollViewer.HorizontalScrollBarVisibility="Auto"
+						ScrollViewer.VerticalScrollBarVisibility="Auto"
+						Text="{Binding CodeSnippet, Mode=OneWay}"
+						TextWrapping="NoWrap" />
+				</TabItem>
+			</TabControl>
+
+			<!--  Single View when only text exists  -->
+			<Border
+				Background="White"
+				BorderBrush="#D0D7DE"
+				BorderThickness="1"
+				CornerRadius="4"
+				Visibility="{Binding HasCodeSnippet, Converter={x:Static converters:BooleanToVisibilityConverter.Inverse}}">
+				<TextBox
+					Padding="12"
+					Background="White"
+					BorderThickness="0"
+					FontFamily="Consolas, Segoe UI"
+					FontSize="13"
+					Foreground="#24292F"
+					IsReadOnly="True"
+					ScrollViewer.VerticalScrollBarVisibility="Auto"
+					Text="{Binding ContentText, Mode=OneWay}"
+					TextWrapping="Wrap" />
+			</Border>
+		</Grid>
+
+		<!--  Action Buttons  -->
+		<Grid Grid.Row="2" Margin="12,0,12,8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+				<ColumnDefinition Width="Auto" />
+			</Grid.ColumnDefinitions>
+
+			<TextBlock
+				VerticalAlignment="Center"
+				FontStyle="Italic"
+				Foreground="#57606A"
+				Text="{Binding StatusMessage}" />
+
+			<StackPanel Grid.Column="1" Orientation="Horizontal">
+				<Button
+					Width="150"
+					Height="28"
+					Margin="0,0,8,0"
+					Command="{Binding CopyToClipboardCommand}"
+					Content="📋 Copy to Clipboard" />
+				<Button
+					Width="140"
+					Height="28"
+					Margin="0,0,8,0"
+					Background="#007ACC"
+					Command="{Binding ApplyCommand}"
+					Content="{Binding ApplyButtonText}"
+					FontWeight="SemiBold"
+					Foreground="White"
+					Visibility="{Binding CanApply, Converter={x:Static converters:BooleanToVisibilityConverter.Default}}" />
+				<Button
+					Width="80"
+					Height="28"
+					Command="{Binding CloseCommand}"
+					Content="Close"
+					IsCancel="True" />
+			</StackPanel>
+		</Grid>
+
+		<!--  Footer status bar  -->
+		<Border
+			Grid.Row="3"
+			Padding="12,4"
+			Background="#ECEFF1"
+			BorderBrush="#CFD8DC"
+			BorderThickness="0,1,0,0">
+			<TextBlock
+				FontSize="11"
+				Foreground="#78909C"
+				Text="CodeJanitor AI Assistant — Designed for Juniors &amp; Seniors" />
+		</Border>
+	</Grid>
+</Window>

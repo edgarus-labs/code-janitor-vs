@@ -1,0 +1,87 @@
+<platformUI:DialogWindow
+	x:Class="CodeJanitor.UI.Dialogs.CleanupProgress.CleanupProgressWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.CleanupProgress"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+	xmlns:ui="clr-namespace:CodeJanitor.UI"
+	Title="{Binding WindowTitle, FallbackValue='CodeJanitor Progress'}"
+	Width="640"
+	Height="260"
+	d:DataContext="{d:DesignInstance local:CleanupProgressViewModel,
+	                                 IsDesignTimeCreatable=False}"
+	ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}"
+	Closing="OnClosing"
+	FocusManager.FocusedElement="{Binding ElementName=cancelButton}"
+	Icon="/source.extension.ico"
+	ShowInTaskbar="False"
+	WindowStartupLocation="CenterScreen"
+	mc:Ignorable="d">
+	<platformUI:DialogWindow.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</platformUI:DialogWindow.Resources>
+
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+
+		<StackPanel Margin="14">
+			<TextBlock
+				FontSize="14"
+				FontWeight="SemiBold"
+				Text="{Binding HeaderTitle, FallbackValue='Processing...'}" />
+			<TextBlock
+				Margin="0,4,0,0"
+				Text="{Binding CurrentFileName}"
+				TextTrimming="CharacterEllipsis"
+				ToolTip="{Binding CurrentFileName}" />
+			<ProgressBar
+				Height="26"
+				Margin="0,12,0,6"
+				Maximum="{Binding CountTotal}"
+				Minimum="0"
+				Value="{Binding ProcessedCount}" />
+			<TextBlock
+				HorizontalAlignment="Center"
+				FontWeight="SemiBold"
+				Text="{Binding ProgressPercentText, FallbackValue='0%'}" />
+			<TextBlock
+				Margin="0,12,0,0"
+				HorizontalAlignment="Center"
+				Text="{Binding ExecutionSummary}"
+				TextWrapping="Wrap" />
+			<TextBlock
+				Margin="0,4,0,0"
+				HorizontalAlignment="Center"
+				Text="{Binding ElapsedSummary}"
+				TextWrapping="Wrap" />
+		</StackPanel>
+
+		<Border Grid.Row="1" Background="{StaticResource FCodeJanitorGray}">
+			<Button
+				x:Name="cancelButton"
+				HorizontalAlignment="Right"
+				Command="{Binding CancelCommand}">
+				<Button.Style>
+					<Style BasedOn="{StaticResource ButtonDialog}" TargetType="{x:Type Button}">
+						<Setter Property="Content" Value="{x:Static p:Resources.Cancel}" />
+						<Style.Triggers>
+							<DataTrigger Binding="{Binding IsCanceling}" Value="True">
+								<Setter Property="Content" Value="{x:Static p:Resources.Canceling}" />
+							</DataTrigger>
+						</Style.Triggers>
+					</Style>
+				</Button.Style>
+			</Button>
+		</Border>
+	</Grid>
+</platformUI:DialogWindow>

@@ -1,0 +1,39 @@
+<UserControl
+	x:Class="CodeJanitor.UI.Dialogs.Options.SectionPageHost"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	<ScrollViewer
+		Padding="11"
+		Focusable="False"
+		HorizontalScrollBarVisibility="Disabled"
+		VerticalScrollBarVisibility="Auto">
+		<ContentPresenter Content="{Binding}">
+			<ContentPresenter.Resources>
+				<ResourceDictionary>
+					<ResourceDictionary.MergedDictionaries>
+						<ResourceDictionary Source="OptionsLayoutStyles.xaml" />
+						<ResourceDictionary Source="CompositeOptionsPageDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningFileTypesDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningGeneralDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningInsertDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningRemoveDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningUpdateDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningVisualStudioDataTemplate.xaml" />
+						<ResourceDictionary Source="Collapsing/CollapsingDataTemplate.xaml" />
+						<ResourceDictionary Source="Digging/DiggingDataTemplate.xaml" />
+						<ResourceDictionary Source="Finding/FindingDataTemplate.xaml" />
+						<ResourceDictionary Source="Formatting/FormattingDataTemplate.xaml" />
+						<ResourceDictionary Source="General/GeneralDataTemplate.xaml" />
+						<ResourceDictionary Source="General/FeaturesDataTemplate.xaml" />
+						<ResourceDictionary Source="Progressing/ProgressingDataTemplate.xaml" />
+						<ResourceDictionary Source="Reorganizing/ReorganizingGeneralDataTemplate.xaml" />
+						<ResourceDictionary Source="Reorganizing/ReorganizingTypesDataTemplate.xaml" />
+						<ResourceDictionary Source="Switching/SwitchingDataTemplate.xaml" />
+						<ResourceDictionary Source="ThirdParty/ThirdPartyDataTemplate.xaml" />
+						<ResourceDictionary Source="XmlDoc/XmlDocDataTemplate.xaml" />
+					</ResourceDictionary.MergedDictionaries>
+				</ResourceDictionary>
+			</ContentPresenter.Resources>
+		</ContentPresenter>
+	</ScrollViewer>
+</UserControl>

@@ -1,0 +1,111 @@
+using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Reorganizing;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
+using System.Linq;
+using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
+
+namespace CodeJanitor.Integration.Commands;
+
+/// <summary>
+/// A command that provides for inserting a region within Spade.
+/// </summary>
+
+internal sealed class SpadeContextInsertRegionCommand : BaseCommand
+{
+    private readonly GenerateRegionLogic _generateRegionLogic;
+    private readonly UndoTransactionHelper _undoTransactionHelper;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SpadeContextInsertRegionCommand" /> class.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+
+    internal SpadeContextInsertRegionCommand(CodeJanitorPackage package)
+        : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextInsertRegion)
+    {
+        _generateRegionLogic = GenerateRegionLogic.GetInstance(package);
+        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorInsertRegion);
+    }
+
+    /// <summary>
+    /// A singleton instance of this command.
+    /// </summary>
+    public static SpadeContextInsertRegionCommand Instance { get; private set; }
+
+    /// <summary>
+    /// Initializes a singleton instance of this command.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <returns>A task.</returns>
+
+    public static async Task InitializeAsync(CodeJanitorPackage package)
+    {
+        Instance = new SpadeContextInsertRegionCommand(package);
+        await Instance.SwitchAsync(on: true);
+    }
+
+    /// <summary>
+    /// Called to update the current status of the command.
+    /// </summary>
+
+    protected override void OnBeforeQueryStatus()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        bool visible = false;
+
+        var spade = Package.Spade;
+        if (spade?.Document is not null)
+        {
+            visible = spade.SelectedItems.Count() >= 2 &&
+                      (spade.Document.GetCodeLanguage() == CodeLanguage.CSharp ||
+                       spade.Document.GetCodeLanguage() == CodeLanguage.VisualBasic);
+        }
+
+        Visible = visible;
+    }
+
+    /// <summary>
+    /// Called to execute the command.
+    /// </summary>
+
+    protected override void OnExecute()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        base.OnExecute();
+
+        var spade = Package.Spade;
+        if (spade is not null)
+        {
+            var region = new CodeItemRegion { Name = Resources.NewRegion };
+            var startPoint = spade.SelectedItems.OrderBy(x => x.StartOffset).First().StartPoint;
+            var endPoint = spade.SelectedItems.OrderBy(x => x.EndOffset).Last().EndPoint;
+
+            _undoTransactionHelper.Run(() =>
+            {
+                // Create the new region.
+                _generateRegionLogic.InsertEndRegionTag(region, endPoint);
+                _generateRegionLogic.InsertRegionTag(region, startPoint);
+
+                // Move to that element.
+                TextDocumentHelper.MoveToCodeItem(spade.Document, region, Settings.Default.Digging_CenterOnWhole);
+
+                // Highlight the line of text for renaming.
+                var textDocument = spade.Document.GetTextDocument();
+                textDocument.Selection.EndOfLine(true);
+
+                // Move back one character for VB to offset the double quote character.
+                if (textDocument.GetCodeLanguage() == CodeLanguage.VisualBasic)
+                {
+                    textDocument.Selection.CharLeft(true);
+                }
+
+                textDocument.Selection.SwapAnchor();
+            });
+
+            spade.Refresh();
+        }
+    }
+}

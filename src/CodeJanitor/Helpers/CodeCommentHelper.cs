@@ -1,0 +1,168 @@
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+namespace CodeJanitor.Helpers;
+
+/// <summary>
+/// A set of helper methods focused around code comments.
+/// </summary>
+
+internal static class CodeCommentHelper
+{
+    /// <summary>
+    /// The copyright extra indent.
+    /// </summary>
+    public const int CopyrightExtraIndent = 4;
+
+    /// <summary>
+    /// The keep together spacer.
+    /// </summary>
+    public const char KeepTogetherSpacer = '\a';
+
+    /// <summary>
+    /// The spacer.
+    /// </summary>
+    public const char Spacer = ' ';
+
+    /// <summary>
+    /// Replaces all occurrences of the KeepTogetherSpacer constant with Spacer in the given string and returns the new string without modifying the original.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>A string value produced by this method.</returns>
+
+    internal static string FakeToSpace(string value)
+    {
+        return value.Replace(KeepTogetherSpacer, Spacer);
+    }
+
+    /// <summary>
+    /// Get the comment prefix (regex) for the given document's language.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>The comment prefix regex, without trailing spaces.</returns>
+
+    internal static string GetCommentPrefix(TextDocument document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return GetCommentPrefixForLanguage(document.GetCodeLanguage());
+    }
+
+    /// <summary>
+    /// Get the comment prefix (regex) for the specified code language.
+    /// </summary>
+    /// <param name="codeLanguage">The code language.</param>
+    /// <returns>The comment prefix regex, without trailing spaces.</returns>
+
+    internal static string GetCommentPrefixForLanguage(CodeLanguage codeLanguage)
+    {
+        switch (codeLanguage)
+        {
+            case CodeLanguage.CPlusPlus:
+            case CodeLanguage.CSharp:
+            case CodeLanguage.CSS:
+            case CodeLanguage.FSharp:
+            case CodeLanguage.JavaScript:
+            case CodeLanguage.LESS:
+            case CodeLanguage.PHP:
+            case CodeLanguage.SCSS:
+            case CodeLanguage.TypeScript:
+                return "///?";
+
+            case CodeLanguage.PowerShell:
+            case CodeLanguage.R:
+                return "#+";
+
+            case CodeLanguage.VisualBasic:
+                return "'+";
+
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the regex for matching a complete comment line.
+    /// </summary>
+
+    internal static Regex GetCommentRegex(CodeLanguage codeLanguage, bool includePrefix = true)
+    {
+        string prefix = null;
+        if (includePrefix)
+        {
+            prefix = GetCommentPrefixForLanguage(codeLanguage);
+            if (prefix is null)
+            {
+                Debug.Fail("Attempting to create a comment regex for a document that has no comment prefix specified.");
+            }
+
+            // Be aware of the added space to the prefix. When prefix is added, we should take
+            // care not to match code comment lines.
+            prefix = $"(?<prefix>[\t ]*{prefix})(?<initialspacer>( |\t|\r|\n|$))?";
+        }
+
+        var pattern = $@"^{prefix}(?<indent>[\t ]*)(?<line>(?<listprefix>[-=\*\+]+[ \t]*|\w+[\):][ \t]+|\d+\.[ \t]+)?((?<words>[^\t\r\n ]+)*[\t ]*)*)\r*\n?$";
+
+        return new Regex(pattern, RegexOptions.ExplicitCapture | RegexOptions.Multiline);
+    }
+
+    /// <summary>
+    /// Gets the list of tokens defined in Tools &gt; Options &gt; Environment &gt; Task List.
+    /// </summary>
+    /// <param name="package"></param>
+    /// <returns></returns>
+
+    public static IEnumerable<string> GetTaskListTokens(CodeJanitorPackage package)
+    {
+        var settings = package.IDE.Properties["Environment", "TaskList"];
+        var tokens = settings.Item("CommentTokens").Value as string[];
+        if (tokens is null || tokens.Length < 1)
+            return Enumerable.Empty<string>();
+
+        // Tokens values are written like "NAME:PRIORITY". We want only the names, and require
+        // that they are followed by a semicolon and a space.
+
+        return tokens.Select(t => t.Substring(0, t.LastIndexOf(':') + 1) + " ");
+    }
+
+    /// <summary>
+    /// Determines whether the current line at the edit point is a comment by evaluating a language-specific regex match, with no detected exceptions or side effects beyond reading the edit point.
+    /// </summary>
+    /// <param name="point">The point.</param>
+    /// <returns>A bool value produced by this method.</returns>
+
+    internal static bool IsCommentLine(EditPoint point)
+    {
+        return LineMatchesRegex(point, GetCommentRegex(point.GetCodeLanguage())).Success;
+    }
+
+    /// <summary>
+    /// Gets the current line from the EditPoint, runs the regex match against it, and returns the resulting Match without modifying state or throwing.
+    /// </summary>
+    /// <param name="point">The point.</param>
+    /// <param name="regex">The regex.</param>
+    /// <returns>A Match value produced by this method.</returns>
+
+    internal static Match LineMatchesRegex(EditPoint point, Regex regex)
+    {
+        var line = point.GetLine();
+        var match = regex.Match(line);
+
+        return match;
+    }
+
+    /// <summary>
+    /// Replaces every occurrence of the Spacer character/string in the input with KeepTogetherSpacer and returns the resulting new string without modifying the original.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>A string value produced by this method.</returns>
+
+    internal static string SpaceToFake(string value)
+    {
+        return value.Replace(Spacer, KeepTogetherSpacer);
+    }
+}

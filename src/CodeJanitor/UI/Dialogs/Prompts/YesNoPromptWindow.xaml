@@ -1,0 +1,81 @@
+<platformUI:DialogWindow
+	x:Class="CodeJanitor.UI.Dialogs.Prompts.YesNoPromptWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Prompts"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:p="clr-namespace:CodeJanitor.Properties"
+	xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+	xmlns:ui="clr-namespace:CodeJanitor.UI"
+	Title="{Binding Title}"
+	Width="400"
+	Height="190"
+	d:DataContext="{d:DesignInstance local:YesNoPromptViewModel,
+	                                 IsDesignTimeCreatable=False}"
+	ui:WindowAttachedProperties.DialogResult="{Binding DialogResult}"
+	FocusManager.FocusedElement="{Binding ElementName=noButton}"
+	Icon="/source.extension.ico"
+	ShowInTaskbar="False"
+	WindowStartupLocation="CenterScreen"
+	mc:Ignorable="d">
+	<platformUI:DialogWindow.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="/UI/Themes/CodeJanitorCoreTheme.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</platformUI:DialogWindow.Resources>
+
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
+
+		<DockPanel Margin="10">
+			<Image
+				Width="32"
+				Height="32"
+				Margin="0,0,10,0"
+				Source="{Binding IconSource}" />
+			<TextBlock
+				VerticalAlignment="Center"
+				Text="{Binding Message}"
+				TextWrapping="Wrap" />
+		</DockPanel>
+
+		<Border Grid.Row="1" Background="{StaticResource FCodeJanitorGray}">
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*" />
+					<ColumnDefinition Width="Auto" />
+				</Grid.ColumnDefinitions>
+
+				<CheckBox
+					Margin="10"
+					VerticalAlignment="Center"
+					Content="_Remember this next time?"
+					Foreground="White"
+					IsChecked="{Binding Remember}"
+					Visibility="{Binding CanRemember, Converter={x:Static cnv:BooleanToVisibilityConverter.Default}}" />
+
+				<StackPanel Grid.Column="1" Orientation="Horizontal">
+					<Button
+						Command="{Binding SetDialogResultCommand}"
+						CommandParameter="True"
+						Content="_Yes"
+						Style="{StaticResource ButtonDialog}" />
+					<Button
+						x:Name="noButton"
+						Command="{Binding SetDialogResultCommand}"
+						CommandParameter="False"
+						Content="_No"
+						IsCancel="True"
+						Style="{StaticResource ButtonDialog}" />
+				</StackPanel>
+			</Grid>
+		</Border>
+	</Grid>
+</platformUI:DialogWindow>
