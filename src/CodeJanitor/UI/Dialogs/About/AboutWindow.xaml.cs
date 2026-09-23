@@ -51,32 +51,6 @@ public partial class AboutWindow
     }
 
     /// <summary>
-    /// Called when the Website link is clicked.
-    /// </summary>
-    /// <param name="sender">The sender.</param>
-    /// <param name="e">
-    /// The <see cref="System.Windows.RoutedEventArgs" /> instance containing the event data.
-    /// </param>
-
-    private void OnWebsiteLinkClick(object sender, RoutedEventArgs e)
-    {
-        LaunchLink(@"http://www.CodeJanitor.net/");
-    }
-
-    /// <summary>
-    /// Called when the Visual Studio Marketplace link is clicked.
-    /// </summary>
-    /// <param name="sender">The sender.</param>
-    /// <param name="e">
-    /// The <see cref="System.Windows.RoutedEventArgs" /> instance containing the event data.
-    /// </param>
-
-    private void OnVisualStudioMarketplaceLinkClick(object sender, RoutedEventArgs e)
-    {
-        LaunchLink(@"https://marketplace.visualstudio.com/items?itemName=CodeJanitor");
-    }
-
-    /// <summary>
     /// Called when the GitHub link is clicked.
     /// </summary>
     /// <param name="sender">The sender.</param>
@@ -86,20 +60,7 @@ public partial class AboutWindow
 
     private void OnGitHubLinkClick(object sender, RoutedEventArgs e)
     {
-        LaunchLink(@"https://github.com/codecadwallader/CodeJanitor");
-    }
-
-    /// <summary>
-    /// Called when the Twitter link is clicked.
-    /// </summary>
-    /// <param name="sender">The sender.</param>
-    /// <param name="e">
-    /// The <see cref="System.Windows.RoutedEventArgs" /> instance containing the event data.
-    /// </param>
-
-    private void OnTwitterLinkClick(object sender, RoutedEventArgs e)
-    {
-        LaunchLink(@"https://twitter.com/CodeJanitor/");
+        LaunchLink(@"https://github.com/edgarus-labs/code-janitor-vs");
     }
 
     /// <summary>
