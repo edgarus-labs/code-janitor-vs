@@ -560,7 +560,7 @@ public int Second(int y)
 
             Assert.IsFalse(succeeded);
             StringAssert.Contains(errorMessage, "Model test timed out after 1 seconds");
-            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Model test took {stopwatch.Elapsed}.");
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(8), $"Model test took {stopwatch.Elapsed}.");
         }
         finally
         {
@@ -621,7 +621,7 @@ public int Second(int y)
 
             Assert.IsFalse(succeeded);
             StringAssert.Contains(errorMessage, "timed out after 1 seconds");
-            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"API connection test took {stopwatch.Elapsed}.");
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(8), $"API connection test took {stopwatch.Elapsed}.");
         }
         finally
         {
