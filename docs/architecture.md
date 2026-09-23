@@ -34,6 +34,42 @@ is available when the native difference service cannot be used.
 This first increment does not plan disk operations, encoding changes, AI calls or
 editor-only cleanup. See [Cleanup Preview](cleanup-preview.md) for the boundary.
 
+### .editorconfig/Roslyn diagnostic cleanup
+
+The engine in `Logic/Cleaning/Diagnostics` (`DiagnosticCleanupEngine`,
+`CodeFixProviderCatalog`, `DiagnosticCleanupCategoryClassifier`) is host-agnostic. It
+uses only the public Microsoft.CodeAnalysis Workspaces API: it analyzes one `Document`
+with the project's analyzers and `.editorconfig` analyzer options, then applies existing
+`CodeFixProvider`s in a deterministic, safety-gated loop and returns a
+`DiagnosticCleanupResult` (changed solution, applied fixes, unresolved diagnostics).
+
+`EditorConfigDiagnosticCleanupLogic` is the Visual Studio host adapter. It:
+
+- maps the four `Cleaning_Apply*` settings, including `.codejanitor` overrides, to
+  categories, and does nothing when none is enabled;
+- resolves `VisualStudioWorkspace` through MEF (`IComponentModel`) by type name;
+- supplies the C# `CodeFixProvider` MEF exports, cached per package;
+- builds the input as `CurrentSolution.WithDocumentText(...)` from the cleaned editor
+  buffer or the file written by headless cleanup;
+- runs the engine off the UI thread;
+- applies the result with `Workspace.TryApplyChanges` on the UI thread, recomputing once
+  when the workspace changed and then failing explicitly.
+
+`CodeCleanupManager` calls the adapter after the existing C# cleanup, both in the headless
+path and in the editor path. `CleanupProgressViewModel` calls it one file at a time after
+the parallel pass. Outcomes are recorded as `DiagnosticChangedItems`,
+`DiagnosticUnresolvedItems` and failed items in `CleanupExecutionStats`.
+
+Packaging: `Microsoft.CodeAnalysis.CSharp.Workspaces` uses the same version as
+`Microsoft.CodeAnalysis.CSharp` (5.9.0) and ships in the VSIX like the existing Roslyn
+assemblies. `VisualStudioWorkspace` and the MEF code fix providers are host objects, so
+the feature works only when Visual Studio's binding redirects unify
+Microsoft.CodeAnalysis* to a host Roslyn of 5.9 or newer. On older hosts the private copy
+loads side by side, and the adapter reports an explicit failure (type identity or load
+error). `Microsoft.VisualStudio.LanguageServices` is not referenced. nuget.org publishes
+only 4.x, pinned to its own exact Microsoft.CodeAnalysis version, and the host provides
+the assembly at runtime.
+
 ### Deployment
 
 The VSIX manifest, package registration and deployment scripts define how the extension is installed and loaded by Visual Studio.

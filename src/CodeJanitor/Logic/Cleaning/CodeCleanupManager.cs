@@ -17,6 +17,8 @@ using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using EnvDTE;
+using Document = EnvDTE.Document;
+using TextDocument = EnvDTE.TextDocument;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -132,6 +134,17 @@ internal sealed class CodeCleanupManager
         internal int SplitCreatedFiles { get; set; }
 
         /// <summary>
+        /// Gets or sets the number of C# files changed by .editorconfig/Roslyn diagnostic cleanup.
+        /// </summary>
+        internal int DiagnosticChangedItems { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of C# files left with unresolved actionable diagnostics after
+        /// .editorconfig/Roslyn diagnostic cleanup (unsupported, rejected as unsafe, or not converged).
+        /// </summary>
+        internal int DiagnosticUnresolvedItems { get; set; }
+
+        /// <summary>
         /// Gets the total processed items.
         /// </summary>
         internal int TotalProcessedItems => HeadlessChangedItems + HeadlessNoOpItems + EditorItems + FailedItems;
@@ -167,6 +180,7 @@ internal sealed class CodeCleanupManager
     private readonly RemoveWhitespaceLogic _removeWhitespaceLogic;
     private readonly RemoveByteOrderMarkLogic _removeByteOrderMarkLogic;
     private readonly UpdateLogic _updateLogic;
+    private readonly EditorConfigDiagnosticCleanupLogic _editorConfigDiagnosticCleanupLogic;
     private readonly UsingStatementCleanupLogic _usingStatementCleanupLogic;
 
     private readonly CachedSettingSet<string> _otherCleaningCommands =
@@ -219,6 +233,7 @@ internal sealed class CodeCleanupManager
         _insertBlankLinePaddingLogic = InsertBlankLinePaddingLogic.GetInstance(_package);
         _insertExplicitAccessModifierLogic = InsertExplicitAccessModifierLogic.GetInstance();
         _insertWhitespaceLogic = InsertWhitespaceLogic.GetInstance(_package);
+        _editorConfigDiagnosticCleanupLogic = EditorConfigDiagnosticCleanupLogic.GetInstance(_package);
         _fileHeaderLogic = FileHeaderLogic.GetInstance(_package);
         _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
         _moveUsingsOutsideNamespaceLogic = MoveUsingsOutsideNamespaceLogic.GetInstance(_package);
@@ -267,6 +282,9 @@ internal sealed class CodeCleanupManager
             {
                 _cleanupExecutionStats.HeadlessNoOpItems++;
             }
+
+            // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
+            ThreadHelper.JoinableTaskFactory.Run(() => RunDiagnosticCleanupAsync(projectItem));
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -371,6 +389,9 @@ internal sealed class CodeCleanupManager
             {
                 _cleanupExecutionStats.HeadlessNoOpItems++;
             }
+
+            // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
+            await RunDiagnosticCleanupAsync(projectItem);
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -1453,6 +1474,17 @@ internal sealed class CodeCleanupManager
                     OutputWindowHelper.InfoWriteLine($"Cleanup completed for '{document.FullName}'");
                 }
             });
+
+        // Diagnostic cleanup runs after the Janitor cleanup of a C# document, as its own undo unit,
+        // against the cleaned editor buffer.
+        if (document.GetCodeLanguage() == CodeLanguage.CSharp)
+        {
+            var outcome = ThreadHelper.JoinableTaskFactory.Run(() => _editorConfigDiagnosticCleanupLogic.CleanupAsync(document));
+            if (!RecordDiagnosticCleanupOutcome(document.FullName, outcome))
+            {
+                _package.IDE.StatusBar.Text = string.Format(Resources.CodeJanitorCleaned0WithUnresolvedDiagnostics, document.Name);
+            }
+        }
     }
 
     /// <summary>
@@ -1542,6 +1574,56 @@ internal sealed class CodeCleanupManager
         _cleanupExecutionStats.FailedItems++;
         OutputWindowHelper.ExceptionWriteLine(
             $"Cleanup failed for '{filePath}'", exception);
+    }
+
+    /// <summary>
+    /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup
+    /// and records the outcome in the execution statistics. Does nothing when no diagnostic cleanup
+    /// category is enabled for the item.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>A task.</returns>
+
+    internal async Task RunDiagnosticCleanupAsync(ProjectItem projectItem)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        var outcome = await _editorConfigDiagnosticCleanupLogic.CleanupAsync(projectItem);
+
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        RecordDiagnosticCleanupOutcome(projectItem.GetFileName(), outcome);
+    }
+
+    /// <summary>
+    /// Records a diagnostic cleanup outcome: failures are counted as failed items, fixed files and
+    /// files left with unresolved actionable diagnostics are counted separately.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="outcome">The diagnostic cleanup outcome.</param>
+    /// <returns>True when diagnostic cleanup did not run or fully succeeded, otherwise false.</returns>
+
+    private bool RecordDiagnosticCleanupOutcome(string filePath, DiagnosticCleanupOutcome outcome)
+    {
+        if (outcome.Failure is not null)
+        {
+            RecordCleanupFailure(filePath, outcome.Failure);
+            return false;
+        }
+
+        lock (_cleanupStatsLock)
+        {
+            if (outcome.Changed)
+            {
+                _cleanupExecutionStats.DiagnosticChangedItems++;
+            }
+
+            if (outcome.UnresolvedCount > 0)
+            {
+                _cleanupExecutionStats.DiagnosticUnresolvedItems++;
+            }
+        }
+
+        return outcome.UnresolvedCount == 0;
     }
 
     /// <summary>

@@ -1310,6 +1310,54 @@ namespace CodeJanitor.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_ApplyEditorConfigFormatting {
+            get {
+                return ((bool)(this["Cleaning_ApplyEditorConfigFormatting"]));
+            }
+            set {
+                this["Cleaning_ApplyEditorConfigFormatting"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_ApplyEditorConfigNaming {
+            get {
+                return ((bool)(this["Cleaning_ApplyEditorConfigNaming"]));
+            }
+            set {
+                this["Cleaning_ApplyEditorConfigNaming"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_ApplyEditorConfigCodeStyle {
+            get {
+                return ((bool)(this["Cleaning_ApplyEditorConfigCodeStyle"]));
+            }
+            set {
+                this["Cleaning_ApplyEditorConfigCodeStyle"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Cleaning_ApplyAnalyzerCodeFixes {
+            get {
+                return ((bool)(this["Cleaning_ApplyAnalyzerCodeFixes"]));
+            }
+            set {
+                this["Cleaning_ApplyAnalyzerCodeFixes"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool Cleaning_InsertBlankLineBeforeReturnAndThrowStatements {
             get {
                 return ((bool)(this["Cleaning_InsertBlankLineBeforeReturnAndThrowStatements"]));

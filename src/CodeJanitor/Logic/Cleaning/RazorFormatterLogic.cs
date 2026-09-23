@@ -1,4 +1,5 @@
 using EnvDTE;
+using TextDocument = EnvDTE.TextDocument;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;

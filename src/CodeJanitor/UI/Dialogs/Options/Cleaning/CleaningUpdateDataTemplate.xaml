@@ -42,6 +42,27 @@
 					<CheckBox Content="Format Razor components (.razor) in safe mode" IsChecked="{Binding FormatRazorComponents}" />
 				</StackPanel>
 			</GroupBox>
+			<GroupBox Header="{x:Static p:Resources.EditorConfigDiagnosticCleanup}">
+				<StackPanel>
+					<TextBlock Margin="5,0,5,5" Text="{x:Static p:Resources.EditorConfigDiagnosticCleanupDescription}" TextWrapping="Wrap" />
+					<CheckBox
+						Content="{x:Static p:Resources.ApplyEditorConfigFormatting}"
+						IsChecked="{Binding ApplyEditorConfigFormatting}"
+						ToolTip="{x:Static p:Resources.ApplyEditorConfigFormattingToolTip}" />
+					<CheckBox
+						Content="{x:Static p:Resources.ApplyEditorConfigNaming}"
+						IsChecked="{Binding ApplyEditorConfigNaming}"
+						ToolTip="{x:Static p:Resources.ApplyEditorConfigNamingToolTip}" />
+					<CheckBox
+						Content="{x:Static p:Resources.ApplyEditorConfigCodeStyle}"
+						IsChecked="{Binding ApplyEditorConfigCodeStyle}"
+						ToolTip="{x:Static p:Resources.ApplyEditorConfigCodeStyleToolTip}" />
+					<CheckBox
+						Content="{x:Static p:Resources.ApplyAnalyzerCodeFixes}"
+						IsChecked="{Binding ApplyAnalyzerCodeFixes}"
+						ToolTip="{x:Static p:Resources.ApplyAnalyzerCodeFixesToolTip}" />
+				</StackPanel>
+			</GroupBox>
 			<GroupBox Header="{x:Static p:Resources.FileHeader}">
 				<StackPanel>
 					<Grid>

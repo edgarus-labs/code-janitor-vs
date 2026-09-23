@@ -79,6 +79,31 @@ jobs:
       - name: Build solution (Release)
         run: msbuild CodeJanitor.sln /t:Build /p:Configuration=Release /p:Platform="Any CPU" /p:DeployExtension=false /m
 
+      - name: Run unit tests (Release)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vstest = & $vswhere -latest -products * -find '**\TestPlatform\vstest.console.exe' |
+            Select-Object -First 1
+          if (-not $vstest) {
+            throw 'vstest.console.exe was not found in the Visual Studio installation.'
+          }
+
+          $testAssembly = Get-ChildItem -Path 'tests/CodeJanitor.UnitTests/bin/Release' -Recurse -File |
+            Where-Object { $_.Name -in @('CodeJanitor.UnitTests.exe', 'CodeJanitor.UnitTests.dll') } |
+            Select-Object -First 1
+          if (-not $testAssembly) {
+            throw 'The CodeJanitor.UnitTests test assembly was not produced in tests/CodeJanitor.UnitTests/bin/Release.'
+          }
+
+          Write-Host "Running $($testAssembly.FullName) with $vstest"
+          & $vstest $testAssembly.FullName /Platform:x64 '/Logger:console;verbosity=normal'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unit tests failed (vstest.console exit code $LASTEXITCODE)."
+          }
+
       - name: Collect VSIX artifacts
         shell: pwsh
         env:

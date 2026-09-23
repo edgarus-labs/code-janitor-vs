@@ -11,6 +11,7 @@ using System.Windows;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using EnvDTE;
+using TextDocument = EnvDTE.TextDocument;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

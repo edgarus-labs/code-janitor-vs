@@ -323,6 +323,18 @@
     <Setting Name="Cleaning_SimplifySingleStatementLambdas" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="Cleaning_ApplyEditorConfigFormatting" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Cleaning_ApplyEditorConfigNaming" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Cleaning_ApplyEditorConfigCodeStyle" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Cleaning_ApplyAnalyzerCodeFixes" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
     <Setting Name="Cleaning_InsertBlankLineBeforeReturnAndThrowStatements" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
