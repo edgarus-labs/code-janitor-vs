@@ -37,10 +37,11 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// Each pass analyzes the document, picks the fix of every actionable diagnostic (the first top-level action without
 /// nested actions, from the first provider in catalog order that offers one) and applies the first group of diagnostics
 /// that share provider and equivalence key: through the provider's fix-all provider when it supports document scope,
-/// otherwise for the first diagnostic of the group only. A fix is accepted only when it merely changes document texts
-/// and does not increase the number of compiler errors of any changed project; a rejected group is not retried in the
-/// same run. Passes repeat until no actionable diagnostic can make progress or
-/// <see cref="DiagnosticCleanupOptions.MaxPasses" /> fixes were applied.
+/// otherwise for the first diagnostic of the group only. A fix is accepted only when its operations contain exactly one
+/// solution change, that change merely changes document texts, and it does not increase the number of compiler errors
+/// of any changed project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
+/// are never executed. A rejected group is not retried in the same run. Passes repeat until no actionable diagnostic
+/// can make progress or <see cref="DiagnosticCleanupOptions.MaxPasses" /> fixes were applied.
 /// </para>
 /// <para>
 /// Exceptions thrown by code fix providers propagate to the caller. Analyzer failures are reported by Roslyn without a
@@ -395,14 +396,17 @@ public sealed class DiagnosticCleanupEngine
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.NoApplicableCodeAction);
             }
 
-            // Roslyn allows at most one solution change per action; anything else needs host behavior (navigation,
-            // rename sessions, ...) that an unattended cleanup must not perform.
-            if (operations.Length != 1 || !(operations[0] is ApplyChangesOperation applyChanges))
+            // Exactly one solution change is required (Roslyn allows at most one per action). Other operations are
+            // host/UI notifications, e.g. Visual Studio's symbol-renamed notification next to a rename: they are never
+            // executed and are ignored. Anything that would need them to complete the fix is still caught by the
+            // text-only validation and the compiler-error gate below.
+            var applyChangesOperations = operations.OfType<ApplyChangesOperation>().ToList();
+            if (applyChangesOperations.Count != 1)
             {
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges);
             }
 
-            var changedTexts = await GetChangedDocumentTextsAsync(solution, applyChanges.ChangedSolution, cancellationToken).ConfigureAwait(false);
+            var changedTexts = await GetChangedDocumentTextsAsync(solution, applyChangesOperations[0].ChangedSolution, cancellationToken).ConfigureAwait(false);
             if (changedTexts.IsDefault)
             {
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges);

@@ -20,6 +20,19 @@
     <TestProjectType>UnitTest</TestProjectType>
     <RuntimeIdentifier>win</RuntimeIdentifier>
     <LangVersion>latest</LangVersion>
+    <!--
+      Resolve references and their dependencies only from this project's references and NuGet packages, as SDK-style
+      projects do. The default search paths of non-SDK projects also scan assembly folders of the machine's Visual
+      Studio installation (AssemblyFolders.config, AssemblyFoldersEx and AssemblyFolders registrations, e.g.
+      Common7\IDE\PublicAssemblies). There, the CI image ships System.Collections.Immutable 10.0.0.8, newer than the
+      NuGet 10.0.1 (10.0.0.1) copied to the output: RAR could not unify them (MSB3277), generated no binding redirect,
+      and every test touching Roslyn failed to load System.Collections.Immutable at run time.
+    -->
+    <AssemblySearchPath_UseAssemblyFoldersConfigFileSearchPath>false</AssemblySearchPath_UseAssemblyFoldersConfigFileSearchPath>
+    <AssemblySearchPath_UseRegistry>false</AssemblySearchPath_UseRegistry>
+    <AssemblySearchPath_UseAssemblyFolders>false</AssemblySearchPath_UseAssemblyFolders>
+    <!-- The test output's binding redirects are generated from the resolved references (see above). -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>

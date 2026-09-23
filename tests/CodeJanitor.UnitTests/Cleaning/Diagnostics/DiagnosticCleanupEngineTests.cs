@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning.Diagnostics;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -692,6 +693,56 @@ public sealed class DiagnosticCleanupEngineTests
         Assert.IsFalse(result.IsComplete);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges, result.Unresolved.Single().Reason);
         Assert.AreEqual(LegacySettingsClass(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixWithHostNotificationNextToItsSolutionChange_AppliesOnlyTheSolutionChange()
+    {
+        using var workspace = CreateLegacySettingsWorkspace("CJT0010", out var documentId);
+        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+            "CJT0010",
+            (_, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new HostNotificationOperation() });
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, provider);
+
+        Assert.AreEqual(
+            LegacySettingsClass().Replace("legacyValue", "renamedValue"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.IsTrue(result.IsComplete);
+        Assert.AreEqual(1, result.AppliedFixes.Single().Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixWithSeveralSolutionChanges_IsRejectedAsUnsupported()
+    {
+        using var workspace = CreateLegacySettingsWorkspace("CJT0011", out var documentId);
+        var solution = workspace.CreateSolution();
+        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+            "CJT0011",
+            (_, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new ApplyChangesOperation(renamed) });
+
+        var result = await CleanupAsync(solution, documentId, provider);
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges, result.Unresolved.Single().Reason);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixWithOnlyHostOperations_IsRejectedAsUnsupported()
+    {
+        using var workspace = CreateLegacySettingsWorkspace("CJT0012", out var documentId);
+        var solution = workspace.CreateSolution();
+        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+            "CJT0012",
+            (_, _) => new CodeActionOperation[] { new HostNotificationOperation() });
+
+        var result = await CleanupAsync(solution, documentId, provider);
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges, result.Unresolved.Single().Reason);
     }
 
     [TestMethod]

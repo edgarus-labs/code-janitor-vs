@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -250,4 +252,63 @@ internal sealed class AddDocumentLegacyFieldCodeFixProvider : LegacyFieldCodeFix
 
         return Task.CompletedTask;
     }
+}
+
+/// <summary>
+/// Renames the field (<c>legacy</c> to <c>renamed</c>) through a code action whose operation list is shaped by the
+/// test from the original and the renamed solution, e.g. the solution change next to a host notification (as Visual
+/// Studio's rename-based fixes return), two solution changes, or no solution change at all.
+/// </summary>
+internal sealed class CustomOperationsLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly Func<Solution, Solution, IEnumerable<CodeActionOperation>> _createOperations;
+
+    public CustomOperationsLegacyFieldCodeFixProvider(string diagnosticId, Func<Solution, Solution, IEnumerable<CodeActionOperation>> createOperations)
+        : base(diagnosticId)
+    {
+        _createOperations = createOperations;
+    }
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+
+        context.RegisterCodeFix(
+            new CustomOperationsCodeAction(async ct =>
+            {
+                var renamed = await RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct).ConfigureAwait(false);
+
+                return _createOperations(context.Document.Project.Solution, renamed.Project.Solution);
+            }),
+            context.Diagnostics);
+    }
+
+    private sealed class CustomOperationsCodeAction : CodeAction
+    {
+        private readonly Func<CancellationToken, Task<IEnumerable<CodeActionOperation>>> _computeOperations;
+
+        public CustomOperationsCodeAction(Func<CancellationToken, Task<IEnumerable<CodeActionOperation>>> computeOperations)
+        {
+            _computeOperations = computeOperations;
+        }
+
+        public override string Title => "Rename";
+
+        public override string EquivalenceKey => "CustomOperationsLegacyField";
+
+        protected override Task<IEnumerable<CodeActionOperation>> ComputeOperationsAsync(CancellationToken cancellationToken) =>
+            _computeOperations(cancellationToken);
+    }
+}
+
+/// <summary>
+/// A host/UI notification operation that changes no text, like Visual Studio's symbol-renamed notification. Applying
+/// it fails, so a test using it also proves the engine never executes such operations.
+/// </summary>
+internal sealed class HostNotificationOperation : CodeActionOperation
+{
+    public override string Title => "Notify host";
+
+    public override void Apply(Workspace workspace, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Host notifications must not be executed by an unattended cleanup.");
 }

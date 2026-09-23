@@ -282,6 +282,31 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             await TaskScheduler.Default;
             var document = await GetInputDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
             var result = await engine.CleanupAsync(document, options, cancellationToken);
+
+            // Headless cleanup writes closed files to disk, and the workspace may not have observed those
+            // writes yet. A fix that also edits another closed document (e.g. a rename updating references)
+            // would then be computed on stale workspace text, and applying it would silently discard
+            // Janitor's earlier on-disk edits. Re-run once with the disk text injected; if other closed
+            // documents are still stale, fail without applying anything.
+            var staleDocuments = await FindStaleClosedDocumentsAsync(workspace, result, document.Id, cancellationToken);
+            if (staleDocuments.Count > 0)
+            {
+                var refreshedSolution = document.Project.Solution;
+                foreach (var stale in staleDocuments)
+                {
+                    refreshedSolution = refreshedSolution.WithDocumentText(stale.Key, stale.Value);
+                }
+
+                result = await engine.CleanupAsync(refreshedSolution.GetDocument(document.Id), options, cancellationToken);
+
+                staleDocuments = await FindStaleClosedDocumentsAsync(workspace, result, document.Id, cancellationToken);
+                if (staleDocuments.Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Diagnostic fixes for '{filePath}' would also change closed files whose Visual Studio workspace text differs from the file on disk ({string.Join(", ", staleDocuments.Keys.Select(id => result.OriginalSolution.GetDocument(id)?.FilePath))}). No diagnostic fixes were applied.");
+                }
+            }
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             if (!result.HasChanges)
@@ -338,6 +363,55 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         return solution
             .WithDocumentText(documentId, SourceText.From(currentText, workspaceText.Encoding, workspaceText.ChecksumAlgorithm))
             .GetDocument(documentId);
+    }
+
+    /// <summary>
+    /// Finds documents other than the target that the result changes, that are not open in an editor
+    /// and whose text in <see cref="DiagnosticCleanupResult.OriginalSolution" /> differs from the file
+    /// on disk (read with the same encoding detection as the headless cleanup).
+    /// </summary>
+    /// <param name="workspace">The Visual Studio workspace.</param>
+    /// <param name="result">The engine result.</param>
+    /// <param name="targetDocumentId">The target document id, whose text is already injected.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The stale documents mapped to their disk text.</returns>
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task<Dictionary<DocumentId, SourceText>> FindStaleClosedDocumentsAsync(
+        Workspace workspace,
+        DiagnosticCleanupResult result,
+        DocumentId targetDocumentId,
+        CancellationToken cancellationToken)
+    {
+        var staleDocuments = new Dictionary<DocumentId, SourceText>();
+        if (!result.HasChanges)
+        {
+            return staleDocuments;
+        }
+
+        var changedDocumentIds = result.ChangedSolution.GetChanges(result.OriginalSolution)
+            .GetProjectChanges()
+            .SelectMany(projectChanges => projectChanges.GetChangedDocuments())
+            .Where(id => id != targetDocumentId && !workspace.IsDocumentOpen(id));
+
+        foreach (var documentId in changedDocumentIds)
+        {
+            var original = result.OriginalSolution.GetDocument(documentId);
+            if (original?.FilePath is null)
+            {
+                // No file backs the document, so there are no on-disk edits to lose.
+                continue;
+            }
+
+            var originalText = await original.GetTextAsync(cancellationToken);
+            var diskText = ReadFileText(original.FilePath);
+            if (!string.Equals(originalText.ToString(), diskText, StringComparison.Ordinal))
+            {
+                staleDocuments[documentId] = SourceText.From(diskText, originalText.Encoding, originalText.ChecksumAlgorithm);
+            }
+        }
+
+        return staleDocuments;
     }
 
     /// <summary>

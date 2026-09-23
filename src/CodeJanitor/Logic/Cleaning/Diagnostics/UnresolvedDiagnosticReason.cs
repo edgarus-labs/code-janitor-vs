@@ -23,7 +23,8 @@ public enum UnresolvedDiagnosticReason
 
     /// <summary>
     /// The fix was rejected because it did more than change document texts (e.g. added or removed documents,
-    /// projects or references) or required operations other than a single solution change.
+    /// projects or references) or did not consist of exactly one solution change. Other operations a fix returns
+    /// next to its solution change, such as host notifications, are ignored and never executed.
     /// </summary>
     FixRejectedUnsupportedChanges,
 
