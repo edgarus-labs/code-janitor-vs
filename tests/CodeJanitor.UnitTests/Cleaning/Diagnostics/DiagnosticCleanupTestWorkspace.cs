@@ -98,6 +98,14 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
         _editorConfigs.Add(DocumentInfo.Create(DocumentId.CreateNewId(_projectId, filePath), ".editorconfig", loader: CreateLoader(text, filePath), filePath: filePath));
     }
 
+    public void ConfigureRuleSeverity(string diagnosticId, string severity)
+    {
+        var filePath = GetPath($"{diagnosticId}.globalconfig");
+        var text = $"is_global = true\ndotnet_diagnostic.{diagnosticId}.severity = {severity}\n";
+
+        _editorConfigs.Add(DocumentInfo.Create(DocumentId.CreateNewId(_projectId, filePath), $"{diagnosticId}.globalconfig", loader: CreateLoader(text, filePath), filePath: filePath));
+    }
+
     /// <summary>
     /// Creates the workspace on first use and returns its current solution.
     /// </summary>

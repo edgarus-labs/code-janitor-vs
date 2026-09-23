@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -251,41 +252,40 @@ public sealed class DiagnosticCleanupEngine
                 return ImmutableArray<ActionableDiagnostic>.Empty;
             }
 
-            var analysisOptions = new CompilationWithAnalyzersOptions(
-                document.Project.AnalyzerOptions,
-                onAnalyzerException: null,
-                concurrentAnalysis: false,
-                logAnalyzerExecutionTime: false,
-                reportSuppressedDiagnostics: false);
-            var compilationWithAnalyzers = compilation.WithAnalyzers(_analyzers, analysisOptions);
-            var syntaxResult = await compilationWithAnalyzers.GetAnalysisResultAsync(tree, cancellationToken).ConfigureAwait(false);
-            var semanticModel = compilationWithAnalyzers.Compilation.GetSemanticModel(tree);
-            var semanticResult = await compilationWithAnalyzers.GetAnalysisResultAsync(semanticModel, null, cancellationToken).ConfigureAwait(false);
-
+            var diagnostics = await GetDiagnosticsAsync(compilation, document.Project.AnalyzerOptions, tree, cancellationToken).ConfigureAwait(false);
+            var configOptions = document.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GetOptions(tree);
+            var treeOptions = compilation.Options.SyntaxTreeOptionsProvider;
+            HashSet<(string Id, TextSpan Span, DiagnosticSeverity Severity)> defaultDiagnostics = null;
             var reported = new HashSet<Diagnostic>();
             var actionable = new List<ActionableDiagnostic>();
 
-            foreach (var result in new[] { syntaxResult, semanticResult })
+            foreach (var (analyzer, diagnostic) in diagnostics)
             {
-                foreach (var analyzer in result.Analyzers)
+                if (diagnostic.Location.SourceTree != tree
+                    || diagnostic.IsSuppressed
+                    || diagnostic.Severity < DiagnosticSeverity.Info
+                    || !reported.Add(diagnostic))
                 {
-                    foreach (var diagnostic in result.GetAllDiagnostics(analyzer))
-                    {
-                        if (diagnostic.Location.SourceTree != tree
-                            || diagnostic.IsSuppressed
-                            || diagnostic.Severity < DiagnosticSeverity.Info
-                            || !reported.Add(diagnostic))
-                        {
-                            continue;
-                        }
+                    continue;
+                }
 
-                        var category = DiagnosticCleanupCategoryClassifier.Classify(analyzer, diagnostic.Descriptor);
-                        if (category.HasValue && _options.IsEnabled(category.Value))
-                        {
-                            actionable.Add(new ActionableDiagnostic(diagnostic, category.Value));
-                        }
+                var category = DiagnosticCleanupCategoryClassifier.Classify(analyzer, diagnostic.Descriptor);
+                if (!category.HasValue || !_options.IsEnabled(category.Value))
+                {
+                    continue;
+                }
+
+                if (!IsSeverityConfigured(diagnostic.Descriptor, tree, configOptions, treeOptions, cancellationToken)
+                    && !(category == DiagnosticCleanupCategory.Naming && configOptions.Keys.Any(key => key.StartsWith("dotnet_naming_rule.", StringComparison.Ordinal))))
+                {
+                    defaultDiagnostics ??= await GetDiagnosticsWithoutEditorConfigAsync(document, cancellationToken).ConfigureAwait(false);
+                    if (defaultDiagnostics.Contains((diagnostic.Id, diagnostic.Location.SourceSpan, diagnostic.Severity)))
+                    {
+                        continue;
                     }
                 }
+
+                actionable.Add(new ActionableDiagnostic(diagnostic, category.Value));
             }
 
             return actionable
@@ -295,6 +295,58 @@ public sealed class DiagnosticCleanupEngine
                 .ThenBy(item => item.Diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparer.Ordinal)
                 .ToImmutableArray();
         }
+
+        private async Task<List<(DiagnosticAnalyzer Analyzer, Diagnostic Diagnostic)>> GetDiagnosticsAsync(
+            Compilation compilation,
+            AnalyzerOptions analyzerOptions,
+            SyntaxTree tree,
+            CancellationToken cancellationToken)
+        {
+            var analysisOptions = new CompilationWithAnalyzersOptions(
+                analyzerOptions,
+                onAnalyzerException: null,
+                concurrentAnalysis: false,
+                logAnalyzerExecutionTime: false,
+                reportSuppressedDiagnostics: false);
+            var compilationWithAnalyzers = compilation.WithAnalyzers(_analyzers, analysisOptions);
+            var syntaxResult = await compilationWithAnalyzers.GetAnalysisResultAsync(tree, cancellationToken).ConfigureAwait(false);
+            var semanticModel = compilationWithAnalyzers.Compilation.GetSemanticModel(tree);
+            var semanticResult = await compilationWithAnalyzers.GetAnalysisResultAsync(semanticModel, null, cancellationToken).ConfigureAwait(false);
+
+            return new[] { syntaxResult, semanticResult }
+                .SelectMany(result => result.Analyzers.SelectMany(analyzer => result.GetAllDiagnostics(analyzer).Select(diagnostic => (analyzer, diagnostic))))
+                .ToList();
+        }
+
+        private async Task<HashSet<(string Id, TextSpan Span, DiagnosticSeverity Severity)>> GetDiagnosticsWithoutEditorConfigAsync(
+            Document document,
+            CancellationToken cancellationToken)
+        {
+            var editorConfigIds = document.Project.AnalyzerConfigDocuments
+                .Where(config => string.Equals(Path.GetFileName(config.FilePath), ".editorconfig", StringComparison.OrdinalIgnoreCase))
+                .Select(config => config.Id)
+                .ToImmutableArray();
+            var project = document.Project.Solution.RemoveAnalyzerConfigDocuments(editorConfigIds).GetProject(document.Project.Id);
+            var tree = await project.GetDocument(document.Id).GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+            var diagnostics = await GetDiagnosticsAsync(compilation, project.AnalyzerOptions, tree, cancellationToken).ConfigureAwait(false);
+
+            return new HashSet<(string, TextSpan, DiagnosticSeverity)>(
+                diagnostics
+                    .Where(item => item.Diagnostic.Location.SourceTree == tree)
+                    .Select(item => (item.Diagnostic.Id, item.Diagnostic.Location.SourceSpan, item.Diagnostic.Severity)));
+        }
+
+        private static bool IsSeverityConfigured(
+            DiagnosticDescriptor descriptor,
+            SyntaxTree tree,
+            AnalyzerConfigOptions configOptions,
+            SyntaxTreeOptionsProvider treeOptions,
+            CancellationToken cancellationToken) =>
+            treeOptions?.TryGetDiagnosticValue(tree, descriptor.Id, cancellationToken, out _) == true
+            || treeOptions?.TryGetGlobalDiagnosticValue(descriptor.Id, cancellationToken, out _) == true
+            || configOptions.TryGetValue($"dotnet_analyzer_diagnostic.category-{descriptor.Category}.severity", out _)
+            || configOptions.TryGetValue("dotnet_analyzer_diagnostic.severity", out _);
 
         private async Task<FixPlan> PlanFixAsync(Document document, ActionableDiagnostic actionable, CancellationToken cancellationToken)
         {

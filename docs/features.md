@@ -35,19 +35,17 @@ See [Cleanup Preview](cleanup-preview.md) for instructions and limitations.
 
 ### .editorconfig and Roslyn diagnostic cleanup (C#)
 
-Four opt-in settings (all off by default) under **Tools > Options > Code Janitor > Cleaning**
-(Update section, group **.editorconfig and Roslyn diagnostics (C#)**) let cleanup fix Roslyn diagnostics with the
-code fixes that already exist in Visual Studio and in the project's analyzers:
+C# cleanup fixes the Roslyn diagnostics that the repository's `.editorconfig` configures,
+with the code fixes that already exist in Visual Studio and in the project's analyzers:
+formatting, naming (the fix renames the symbol and its references), IDE code style and
+other analyzers (for example analyzer NuGet packages). There is no separate setting:
+`.editorconfig` decides which rules apply. Compiler diagnostics are never fixed.
 
-| Setting | `.codejanitor` key | Fixes |
-| --- | --- | --- |
-| Apply .editorconfig formatting rules | `applyEditorConfigFormatting` | diagnostics of Roslyn's formatting analyzers |
-| Apply .editorconfig naming rules | `applyEditorConfigNaming` | naming-style diagnostics (the fix renames the symbol and its references) |
-| Apply .editorconfig code-style preferences | `applyEditorConfigCodeStyle` | other Roslyn IDE code-style diagnostics |
-| Apply code fixes from other analyzers | `applyAnalyzerCodeFixes` | diagnostics of any other analyzer (for example analyzer NuGet packages) |
-
-Categories are derived from the analyzer family and descriptor category, not from lists
-of diagnostic IDs. Compiler diagnostics are never fixed.
+- **Configured rules only.** A rule is fixed only when the repository configures it:
+  `dotnet_diagnostic.<id>.severity`, an analyzer category or global severity, an
+  `option = value:severity` suffix or a naming rule's `severity`. Rules that are active
+  only through Visual Studio defaults (for example IDE0130, namespace must match folder)
+  are left alone.
 
 - **Source of truth.** Rules and severities come from the `.editorconfig` files that apply
   to the file, including nested files and `root = true`, as evaluated by Roslyn
@@ -136,7 +134,6 @@ Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-j
 {
   "cleanup": {
     "convertToFileScopedNamespace": true,
-    "applyEditorConfigNaming": true,
     "insertBlankLinePadding": false,
     "removeRegions": false,
     "fileHeaderCSharp": "// Copyright (c) Example",

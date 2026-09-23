@@ -19,11 +19,10 @@ This file records changes made in Code Janitor after the project became an indep
 - One-time cleanup options dialog for selected-scope cleanup.
 - Documentation describing project origin, attribution, licensing, architecture and roadmap.
 - Script `scripts/test-cleanup-build.ps1` for running post-cleanup build verification.
-- Opt-in C# diagnostic cleanup driven by `.editorconfig` and Roslyn. Four categories
-	(formatting, naming, code style, other analyzer fixes; settings `Cleaning_ApplyEditorConfigFormatting`,
-	`Cleaning_ApplyEditorConfigNaming`, `Cleaning_ApplyEditorConfigCodeStyle`, `Cleaning_ApplyAnalyzerCodeFixes`,
-	also available as `.codejanitor` keys) apply the existing Roslyn and analyzer code fixes after the
-	other cleanup steps. Only `suggestion`, `warning` and `error` diagnostics are fixed. Fixes that add
+- C# diagnostic cleanup driven by `.editorconfig` and Roslyn. Rules the repository's `.editorconfig`
+	configures (formatting, naming, code style, other analyzers) are fixed with the existing Roslyn and
+	analyzer code fixes after the other cleanup steps; rules active only through Visual Studio defaults
+	are left alone. Only `suggestion`, `warning` and `error` diagnostics are fixed. Fixes that add
 	compiler errors or change anything other than document text are rejected. Unfixed diagnostics are
 	reported in the output pane and in the cleanup summary. Visual Studio Code Cleanup profiles are not
 	used. Requires a Visual Studio build with Roslyn 5.9 or newer.

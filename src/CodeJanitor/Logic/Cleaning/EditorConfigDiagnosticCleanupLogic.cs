@@ -1,6 +1,5 @@
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning.Diagnostics;
-using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Text;
@@ -94,41 +93,8 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         _package = package;
     }
 
-    /// <summary>
-    /// Gets the diagnostic cleanup categories enabled for the specified file, honoring repository
-    /// overrides (.codejanitor) the same way as the headless C# pipeline.
-    /// </summary>
-    /// <param name="filePath">The source file path.</param>
-    /// <returns>The enabled categories, empty when diagnostic cleanup is disabled.</returns>
-
-    internal static List<DiagnosticCleanupCategory> GetEnabledCategories(string filePath)
-    {
-        var repositoryOverrides = RepositoryCleanupSettings.LoadForFile(filePath);
-        bool IsEnabled(string settingName, bool fallback) => repositoryOverrides.TryGetBoolean(settingName, fallback);
-        var categories = new List<DiagnosticCleanupCategory>();
-
-        if (IsEnabled("Cleaning_ApplyEditorConfigFormatting", Settings.Default.Cleaning_ApplyEditorConfigFormatting))
-        {
-            categories.Add(DiagnosticCleanupCategory.Formatting);
-        }
-
-        if (IsEnabled("Cleaning_ApplyEditorConfigNaming", Settings.Default.Cleaning_ApplyEditorConfigNaming))
-        {
-            categories.Add(DiagnosticCleanupCategory.Naming);
-        }
-
-        if (IsEnabled("Cleaning_ApplyEditorConfigCodeStyle", Settings.Default.Cleaning_ApplyEditorConfigCodeStyle))
-        {
-            categories.Add(DiagnosticCleanupCategory.CodeStyle);
-        }
-
-        if (IsEnabled("Cleaning_ApplyAnalyzerCodeFixes", Settings.Default.Cleaning_ApplyAnalyzerCodeFixes))
-        {
-            categories.Add(DiagnosticCleanupCategory.AnalyzerFixes);
-        }
-
-        return categories;
-    }
+    private static readonly DiagnosticCleanupCategory[] AllCategories =
+        (DiagnosticCleanupCategory[])Enum.GetValues(typeof(DiagnosticCleanupCategory));
 
     /// <summary>
     /// Runs diagnostic cleanup for a C# project item, using the editor buffer when the item is open
@@ -188,15 +154,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             return default(DiagnosticCleanupOutcome);
         }
 
-        var categories = GetEnabledCategories(filePath);
-        if (categories.Count == 0)
-        {
-            return default(DiagnosticCleanupOutcome);
-        }
-
         try
         {
-            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText, categories);
+            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText);
         }
         catch (Exception ex) when (IsRoslynBindingFailure(ex))
         {
@@ -255,21 +215,19 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
-    /// <param name="categories">The enabled categories.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<DiagnosticCleanupOutcome> RunInWorkspaceAsync(
         string filePath,
         string projectFilePath,
-        Func<string> readCurrentText,
-        IReadOnlyCollection<DiagnosticCleanupCategory> categories)
+        Func<string> readCurrentText)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
         var workspace = GetVisualStudioWorkspace();
         var engine = _engine ?? (_engine = new DiagnosticCleanupEngine(new CodeFixProviderCatalog(GetMefCodeFixProviders())));
-        var options = new DiagnosticCleanupOptions(categories);
+        var options = new DiagnosticCleanupOptions(AllCategories);
         var cancellationToken = _package.DisposalToken;
 
         const int maxAttempts = 2;
