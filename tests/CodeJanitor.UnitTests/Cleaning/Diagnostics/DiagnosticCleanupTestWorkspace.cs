@@ -80,7 +80,8 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     {
         var filePath = GetPath(relativePath);
         var documentId = DocumentId.CreateNewId(_projectId, relativePath);
-        var folders = relativePath.Split('/').Reverse().Skip(1).Reverse().ToArray();
+        var segments = relativePath.Split('/');
+        var folders = segments.Take(segments.Length - 1).ToArray();
 
         _documents.Add(DocumentInfo.Create(documentId, Path.GetFileName(filePath), folders, SourceCodeKind.Regular, CreateLoader(text, filePath), filePath));
 

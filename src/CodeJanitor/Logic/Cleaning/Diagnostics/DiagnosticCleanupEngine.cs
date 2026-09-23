@@ -37,9 +37,10 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// Each pass analyzes the document, picks the fix of every actionable diagnostic (the first top-level action without
 /// nested actions, from the first provider in catalog order that offers one) and applies the first group of diagnostics
 /// that share provider and equivalence key: through the provider's fix-all provider when it supports document scope,
-/// otherwise for the first diagnostic of the group only. A fix is accepted only when its operations contain exactly one
-/// solution change, that change merely changes document texts, and it does not increase the number of compiler errors
-/// of any changed project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
+/// otherwise, or when the provider also offers other actions with the same equivalence key (a fix-all provider would
+/// merge them in), for the first diagnostic of the group only. A fix is accepted only when its operations contain
+/// exactly one solution change, that change merely changes document texts, and it does not increase the number of
+/// compiler errors of any changed project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
 /// are never executed by the engine: those of accepted fixes are handed to the host in
 /// <see cref="DiagnosticCleanupResult.PostApplyOperations" />. A rejected group is not retried in the same run. Passes
 /// repeat until no actionable diagnostic can make progress or <see cref="DiagnosticCleanupOptions.MaxPasses" /> fixes
@@ -305,10 +306,10 @@ public sealed class DiagnosticCleanupEngine
 
             foreach (var provider in providers)
             {
-                var action = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
-                if (action != null)
+                var chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
+                if (chosen.Action != null)
                 {
-                    return FixPlan.Fixable(actionable, provider, action);
+                    return FixPlan.Fixable(actionable, provider, chosen.Action, chosen.HasEquivalentAlternatives);
                 }
             }
 
@@ -317,9 +318,10 @@ public sealed class DiagnosticCleanupEngine
 
         /// <summary>
         /// Gets the first top-level action registered by <paramref name="provider" /> that has no nested actions;
-        /// nested actions are choices for a user and are never picked automatically.
+        /// nested actions are choices for a user and are never picked automatically. Also tells whether the provider
+        /// registered other actions with the same equivalence key, which a fix-all provider cannot tell apart.
         /// </summary>
-        private static async Task<CodeAction> GetFirstApplicableActionAsync(Document document, CodeFixProvider provider, Diagnostic diagnostic, CancellationToken cancellationToken)
+        private static async Task<(CodeAction Action, bool HasEquivalentAlternatives)> GetFirstApplicableActionAsync(Document document, CodeFixProvider provider, Diagnostic diagnostic, CancellationToken cancellationToken)
         {
             var actions = new List<CodeAction>();
             var context = new CodeFixContext(
@@ -338,7 +340,11 @@ public sealed class DiagnosticCleanupEngine
 
             lock (actions)
             {
-                return actions.FirstOrDefault(action => action.NestedActions.IsDefaultOrEmpty);
+                var chosen = actions.FirstOrDefault(action => action.NestedActions.IsDefaultOrEmpty);
+                var hasEquivalentAlternatives = chosen != null
+                    && actions.Any(action => action != chosen && string.Equals(action.EquivalenceKey, chosen.EquivalenceKey, StringComparison.Ordinal));
+
+                return (chosen, hasEquivalentAlternatives);
             }
         }
 
@@ -373,7 +379,9 @@ public sealed class DiagnosticCleanupEngine
             var action = first.Action;
             var fixedDiagnostics = ImmutableArray.Create(first.Actionable);
 
-            var fixAllProvider = first.Provider.GetFixAllProvider();
+            // Fix-all providers merge every action whose equivalence key matches, so when the provider offers other actions
+            // with the chosen key, only the chosen action is applied and later passes handle the rest of the group.
+            var fixAllProvider = group.Any(plan => plan.HasEquivalentAlternatives) ? null : first.Provider.GetFixAllProvider();
             if (fixAllProvider != null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
             {
                 var diagnostics = group.Select(plan => plan.Actionable.Diagnostic).ToImmutableArray();
@@ -643,11 +651,12 @@ public sealed class DiagnosticCleanupEngine
     /// </summary>
     private sealed class FixPlan
     {
-        private FixPlan(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, UnresolvedDiagnosticReason? unfixableReason)
+        private FixPlan(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives, UnresolvedDiagnosticReason? unfixableReason)
         {
             Actionable = actionable;
             Provider = provider;
             Action = action;
+            HasEquivalentAlternatives = hasEquivalentAlternatives;
             UnfixableReason = unfixableReason;
         }
 
@@ -657,17 +666,23 @@ public sealed class DiagnosticCleanupEngine
 
         public CodeAction Action { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the provider also registered other actions with the equivalence key of
+        /// <see cref="Action" />.
+        /// </summary>
+        public bool HasEquivalentAlternatives { get; }
+
         public UnresolvedDiagnosticReason? UnfixableReason { get; }
 
         public bool IsFixable => Action != null;
 
         public (CodeFixProvider Provider, string EquivalenceKey) GroupKey => (Provider, Action?.EquivalenceKey);
 
-        public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action) =>
-            new FixPlan(actionable, provider, action, null);
+        public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives) =>
+            new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null);
 
         public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason) =>
-            new FixPlan(actionable, null, null, reason);
+            new FixPlan(actionable, null, null, false, reason);
     }
 
     private sealed class FixAttempt

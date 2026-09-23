@@ -319,3 +319,70 @@ internal sealed class HostNotificationOperation : CodeActionOperation
     public override void Apply(Workspace workspace, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("The engine must hand host notifications to the host instead of executing them.");
 }
+
+/// <summary>
+/// Offers two alternative actions without an equivalence key and supports the batch fix-all provider, which merges
+/// every action whose equivalence key matches. Only the first alternative (renaming the field) may be applied; the
+/// second renames the class.
+/// </summary>
+internal sealed class AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    public AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider(string diagnosticId)
+        : base(diagnosticId)
+    {
+    }
+
+    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+
+        context.RegisterCodeFix(
+            CodeAction.Create("Rename field", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "first"), ct)),
+            context.Diagnostics);
+        context.RegisterCodeFix(
+            CodeAction.Create("Rename class", ct => RenameClassAsync(context.Document, ct)),
+            context.Diagnostics);
+    }
+
+    private static async Task<Document> RenameClassAsync(Document document, CancellationToken cancellationToken)
+    {
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var type = root.DescendantNodes().OfType<ClassDeclarationSyntax>().First();
+
+        return document.WithSyntaxRoot(root.ReplaceToken(type.Identifier, SyntaxFactory.Identifier("Alternative").WithTriviaFrom(type.Identifier)));
+    }
+}
+
+/// <summary>
+/// Offers a single rename action without an equivalence key and supports the batch fix-all provider, optionally after
+/// a nested group of choices (whose container action has no equivalence key either and changes nothing itself).
+/// </summary>
+internal sealed class BatchRenameLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly bool _withNestedChoice;
+
+    public BatchRenameLegacyFieldCodeFixProvider(string diagnosticId, bool withNestedChoice = false)
+        : base(diagnosticId)
+    {
+        _withNestedChoice = withNestedChoice;
+    }
+
+    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+
+        if (_withNestedChoice)
+        {
+            var nested = CodeAction.Create("Rename (nested choice)", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "nested"), ct), "BatchRename.Nested");
+            context.RegisterCodeFix(CodeAction.Create("Choose a name", ImmutableArray.Create(nested), isInlinable: false), context.Diagnostics);
+        }
+
+        context.RegisterCodeFix(
+            CodeAction.Create("Rename", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "batch"), ct)),
+            context.Diagnostics);
+    }
+}

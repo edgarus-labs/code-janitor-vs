@@ -645,6 +645,37 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_AlternativeActionsWithTheSameEquivalenceKey_AppliesOnlyTheChosenActionToEveryDiagnostic()
+    {
+        using var workspace = CreateTwoLegacyFieldsWorkspace("CJT0020", out var documentId);
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0020"));
+
+        Assert.AreEqual(
+            TwoLegacyFieldsClass().Replace("legacy", "first"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.IsTrue(result.IsComplete);
+        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.AreEqual(2, result.AppliedFixes.Single().Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("CJT0021", false)]
+    [DataRow("CJT0022", true)]
+    public async Task CleanupAsync_SingleActionWithoutEquivalenceKey_StillFixesAllDiagnosticsInOnePassThroughFixAll(string diagnosticId, bool withNestedChoice)
+    {
+        using var workspace = CreateTwoLegacyFieldsWorkspace(diagnosticId, out var documentId);
+        var catalog = new CodeFixProviderCatalog(new[] { new BatchRenameLegacyFieldCodeFixProvider(diagnosticId, withNestedChoice) });
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+        Assert.AreEqual(TwoLegacyFieldsClass().Replace("legacy", "batch"), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.IsTrue(result.IsComplete);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ProviderOffersNestedGroupThenPlainAction_AppliesThePlainAction()
     {
         using var workspace = CreateLegacySettingsWorkspace("CJT0004", out var documentId);
@@ -912,6 +943,21 @@ public sealed class DiagnosticCleanupEngineTests
         "    {",
         "        return first + second + third;",
         "    }",
+        "}");
+
+    private static DiagnosticCleanupTestWorkspace CreateTwoLegacyFieldsWorkspace(string diagnosticId, out DocumentId documentId)
+    {
+        var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
+        documentId = workspace.AddDocument("Settings.cs", TwoLegacyFieldsClass());
+
+        return workspace;
+    }
+
+    private static string TwoLegacyFieldsClass() => Lines(
+        "class Settings",
+        "{",
+        "    public int legacyValue;",
+        "    public int legacyLimit;",
         "}");
 
     private static string LegacySettingsClass() => Lines(
