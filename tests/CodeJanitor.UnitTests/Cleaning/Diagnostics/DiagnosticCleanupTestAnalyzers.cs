@@ -327,12 +327,15 @@ internal sealed class HostNotificationOperation : CodeActionOperation
 /// </summary>
 internal sealed class AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
 {
-    public AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider(string diagnosticId)
+    private readonly bool _withFixAll;
+
+    public AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider(string diagnosticId, bool withFixAll = true)
         : base(diagnosticId)
     {
+        _withFixAll = withFixAll;
     }
 
-    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+    public override FixAllProvider GetFixAllProvider() => _withFixAll ? WellKnownFixAllProviders.BatchFixer : null;
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
