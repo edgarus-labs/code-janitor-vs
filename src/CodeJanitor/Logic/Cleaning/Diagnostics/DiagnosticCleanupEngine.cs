@@ -38,8 +38,8 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// Each pass analyzes the document, picks the fix of every actionable diagnostic (the first top-level action without
 /// nested actions, from the first provider in catalog order that offers one) and applies the first group of diagnostics
 /// that share provider and equivalence key: through the provider's fix-all provider when it supports document scope,
-/// otherwise, or when the provider also offers other actions with the same equivalence key (a fix-all provider would
-/// merge them in), for the first diagnostic of the group only. A fix is accepted only when its operations contain
+/// otherwise for the first diagnostic of the group only. When the provider also offers other actions with the same
+/// equivalence key, the batch fixer is used with only the chosen action of each diagnostic. A fix is accepted only when its operations contain
 /// exactly one solution change, that change merely changes document texts, and it does not increase the number of
 /// compiler errors of any changed project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
 /// are never executed by the engine: those of accepted fixes are handed to the host in
@@ -371,7 +371,7 @@ public sealed class DiagnosticCleanupEngine
         /// <summary>
         /// Gets the first top-level action registered by <paramref name="provider" /> that has no nested actions;
         /// nested actions are choices for a user and are never picked automatically. Also tells whether the provider
-        /// registered other actions with the same equivalence key, which a fix-all provider cannot tell apart.
+        /// registered other actions with the same equivalence key.
         /// </summary>
         private static async Task<(CodeAction Action, bool HasEquivalentAlternatives)> GetFirstApplicableActionAsync(Document document, CodeFixProvider provider, Diagnostic diagnostic, CancellationToken cancellationToken)
         {
@@ -431,15 +431,14 @@ public sealed class DiagnosticCleanupEngine
             var action = first.Action;
             var fixedDiagnostics = ImmutableArray.Create(first.Actionable);
 
-            // Fix-all providers merge every action whose equivalence key matches, so when the provider offers other actions
-            // with the chosen key, only the chosen action is applied and later passes handle the rest of the group.
-            var fixAllProvider = group.Any(plan => plan.HasEquivalentAlternatives) ? null : first.Provider.GetFixAllProvider();
+            var hasAlternatives = group.Any(plan => plan.HasEquivalentAlternatives);
+            var fixAllProvider = hasAlternatives ? WellKnownFixAllProviders.BatchFixer : first.Provider.GetFixAllProvider();
             if (fixAllProvider != null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
             {
                 var diagnostics = group.Select(plan => plan.Actionable.Diagnostic).ToImmutableArray();
                 var fixAllContext = new FixAllContext(
                     document,
-                    first.Provider,
+                    hasAlternatives ? new ChosenActionCodeFixProvider(first.Provider, group) : first.Provider,
                     FixAllScope.Document,
                     first.Action.EquivalenceKey,
                     diagnostics.Select(diagnostic => diagnostic.Id).Distinct(StringComparer.Ordinal),
@@ -682,6 +681,35 @@ public sealed class DiagnosticCleanupEngine
                 lineSpan.StartLinePosition.Line + 1,
                 diagnostic.GetMessage(CultureInfo.CurrentCulture),
                 reason);
+        }
+    }
+
+    private sealed class ChosenActionCodeFixProvider : CodeFixProvider
+    {
+        private readonly CodeFixProvider _provider;
+        private readonly Dictionary<Diagnostic, CodeAction> _chosenActions;
+
+        public ChosenActionCodeFixProvider(CodeFixProvider provider, IEnumerable<FixPlan> plans)
+        {
+            _provider = provider;
+            _chosenActions = plans.ToDictionary(plan => plan.Actionable.Diagnostic, plan => plan.Action);
+        }
+
+        public override ImmutableArray<string> FixableDiagnosticIds => _provider.FixableDiagnosticIds;
+
+        public override FixAllProvider GetFixAllProvider() => null;
+
+        public override Task RegisterCodeFixesAsync(CodeFixContext context)
+        {
+            foreach (var diagnostic in context.Diagnostics)
+            {
+                if (_chosenActions.TryGetValue(diagnostic, out var action))
+                {
+                    context.RegisterCodeFix(action, diagnostic);
+                }
+            }
+
+            return Task.CompletedTask;
         }
     }
 

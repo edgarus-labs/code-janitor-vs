@@ -727,11 +727,35 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public async Task CleanupAsync_AlternativeActionsWithTheSameEquivalenceKey_AppliesOnlyTheChosenActionToEveryDiagnostic()
+    public async Task CleanupAsync_AlternativeActionsForMoreDiagnosticsThanThePassLimit_FixesAllOfThem()
+    {
+        var fields = Enumerable.Range(0, 60).Select(index => $"    public int legacy{index};").ToArray();
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0023", "Performance"));
+        workspace.ConfigureRuleSeverity("CJT0023", "warning");
+        var documentId = workspace.AddDocument("Settings.cs", Lines(new[] { "class Settings", "{" }.Concat(fields).Concat(new[] { "}" }).ToArray()));
+
+        var catalog = new CodeFixProviderCatalog(new[] { new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0023") });
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+        var expectedFields = Enumerable.Range(0, 60).Select(index => $"    public int first{index};").ToArray();
+        Assert.AreEqual(
+            Lines(new[] { "class Settings", "{" }.Concat(expectedFields).Concat(new[] { "}" }).ToArray()),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.AreEqual(60, result.AppliedFixes.Single().Count);
+        Assert.IsTrue(result.IsComplete);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task CleanupAsync_AlternativeActionsWithTheSameEquivalenceKey_AppliesOnlyTheChosenActionToEveryDiagnosticInOnePass(bool providerHasFixAll)
     {
         using var workspace = CreateTwoLegacyFieldsWorkspace("CJT0020", out var documentId);
+        var catalog = new CodeFixProviderCatalog(new[] { new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0020", providerHasFixAll) });
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0020"));
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
 
         Assert.AreEqual(
             TwoLegacyFieldsClass().Replace("legacy", "first"),
