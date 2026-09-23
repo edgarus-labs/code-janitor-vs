@@ -576,9 +576,89 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_IdeRuleActiveOnlyThroughItsDefaultOption_IsLeftAlone()
+    {
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        var input = Lines(
+            "class Point",
+            "{",
+            "    public int X;",
+            "",
+            "    public static Point Create()",
+            "    {",
+            "        var point = new Point();",
+            "        point.X = 1;",
+            "        return point;",
+            "    }",
+            "}");
+        var documentId = workspace.AddDocument("Point.cs", input);
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+
+        Assert.AreEqual(input, await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.AreEqual(0, result.Unresolved.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_IdeRuleEnabledThroughAnOptionSeveritySuffix_IsFixed()
+    {
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig("dotnet_style_object_initializer = true:warning"));
+        var documentId = workspace.AddDocument("Point.cs", Lines(
+            "class Point",
+            "{",
+            "    public int X;",
+            "",
+            "    public static Point Create()",
+            "    {",
+            "        var point = new Point();",
+            "        point.X = 1;",
+            "        return point;",
+            "    }",
+            "}"));
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+
+        StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "X = 1");
+        Assert.IsFalse((await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId)).Contains("point.X = 1;"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_RuleActiveOnlyByDefault_IsNotConfiguredByTheRepositoryAndIsLeftAlone()
+    {
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0020", "Performance"));
+        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        var solution = workspace.CreateSolution();
+
+        var result = await CleanupAsync(solution, documentId, new RenameLegacyFieldCodeFixProvider("CJT0020"));
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.AreEqual(0, result.Unresolved.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_RuleConfiguredAtItsDefaultSeverity_IsFixed()
+    {
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0021", "Performance"));
+        workspace.ConfigureRuleSeverity("CJT0021", "warning");
+        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, new RenameLegacyFieldCodeFixProvider("CJT0021"));
+
+        Assert.AreEqual(
+            LegacySettingsClass().Replace("legacyValue", "renamedValue"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ActionableDiagnosticWithoutCodeFixProvider_IsReportedAndNeverModified()
     {
         using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0001", "Style"));
+        workspace.ConfigureRuleSeverity("CJT0001", "warning");
         var input = LegacySettingsClass();
         var documentId = workspace.AddDocument("Settings.cs", input);
         var solution = workspace.CreateSolution();
@@ -604,6 +684,8 @@ public sealed class DiagnosticCleanupEngineTests
     public async Task CleanupAsync_AnalyzerReportingSeveralCategories_OnlyEnabledCategoryIsActionable()
     {
         using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(("CJT0007", "Style"), ("CJT0008", "Performance")));
+        workspace.ConfigureRuleSeverity("CJT0007", "warning");
+        workspace.ConfigureRuleSeverity("CJT0008", "warning");
         var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
 
         var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.AnalyzerFixes);
@@ -732,6 +814,7 @@ public sealed class DiagnosticCleanupEngineTests
     public async Task CleanupAsync_FixesWithHostNotifications_ApplyTheSolutionChangesAndHandTheNotificationsToTheHostInOrder()
     {
         using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0010", "Performance"));
+        workspace.ConfigureRuleSeverity("CJT0010", "warning");
         var documentId = workspace.AddDocument("Settings.cs", Lines(
             "class Settings",
             "{",
@@ -765,6 +848,7 @@ public sealed class DiagnosticCleanupEngineTests
     public async Task CleanupAsync_RejectedFixWithHostNotification_HandsNoOperationToTheHost()
     {
         using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0013", "Performance"));
+        workspace.ConfigureRuleSeverity("CJT0013", "warning");
         var documentId = workspace.AddDocument("Settings.cs", Lines(
             "class Settings",
             "{",
@@ -874,6 +958,7 @@ public sealed class DiagnosticCleanupEngineTests
     private static DiagnosticCleanupTestWorkspace CreateLegacySettingsWorkspace(string diagnosticId, out DocumentId documentId)
     {
         var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
+        workspace.ConfigureRuleSeverity(diagnosticId, "warning");
         documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
 
         return workspace;
@@ -948,6 +1033,7 @@ public sealed class DiagnosticCleanupEngineTests
     private static DiagnosticCleanupTestWorkspace CreateTwoLegacyFieldsWorkspace(string diagnosticId, out DocumentId documentId)
     {
         var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
+        workspace.ConfigureRuleSeverity(diagnosticId, "warning");
         documentId = workspace.AddDocument("Settings.cs", TwoLegacyFieldsClass());
 
         return workspace;

@@ -63,10 +63,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InlineOutVariableDeclarations, x => InlineOutVariableDeclarations),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements, x => InsertBlankLineBeforeReturnAndThrowStatements),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_FormatRazorComponents, x => FormatRazorComponents),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ApplyEditorConfigFormatting, x => ApplyEditorConfigFormatting),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ApplyEditorConfigNaming, x => ApplyEditorConfigNaming),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ApplyEditorConfigCodeStyle, x => ApplyEditorConfigCodeStyle),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_ApplyAnalyzerCodeFixes, x => ApplyAnalyzerCodeFixes),
         };
     }
 
@@ -356,50 +352,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// </summary>
 
     public bool SimplifySingleStatementLambdas
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if Roslyn formatting diagnostics configured through
-    /// .editorconfig should be fixed with the existing Roslyn code fixes during C# cleanup.
-    /// </summary>
-
-    public bool ApplyEditorConfigFormatting
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if Roslyn naming-style diagnostics configured through
-    /// .editorconfig should be fixed (symbol rename) during C# cleanup.
-    /// </summary>
-
-    public bool ApplyEditorConfigNaming
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if Roslyn IDE code-style diagnostics configured through
-    /// .editorconfig should be fixed with the existing Roslyn code fixes during C# cleanup.
-    /// </summary>
-
-    public bool ApplyEditorConfigCodeStyle
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if diagnostics from other analyzers should be fixed
-    /// with the code fixes those analyzers provide during C# cleanup.
-    /// </summary>
-
-    public bool ApplyAnalyzerCodeFixes
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }

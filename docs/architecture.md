@@ -45,8 +45,6 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
 
 `EditorConfigDiagnosticCleanupLogic` is the Visual Studio host adapter. It:
 
-- maps the four `Cleaning_Apply*` settings, including `.codejanitor` overrides, to
-  categories, and does nothing when none is enabled;
 - resolves `VisualStudioWorkspace` through MEF (`IComponentModel`) by type name;
 - supplies the C# `CodeFixProvider` MEF exports, cached per package;
 - builds the input as `CurrentSolution.WithDocumentText(...)` from the cleaned editor

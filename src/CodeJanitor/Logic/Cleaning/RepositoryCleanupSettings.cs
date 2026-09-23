@@ -193,9 +193,6 @@ internal static class RepositoryCleanupSettings
         "convertStringFormatToInterpolation", "convertToStringNameOf",
         "inlineOutVariableDeclarations",
 
-        "applyEditorConfigFormatting", "applyEditorConfigNaming",
-        "applyEditorConfigCodeStyle", "applyAnalyzerCodeFixes",
-
         "moveUsingsOutsideNamespace", "organizeUsings",
 
         "updateEndRegionDirectives", "updateSingleLineMethods",

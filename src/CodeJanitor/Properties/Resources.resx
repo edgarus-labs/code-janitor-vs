@@ -986,36 +986,6 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   <data name="InlineOutVariableDeclarationsToolTip" xml:space="preserve">
     <value>Inlines separate uninitialized local variable declarations directly into out arguments.</value>
   </data>
-  <data name="EditorConfigDiagnosticCleanup" xml:space="preserve">
-    <value>.editorconfig and Roslyn diagnostics (C#)</value>
-  </data>
-  <data name="EditorConfigDiagnosticCleanupDescription" xml:space="preserve">
-    <value>Runs after the other cleanup steps. Uses the rules and severities from the file's effective .editorconfig (including nested files) and the existing Roslyn/analyzer code fixes. Only diagnostics with severity suggestion, warning or error are fixed; silent/none are ignored. Diagnostics without a safe automatic fix are reported in the CodeJanitor output pane and never modified.</value>
-  </data>
-  <data name="ApplyEditorConfigFormatting" xml:space="preserve">
-    <value>Apply .editorconfig formatting rules (Roslyn formatting code fixes)</value>
-  </data>
-  <data name="ApplyEditorConfigFormattingToolTip" xml:space="preserve">
-    <value>Fixes formatting diagnostics reported by Roslyn's formatting analyzer for the file's .editorconfig settings.</value>
-  </data>
-  <data name="ApplyEditorConfigNaming" xml:space="preserve">
-    <value>Apply .editorconfig naming rules (rename symbols that violate naming styles)</value>
-  </data>
-  <data name="ApplyEditorConfigNamingToolTip" xml:space="preserve">
-    <value>Applies Roslyn's naming-style fix, which renames the symbol and updates its references in the solution.</value>
-  </data>
-  <data name="ApplyEditorConfigCodeStyle" xml:space="preserve">
-    <value>Apply .editorconfig code-style preferences (Roslyn IDE code-style fixes)</value>
-  </data>
-  <data name="ApplyEditorConfigCodeStyleToolTip" xml:space="preserve">
-    <value>Configure severity with dotnet_diagnostic.&lt;id&gt;.severity; the legacy 'option = value:severity' suffix is not honored.</value>
-  </data>
-  <data name="ApplyAnalyzerCodeFixes" xml:space="preserve">
-    <value>Apply code fixes from other analyzers (for example analyzer NuGet packages)</value>
-  </data>
-  <data name="ApplyAnalyzerCodeFixesToolTip" xml:space="preserve">
-    <value>Applies the first available code fix for other analyzer diagnostics. Fixes that would introduce compiler errors are rejected and reported.</value>
-  </data>
   <data name="CodeJanitorCleaned0WithUnresolvedDiagnostics" xml:space="preserve">
     <value>CodeJanitor cleaned '{0}', but some diagnostics were not fixed (see the CodeJanitor output pane)</value>
   </data>
