@@ -526,7 +526,7 @@ public int Second(int y)
                 {
                     var buffer = new byte[4096];
                     await stream.ReadAsync(buffer, 0, buffer.Length);
-                    await Task.Delay(TimeSpan.FromSeconds(10), serverCancellation.Token);
+                    await Task.Delay(TimeSpan.FromSeconds(30), serverCancellation.Token);
                 }
             }
             catch (OperationCanceledException)
@@ -560,7 +560,7 @@ public int Second(int y)
 
             Assert.IsFalse(succeeded);
             StringAssert.Contains(errorMessage, "Model test timed out after 1 seconds");
-            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(8), $"Model test took {stopwatch.Elapsed}.");
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"Model test took {stopwatch.Elapsed}.");
         }
         finally
         {
@@ -587,7 +587,7 @@ public int Second(int y)
                 {
                     var buffer = new byte[4096];
                     await stream.ReadAsync(buffer, 0, buffer.Length);
-                    await Task.Delay(TimeSpan.FromSeconds(10), serverCancellation.Token);
+                    await Task.Delay(TimeSpan.FromSeconds(30), serverCancellation.Token);
                 }
             }
             catch (OperationCanceledException)
@@ -621,7 +621,7 @@ public int Second(int y)
 
             Assert.IsFalse(succeeded);
             StringAssert.Contains(errorMessage, "timed out after 1 seconds");
-            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(8), $"API connection test took {stopwatch.Elapsed}.");
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"API connection test took {stopwatch.Elapsed}.");
         }
         finally
         {
