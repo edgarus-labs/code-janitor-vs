@@ -62,6 +62,24 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         ContextWindowTokens = contextWindowTokens > 0 ? contextWindowTokens : 0;
     }
 
+    internal OpenAiCompatibleClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds, int contextWindowTokens, HttpMessageHandler httpMessageHandler)
+        : this(endpointUrl, apiKey, apiKeyHeader, model, timeoutSeconds, contextWindowTokens)
+    {
+        _httpMessageHandler = httpMessageHandler;
+    }
+
+    private readonly HttpMessageHandler _httpMessageHandler;
+
+    private GitHubCopilotDetector.CopilotSession _copilotSession;
+
+    private HttpClient CreateHttpClient(TimeSpan timeout)
+    {
+        var client = _httpMessageHandler is null ? new HttpClient() : new HttpClient(_httpMessageHandler, disposeHandler: false);
+        client.Timeout = timeout;
+
+        return client;
+    }
+
     /// <summary>
     /// Gets the endpoint url.
     /// </summary>
@@ -312,11 +330,17 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             return new ConnectionTestResult { ErrorMessage = "AI endpoint is not configured." };
         }
 
+        var authError = await PrepareAuthenticationAsync().ConfigureAwait(false);
+        if (authError is not null)
+        {
+            return new ConnectionTestResult { ErrorMessage = authError };
+        }
+
         var modelsUrl = GetModelsEndpointUrl(EndpointUrl);
         var timeoutSeconds = TimeoutSeconds > 0 ? TimeoutSeconds : 30;
 
         using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
-        using (var httpClient = new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan })
+        using (var httpClient = CreateHttpClient(System.Threading.Timeout.InfiniteTimeSpan))
         {
             var result = await QueryModelsEndpointAsync(httpClient, modelsUrl, timeout.Token).ConfigureAwait(false);
             if (result.Succeeded || result.IsAuthError)
@@ -380,12 +404,13 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     {
         using (var message = new HttpRequestMessage(HttpMethod.Get, url))
         {
-            ApplyAuthentication(message.Headers);
+            ApplyAuthentication(message);
 
             try
             {
                 using (var response = await httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false))
                 {
+                    DropRejectedCopilotSession(response.StatusCode);
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                         response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                     {
@@ -450,12 +475,18 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             return new ConnectionTestResult { ErrorMessage = "AI endpoint is not configured." };
         }
 
+        var authError = await PrepareAuthenticationAsync().ConfigureAwait(false);
+        if (authError is not null)
+        {
+            return new ConnectionTestResult { ErrorMessage = authError };
+        }
+
         var requestJson = BuildRequestJson("Reply with exactly: OK", 512);
         using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
-        using (var httpClient = new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan })
+        using (var httpClient = CreateHttpClient(System.Threading.Timeout.InfiniteTimeSpan))
         using (var message = new HttpRequestMessage(HttpMethod.Post, EndpointUrl))
         {
-            ApplyAuthentication(message.Headers);
+            ApplyAuthentication(message);
             message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
             try
@@ -463,6 +494,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 using (var response = await httpClient.SendAsync(message, timeout.Token).ConfigureAwait(false))
                 {
                     var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    DropRejectedCopilotSession(response.StatusCode);
                     if (!response.IsSuccessStatusCode)
                     {
                         return new ConnectionTestResult
@@ -507,6 +539,12 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             throw new InvalidOperationException("AI endpoint is not configured.");
         }
 
+        var authError = await PrepareAuthenticationAsync().ConfigureAwait(false);
+        if (authError is not null)
+        {
+            throw new InvalidOperationException(authError);
+        }
+
         var requestJson = BuildRequestJson(userPrompt, maxTokens, systemPrompt);
         string lastError = null;
 
@@ -518,15 +556,16 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             {
                 using (var timeoutSource = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
                 using (var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token))
-                using (var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(TimeoutSeconds) })
+                using (var httpClient = CreateHttpClient(TimeSpan.FromSeconds(TimeoutSeconds)))
                 using (var message = new HttpRequestMessage(HttpMethod.Post, EndpointUrl))
                 {
-                    ApplyAuthentication(message.Headers);
+                    ApplyAuthentication(message);
                     message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
                     using (var response = await httpClient.SendAsync(message, linkedSource.Token).ConfigureAwait(false))
                     {
                         var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        DropRejectedCopilotSession(response.StatusCode);
 
                         if (!response.IsSuccessStatusCode)
                         {
@@ -601,6 +640,14 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             return false;
         }
 
+        var authError = PrepareAuthenticationAsync().GetAwaiter().GetResult();
+        if (authError is not null)
+        {
+            errorMessage = authError;
+
+            return false;
+        }
+
         var requestJson = BuildRequestJson(userPrompt, maxTokens, systemPrompt);
         string lastError = null;
         Exception lastException = null;
@@ -616,15 +663,16 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
 
             try
             {
-                using (var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(TimeoutSeconds) })
+                using (var httpClient = CreateHttpClient(TimeSpan.FromSeconds(TimeoutSeconds)))
                 using (var message = new HttpRequestMessage(HttpMethod.Post, EndpointUrl))
                 {
-                    ApplyAuthentication(message.Headers);
+                    ApplyAuthentication(message);
 
                     message.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
                     var response = httpClient.SendAsync(message, cancellationToken).GetAwaiter().GetResult();
                     var responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    DropRejectedCopilotSession(response.StatusCode);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -683,63 +731,47 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         return statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599);
     }
 
-    /// <summary>
-    /// Adds an API key to the request headers, prefixing it with &quot;Bearer &quot; when the configured header is Authorization, otherwise using the custom header name as-is via TryAddWithoutValidation.
-    /// </summary>
-    /// <param name="headers">The headers.</param>
-    private void ApplyAuthentication(HttpRequestHeaders headers)
+    private async Task<string> PrepareAuthenticationAsync()
+    {
+        if (!GitHubCopilotDetector.IsCopilotEndpoint(EndpointUrl))
+        {
+            return null;
+        }
+
+        _copilotSession = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync(ApiKey, _httpMessageHandler).ConfigureAwait(false);
+
+        return _copilotSession.ErrorMessage;
+    }
+
+    private void DropRejectedCopilotSession(System.Net.HttpStatusCode statusCode)
+    {
+        if (statusCode == System.Net.HttpStatusCode.Unauthorized && GitHubCopilotDetector.IsCopilotEndpoint(EndpointUrl))
+        {
+            GitHubCopilotDetector.InvalidateCopilotSession(ApiKey);
+        }
+    }
+
+    private void ApplyAuthentication(HttpRequestMessage message)
     {
         var rawKey = ApiKey;
-        var isCopilot = GitHubCopilotDetector.IsCopilotEndpoint(EndpointUrl);
 
-        if (isCopilot)
+        if (GitHubCopilotDetector.IsCopilotEndpoint(EndpointUrl))
         {
-            if (string.IsNullOrWhiteSpace(rawKey))
-            {
-                var detected = GitHubCopilotDetector.DetectCopilotStatus();
-                if (!string.IsNullOrEmpty(detected.DetectedToken))
-                {
-                    rawKey = detected.DetectedToken;
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(rawKey))
-            {
-                // Synchronously or best-effort exchange GitHub token for Copilot session token
-                try
-                {
-                    rawKey = GitHubCopilotDetector.ExchangeGitHubTokenForCopilotTokenAsync(rawKey).GetAwaiter().GetResult();
-                }
-                catch
-                {
-                    // Fallback to rawKey
-                }
-            }
+            rawKey = _copilotSession.Token;
+            message.RequestUri = GitHubCopilotDetector.ResolveCopilotApiUri(message.RequestUri, _copilotSession.ApiBaseUrl);
+            GitHubCopilotDetector.ApplyCopilotHeaders(message.Headers);
         }
 
         if (string.Equals(ApiKeyHeader, "Authorization", StringComparison.OrdinalIgnoreCase))
         {
-            var tokenValue = string.IsNullOrEmpty(rawKey) ? string.Empty : (rawKey.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                ? rawKey
-                : "Bearer " + rawKey);
-
-            if (!string.IsNullOrEmpty(tokenValue))
+            if (!string.IsNullOrEmpty(rawKey))
             {
-                headers.TryAddWithoutValidation("Authorization", tokenValue);
+                message.Headers.TryAddWithoutValidation("Authorization", rawKey.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? rawKey : "Bearer " + rawKey);
             }
         }
         else if (!string.IsNullOrEmpty(rawKey))
         {
-            headers.TryAddWithoutValidation(ApiKeyHeader, rawKey);
-        }
-
-        if (isCopilot)
-        {
-            headers.TryAddWithoutValidation("User-Agent", "GitHubCopilotChat/18.9");
-            headers.TryAddWithoutValidation("Copilot-Integration-Id", "vscode-chat");
-            headers.TryAddWithoutValidation("Editor-Version", "VisualStudio/18.0");
-            headers.TryAddWithoutValidation("Editor-Plugin-Version", "copilot-chat/0.24.1");
-            headers.TryAddWithoutValidation("Openai-Intent", "conversation-panel");
+            message.Headers.TryAddWithoutValidation(ApiKeyHeader, rawKey);
         }
     }
 
