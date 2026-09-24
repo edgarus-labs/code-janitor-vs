@@ -104,21 +104,10 @@ public static class GitHubCopilotDetector
 
     internal static async Task<CopilotSession> ExchangeForCopilotSessionAsync(string token, HttpMessageHandler httpMessageHandler = null)
     {
-        var raw = string.IsNullOrWhiteSpace(token) ? DetectCopilotStatus().DetectedToken : token;
-        if (string.IsNullOrWhiteSpace(raw))
+        var cleaned = NormalizeGitHubToken(token);
+        if (cleaned is null)
         {
             return new CopilotSession { ErrorMessage = "No GitHub token is available for GitHub Copilot. Sign in to GitHub Copilot or enter a GitHub token." };
-        }
-
-        var cleaned = raw.Trim().Trim('"');
-        if (cleaned.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
-            cleaned = cleaned.Substring(7).Trim();
-        }
-
-        if (cleaned.StartsWith("token ", StringComparison.OrdinalIgnoreCase))
-        {
-            cleaned = cleaned.Substring(6).Trim();
         }
 
         if (cleaned.Contains("tid="))
@@ -138,6 +127,41 @@ public static class GitHubCopilotDetector
         }
 
         return session;
+    }
+
+    /// <summary>
+    /// Drops the cached Copilot session for the GitHub token so the next request exchanges a fresh one.
+    /// Call this when a Copilot endpoint rejects the session token before its reported expiry.
+    /// </summary>
+    internal static void InvalidateCopilotSession(string token)
+    {
+        var cleaned = NormalizeGitHubToken(token);
+        if (cleaned is not null)
+        {
+            SessionCache.TryRemove(cleaned, out _);
+        }
+    }
+
+    private static string NormalizeGitHubToken(string token)
+    {
+        var raw = string.IsNullOrWhiteSpace(token) ? DetectCopilotStatus().DetectedToken : token;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        var cleaned = raw.Trim().Trim('"');
+        if (cleaned.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            cleaned = cleaned.Substring(7).Trim();
+        }
+
+        if (cleaned.StartsWith("token ", StringComparison.OrdinalIgnoreCase))
+        {
+            cleaned = cleaned.Substring(6).Trim();
+        }
+
+        return cleaned;
     }
 
     private static async Task<CopilotSession> RequestCopilotSessionAsync(string cleaned, HttpMessageHandler httpMessageHandler)
@@ -193,6 +217,10 @@ public static class GitHubCopilotDetector
         catch (HttpRequestException ex)
         {
             return new CopilotSession { ErrorMessage = "GitHub Copilot token exchange failed: " + (ex.InnerException?.Message ?? ex.Message) };
+        }
+        catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+        {
+            return new CopilotSession { ErrorMessage = "GitHub Copilot token exchange returned an invalid response." };
         }
     }
 

@@ -410,6 +410,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             {
                 using (var response = await httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false))
                 {
+                    DropRejectedCopilotSession(response.StatusCode);
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                         response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                     {
@@ -493,6 +494,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                 using (var response = await httpClient.SendAsync(message, timeout.Token).ConfigureAwait(false))
                 {
                     var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    DropRejectedCopilotSession(response.StatusCode);
                     if (!response.IsSuccessStatusCode)
                     {
                         return new ConnectionTestResult
@@ -563,6 +565,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
                     using (var response = await httpClient.SendAsync(message, linkedSource.Token).ConfigureAwait(false))
                     {
                         var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        DropRejectedCopilotSession(response.StatusCode);
 
                         if (!response.IsSuccessStatusCode)
                         {
@@ -669,6 +672,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
 
                     var response = httpClient.SendAsync(message, cancellationToken).GetAwaiter().GetResult();
                     var responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    DropRejectedCopilotSession(response.StatusCode);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -737,6 +741,14 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         _copilotSession = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync(ApiKey, _httpMessageHandler).ConfigureAwait(false);
 
         return _copilotSession.ErrorMessage;
+    }
+
+    private void DropRejectedCopilotSession(System.Net.HttpStatusCode statusCode)
+    {
+        if (statusCode == System.Net.HttpStatusCode.Unauthorized && GitHubCopilotDetector.IsCopilotEndpoint(EndpointUrl))
+        {
+            GitHubCopilotDetector.InvalidateCopilotSession(ApiKey);
+        }
     }
 
     private void ApplyAuthentication(HttpRequestMessage message)

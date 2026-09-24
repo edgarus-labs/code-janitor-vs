@@ -91,6 +91,45 @@ public sealed class GitHubCopilotDetectorTests
     }
 
     [TestMethod]
+    public async Task FetchCopilotModelsAsync_FallsBackWhenTokenExchangeReturnsNonJson()
+    {
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, "<html>captive portal</html>");
+
+        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_proxy", handler);
+
+        CollectionAssert.AreEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
+        StringAssert.Contains(result.ErrorMessage, "invalid response");
+    }
+
+    [TestMethod]
+    public async Task CopilotClient_GetChatCompletionContentAsync_DropsCachedSessionRejectedWith401()
+    {
+        var handler = new FakeHttpHandler()
+            .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)))
+            .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.Unauthorized, "{}");
+        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_revoked", "Authorization", "gpt-5", 5, 0, handler);
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user"));
+
+        Assert.AreEqual(2, handler.Requests.Count(r => r.Url == ExchangeUrl));
+    }
+
+    [TestMethod]
+    public async Task CopilotClient_TestModelAsync_DropsCachedSessionRejectedWith401()
+    {
+        var handler = new FakeHttpHandler()
+            .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)))
+            .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.Unauthorized, "{}");
+        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_revoked_test", "Authorization", "gpt-5", 5, 0, handler);
+
+        await client.TestModelAsync();
+        await client.TestModelAsync();
+
+        Assert.AreEqual(2, handler.Requests.Count(r => r.Url == ExchangeUrl));
+    }
+
+    [TestMethod]
     public async Task CopilotClient_GetChatCompletionContentAsync_UsesSessionEndpointAndToken()
     {
         var handler = new FakeHttpHandler()
@@ -360,10 +399,13 @@ public sealed class GitHubCopilotDetectorTests
         public RecordedRequest(HttpRequestMessage request)
         {
             Method = request.Method;
+            Url = request.RequestUri.AbsoluteUri;
             Headers = request.Headers.ToDictionary(h => h.Key, h => h.Value.FirstOrDefault(), StringComparer.OrdinalIgnoreCase);
         }
 
         public HttpMethod Method { get; }
+
+        public string Url { get; }
 
         public string Authorization => Header("Authorization");
 
