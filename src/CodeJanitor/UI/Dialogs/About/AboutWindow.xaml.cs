@@ -22,7 +22,8 @@ public partial class AboutWindow
 
         InitializeComponent();
 
-        VersionTextBlock.Text = $"Version {Vsix.Version}";
+        VersionTextBlock.Text = AboutVersion.Header;
+        FooterVersionTextBlock.Text = AboutVersion.Footer;
     }
 
     /// <summary>
