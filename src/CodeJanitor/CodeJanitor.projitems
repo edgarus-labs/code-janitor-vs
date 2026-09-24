@@ -293,6 +293,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Converters\TypeStringConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\DelegateCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\DependencyObjectExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\About\AboutVersion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\About\AboutWindow.xaml.cs">
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
