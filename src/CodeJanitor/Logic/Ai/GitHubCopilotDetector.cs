@@ -1,10 +1,14 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 
 namespace CodeJanitor.Logic.Ai;
 
@@ -43,20 +47,44 @@ public static class GitHubCopilotDetector
                endpointUrl.IndexOf("api.business.githubcopilot.com", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    /// <summary>
-    /// Exchanges a GitHub OAuth/Personal Access Token for a GitHub Copilot session token if needed.
-    /// </summary>
-    public static async Task<string> ExchangeGitHubTokenForCopilotTokenAsync(string token)
+    internal const string CopilotTokenExchangeUrl = "https://api.github.com/copilot_internal/v2/token";
+
+    internal const string DefaultCopilotApiBaseUrl = "https://api.githubcopilot.com";
+
+    internal sealed class CopilotSession
     {
-        var raw = token;
-        if (string.IsNullOrWhiteSpace(raw))
+        internal string Token { get; set; }
+
+        internal string ApiBaseUrl { get; set; }
+
+        internal string ErrorMessage { get; set; }
+    }
+
+    internal static void ApplyCopilotHeaders(HttpRequestHeaders headers)
+    {
+        headers.TryAddWithoutValidation("User-Agent", "GitHubCopilotChat/18.9");
+        headers.TryAddWithoutValidation("Copilot-Integration-Id", "visualstudio-chat");
+        headers.TryAddWithoutValidation("Editor-Version", "VisualStudio/18.0");
+        headers.TryAddWithoutValidation("Editor-Plugin-Version", "copilot-chat/0.24.1");
+        headers.TryAddWithoutValidation("Openai-Intent", "conversation-panel");
+    }
+
+    internal static Uri ResolveCopilotApiUri(Uri requestUri, string apiBaseUrl)
+    {
+        if (requestUri is null || string.IsNullOrWhiteSpace(apiBaseUrl) || !Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var apiBase))
         {
-            raw = TryExtractVsGitHubToken();
+            return requestUri;
         }
 
+        return new UriBuilder(requestUri) { Scheme = apiBase.Scheme, Host = apiBase.Host, Port = apiBase.Port }.Uri;
+    }
+
+    internal static async Task<CopilotSession> ExchangeForCopilotSessionAsync(string token, HttpMessageHandler httpMessageHandler = null)
+    {
+        var raw = string.IsNullOrWhiteSpace(token) ? DetectCopilotStatus().DetectedToken : token;
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return raw;
+            return new CopilotSession { ErrorMessage = "No GitHub token is available for GitHub Copilot. Sign in to GitHub Copilot or enter a GitHub token." };
         }
 
         var cleaned = raw.Trim().Trim('"');
@@ -65,127 +93,142 @@ public static class GitHubCopilotDetector
             cleaned = cleaned.Substring(7).Trim();
         }
 
-        // If it is already a Copilot session token (contains tid=...)
+        if (cleaned.StartsWith("token ", StringComparison.OrdinalIgnoreCase))
+        {
+            cleaned = cleaned.Substring(6).Trim();
+        }
+
         if (cleaned.Contains("tid="))
         {
-            return cleaned;
+            return new CopilotSession { Token = cleaned };
         }
 
         try
         {
-            using (var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) })
-            using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, "https://api.github.com/copilot_internal/v2/token"))
+            using (var client = CreateHttpClient(httpMessageHandler))
+            using (var request = new HttpRequestMessage(HttpMethod.Get, CopilotTokenExchangeUrl))
             {
-                var authHeaderValue = cleaned.StartsWith("gh", StringComparison.OrdinalIgnoreCase) || cleaned.StartsWith("token ", StringComparison.OrdinalIgnoreCase)
-                    ? (cleaned.StartsWith("token ", StringComparison.OrdinalIgnoreCase) ? cleaned : "token " + cleaned)
-                    : "token " + cleaned;
+                request.Headers.TryAddWithoutValidation("Authorization", "token " + cleaned);
+                ApplyCopilotHeaders(request.Headers);
 
-                request.Headers.TryAddWithoutValidation("Authorization", authHeaderValue);
-                request.Headers.TryAddWithoutValidation("User-Agent", "GitHubCopilotChat/18.9");
-                request.Headers.TryAddWithoutValidation("Editor-Version", "VisualStudio/18.0");
-                request.Headers.TryAddWithoutValidation("Copilot-Integration-Id", "vscode-chat");
-
-                var response = await client.SendAsync(request).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode)
+                using (var response = await client.SendAsync(request).ConfigureAwait(false))
                 {
                     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    var dict = serializer.Deserialize<Dictionary<string, object>>(json);
-                    if (dict is not null && dict.TryGetValue("token", out var tokenObj) && tokenObj is not null)
+                    if (!response.IsSuccessStatusCode)
                     {
-                        return tokenObj.ToString();
+                        return new CopilotSession
+                        {
+                            ErrorMessage = $"GitHub Copilot token exchange failed ({(int)response.StatusCode} {response.ReasonPhrase}). The GitHub token is invalid or not authorized for GitHub Copilot. {json}".Trim()
+                        };
                     }
+
+                    var dict = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
+                    if (dict is null || !dict.TryGetValue("token", out var tokenObj) || string.IsNullOrWhiteSpace(tokenObj as string))
+                    {
+                        return new CopilotSession { ErrorMessage = "GitHub Copilot token exchange failed: the response did not contain a Copilot token." };
+                    }
+
+                    var apiBaseUrl = dict.TryGetValue("endpoints", out var endpointsObj) &&
+                                     endpointsObj is Dictionary<string, object> endpoints &&
+                                     endpoints.TryGetValue("api", out var apiObj)
+                        ? apiObj as string
+                        : null;
+
+                    return new CopilotSession { Token = (string)tokenObj, ApiBaseUrl = apiBaseUrl };
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to original token on exchange error
+            return new CopilotSession { ErrorMessage = "GitHub Copilot token exchange failed: " + ex.Message };
         }
-
-        return cleaned;
     }
 
-    /// <summary>
-    /// Fetches the dynamically available models from the GitHub Copilot API or returns the fallback list.
-    /// </summary>
-    public static async Task<List<string>> FetchCopilotModelsAsync(string token)
+    public static Task<List<string>> FetchCopilotModelsAsync(string token)
     {
-        var result = new List<string>(SupportedCopilotModels);
+        return FetchCopilotModelsAsync(token, null);
+    }
+
+    internal static async Task<List<string>> FetchCopilotModelsAsync(string token, HttpMessageHandler httpMessageHandler)
+    {
+        var fallback = new List<string>(SupportedCopilotModels);
+        var session = await ExchangeForCopilotSessionAsync(token, httpMessageHandler).ConfigureAwait(false);
+        if (session.ErrorMessage is not null)
+        {
+            return fallback;
+        }
 
         try
         {
-            var sessionToken = await ExchangeGitHubTokenForCopilotTokenAsync(token).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(sessionToken))
+            var baseUrl = string.IsNullOrWhiteSpace(session.ApiBaseUrl) ? DefaultCopilotApiBaseUrl : session.ApiBaseUrl.TrimEnd('/');
+            using (var client = CreateHttpClient(httpMessageHandler))
+            using (var request = new HttpRequestMessage(HttpMethod.Get, baseUrl + "/models"))
             {
-                return result;
-            }
+                request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + session.Token);
+                ApplyCopilotHeaders(request.Headers);
 
-            var endpoints = new[]
-            {
-                "https://api.individual.githubcopilot.com/models",
-                "https://api.githubcopilot.com/models"
-            };
-
-            foreach (var url in endpoints)
-            {
-                try
+                using (var response = await client.SendAsync(request).ConfigureAwait(false))
                 {
-                    using (var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) })
-                    using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url))
+                    if (!response.IsSuccessStatusCode)
                     {
-                        var auth = sessionToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                            ? sessionToken
-                            : "Bearer " + sessionToken;
-                        request.Headers.TryAddWithoutValidation("Authorization", auth);
-                        request.Headers.TryAddWithoutValidation("User-Agent", "GitHubCopilotChat/18.9");
-                        request.Headers.TryAddWithoutValidation("Editor-Version", "VisualStudio/18.0");
-                        request.Headers.TryAddWithoutValidation("Editor-Plugin-Version", "copilot-chat/0.24.1");
-                        request.Headers.TryAddWithoutValidation("Copilot-Integration-Id", "vscode-chat");
-                        request.Headers.TryAddWithoutValidation("Openai-Intent", "conversation-panel");
-
-                        var response = await client.SendAsync(request).ConfigureAwait(false);
-                        if (response.IsSuccessStatusCode)
-                        {
-                            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
-                            var dict = serializer.Deserialize<Dictionary<string, object>>(json);
-                            if (dict is not null && dict.TryGetValue("data", out var dataObj) && dataObj is System.Collections.IList dataList)
-                            {
-                                var fetched = new List<string>();
-                                foreach (var item in dataList)
-                                {
-                                    if (item is Dictionary<string, object> modelDict &&
-                                        modelDict.TryGetValue("id", out var idObj) && idObj is not null)
-                                    {
-                                        var id = idObj.ToString();
-                                        if (!string.IsNullOrWhiteSpace(id) && !fetched.Contains(id))
-                                        {
-                                            fetched.Add(id);
-                                        }
-                                    }
-                                }
-
-                                if (fetched.Count > 0)
-                                {
-                                    return fetched;
-                                }
-                            }
-                        }
+                        return fallback;
                     }
-                }
-                catch
-                {
-                    // Try next endpoint
+
+                    var models = ParseCopilotChatModelIds(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+
+                    return models.Count > 0 ? models : fallback;
                 }
             }
         }
-        catch
+        catch (Exception)
         {
-            // Fallback to defaults
+            return fallback;
+        }
+    }
+
+    internal static List<string> ParseCopilotChatModelIds(string json)
+    {
+        var models = new List<string>();
+        var dict = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(json);
+        if (dict is null || !dict.TryGetValue("data", out var dataObj) || dataObj is not IList dataList)
+        {
+            return models;
         }
 
-        return result;
+        foreach (var item in dataList.OfType<Dictionary<string, object>>())
+        {
+            var id = item.TryGetValue("id", out var idObj) ? (idObj as string)?.Trim() : null;
+            var type = item.TryGetValue("capabilities", out var capabilitiesObj) &&
+                       capabilitiesObj is Dictionary<string, object> capabilities &&
+                       capabilities.TryGetValue("type", out var typeObj)
+                ? typeObj as string
+                : null;
+
+            var policyDisabled = item.TryGetValue("policy", out var policyObj) &&
+                                 policyObj is Dictionary<string, object> policy &&
+                                 policy.TryGetValue("state", out var stateObj) &&
+                                 string.Equals(stateObj as string, "disabled", StringComparison.OrdinalIgnoreCase);
+            var supportsChatCompletions = !item.TryGetValue("supported_endpoints", out var endpointsObj) ||
+                                          endpointsObj is not IList endpoints ||
+                                          endpoints.OfType<string>().Any(e => string.Equals(e, "/chat/completions", StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrEmpty(id) && (type is null || string.Equals(type, "chat", StringComparison.OrdinalIgnoreCase)) && !policyDisabled && supportsChatCompletions && !models.Contains(id))
+            {
+                models.Add(id);
+            }
+        }
+
+        models.Sort(StringComparer.OrdinalIgnoreCase);
+
+        return models;
+    }
+
+    private static HttpClient CreateHttpClient(HttpMessageHandler httpMessageHandler)
+    {
+        var client = httpMessageHandler is null ? new HttpClient() : new HttpClient(httpMessageHandler, disposeHandler: false);
+        client.Timeout = TimeSpan.FromSeconds(8);
+
+        return client;
     }
 
     /// <summary>
@@ -193,12 +236,44 @@ public static class GitHubCopilotDetector
     /// </summary>
     public static CopilotDetectionResult DetectCopilotStatus()
     {
+        return DetectCopilotStatus(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            TryExtractVsGitHubToken);
+    }
+
+    internal static CopilotDetectionResult DetectCopilotStatus(string userProfile, string localAppData, Func<string> readCredentialManagerToken)
+    {
         var result = new CopilotDetectionResult();
 
         try
         {
-            // 1. Check Windows Credential Manager for Visual Studio GitHub Account and Git credentials
-            var vsToken = TryExtractVsGitHubToken();
+            var configPaths = new[]
+            {
+                Path.Combine(userProfile ?? string.Empty, ".config", "github-copilot", "apps.json"),
+                Path.Combine(userProfile ?? string.Empty, ".config", "github-copilot", "hosts.json"),
+                Path.Combine(localAppData ?? string.Empty, "github-copilot", "apps.json"),
+                Path.Combine(localAppData ?? string.Empty, "github-copilot", "hosts.json")
+            };
+
+            foreach (var path in configPaths)
+            {
+                if (File.Exists(path))
+                {
+                    result.IsInstalled = true;
+                    var token = TryExtractOAuthToken(path);
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        result.IsActive = true;
+                        result.DetectedToken = token;
+                        result.StatusDescription = "GitHub Copilot credentials found in user configuration.";
+
+                        return result;
+                    }
+                }
+            }
+
+            var vsToken = readCredentialManagerToken();
             if (!string.IsNullOrEmpty(vsToken))
             {
                 result.IsInstalled = true;
@@ -209,8 +284,6 @@ public static class GitHubCopilotDetector
                 return result;
             }
 
-            // 2. Check Visual Studio GitHub Copilot log files
-            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             if (!string.IsNullOrEmpty(localAppData))
             {
                 var vsCopilotLogsDir = Path.Combine(localAppData, "Temp", "VSGitHubCopilotLogs");
@@ -240,35 +313,9 @@ public static class GitHubCopilotDetector
                 }
             }
 
-            // 3. Check ~/.config/github-copilot/hosts.json or %LOCALAPPDATA%/github-copilot/hosts.json
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var configPaths = new[]
-            {
-                Path.Combine(userProfile, ".config", "github-copilot", "hosts.json"),
-                Path.Combine(userProfile, ".config", "github-copilot", "apps.json"),
-                Path.Combine(localAppData, "github-copilot", "hosts.json")
-            };
-
-            foreach (var path in configPaths)
-            {
-                if (File.Exists(path))
-                {
-                    result.IsInstalled = true;
-                    var token = TryExtractOAuthToken(path);
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        result.IsActive = true;
-                        result.DetectedToken = token;
-                        result.StatusDescription = "GitHub Copilot credentials found in user configuration.";
-
-                        return result;
-                    }
-                }
-            }
-
             if (result.IsInstalled)
             {
-                result.StatusDescription = "GitHub Copilot extension is installed in Visual Studio.";
+                result.StatusDescription ??= "GitHub Copilot extension is installed in Visual Studio.";
             }
             else
             {
@@ -489,7 +536,7 @@ public static class GitHubCopilotDetector
     }
 
     /// <summary>
-    /// Reads a file&apos;s text and returns the OAuth token value found after the `&quot;oauth_token&quot;:&quot;` marker, or null if absent or on any I/O/parse error.
+    /// Parses a GitHub Copilot apps.json or hosts.json file and returns the first non-empty oauth_token value, or null if absent or on any I/O/parse error.
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <returns>A string value produced by this method.</returns>
@@ -497,24 +544,16 @@ public static class GitHubCopilotDetector
     {
         try
         {
-            var text = File.ReadAllText(filePath);
-            var tokenMarker = "\"oauth_token\":\"";
-            var index = text.IndexOf(tokenMarker, StringComparison.OrdinalIgnoreCase);
-            if (index >= 0)
-            {
-                var start = index + tokenMarker.Length;
-                var end = text.IndexOf('"', start);
-                if (end > start)
-                {
-                    return text.Substring(start, end - start);
-                }
-            }
-        }
-        catch
-        {
-            // Ignore file read/parse errors
-        }
+            var dict = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(filePath));
 
-        return null;
+            return dict?.Values
+                .OfType<Dictionary<string, object>>()
+                .Select(entry => entry.TryGetValue("oauth_token", out var tokenObj) ? tokenObj as string : null)
+                .FirstOrDefault(token => !string.IsNullOrWhiteSpace(token));
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }
