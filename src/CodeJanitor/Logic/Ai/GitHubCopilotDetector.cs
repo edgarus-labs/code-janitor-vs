@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
@@ -28,7 +31,7 @@ public static class GitHubCopilotDetector
     public const string DefaultCopilotModel = "gpt-4o";
 
     /// <summary>
-    /// List of standard models supported by GitHub Copilot Chat.
+    /// Fallback models shown when live GitHub Copilot model discovery fails.
     /// </summary>
     public static readonly string[] SupportedCopilotModels = ["gpt-4o", "claude-3.5-sonnet", "o1-mini", "gpt-4o-mini", "gpt-4-turbo"];
 
@@ -51,6 +54,8 @@ public static class GitHubCopilotDetector
 
     internal const string DefaultCopilotApiBaseUrl = "https://api.githubcopilot.com";
 
+    private static readonly TimeSpan ExchangeTimeout = TimeSpan.FromSeconds(8);
+
     internal sealed class CopilotSession
     {
         internal string Token { get; set; }
@@ -58,6 +63,24 @@ public static class GitHubCopilotDetector
         internal string ApiBaseUrl { get; set; }
 
         internal string ErrorMessage { get; set; }
+
+        internal DateTimeOffset? ExpiresAt { get; set; }
+    }
+
+    private static readonly TimeSpan SessionRefreshMargin = TimeSpan.FromSeconds(60);
+
+    private static readonly ConcurrentDictionary<string, CopilotSession> SessionCache = new ConcurrentDictionary<string, CopilotSession>(StringComparer.Ordinal);
+
+    public sealed class CopilotModelsResult
+    {
+        public List<string> Models { get; set; }
+
+        public string ErrorMessage { get; set; }
+    }
+
+    internal static void ResetCopilotSessionCache()
+    {
+        SessionCache.Clear();
     }
 
     internal static void ApplyCopilotHeaders(HttpRequestHeaders headers)
@@ -103,6 +126,22 @@ public static class GitHubCopilotDetector
             return new CopilotSession { Token = cleaned };
         }
 
+        if (SessionCache.TryGetValue(cleaned, out var cached) && cached.ExpiresAt - DateTimeOffset.UtcNow > SessionRefreshMargin)
+        {
+            return cached;
+        }
+
+        var session = await RequestCopilotSessionAsync(cleaned, httpMessageHandler).ConfigureAwait(false);
+        if (session.ErrorMessage is null && session.ExpiresAt.HasValue)
+        {
+            SessionCache[cleaned] = session;
+        }
+
+        return session;
+    }
+
+    private static async Task<CopilotSession> RequestCopilotSessionAsync(string cleaned, HttpMessageHandler httpMessageHandler)
+    {
         try
         {
             using (var client = CreateHttpClient(httpMessageHandler))
@@ -116,9 +155,14 @@ public static class GitHubCopilotDetector
                     var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (!response.IsSuccessStatusCode)
                     {
+                        var isAuthorizationFailure = response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.NotFound;
+                        var reason = isAuthorizationFailure
+                            ? "The GitHub token is invalid or not authorized for GitHub Copilot."
+                            : "GitHub could not issue a Copilot session; try again later.";
+
                         return new CopilotSession
                         {
-                            ErrorMessage = $"GitHub Copilot token exchange failed ({(int)response.StatusCode} {response.ReasonPhrase}). The GitHub token is invalid or not authorized for GitHub Copilot. {json}".Trim()
+                            ErrorMessage = $"GitHub Copilot token exchange failed ({(int)response.StatusCode} {response.ReasonPhrase}). {reason} {Truncate(json, 300)}".Trim()
                         };
                     }
 
@@ -134,28 +178,46 @@ public static class GitHubCopilotDetector
                         ? apiObj as string
                         : null;
 
-                    return new CopilotSession { Token = (string)tokenObj, ApiBaseUrl = apiBaseUrl };
+                    var expiresAt = dict.TryGetValue("expires_at", out var expiresObj) && long.TryParse(Convert.ToString(expiresObj, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out var expiresSeconds)
+                        ? DateTimeOffset.FromUnixTimeSeconds(expiresSeconds)
+                        : (DateTimeOffset?)null;
+
+                    return new CopilotSession { Token = (string)tokenObj, ApiBaseUrl = apiBaseUrl, ExpiresAt = expiresAt };
                 }
             }
         }
-        catch (Exception ex)
+        catch (TaskCanceledException)
         {
-            return new CopilotSession { ErrorMessage = "GitHub Copilot token exchange failed: " + ex.Message };
+            return new CopilotSession { ErrorMessage = $"GitHub Copilot token exchange timed out after {ExchangeTimeout.TotalSeconds:0} seconds contacting api.github.com." };
+        }
+        catch (HttpRequestException ex)
+        {
+            return new CopilotSession { ErrorMessage = "GitHub Copilot token exchange failed: " + (ex.InnerException?.Message ?? ex.Message) };
         }
     }
 
-    public static Task<List<string>> FetchCopilotModelsAsync(string token)
+    private static string Truncate(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+        {
+            return text;
+        }
+
+        return text.Substring(0, maxLength) + "...";
+    }
+
+    public static Task<CopilotModelsResult> FetchCopilotModelsAsync(string token)
     {
         return FetchCopilotModelsAsync(token, null);
     }
 
-    internal static async Task<List<string>> FetchCopilotModelsAsync(string token, HttpMessageHandler httpMessageHandler)
+    internal static async Task<CopilotModelsResult> FetchCopilotModelsAsync(string token, HttpMessageHandler httpMessageHandler)
     {
         var fallback = new List<string>(SupportedCopilotModels);
         var session = await ExchangeForCopilotSessionAsync(token, httpMessageHandler).ConfigureAwait(false);
         if (session.ErrorMessage is not null)
         {
-            return fallback;
+            return new CopilotModelsResult { Models = fallback, ErrorMessage = session.ErrorMessage };
         }
 
         try
@@ -171,18 +233,20 @@ public static class GitHubCopilotDetector
                 {
                     if (!response.IsSuccessStatusCode)
                     {
-                        return fallback;
+                        return new CopilotModelsResult { Models = fallback, ErrorMessage = $"GitHub Copilot models request failed ({(int)response.StatusCode} {response.ReasonPhrase})." };
                     }
 
                     var models = ParseCopilotChatModelIds(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
 
-                    return models.Count > 0 ? models : fallback;
+                    return models.Count > 0
+                        ? new CopilotModelsResult { Models = models }
+                        : new CopilotModelsResult { Models = fallback, ErrorMessage = "GitHub Copilot returned no chat models for this account." };
                 }
             }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex is ArgumentException || ex is InvalidOperationException)
         {
-            return fallback;
+            return new CopilotModelsResult { Models = fallback, ErrorMessage = "GitHub Copilot models request failed: " + ex.Message };
         }
     }
 
@@ -226,7 +290,7 @@ public static class GitHubCopilotDetector
     private static HttpClient CreateHttpClient(HttpMessageHandler httpMessageHandler)
     {
         var client = httpMessageHandler is null ? new HttpClient() : new HttpClient(httpMessageHandler, disposeHandler: false);
-        client.Timeout = TimeSpan.FromSeconds(8);
+        client.Timeout = ExchangeTimeout;
 
         return client;
     }

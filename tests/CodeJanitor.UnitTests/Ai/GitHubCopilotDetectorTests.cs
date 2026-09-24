@@ -18,6 +18,138 @@ public sealed class GitHubCopilotDetectorTests
     private const string ExchangeUrl = "https://api.github.com/copilot_internal/v2/token";
     private const string SessionToken = "tid=abc;exp=9999999999";
     private const string ExchangeResponse = "{\"token\":\"tid=abc;exp=9999999999\",\"endpoints\":{\"api\":\"https://api.business.githubcopilot.com\"}}";
+    private const string ChatResponse = "{\"choices\":[{\"message\":{\"content\":\"OK\"}}]}";
+
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        GitHubCopilotDetector.ResetCopilotSessionCache();
+    }
+
+    private static string ExchangeResponseExpiringIn(TimeSpan lifetime)
+    {
+        var expiresAt = DateTimeOffset.UtcNow.Add(lifetime).ToUnixTimeSeconds();
+        return "{\"token\":\"tid=abc;exp=" + expiresAt + "\",\"expires_at\":" + expiresAt + ",\"endpoints\":{\"api\":\"https://api.business.githubcopilot.com\"}}";
+    }
+
+    [TestMethod]
+    public async Task ExchangeForCopilotSessionAsync_ReusesUnexpiredSessionAcrossCalls()
+    {
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)));
+
+        var first = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_cached", handler);
+        var second = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_cached", handler);
+
+        Assert.IsNull(second.ErrorMessage);
+        Assert.AreEqual(first.Token, second.Token);
+        Assert.AreEqual(1, handler.Requests.Count);
+    }
+
+    [TestMethod]
+    public async Task ExchangeForCopilotSessionAsync_ExchangesAgainWhenSessionIsAboutToExpire()
+    {
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromSeconds(30)));
+
+        await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_expiring", handler);
+        await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_expiring", handler);
+
+        Assert.AreEqual(2, handler.Requests.Count);
+    }
+
+    [TestMethod]
+    public async Task ExchangeForCopilotSessionAsync_DoesNotReuseFailedExchange()
+    {
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.ServiceUnavailable, "upstream down");
+
+        await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_transient", handler);
+        await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_transient", handler);
+
+        Assert.AreEqual(2, handler.Requests.Count);
+    }
+
+    [TestMethod]
+    public async Task ExchangeForCopilotSessionAsync_BlamesTokenOnlyForAuthorizationFailures()
+    {
+        var unauthorized = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_a", new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}"));
+        var unavailable = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_b", new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.ServiceUnavailable, new string('x', 2000)));
+
+        StringAssert.Contains(unauthorized.ErrorMessage, "not authorized");
+        StringAssert.Contains(unavailable.ErrorMessage, "503");
+        Assert.IsFalse(unavailable.ErrorMessage.Contains("not authorized"));
+        Assert.IsTrue(unavailable.ErrorMessage.Length < 1000);
+    }
+
+    [TestMethod]
+    public async Task FetchCopilotModelsAsync_ReportsWhyFallbackModelsAreShown()
+    {
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}");
+
+        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_bad", handler);
+
+        CollectionAssert.AreEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
+        StringAssert.Contains(result.ErrorMessage, "token exchange failed");
+    }
+
+    [TestMethod]
+    public async Task CopilotClient_GetChatCompletionContentAsync_UsesSessionEndpointAndToken()
+    {
+        var handler = new FakeHttpHandler()
+            .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse)
+            .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.OK, ChatResponse);
+        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", "gpt-5", 5, 0, handler);
+
+        var content = await client.GetChatCompletionContentAsync("system", "user");
+
+        Assert.AreEqual("OK", content);
+        Assert.AreEqual("Bearer " + SessionToken, handler.Requests[1].Authorization);
+    }
+
+    [TestMethod]
+    public async Task CopilotClient_GetChatCompletionContentAsync_DoesNotRetryTokenExchangeFailure()
+    {
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}");
+        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "gho_bad", "Authorization", "gpt-5", 5, 0, handler);
+
+        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user"));
+
+        StringAssert.Contains(error.Message, "token exchange failed");
+        Assert.AreEqual(1, handler.Requests.Count);
+    }
+
+    [TestMethod]
+    public async Task CopilotClient_TestModelAsync_TimeoutCoversOnlyTheModelRequest()
+    {
+        var handler = new FakeHttpHandler()
+            .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse, delayMilliseconds: 1500)
+            .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.OK, ChatResponse);
+        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_slow_exchange", "Authorization", "gpt-5", 1, 0, handler);
+
+        var result = await client.TestModelAsync();
+
+        Assert.IsTrue(result.Succeeded, result.ErrorMessage);
+    }
+
+    [TestMethod]
+    public void DetectCopilotStatus_ReadsTokenFromHostsJson()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var localAppData = Path.Combine(root, "local");
+            var configDir = Path.Combine(localAppData, "github-copilot");
+            Directory.CreateDirectory(configDir);
+            File.WriteAllText(Path.Combine(configDir, "hosts.json"), "{\"github.com\":{\"user\":\"octo\",\"oauth_token\":\"ghu_hosts\"}}");
+
+            var result = GitHubCopilotDetector.DetectCopilotStatus(Path.Combine(root, "profile"), localAppData, () => null);
+
+            Assert.IsTrue(result.IsActive);
+            Assert.AreEqual("ghu_hosts", result.DetectedToken);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 
     [TestMethod]
     public void IsCopilotEndpoint_IdentifiesCopilotUrlsCorrectly()
@@ -57,14 +189,14 @@ public sealed class GitHubCopilotDetectorTests
     }
 
     [TestMethod]
-    public void FetchCopilotModelsAsync_ReturnsValidModelList()
+    public async Task FetchCopilotModelsAsync_FallsBackToDefaultModelsWhenModelsEndpointFails()
     {
-        var task = GitHubCopilotDetector.FetchCopilotModelsAsync(null);
-        task.Wait();
-        var models = task.Result;
+        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse);
 
-        Assert.IsNotNull(models);
-        Assert.IsTrue(models.Count > 0);
+        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
+
+        CollectionAssert.AreEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
+        StringAssert.Contains(result.ErrorMessage, "404");
     }
 
     [TestMethod]
@@ -119,9 +251,10 @@ public sealed class GitHubCopilotDetectorTests
                 "{\"id\":\"responses-only\",\"capabilities\":{\"type\":\"chat\"},\"policy\":{\"state\":\"enabled\"},\"supported_endpoints\":[\"/responses\"]}," +
                 "{\"id\":\"text-embedding-3-small\",\"capabilities\":{\"type\":\"embeddings\"}}]}");
 
-        var models = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
+        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
 
-        CollectionAssert.AreEquivalent(new[] { "gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "kimi-k3" }, models);
+        CollectionAssert.AreEquivalent(new[] { "gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "kimi-k3" }, result.Models);
+        Assert.IsNull(result.ErrorMessage);
         Assert.AreEqual("Bearer " + SessionToken, handler.Requests[1].Authorization);
         Assert.AreEqual("visualstudio-chat", handler.Requests[1].Header("Copilot-Integration-Id"));
     }
@@ -198,23 +331,27 @@ public sealed class GitHubCopilotDetectorTests
 
     private sealed class FakeHttpHandler : HttpMessageHandler
     {
-        private readonly Dictionary<string, Tuple<HttpStatusCode, string>> _responses = new Dictionary<string, Tuple<HttpStatusCode, string>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Tuple<HttpStatusCode, string, int>> _responses = new Dictionary<string, Tuple<HttpStatusCode, string, int>>(StringComparer.OrdinalIgnoreCase);
 
         public List<RecordedRequest> Requests { get; } = new List<RecordedRequest>();
 
-        public FakeHttpHandler On(string url, HttpStatusCode status, string body)
+        public FakeHttpHandler On(string url, HttpStatusCode status, string body, int delayMilliseconds = 0)
         {
-            _responses[url] = Tuple.Create(status, body);
+            _responses[url] = Tuple.Create(status, body, delayMilliseconds);
             return this;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add(new RecordedRequest(request));
-            var response = _responses.TryGetValue(request.RequestUri.AbsoluteUri, out var configured)
-                ? new HttpResponseMessage(configured.Item1) { Content = new StringContent(configured.Item2, Encoding.UTF8, "application/json") }
-                : new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent(string.Empty) };
-            return Task.FromResult(response);
+            if (!_responses.TryGetValue(request.RequestUri.AbsoluteUri, out var configured))
+            {
+                return new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent(string.Empty) };
+            }
+
+            await Task.Delay(configured.Item3, cancellationToken);
+
+            return new HttpResponseMessage(configured.Item1) { Content = new StringContent(configured.Item2, Encoding.UTF8, "application/json") };
         }
     }
 

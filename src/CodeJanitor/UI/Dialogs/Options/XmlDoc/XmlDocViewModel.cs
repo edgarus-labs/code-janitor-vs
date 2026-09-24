@@ -1029,7 +1029,8 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
 
         Package.JoinableTaskFactory.RunAsync(async delegate
         {
-            var models = await GitHubCopilotDetector.FetchCopilotModelsAsync(token);
+            var result = await GitHubCopilotDetector.FetchCopilotModelsAsync(token);
+            var models = result.Models;
             await Package.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             if (!AvailableCopilotModels.SequenceEqual(models))
@@ -1049,6 +1050,10 @@ public sealed class XmlDocViewModel : OptionsPageViewModel
             {
                 CopilotModel = AvailableCopilotModels.FirstOrDefault() ?? GitHubCopilotDetector.DefaultCopilotModel;
             }
+
+            AiXmlDocumentationConnectionStatus = result.ErrorMessage is null
+                ? $"Found {models.Count} GitHub Copilot model(s)."
+                : $"Could not load models from GitHub Copilot: {result.ErrorMessage} Showing default models.";
         });
     }
 
