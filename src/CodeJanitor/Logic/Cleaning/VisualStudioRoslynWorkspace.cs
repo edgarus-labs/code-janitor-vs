@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -90,9 +91,9 @@ internal sealed class VisualStudioRoslynWorkspace
     }
 
     /// <summary>
-    /// Resolves the C# document for the file in the given solution, with its text replaced by
-    /// <paramref name="currentText" /> when the workspace has not yet observed it (e.g. right after the
-    /// headless cleanup wrote the file, or while earlier cleanup steps edited the editor buffer).
+    /// Resolves the preferred C# document for the file in the given solution (see <see cref="FindDocumentIds" />),
+    /// with its text replaced by <paramref name="currentText" /> when the workspace has not yet observed it (e.g.
+    /// right after the headless cleanup wrote the file, or while earlier cleanup steps edited the editor buffer).
     /// </summary>
     /// <param name="solution">The current workspace solution.</param>
     /// <param name="filePath">The file path.</param>
@@ -108,20 +109,48 @@ internal sealed class VisualStudioRoslynWorkspace
         string currentText,
         CancellationToken cancellationToken)
     {
-        var documentId = FindDocumentId(solution, filePath, projectFilePath)
-            ?? throw new InvalidOperationException(
-                $"'{filePath}' is not part of any C# project loaded in the Visual Studio Roslyn workspace (for example it is excluded from compilation), so it cannot be analyzed semantically.");
+        var documentId = FindDocumentIds(solution, filePath, projectFilePath).FirstOrDefault()
+            ?? throw CreateNotInWorkspaceException(filePath);
 
-        var document = solution.GetDocument(documentId);
-        var workspaceText = await document.GetTextAsync(cancellationToken);
-        if (string.Equals(workspaceText.ToString(), currentText, StringComparison.Ordinal))
+        var updatedSolution = await WithCurrentTextAsync(solution, documentId, currentText, cancellationToken);
+
+        return updatedSolution.GetDocument(documentId);
+    }
+
+    /// <summary>
+    /// Resolves every C# document for the file in the given solution: a file compiled by several projects (linked
+    /// files, shared projects) or target frameworks (multi-targeted projects) has one document per project flavor,
+    /// each bound against its own references and preprocessor symbols. Every document gets its text replaced by
+    /// <paramref name="currentText" /> when the workspace has not yet observed it. The document of the project
+    /// containing the item comes first, then the order of <see cref="FindDocumentIds" />.
+    /// </summary>
+    /// <param name="solution">The current workspace solution.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
+    /// <param name="currentText">The current text of the file.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The documents, at least one.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static async Task<IReadOnlyList<Microsoft.CodeAnalysis.Document>> GetDocumentsAsync(
+        Solution solution,
+        string filePath,
+        string projectFilePath,
+        string currentText,
+        CancellationToken cancellationToken)
+    {
+        var documentIds = FindDocumentIds(solution, filePath, projectFilePath);
+        if (documentIds.Count == 0)
         {
-            return document;
+            throw CreateNotInWorkspaceException(filePath);
         }
 
-        return solution
-            .WithDocumentText(documentId, SourceText.From(currentText, workspaceText.Encoding, workspaceText.ChecksumAlgorithm))
-            .GetDocument(documentId);
+        var updatedSolution = solution;
+        foreach (var documentId in documentIds)
+        {
+            updatedSolution = await WithCurrentTextAsync(updatedSolution, documentId, currentText, cancellationToken);
+        }
+
+        return documentIds.Select(documentId => updatedSolution.GetDocument(documentId)).ToList();
     }
 
     /// <summary>
@@ -185,17 +214,17 @@ internal sealed class VisualStudioRoslynWorkspace
     }
 
     /// <summary>
-    /// Finds the C# document for the specified file. A file can map to several documents (linked
+    /// Finds the C# documents for the specified file. A file can map to several documents (linked
     /// files, shared projects, multi-targeted projects); the document of the project containing the
-    /// project item is preferred, then the choice is made deterministically by project file path and
-    /// project name (ordinal), so the same target framework flavor is always used.
+    /// project item comes first, then the order is deterministic by project file path and project
+    /// name (ordinal), so the same target framework flavor is always preferred.
     /// </summary>
     /// <param name="solution">The solution.</param>
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
-    /// <returns>The document id, otherwise null.</returns>
+    /// <returns>The document ids, possibly none.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static DocumentId FindDocumentId(Solution solution, string filePath, string projectFilePath)
+    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath)
     {
         return solution.GetDocumentIdsWithFilePath(filePath)
             .Select(id => solution.GetDocument(id))
@@ -204,8 +233,39 @@ internal sealed class VisualStudioRoslynWorkspace
             .ThenBy(document => document.Project.FilePath ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ThenBy(document => document.Project.Name, StringComparer.Ordinal)
             .Select(document => document.Id)
-            .FirstOrDefault();
+            .ToList();
     }
+
+    /// <summary>
+    /// Replaces the text of the document with <paramref name="currentText" /> when it differs, keeping the
+    /// encoding and checksum algorithm of the workspace text.
+    /// </summary>
+    /// <param name="solution">The solution.</param>
+    /// <param name="documentId">The document id.</param>
+    /// <param name="currentText">The current text of the file.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The solution with the current text.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task<Solution> WithCurrentTextAsync(
+        Solution solution,
+        DocumentId documentId,
+        string currentText,
+        CancellationToken cancellationToken)
+    {
+        var workspaceText = await solution.GetDocument(documentId).GetTextAsync(cancellationToken);
+        if (string.Equals(workspaceText.ToString(), currentText, StringComparison.Ordinal))
+        {
+            return solution;
+        }
+
+        return solution.WithDocumentText(
+            documentId,
+            SourceText.From(currentText, workspaceText.Encoding, workspaceText.ChecksumAlgorithm));
+    }
+
+    private static InvalidOperationException CreateNotInWorkspaceException(string filePath) =>
+        new InvalidOperationException(
+            $"'{filePath}' is not part of any C# project loaded in the Visual Studio Roslyn workspace (for example it is excluded from compilation), so it cannot be analyzed semantically.");
 
     /// <summary>
     /// Describes the Microsoft.CodeAnalysis.Workspaces assembly a host workspace type derives from.

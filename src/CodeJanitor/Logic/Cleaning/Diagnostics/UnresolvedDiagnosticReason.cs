@@ -17,7 +17,7 @@ public enum UnresolvedDiagnosticReason
     NoApplicableCodeAction,
 
     /// <summary>
-    /// The fix was rejected because it increased the number of compiler errors of a changed project.
+    /// The fix was rejected because it added a compiler error to a changed project (even if it removed another).
     /// </summary>
     FixRejectedIntroducesCompilerErrors,
 

@@ -24,19 +24,35 @@ name such as `using Services;` can refer to `Company.App.Services`; at file leve
 Every moved directive, alias target and `using static` is therefore resolved with the Roslyn
 semantic model. Directives that mean the same at file level keep their exact text (for example
 `using Str = System.String;` or `using V1::Lib;`); the others are written fully qualified
-(`using Company.App.Services;`). Duplicates of existing top-level directives are dropped. The
-file header, line endings and the blank line after the directives are kept.
+(`using Company.App.Services;`). Duplicates of existing top-level directives are dropped; their
+comments move to the surviving directive. Comments on using directives, the file header, line
+endings and the blank line after the directives are kept.
 
-The move is all-or-nothing per file. The file is left unchanged, and the reason is written to
-the Code Janitor output pane, when:
+The move is all-or-nothing per file. The using directives are left in place (the rest of the
+cleanup still runs), and the reason is written to the Code Janitor output pane, when:
 
 - a directive cannot be resolved;
-- preprocessor directives (`#if`, `#region`, ...) sit between or around the using directives;
+- the file, another document of the project or a project it references uses conditional
+  compilation (`#if`/`#elif`) and the move is unsafe in any combination of the relevant
+  symbols (every combination of up to four symbols is verified; with more than four the
+  directives are left in place). Usings inside a namespace that is excluded in the current
+  build configuration stay where they are;
+- the directives would move across other preprocessor directives (`#region`, `#nullable`,
+  `#pragma`, ...) between the file-level using directives and the namespace;
 - the file is not part of a C# project in the Visual Studio workspace;
+- the file is compiled by several projects or target frameworks (linked files, shared
+  projects, multi-targeting) and the move is unsafe in any of them or gives a different
+  result in each of them;
 - the moved file would have compile errors the original did not have (for example an
   ambiguity after merging the directives of several namespaces);
-- a name would refer to a different symbol after the move (an import searched after a
-  same-named type of an enclosing namespace).
+- a name, member or implicitly called member (for example the `GetEnumerator` of a `foreach`,
+  a collection-initializer `Add`, `GetAwaiter`, `Deconstruct` or a query operator) would bind
+  to a different symbol after the move (an import searched after a same-named type or an
+  extension method of an enclosing namespace);
+- a moved directive imports an extension member that the compiler calls without exposing the
+  binding to verify: `Add` or `GetEnumerator` used by a collection expression or spread
+  element, `GetPinnableReference` used by a `fixed` statement, or `operator ==`/`!=` used
+  element-wise by tuple equality.
 
 The step needs the Visual Studio Roslyn workspace (Roslyn 5.9 or newer). It runs before the
 text cleanup and the type split, so the file header, using organization and split files see the
@@ -91,9 +107,12 @@ other analyzers (for example analyzer NuGet packages). There is no separate sett
   Cleanup applies the fix to the whole document when the provider supports Fix All.
   Otherwise it fixes one diagnostic at a time and analyzes the document again, up to
   50 passes.
-- **Safety.** A fix is rejected when it would increase the number of compiler errors in
-  any changed project. It is also rejected when it does more than change document text,
-  for example adding or removing files or references.
+- **Safety.** A fix is rejected when it would add any compiler error to a changed project,
+  even if it also removes another one. It is also rejected when it does more than change
+  document text, for example adding or removing files or references. When the file is also
+  compiled by other projects or target frameworks (linked files, shared projects,
+  multi-targeting), the new text is checked in each of them first; if any gets a new compiler
+  error, nothing is applied and the failure names that project and error.
 - **Unsupported and unsafe diagnostics.** Code Janitor never modifies code for a
   diagnostic without a code fix, without a usable code action, with a rejected fix or
   that does not converge. It reports the diagnostic in the CodeJanitor output pane.
@@ -193,3 +212,5 @@ Two commands manage the file from the Code Janitor menu:
 ## Supported Visual Studio versions
 
 The VSIX installs only on Visual Studio 2026 (18.x, Community, Professional and Enterprise). Visual Studio 2022 is not supported: its Roslyn is older than the 5.9 required by the features that use the Visual Studio Roslyn workspace (diagnostic cleanup, moving using directives outside namespaces).
+
+The installation range does not enforce the Roslyn version: every Visual Studio 2026 build installs the VSIX, but the Roslyn workspace features need a build that ships Roslyn 5.9 or newer. On an older 18.x build they write the binding failure to the Code Janitor output pane and leave files unchanged; all other cleanup features work.

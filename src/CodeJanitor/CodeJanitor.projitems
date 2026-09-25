@@ -165,6 +165,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupCategory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupCategoryClassifier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\CompilerErrors.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\UnresolvedDiagnostic.cs" />
@@ -186,6 +187,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\CommentFormatConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\SingleStatementLambdaConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\FileScopedNamespaceConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ConditionalCompilationVariants.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\MoveUsingsOutsideNamespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\MoveUsingsOutsideNamespaceResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ReturnThrowBlankLinePaddingConverter.cs" />

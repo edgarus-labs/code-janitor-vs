@@ -40,8 +40,8 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// that share provider and equivalence key: through the provider's fix-all provider when it supports document scope,
 /// otherwise for the first diagnostic of the group only. When the provider also offers other actions with the same
 /// equivalence key, the batch fixer is used with only the chosen action of each diagnostic. A fix is accepted only when its operations contain
-/// exactly one solution change, that change merely changes document texts, and it does not increase the number of
-/// compiler errors of any changed project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
+/// exactly one solution change, that change merely changes document texts, and it adds no compiler error to any changed
+/// project. Other operations (host/UI notifications such as Visual Studio's symbol-renamed notification)
 /// are never executed by the engine: those of accepted fixes are handed to the host in
 /// <see cref="DiagnosticCleanupResult.PostApplyOperations" />. A rejected group is not retried in the same run. Passes
 /// repeat until no actionable diagnostic can make progress or <see cref="DiagnosticCleanupOptions.MaxPasses" /> fixes
@@ -189,8 +189,8 @@ public sealed class DiagnosticCleanupEngine
 
         private readonly List<CodeActionOperation> _postApplyOperations = new List<CodeActionOperation>();
 
-        private Solution _errorCountSolution;
-        private Dictionary<ProjectId, int> _errorCounts = new Dictionary<ProjectId, int>();
+        private Solution _errorSolution;
+        private Dictionary<ProjectId, IReadOnlyList<Diagnostic>> _errors = new Dictionary<ProjectId, IReadOnlyList<Diagnostic>>();
 
         public CleanupRun(
             DocumentId documentId,
@@ -489,7 +489,7 @@ public sealed class DiagnosticCleanupEngine
             }
 
             var changedProjectIds = changedTexts.Select(changedText => changedText.Key.ProjectId).Distinct();
-            if (await IncreasesCompilerErrorsAsync(solution, candidate, changedProjectIds, cancellationToken).ConfigureAwait(false))
+            if (await IntroducesCompilerErrorsAsync(solution, candidate, changedProjectIds, cancellationToken).ConfigureAwait(false))
             {
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors);
             }
@@ -584,49 +584,41 @@ public sealed class DiagnosticCleanupEngine
 
         /// <summary>
         /// Safety gate: compares the Error-severity compiler diagnostics of every changed project before and after the
-        /// change. Passing the gate is the last acceptance check, so the counts of the candidate are kept as the counts
-        /// of the next current solution.
+        /// change (see <see cref="CompilerErrors" />), so a fix that removes one error but adds a different one is still
+        /// rejected. Passing the gate is the last acceptance check, so the errors of the candidate are kept as the
+        /// errors of the next current solution.
         /// </summary>
-        private async Task<bool> IncreasesCompilerErrorsAsync(Solution solution, Solution candidate, IEnumerable<ProjectId> projectIds, CancellationToken cancellationToken)
+        private async Task<bool> IntroducesCompilerErrorsAsync(Solution solution, Solution candidate, IEnumerable<ProjectId> projectIds, CancellationToken cancellationToken)
         {
-            if (!ReferenceEquals(_errorCountSolution, solution))
+            if (!ReferenceEquals(_errorSolution, solution))
             {
-                _errorCountSolution = solution;
-                _errorCounts = new Dictionary<ProjectId, int>();
+                _errorSolution = solution;
+                _errors = new Dictionary<ProjectId, IReadOnlyList<Diagnostic>>();
             }
 
-            var candidateErrorCounts = new Dictionary<ProjectId, int>();
+            var candidateErrors = new Dictionary<ProjectId, IReadOnlyList<Diagnostic>>();
 
             foreach (var projectId in projectIds)
             {
-                if (!_errorCounts.TryGetValue(projectId, out var before))
+                if (!_errors.TryGetValue(projectId, out var before))
                 {
-                    before = await CountCompilerErrorsAsync(solution.GetProject(projectId), cancellationToken).ConfigureAwait(false);
-                    _errorCounts.Add(projectId, before);
+                    before = await CompilerErrors.GetAsync(solution.GetProject(projectId), cancellationToken).ConfigureAwait(false);
+                    _errors.Add(projectId, before);
                 }
 
-                var after = await CountCompilerErrorsAsync(candidate.GetProject(projectId), cancellationToken).ConfigureAwait(false);
-                if (after > before)
+                var after = await CompilerErrors.GetAsync(candidate.GetProject(projectId), cancellationToken).ConfigureAwait(false);
+                if (CompilerErrors.FindFirstNew(before, after) is not null)
                 {
                     return true;
                 }
 
-                candidateErrorCounts.Add(projectId, after);
+                candidateErrors.Add(projectId, after);
             }
 
-            _errorCountSolution = candidate;
-            _errorCounts = candidateErrorCounts;
+            _errorSolution = candidate;
+            _errors = candidateErrors;
 
             return false;
-        }
-
-        private static async Task<int> CountCompilerErrorsAsync(Project project, CancellationToken cancellationToken)
-        {
-            var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-
-            return compilation == null
-                ? 0
-                : compilation.GetDiagnostics(cancellationToken).Count(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         }
 
         private void RecordAppliedFixes(IEnumerable<ActionableDiagnostic> fixedDiagnostics, CodeFixProvider provider)

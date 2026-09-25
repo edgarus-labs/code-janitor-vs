@@ -239,6 +239,35 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixOnlyMovingCodeWithAnExistingCompilerError_IsApplied()
+    {
+        // The existing CS0246 moves to another line; the gate compares errors without their positions.
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(s_useBraceOnSameLine));
+        var documentId = workspace.AddDocument("Widget.cs", Lines(
+            "class Widget",
+            "{",
+            "    void Draw()",
+            "    {",
+            "        MissingType value = null;",
+            "    }",
+            "}"));
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
+
+        Assert.AreEqual(
+            Lines(
+                "class Widget {",
+                "    void Draw() {",
+                "        MissingType value = null;",
+                "    }",
+                "}"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.IsTrue(result.IsComplete);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ExplicitTypePreference_ReplacesVarWithExplicitTypes()
     {
         using var workspace = new DiagnosticCleanupTestWorkspace();
@@ -893,6 +922,40 @@ public sealed class DiagnosticCleanupEngineTests
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, result.Unresolved.Single().Reason, "Renaming only the declaration breaks the reference.");
         Assert.AreEqual(0, result.PostApplyOperations.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixRemovingOneCompilerErrorButAddingAnother_IsRejected()
+    {
+        // Renaming only the declaration resolves 'renamedValue' (one CS0103 fewer) but breaks 'legacyValue' (a new
+        // CS0103): the error count is unchanged, yet the fix introduces an error.
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0014", "Performance"));
+        workspace.ConfigureRuleSeverity("CJT0014", "warning");
+        var documentId = workspace.AddDocument("Settings.cs", Lines(
+            "class Settings",
+            "{",
+            "    public int legacyValue;",
+            "",
+            "    public int Read()",
+            "    {",
+            "        return legacyValue;",
+            "    }",
+            "",
+            "    public int ReadRenamed()",
+            "    {",
+            "        return renamedValue;",
+            "    }",
+            "}"));
+        var solution = workspace.CreateSolution();
+        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+            "CJT0014",
+            (_, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed) });
+
+        var result = await CleanupAsync(solution, documentId, provider);
+
+        Assert.AreSame(solution, result.ChangedSolution, "The fix swaps one compiler error for another and must not be applied.");
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, result.Unresolved.Single().Reason);
     }
 
     [TestMethod]

@@ -22,10 +22,11 @@ This file records changes made in Code Janitor after the project became an indep
 - C# diagnostic cleanup driven by `.editorconfig` and Roslyn. Rules the repository's `.editorconfig`
 	configures (formatting, naming, code style, other analyzers) are fixed with the existing Roslyn and
 	analyzer code fixes after the other cleanup steps; rules active only through Visual Studio defaults
-	are left alone. Only `suggestion`, `warning` and `error` diagnostics are fixed. Fixes that add
-	compiler errors or change anything other than document text are rejected. Unfixed diagnostics are
-	reported in the output pane and in the cleanup summary. Visual Studio Code Cleanup profiles are not
-	used. Requires a Visual Studio build with Roslyn 5.9 or newer.
+	are left alone. Only `suggestion`, `warning` and `error` diagnostics are fixed. Fixes that add any
+	compiler error (even while removing another), add a compiler error in another project or target
+	framework that compiles the same file, or change anything other than document text are rejected.
+	Unfixed diagnostics are reported in the output pane and in the cleanup summary. Visual Studio Code
+	Cleanup profiles are not used. Requires a Visual Studio build with Roslyn 5.9 or newer.
 - CI runs the unit tests with `vstest.console` after the Release build, and the workflow fails on
 	test failures.
 - CodeQL code scanning (`.github/workflows/codeql.yml`) for C# and GitHub Actions workflows on
@@ -33,12 +34,18 @@ This file records changes made in Code Janitor after the project became an indep
 
 ### Changed
 
-- Visual Studio 2026 is the only supported installation target; the VSIX no longer installs on Visual Studio
-	2022 (17.x), whose Roslyn is older than the 5.9 the Roslyn workspace features require.
 - Migrated the legacy Options experience to the native Visual Studio settings system.
 - Organized approximately 191 settings into 21 categories.
 - Removed the legacy classic Options UI after the native settings migration.
 - Added secure configuration boundaries for AI-assisted operations.
+
+### Removed
+
+- **Breaking:** dropped Visual Studio 2022 (17.x) support. The VSIX installs only on Visual Studio 2026
+	(18.x); existing Visual Studio 2022 installations no longer receive updates. The features that use the
+	Visual Studio Roslyn workspace (diagnostic cleanup, moving using directives outside namespaces) need
+	Roslyn 5.9 or newer, which Visual Studio 2022 does not ship. Visual Studio 2026 builds with an older Roslyn
+	still install; on them those two features log the failure and leave files unchanged.
 
 ### Fixed
 
@@ -50,9 +57,13 @@ This file records changes made in Code Janitor after the project became an indep
 	directives such as `using Services;` inside `namespace Company.App`. Each moved directive, alias target and
 	`using static` is now resolved with the Roslyn semantic model: directives that mean the same at file level
 	keep their exact text, the others are written fully qualified (`using Company.App.Services;`). If a
-	directive cannot be resolved, preprocessor directives are interleaved with the using directives, or the move
-	would add compile errors or make a name refer to a different symbol, the file is left unchanged and the
-	reason is written to the output pane. The step runs against the Visual Studio Roslyn workspace before the
+	directive cannot be resolved, the directives would move across preprocessor directives, or the move would
+	add compile errors or make a name, member or implicitly called member (such as an extension
+	`GetEnumerator`, `Add`, `Count` or `operator true`) refer to a different symbol in any project, target
+	framework or conditional-compilation variant (up to four relevant `#if` symbols, including ones that
+	change declarations in other files or referenced projects) that compiles the file, the directives are
+	left in place, the rest of the cleanup still runs, and the reason is written to the output pane once per
+	cleanup. The step runs against the Visual Studio Roslyn workspace before the
 	text cleanup (and before type splitting), honors the `.codejanitor` `moveUsingsOutsideNamespace` policy in
 	the editor too, and is no longer part of the selected-scope text preview. Converting to a file-scoped
 	namespace no longer moves using directives on its own: without the move step they stay inside the

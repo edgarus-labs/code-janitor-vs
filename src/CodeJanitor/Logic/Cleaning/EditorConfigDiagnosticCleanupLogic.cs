@@ -174,7 +174,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <summary>
     /// Runs the engine against the Visual Studio workspace and applies its result. When the workspace
     /// rejects the changes (the solution changed while the engine ran), the result is recomputed once
-    /// from a fresh solution before failing explicitly.
+    /// from a fresh solution before failing explicitly. Nothing is applied, and cleanup fails explicitly, when the
+    /// fixes would add a compiler error in another project flavor of a changed file
+    /// (see <see cref="FindNewErrorInOtherFlavorsAsync" />).
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
@@ -229,6 +231,18 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
                 }
             }
 
+            // The engine validated only the project flavors it changed; a linked, shared or multi-targeted file must
+            // not gain compiler errors in any other project that compiles it.
+            if (result.HasChanges)
+            {
+                var otherFlavorError = await FindNewErrorInOtherFlavorsAsync(result.OriginalSolution, result.ChangedSolution, cancellationToken);
+                if (otherFlavorError is not null)
+                {
+                    throw new InvalidOperationException(
+                        $"Diagnostic fixes for '{filePath}' were computed in project '{document.Project.Name}', but {otherFlavorError}. No diagnostic fixes were applied.");
+                }
+            }
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             if (!result.HasChanges)
@@ -251,6 +265,77 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         throw new InvalidOperationException(
             $"Visual Studio rejected the diagnostic fixes for '{filePath}' twice because the solution kept changing during cleanup. No diagnostic fixes were applied.");
+    }
+
+    /// <summary>
+    /// Checks that diagnostic fixes computed in one project flavor add no compiler error in the other flavors of the
+    /// changed files: a file compiled by several projects (linked files, shared projects) or target frameworks
+    /// (multi-targeted projects) has one document per flavor, bound against its own references and preprocessor
+    /// symbols, and the engine only validated the flavors it changed. Every other flavor gets the changed text in a
+    /// fork of <paramref name="originalSolution" />, and the Error-severity compiler diagnostics of its project are
+    /// compared with the same flavor holding the original text. Files compiled by a single project need no extra work.
+    /// </summary>
+    /// <param name="originalSolution">The solution the fixes were computed from.</param>
+    /// <param name="changedSolution">The solution with the fixes; compared to <paramref name="originalSolution" /> only document texts differ.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Null when no other flavor gets a new compiler error, otherwise the reason naming the first project that does and its first new error.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static async Task<string> FindNewErrorInOtherFlavorsAsync(Solution originalSolution, Solution changedSolution, CancellationToken cancellationToken)
+    {
+        var changedDocumentIds = new HashSet<DocumentId>(changedSolution.GetChanges(originalSolution)
+            .GetProjectChanges()
+            .SelectMany(projectChanges => projectChanges.GetChangedDocuments()));
+
+        var baseline = originalSolution;
+        var candidate = changedSolution;
+        var otherFlavors = new List<(ProjectId ProjectId, string FilePath)>();
+        var checkedFilePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var documentId in changedDocumentIds)
+        {
+            var original = originalSolution.GetDocument(documentId);
+            if (original?.FilePath is null || !checkedFilePaths.Add(original.FilePath))
+            {
+                continue;
+            }
+
+            var flavorIds = VisualStudioRoslynWorkspace.FindDocumentIds(originalSolution, original.FilePath, projectFilePath: null)
+                .Where(id => !changedDocumentIds.Contains(id))
+                .ToList();
+            if (flavorIds.Count == 0)
+            {
+                continue;
+            }
+
+            var oldText = await original.GetTextAsync(cancellationToken);
+            var newText = await changedSolution.GetDocument(documentId).GetTextAsync(cancellationToken);
+            foreach (var flavorId in flavorIds)
+            {
+                // The workspace text of another flavor can lag behind the text the engine started from (e.g. the
+                // current editor buffer), so both sides of the comparison get the engine's texts.
+                var flavorText = await originalSolution.GetDocument(flavorId).GetTextAsync(cancellationToken);
+                if (!flavorText.ContentEquals(oldText))
+                {
+                    baseline = baseline.WithDocumentText(flavorId, oldText);
+                }
+
+                candidate = candidate.WithDocumentText(flavorId, newText);
+                otherFlavors.Add((flavorId.ProjectId, original.FilePath));
+            }
+        }
+
+        foreach (var flavor in otherFlavors.GroupBy(flavor => flavor.ProjectId).Select(group => group.First()))
+        {
+            var newError = CompilerErrors.FindFirstNew(
+                await CompilerErrors.GetAsync(baseline.GetProject(flavor.ProjectId), cancellationToken),
+                await CompilerErrors.GetAsync(candidate.GetProject(flavor.ProjectId), cancellationToken));
+            if (newError is not null)
+            {
+                return $"they would add compiler errors in project '{originalSolution.GetProject(flavor.ProjectId).Name}', which also compiles '{flavor.FilePath}': {newError}";
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

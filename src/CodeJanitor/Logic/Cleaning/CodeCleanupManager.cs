@@ -271,13 +271,14 @@ internal sealed class CodeCleanupManager
         // buffer is then the source of truth and cleanup must operate on the live document.
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
         var headlessResult = HeadlessCleanupResult.NotApplicable;
+        var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
         if (!wasOpen)
         {
             // The semantic using move needs the Visual Studio workspace and runs first, so the headless steps
             // (header, using organization, type splitting) see the moved directives.
-            var usingsMoved = ThreadHelper.JoinableTaskFactory.Run(() => _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem));
+            usingsMoveOutcome = ThreadHelper.JoinableTaskFactory.Run(() => _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem));
             headlessResult = TryRunHeadlessPreCleanupForCSharp(projectItem);
-            if (usingsMoved && headlessResult == HeadlessCleanupResult.NoChanges)
+            if (usingsMoveOutcome == UsingsMoveOutcome.Moved && headlessResult == HeadlessCleanupResult.NoChanges)
             {
                 headlessResult = HeadlessCleanupResult.Changed;
             }
@@ -320,7 +321,7 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            Cleanup(projectItem.Document);
+            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -366,12 +367,13 @@ internal sealed class CodeCleanupManager
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
 
         var headlessResult = HeadlessCleanupResult.NotApplicable;
+        var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
 
         if (!wasOpen)
         {
             // The semantic using move needs the Visual Studio workspace and runs first, so the headless steps
             // (header, using organization, type splitting) see the moved directives.
-            var usingsMoved = await _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
+            usingsMoveOutcome = await _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
 
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
@@ -380,7 +382,7 @@ internal sealed class CodeCleanupManager
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            headlessResult = usingsMoved && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
+            headlessResult = usingsMoveOutcome == UsingsMoveOutcome.Moved && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
 
             if (outcome.SplitOperationOccurred)
             {
@@ -431,7 +433,7 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            Cleanup(projectItem.Document);
+            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -1437,6 +1439,22 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
+        CleanupDocument(document, usingsLeftInPlace: false);
+    }
+
+    /// <summary>
+    /// Attempts to run code cleanup on the specified document.
+    /// </summary>
+    /// <param name="document">The document for cleanup.</param>
+    /// <param name="usingsLeftInPlace">
+    /// True when the semantic using move was already attempted for the file in this cleanup and left the using
+    /// directives in place: it is not retried, since that would repeat the analysis and the warning.
+    /// </param>
+
+    private void CleanupDocument(Document document, bool usingsLeftInPlace)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
         _cleanupExecutionStats.EditorItems++;
 
         if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true)) return;
@@ -1456,11 +1474,12 @@ internal sealed class CodeCleanupManager
         }
 
         // When types are split into their own files, the semantic using move must run before the split so the
-        // created files inherit the moved directives. It is then its own undo unit, like the split; otherwise it
-        // runs inside the cleanup undo transaction (RunCodeCleanupCSharp).
-        if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles && document.GetCodeLanguage() == CodeLanguage.CSharp)
+        // created files inherit the moved directives. It is then its own undo unit, like the split, and the calls in
+        // the cleanup undo transaction (RunCodeCleanupCSharp) find nothing left to move. Once a move left the
+        // directives in place (including the closed-file move of this cleanup), no later step retries it.
+        if (!usingsLeftInPlace && Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles && document.GetCodeLanguage() == CodeLanguage.CSharp)
         {
-            _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(document.GetTextDocument());
+            usingsLeftInPlace = _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(document.GetTextDocument()) == UsingsMoveOutcome.LeftInPlace;
         }
 
         TrySplitTopLevelTypesToSeparateFiles(document);
@@ -1482,7 +1501,7 @@ internal sealed class CodeCleanupManager
         new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorCleanupFor0, document.Name)).Run(
             delegate
             {
-                var cleanupMethod = FindCodeCleanupMethod(document);
+                var cleanupMethod = FindCodeCleanupMethod(document, usingsLeftInPlace);
                 if (cleanupMethod is not null)
                 {
                     OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");
@@ -1608,8 +1627,8 @@ internal sealed class CodeCleanupManager
     /// <param name="projectItem">The project item.</param>
     /// <returns>True when the file was rewritten with the moved directives.</returns>
 
-    internal Task<bool> MoveUsingsOutsideNamespaceAsync(ProjectItem projectItem) =>
-        _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
+    internal async Task<bool> MoveUsingsOutsideNamespaceAsync(ProjectItem projectItem) =>
+        await _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem) == UsingsMoveOutcome.Moved;
 
     /// <summary>
     /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup
@@ -1678,16 +1697,19 @@ internal sealed class CodeCleanupManager
     /// Finds a code cleanup method appropriate for the specified document, otherwise null.
     /// </summary>
     /// <param name="document">The document.</param>
+    /// <param name="usingsLeftInPlace">
+    /// True when the semantic using move already left the using directives in place in this cleanup.
+    /// </param>
     /// <returns>The code cleanup method, otherwise null.</returns>
 
-    private Action<Document> FindCodeCleanupMethod(Document document)
+    private Action<Document> FindCodeCleanupMethod(Document document, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         switch (document.GetCodeLanguage())
         {
             case CodeLanguage.CSharp:
-                return RunCodeCleanupCSharp;
+                return csharpDocument => RunCodeCleanupCSharp(csharpDocument, usingsLeftInPlace);
 
             case CodeLanguage.VisualBasic:
                 return RunCodeCleanupVB;
@@ -1855,15 +1877,23 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified CSharp document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
+    /// <param name="usingsLeftInPlace">
+    /// True when the semantic using move already left the using directives in place in this cleanup; it is then not
+    /// retried.
+    /// </param>
 
-    private void RunCodeCleanupCSharp(Document document)
+    private void RunCodeCleanupCSharp(Document document, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
 
-        // Move using directives outside namespace (to top of file), when enabled.
-        _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
+        // Move using directives outside namespace (to top of file), when enabled. Each attempt re-analyzes the
+        // document semantically, so once the move left the directives in place it is not attempted again.
+        if (!usingsLeftInPlace)
+        {
+            usingsLeftInPlace = _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument) == UsingsMoveOutcome.LeftInPlace;
+        }
 
         // Convert to a file-scoped namespace first (changes file structure), when enabled.
         _fileScopedNamespaceLogic.ConvertToFileScopedNamespace(textDocument);
@@ -1894,7 +1924,14 @@ internal sealed class CodeCleanupManager
         if (!document.IsExternal())
         {
             _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument);
-            _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
+
+            // External cleanup (e.g. ReSharper, or Format Document running a code cleanup profile) can put using
+            // directives back inside the namespace; move them out again unless the move already proved unsafe. When
+            // nothing is inside a namespace this is a syntax-only check, without semantic analysis.
+            if (!usingsLeftInPlace)
+            {
+                _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
+            }
         }
 
         // Interpret the document into a collection of elements.

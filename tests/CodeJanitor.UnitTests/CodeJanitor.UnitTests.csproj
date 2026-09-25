@@ -96,6 +96,8 @@
     <Compile Include="Cleaning\CommentFormatConverterTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitPlannerTests.cs" />
     <Compile Include="Cleaning\UpdateLogicDirectiveParsingTests.cs" />
+    <Compile Include="Cleaning\MoveUsingsOutsideNamespaceLogicTests.cs" />
+    <Compile Include="Cleaning\EditorConfigDiagnosticCleanupFlavorTests.cs" />
     <Compile Include="Formatting\CommentFormatHelper.cs" />
     <Compile Include="Formatting\HeaderFormattingTests.cs" />
     <Compile Include="Formatting\FormatWithPrefixTests.cs" />
