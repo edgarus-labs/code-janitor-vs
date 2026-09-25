@@ -52,33 +52,13 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
             return source;
         }
 
+        // Using directives inside the block stay inside the file-scoped namespace, where their names keep
+        // resolving relative to the namespace. Moving them to file level needs the semantic model, which is
+        // the job of the separate "move using directives outside namespace" step.
         var ns = blockNamespaces[0];
         if (!(ns.Parent is CompilationUnitSyntax))
         {
             return source;
-        }
-
-        if (ns.Usings.Count > 0)
-        {
-            var movedSource = new MoveUsingsOutsideNamespaceConverter().MoveUsingsOutside(source);
-            if (movedSource != source)
-            {
-                source = movedSource;
-                tree = CSharpSyntaxTree.ParseText(source);
-                if (!(tree.GetRoot() is CompilationUnitSyntax newRoot))
-                {
-                    return source;
-                }
-
-                root = newRoot;
-                blockNamespaces = root.DescendantNodes().OfType<NamespaceDeclarationSyntax>().ToList();
-                if (blockNamespaces.Count != 1)
-                {
-                    return source;
-                }
-
-                ns = blockNamespaces[0];
-            }
         }
 
         var openBrace = ns.OpenBraceToken;

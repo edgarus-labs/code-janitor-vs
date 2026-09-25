@@ -283,8 +283,8 @@ internal sealed class CodeCleanupManager
                 _cleanupExecutionStats.HeadlessNoOpItems++;
             }
 
-            // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
-            ThreadHelper.JoinableTaskFactory.Run(() => RunDiagnosticCleanupAsync(projectItem));
+            // Workspace cleanup (semantic using move, diagnostic cleanup) runs after the headless cleanup, against the file it wrote.
+            ThreadHelper.JoinableTaskFactory.Run(() => RunWorkspaceCleanupAsync(projectItem));
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -390,8 +390,8 @@ internal sealed class CodeCleanupManager
                 _cleanupExecutionStats.HeadlessNoOpItems++;
             }
 
-            // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
-            await RunDiagnosticCleanupAsync(projectItem);
+            // Workspace cleanup (semantic using move, diagnostic cleanup) runs after the headless cleanup, against the file it wrote.
+            await RunWorkspaceCleanupAsync(projectItem);
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -797,10 +797,8 @@ internal sealed class CodeCleanupManager
             transformations.Add(new ByteOrderMarkConverter());
         }
 
-        if (IsEnabled("Cleaning_MoveUsingsOutsideNamespace", Settings.Default.Cleaning_MoveUsingsOutsideNamespace))
-        {
-            transformations.Add(new MoveUsingsOutsideNamespaceConverter());
-        }
+        // "Move using directives outside namespace" is not a text transformation: it needs the semantic
+        // model and runs against the Visual Studio workspace in RunWorkspaceCleanupAsync.
 
         if (IsEnabled("Cleaning_ConvertToFileScopedNamespace", Settings.Default.Cleaning_ConvertToFileScopedNamespace))
         {
@@ -1581,17 +1579,21 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup
-    /// and records the outcome in the execution statistics. Does nothing when no diagnostic cleanup
-    /// category is enabled for the item.
+    /// Runs the cleanup steps that need the Visual Studio Roslyn workspace on a C# project item whose
+    /// file the headless cleanup has just written: moving using directives outside namespaces (which
+    /// needs the semantic model), then .editorconfig/Roslyn diagnostic cleanup. Records the diagnostic
+    /// outcome in the execution statistics. Each step does nothing when it is disabled for the item.
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A task.</returns>
 
-    internal async Task RunDiagnosticCleanupAsync(ProjectItem projectItem)
+    internal async Task RunWorkspaceCleanupAsync(ProjectItem projectItem)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
+        await _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
+
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         var outcome = await _editorConfigDiagnosticCleanupLogic.CleanupAsync(projectItem);
 
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

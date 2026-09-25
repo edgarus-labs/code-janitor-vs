@@ -43,7 +43,8 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
 `CodeFixProvider`s in a deterministic, safety-gated loop and returns a
 `DiagnosticCleanupResult` (changed solution, applied fixes, unresolved diagnostics).
 
-`EditorConfigDiagnosticCleanupLogic` is the Visual Studio host adapter. It:
+`EditorConfigDiagnosticCleanupLogic` is the Visual Studio host adapter. Through
+`VisualStudioRoslynWorkspace` (shared with the using-directive move below) it:
 
 - resolves `VisualStudioWorkspace` through MEF (`IComponentModel`) by type name;
 - supplies the C# `CodeFixProvider` MEF exports, cached per package;
@@ -54,9 +55,22 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
   when the workspace changed and then failing explicitly.
 
 `CodeCleanupManager` calls the adapter after the existing C# cleanup, both in the headless
-path and in the editor path. `CleanupProgressViewModel` calls it one file at a time after
-the parallel pass. Outcomes are recorded as `DiagnosticChangedItems`,
-`DiagnosticUnresolvedItems` and failed items in `CleanupExecutionStats`.
+path (`RunWorkspaceCleanupAsync`) and in the editor path. `CleanupProgressViewModel` calls
+`RunWorkspaceCleanupAsync` one file at a time after the parallel pass. Outcomes are recorded
+as `DiagnosticChangedItems`, `DiagnosticUnresolvedItems` and failed items in
+`CleanupExecutionStats`.
+
+### Moving using directives outside namespaces
+
+`MoveUsingsOutsideNamespaceConverter` is host-agnostic: given a Roslyn `Document`, it
+resolves every namespace-level using directive with the semantic model, writes it fully
+qualified at file level, and compares the document's compile errors before and after.
+It returns the moved text or a skip reason; it never returns a partial move.
+`MoveUsingsOutsideNamespaceLogic` resolves the document in `VisualStudioWorkspace` with the
+current text. In the editor path it replaces the buffer. For closed files it runs in
+`RunWorkspaceCleanupAsync` before diagnostic cleanup and rewrites the file with its
+original encoding. Skip reasons and failures go to the output pane. The step is not a text
+transformation, so the headless text pipeline and the cleanup preview do not include it.
 
 Packaging: `Microsoft.CodeAnalysis.CSharp.Workspaces` uses the same version as
 `Microsoft.CodeAnalysis.CSharp` (5.9.0) and ships in the VSIX like the existing Roslyn

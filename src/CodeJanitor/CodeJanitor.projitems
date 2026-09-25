@@ -119,6 +119,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CleanupBatchPartitioner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CodeCleanupManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\EditorConfigDiagnosticCleanupLogic.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\VisualStudioRoslynWorkspace.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\CollectionExpressionLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\JsonSerializerOptionsReuseLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\SingleStatementLambdaLogic.cs" />
@@ -186,6 +187,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\SingleStatementLambdaConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\FileScopedNamespaceConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\MoveUsingsOutsideNamespaceConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\MoveUsingsOutsideNamespaceResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ReturnThrowBlankLinePaddingConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\ITypeStyleConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Transformations\VarWhenApparentConverter.cs" />

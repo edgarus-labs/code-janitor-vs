@@ -212,7 +212,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
+                        await CodeCleanupManager.RunWorkspaceCleanupAsync(workItem.ProjectItem);
                     }
                     catch (Exception ex)
                     {

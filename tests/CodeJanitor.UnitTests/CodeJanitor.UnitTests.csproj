@@ -120,6 +120,7 @@
     <Compile Include="Transformations\CollectionExpressionConverterTests.cs" />
     <Compile Include="Transformations\JsonSerializerOptionsReuseConverterTests.cs" />
     <Compile Include="Transformations\SingleStatementLambdaConverterTests.cs" />
+    <Compile Include="Transformations\CompilingTestProject.cs" />
     <Compile Include="Transformations\FileScopedNamespaceConverterTests.cs" />
     <Compile Include="Transformations\MoveUsingsOutsideNamespaceConverterTests.cs" />
     <Compile Include="Transformations\NamespaceFixerConverterTests.cs" />

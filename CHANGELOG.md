@@ -45,6 +45,14 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed "Make Fields Readonly" cleanup adding `readonly` to private fields mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)` and `Interlocked.Decrement(ref field)`) or writes inside nested types, or fields whose address is taken directly (`&field`, `CS0192`).
 - Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.
 - Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
+- Fixed "Move using directives outside namespace" breaking compilation (`CS0246`) for namespace-relative
+	directives such as `using Services;` inside `namespace Company.App`. Each moved directive, alias target and
+	`using static` is now resolved with the Roslyn semantic model and written fully qualified
+	(`using Company.App.Services;`). If a directive cannot be resolved, or the move would add compile errors,
+	the file is left unchanged and the reason is written to the output pane. The step now runs against the
+	Visual Studio Roslyn workspace (after the headless text cleanup for closed files) and is no longer part of
+	the selected-scope text preview. Converting to a file-scoped namespace no longer moves using directives on
+	its own: without the move step they stay inside the file-scoped namespace, where they keep compiling.
 
 ## CodeMaid history
 

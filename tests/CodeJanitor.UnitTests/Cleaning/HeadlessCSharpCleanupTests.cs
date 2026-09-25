@@ -1,8 +1,10 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
+using CodeJanitor.UnitTests.Transformations;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -258,4 +260,37 @@ public sealed class HeadlessCSharpCleanupTests
 
         Assert.IsTrue(output.Contains("if (int.TryParse(s, out var res))"));
     }
+
+    [TestMethod]
+    public void ApplyHeadlessCSharpTransformations_WithMoveUsingsDisabled_KeepsNamespaceUsingsInsideNamespace()
+    {
+        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
+        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleUsingsInside.cs");
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(NamespaceRelativeUsingSource, filePath);
+
+        var namespaceIndex = output.IndexOf("namespace Company.App;", StringComparison.Ordinal);
+        Assert.IsTrue(namespaceIndex >= 0, output);
+        Assert.IsTrue(output.IndexOf("using Services;", StringComparison.Ordinal) > namespaceIndex, "The using directive must stay inside the namespace:" + Environment.NewLine + output);
+    }
+
+    [TestMethod]
+    public async Task ApplyHeadlessCSharpTransformations_WithMoveUsingsEnabled_KeepsNamespaceRelativeUsingsCompiling()
+    {
+        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = true;
+        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
+
+        var filePath = Path.Combine(_tempDirectory, "SampleRelativeUsings.cs");
+
+        var output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(NamespaceRelativeUsingSource, filePath);
+
+        var document = CompilingTestProject.CreateDocument(NamespaceRelativeUsingSource, "namespace Company.App.Services { public class Svc { } }");
+        var errors = await CompilingTestProject.GetCompileErrorsAsync(document, output);
+        Assert.AreEqual(0, errors.Count, output + Environment.NewLine + string.Join(Environment.NewLine, errors));
+    }
+
+    private const string NamespaceRelativeUsingSource =
+        "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    public class C\r\n    {\r\n        public Svc Service { get; set; }\r\n    }\r\n}\r\n";
 }

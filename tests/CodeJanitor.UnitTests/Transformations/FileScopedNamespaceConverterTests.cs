@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
@@ -11,6 +14,8 @@ namespace CodeJanitor.UnitTests.Transformations;
 [TestClass]
 public sealed class FileScopedNamespaceConverterTests
 {
+    private const string Library = "namespace Company.App.Services { public class Svc { } }\r\n";
+
     private INamespaceScopeConverter _converter;
 
     [TestInitialize]
@@ -31,12 +36,31 @@ public sealed class FileScopedNamespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void MovesUsingsOutsideNamespaceWhenConvertingToFileScoped()
+    public async Task KeepsNamespaceUsingsInsideFileScopedNamespace_SoRelativeUsingsStillCompile()
     {
-        var input = "namespace A\r\n{\r\n    using System;\r\n\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
-        var expected = "using System;\r\n\r\nnamespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n";
+        var expected = "namespace Company.App;\r\n\r\nusing Services;\r\n\r\nclass C { Svc s; }\r\n";
 
-        Assert.AreEqual(expected, _converter.ConvertToFileScoped(input));
+        var result = _converter.ConvertToFileScoped(input);
+
+        Assert.AreEqual(expected, result);
+        var errors = await CompilingTestProject.GetCompileErrorsAsync(CompilingTestProject.CreateDocument(input, Library), result);
+        Assert.AreEqual(0, errors.Count, string.Join(Environment.NewLine, errors));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConvertingAfterSemanticUsingMove_YieldsCompilingFileScopedCode()
+    {
+        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, Library);
+
+        var moved = await new MoveUsingsOutsideNamespaceConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
+        var result = _converter.ConvertToFileScoped(moved.Text);
+
+        Assert.AreEqual("using Company.App.Services;\r\n\r\nnamespace Company.App;\r\n\r\nclass C { Svc s; }\r\n", result);
+        var errors = await CompilingTestProject.GetCompileErrorsAsync(document, result);
+        Assert.AreEqual(0, errors.Count, string.Join(Environment.NewLine, errors));
     }
 
     [TestMethod]

@@ -1,101 +1,201 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
 /// <summary>
-/// Unit tests for <see cref="MoveUsingsOutsideNamespaceConverter" />.
-/// Pure transformation tests (no Visual Studio / EnvDTE required).
+/// Unit tests for <see cref="MoveUsingsOutsideNamespaceConverter" />. Every moved result is compiled together with
+/// <see cref="Library" /> and must not contain compile errors.
 /// </summary>
 [TestClass]
 public sealed class MoveUsingsOutsideNamespaceConverterTests
 {
-    private MoveUsingsOutsideNamespaceConverter _converter;
+    private const string Library =
+        "namespace Company.App.Services { public class Svc { } }\r\n" +
+        "namespace Company.App.Models { public class Foo { } public static class Helpers { public static int Twice(int x) => x * 2; } }\r\n" +
+        "namespace Company.Shared { public class Util { } }\r\n" +
+        "namespace Alpha { public class T { } }\r\n" +
+        "namespace Beta { public class T { } }\r\n";
 
-    [TestInitialize]
-    public void TestInitialize()
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task IssueRepro_QualifiesNamespaceRelativeUsingsAndKeepsQualifiedOnes()
     {
-        _converter = new MoveUsingsOutsideNamespaceConverter();
+        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n    using Shared;\r\n    using System.Text;\r\n    class C { Svc s; Util u; StringBuilder b; }\r\n}\r\n";
+
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual(
+            "using Company.App.Services;\r\nusing Company.Shared;\r\nusing System.Text;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; Util u; StringBuilder b; }\r\n}\r\n",
+            result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void MovesUsingsFromBlockNamespaceToTop()
+    public async Task ChildNamespaceRelativeUsing_IsFullyQualified()
     {
-        var input = "namespace CodeJanitor\r\n{\r\n    using System;\r\n    using System.Collections.Generic;\r\n\r\n    public class Sample\r\n    {\r\n    }\r\n}\r\n";
-        var result = _converter.MoveUsingsOutside(input);
+        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n    class C { Svc s; }\r\n}\r\n";
 
-        StringAssert.StartsWith(result, "using System;\r\nusing System.Collections.Generic;\r\n\r\nnamespace CodeJanitor");
-        Assert.IsFalse(result.Contains("{\r\n    using System;"));
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(result, "using Company.App.Services;\r\n\r\nnamespace Company.App\r\n");
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void MovesUsingsFromFileScopedNamespaceToTop()
+    public async Task ParentNamespaceRelativeUsing_IsFullyQualified()
     {
-        var input = "namespace CodeJanitor;\r\n\r\nusing System;\r\nusing System.Linq;\r\n\r\npublic class Sample\r\n{\r\n}\r\n";
-        var result = _converter.MoveUsingsOutside(input);
+        var input = "namespace Company.App\r\n{\r\n    using Shared;\r\n    class C { Util u; }\r\n}\r\n";
 
-        StringAssert.StartsWith(result, "using System;\r\nusing System.Linq;\r\n\r\nnamespace CodeJanitor;");
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(result, "using Company.Shared;\r\n\r\nnamespace Company.App\r\n");
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void AlreadyAtTop_ReturnsUnchanged()
+    public async Task RelativeAliasTargets_AreFullyQualified_IncludingTypeArguments()
     {
-        var input = "using System;\r\n\r\nnamespace CodeJanitor\r\n{\r\n    public class Sample\r\n    {\r\n    }\r\n}\r\n";
-        var result = _converter.MoveUsingsOutside(input);
+        var input = "namespace Company.App\r\n{\r\n    using X = Models.Foo;\r\n    using L = System.Collections.Generic.List<Models.Foo>;\r\n    class C { X x; L l; }\r\n}\r\n";
 
-        Assert.AreEqual(input, result);
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(
+            result,
+            "using X = Company.App.Models.Foo;\r\nusing L = System.Collections.Generic.List<Company.App.Models.Foo>;\r\n\r\nnamespace Company.App\r\n");
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void MergesAndDeduplicatesExistingTopUsingsWithNamespaceUsings()
+    public async Task RelativeUsingStatic_IsFullyQualified()
     {
-        var input = "using System;\r\nusing System.Text;\r\n\r\nnamespace CodeJanitor\r\n{\r\n    using System;\r\n    using System.Collections.Generic;\r\n\r\n    public class Sample\r\n    {\r\n    }\r\n}\r\n";
-        var result = _converter.MoveUsingsOutside(input);
+        var input = "namespace Company.App\r\n{\r\n    using static Models.Helpers;\r\n    class C { int y = Twice(1); }\r\n}\r\n";
 
-        StringAssert.StartsWith(result, "using System;\r\nusing System.Text;\r\nusing System.Collections.Generic;\r\n\r\nnamespace CodeJanitor");
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(result, "using static Company.App.Models.Helpers;\r\n\r\nnamespace Company.App\r\n");
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void PreservesFileHeaderWhenMovingUsingsToTop()
+    public async Task QualifiedUsingStaysUnchanged_AndIsDeduplicatedWithTopLevelUsings()
     {
-        var input = "// Copyright (c) 2026\r\n\r\nnamespace CodeJanitor\r\n{\r\n    using System;\r\n\r\n    public class Sample\r\n    {\r\n    }\r\n}\r\n";
-        var result = _converter.MoveUsingsOutside(input);
+        var input = "using System;\r\nusing System.Text;\r\n\r\nnamespace Company.App\r\n{\r\n    using System.Text;\r\n    using Services;\r\n    class C { Svc s; StringBuilder b; Action a; }\r\n}\r\n";
 
-        StringAssert.StartsWith(result, "// Copyright (c) 2026\r\n\r\nusing System;\r\n\r\nnamespace CodeJanitor");
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual(
+            "using System;\r\nusing System.Text;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; StringBuilder b; Action a; }\r\n}\r\n",
+            result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void CombinedWithFileScopedConverter_ProducesCleanModernFileScopedCode()
+    public async Task RelativeUsing_IsDeduplicatedWithEquivalentQualifiedTopLevelUsing()
     {
-        var input = "namespace CodeJanitor\r\n{\r\n    using System;\r\n\r\n    public class Sample\r\n    {\r\n    }\r\n}\r\n";
+        var input = "using Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    using Services;\r\n    class C { Svc s; }\r\n}\r\n";
 
-        var pipeline = new SourceTransformationPipeline(
-            new MoveUsingsOutsideNamespaceConverter(),
-            new FileScopedNamespaceConverter());
+        var result = await AssertMovedAndCompilesAsync(input);
 
-        var result = pipeline.Run(input);
-
-        var expected = "using System;\r\n\r\nnamespace CodeJanitor;\r\n\r\npublic class Sample\r\n{\r\n}\r\n";
-        Assert.AreEqual(expected, result);
+        Assert.AreEqual("using Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n", result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void MoveUsingsOutside_OnCodeJanitorCs_MovesUsingsToTop()
+    public async Task PreservesFileHeaderCrLfAndBlankLineAfterUsings()
     {
-        var path = @"D:\dev\code-janitor\CodeJanitor\CodeJanitor.cs";
-        if (System.IO.File.Exists(path))
-        {
-            var content = System.IO.File.ReadAllText(path);
-            var result = _converter.MoveUsingsOutside(content);
-            StringAssert.StartsWith(result, "using System;\r\n\r\nnamespace CodeJanitor");
-            Assert.IsFalse(result.Contains("namespace CodeJanitor\r\n{\r\n    using System;"));
-        }
+        var input = "// Copyright (c) 2026\r\n\r\nnamespace Company.App\r\n{\r\n    using Services;\r\n    class C { Svc s; }\r\n}\r\n";
+
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual(
+            "// Copyright (c) 2026\r\n\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n",
+            result);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task PreservesLfLineEndings()
+    {
+        var input = "// header\n\nnamespace Company.App\n{\n    using Services;\n    class C { Svc s; }\n}\n";
+
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual("// header\n\nusing Company.App.Services;\n\nnamespace Company.App\n{\n    class C { Svc s; }\n}\n", result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileScopedNamespaceUsings_AreQualifiedAndMoved()
+    {
+        var input = "namespace Company.App;\r\n\r\nusing Services;\r\n\r\nclass C { Svc s; }\r\n";
+
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(result, "using Company.App.Services;\r\n\r\nnamespace Company.App;");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task UsingsAlreadyOutside_ReportsNoUsingsInsideNamespace()
+    {
+        var input = "using System;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { }\r\n}\r\n";
+
+        var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+
+        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.NoUsingsInsideNamespace, result.Status);
+        Assert.IsNull(result.Text);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task UnresolvableUsing_IsSkippedWithReason()
+    {
+        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n    using Missing;\r\n    class C { Svc s; }\r\n}\r\n";
+
+        var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+
+        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.IsNull(result.Text);
+        StringAssert.Contains(result.Reason, "using Missing;");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task MoveThatIntroducesCompileErrors_IsSkippedWithReason()
+    {
+        // Each namespace imports a different T; merged at file level, T becomes ambiguous.
+        var input = "namespace N1\r\n{\r\n    using Alpha;\r\n    class C1 { T t; }\r\n}\r\n\r\nnamespace N2\r\n{\r\n    using Beta;\r\n    class C2 { T t; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, Library);
+        Assert.AreEqual(0, (await CompilingTestProject.GetCompileErrorsAsync(document, input)).Count, "The input must compile.");
+
+        var result = await MoveAsync(document);
+
+        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.IsNull(result.Text);
+        StringAssert.Contains(result.Reason, "CS0104");
+    }
+
+    private static Task<MoveUsingsOutsideNamespaceResult> MoveAsync(Microsoft.CodeAnalysis.Document document) =>
+        new MoveUsingsOutsideNamespaceConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
+
+    private static async Task<string> AssertMovedAndCompilesAsync(string input)
+    {
+        var document = CompilingTestProject.CreateDocument(input, Library);
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
+
+        var result = await MoveAsync(document);
+
+        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Moved, result.Status, result.Reason);
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), "The moved output must compile:" + Environment.NewLine + result.Text);
+
+        return result.Text;
+    }
+
+    private static void AssertNoErrors(IReadOnlyList<string> errors, string message) =>
+        Assert.AreEqual(0, errors.Count, message + Environment.NewLine + string.Join(Environment.NewLine, errors));
 }
