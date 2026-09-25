@@ -33,7 +33,8 @@ This file records changes made in Code Janitor after the project became an indep
 
 ### Changed
 
-- Added Visual Studio 2026 installation compatibility.
+- Visual Studio 2026 is the only supported installation target; the VSIX no longer installs on Visual Studio
+	2022 (17.x), whose Roslyn is older than the 5.9 the Roslyn workspace features require.
 - Migrated the legacy Options experience to the native Visual Studio settings system.
 - Organized approximately 191 settings into 21 categories.
 - Removed the legacy classic Options UI after the native settings migration.

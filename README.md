@@ -1,7 +1,7 @@
 # Code Janitor for Visual Studio
 
 [![Build VSIX](https://github.com/edgarus-labs/code-janitor-vs/actions/workflows/build-vsix.yml/badge.svg)](https://github.com/edgarus-labs/code-janitor-vs/actions/workflows/build-vsix.yml)
-[![Visual Studio](https://img.shields.io/badge/Visual%20Studio-2022%2B-purple.svg)](https://visualstudio.microsoft.com/)
+[![Visual Studio](https://img.shields.io/badge/Visual%20Studio-2026-purple.svg)](https://visualstudio.microsoft.com/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](LICENSE.txt)
 
 Code Janitor is an independently maintained open-source Visual Studio extension for cleaning, simplifying, navigating and reorganizing code.
@@ -20,7 +20,7 @@ The name **Code Janitor** distinguishes this project from the original CodeMaid 
 
 Download a `.vsix` package from [GitHub Releases](https://github.com/edgarus-labs/code-janitor-vs/releases), if available, close Visual Studio, and run the package to install it. Restart Visual Studio after installation. To build from source, follow the [development guide](docs/development.md).
 
-The current VSIX manifest targets 64-bit Visual Studio Community, Professional and Enterprise versions 17.x and 18.x (Visual Studio 2022 and 2026). Check each release for version-specific requirements.
+The VSIX manifest targets only 64-bit Visual Studio 2026 (18.x) Community, Professional and Enterprise. Visual Studio 2022 is not supported and the package does not install there. Check each release for version-specific requirements.
 
 For Visual Studio Code, use the separate [Code Janitor for VS Code](https://github.com/edgarus-labs/code-janitor-vscode) extension; the two extensions have different feature sets.
 

@@ -192,4 +192,4 @@ Two commands manage the file from the Code Janitor menu:
 
 ## Supported Visual Studio versions
 
-The development branch includes installation compatibility for Visual Studio 2022 and Visual Studio 2026. Release support will be documented per published build after the modernization work is verified.
+The VSIX installs only on Visual Studio 2026 (18.x, Community, Professional and Enterprise). Visual Studio 2022 is not supported: its Roslyn is older than the 5.9 required by the features that use the Visual Studio Roslyn workspace (diagnostic cleanup, moving using directives outside namespaces).
