@@ -28,6 +28,8 @@ This file records changes made in Code Janitor after the project became an indep
 	used. Requires a Visual Studio build with Roslyn 5.9 or newer.
 - CI runs the unit tests with `vstest.console` after the Release build, and the workflow fails on
 	test failures.
+- CodeQL code scanning (`.github/workflows/codeql.yml`) for C# and GitHub Actions workflows on
+	pull requests and pushes to `develop`, and weekly. Results are uploaded to GitHub code scanning.
 
 ### Changed
 
