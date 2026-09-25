@@ -24,6 +24,8 @@ internal sealed class MoveUsingsOutsideNamespaceLogic
 {
     private const string SettingName = nameof(Settings.Cleaning_MoveUsingsOutsideNamespace);
 
+    private static readonly RegionDirectiveRemover RegionRemover = new RegionDirectiveRemover();
+
     private readonly CodeJanitorPackage _package;
     private readonly VisualStudioRoslynWorkspace _workspace;
     private readonly MoveUsingsOutsideNamespaceConverter _converter;
@@ -48,8 +50,18 @@ internal sealed class MoveUsingsOutsideNamespaceLogic
     }
 
     /// <summary>
+    /// Determines whether moving using directives outside namespaces is enabled for the file: the repository policy
+    /// (<c>.codejanitor</c>) overrides the user setting, as for the other cleanup steps.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>True when enabled.</returns>
+    internal static bool IsEnabledFor(string filePath) =>
+        RepositoryCleanupSettings.LoadForFile(filePath).TryGetBoolean(SettingName, Settings.Default.Cleaning_MoveUsingsOutsideNamespace);
+
+    /// <summary>
     /// Moves the using directives of an open document outside its namespaces, when enabled, replacing the editor
-    /// buffer (preserving markers) only when the move succeeded.
+    /// buffer (preserving markers) only when the move succeeded. Must be called only by the editor cleanup, which
+    /// removes all regions anyway.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     internal void MoveUsingsOutsideNamespace(TextDocument textDocument)
@@ -57,7 +69,7 @@ internal sealed class MoveUsingsOutsideNamespaceLogic
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var filePath = textDocument.Parent?.FullName;
-        if (!Settings.Default.Cleaning_MoveUsingsOutsideNamespace)
+        if (!IsEnabledFor(filePath))
         {
             OutputWindowHelper.InfoWriteLine(
                 $"MoveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace skipped for '{filePath}' because {SettingName} is false.");
@@ -65,11 +77,13 @@ internal sealed class MoveUsingsOutsideNamespaceLogic
             return;
         }
 
+        // The editor cleanup removes every region later (RemoveRegionLogic), so region directives are removed before
+        // moving, as the headless cleanup does, so "#region Usings" blocks inside a namespace do not block the move.
         var startPoint = textDocument.StartPoint.CreateEditPoint();
         var originalText = startPoint.GetText(textDocument.EndPoint);
         var projectFilePath = VisualStudioRoslynWorkspace.GetContainingProjectPath(textDocument.Parent?.ProjectItem);
 
-        var movedText = ThreadHelper.JoinableTaskFactory.Run(() => TryMoveAsync(filePath, projectFilePath, originalText));
+        var movedText = ThreadHelper.JoinableTaskFactory.Run(() => TryMoveAsync(filePath, projectFilePath, RegionRemover.Apply(originalText)));
         if (movedText is null)
         {
             return;
@@ -80,48 +94,78 @@ internal sealed class MoveUsingsOutsideNamespaceLogic
     }
 
     /// <summary>
-    /// Moves the using directives of a closed C# file (typically just written by the headless cleanup) outside its
-    /// namespaces, when enabled for the file, and writes the result back with the file's encoding.
+    /// Moves the using directives of a closed C# file outside its namespaces, when enabled for the file, and writes the
+    /// result back with the file's encoding. Runs before the headless text cleanup, so later steps (file header, using
+    /// organization, type splitting) see the moved directives, as they did when the move was a text transformation.
     /// </summary>
     /// <param name="projectItem">The project item.</param>
-    /// <returns>A task.</returns>
-    internal async Task MoveUsingsOutsideNamespaceAsync(ProjectItem projectItem)
+    /// <returns>True when the file was rewritten with the moved directives.</returns>
+    internal async Task<bool> MoveUsingsOutsideNamespaceAsync(ProjectItem projectItem)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
         var filePath = projectItem.GetFileName();
         if (string.IsNullOrEmpty(filePath) || !filePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || !File.Exists(filePath))
         {
-            return;
+            return false;
         }
 
-        if (!RepositoryCleanupSettings.LoadForFile(filePath).TryGetBoolean(SettingName, Settings.Default.Cleaning_MoveUsingsOutsideNamespace))
+        if (!IsEnabledFor(filePath))
         {
             OutputWindowHelper.InfoWriteLine(
                 $"MoveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync skipped for '{filePath}' because {SettingName} is false.");
 
-            return;
+            return false;
         }
 
         var projectFilePath = VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem);
         string originalText;
         Encoding encoding;
-
-        // Without a byte order mark the file is written back without one.
-        using (var reader = new StreamReader(filePath, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true))
+        try
         {
-            originalText = await reader.ReadToEndAsync();
-            encoding = reader.CurrentEncoding;
+            // Without a byte order mark the file is written back without one.
+            using (var reader = new StreamReader(filePath, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true))
+            {
+                originalText = await reader.ReadToEndAsync();
+                encoding = reader.CurrentEncoding;
+            }
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            WriteLeftUnchangedWarning(filePath, ex.Message);
+
+            return false;
         }
 
-        var movedText = await TryMoveAsync(filePath, projectFilePath, originalText);
+        // The headless cleanup removes region directives first unless the repository policy keeps them; do the same
+        // before moving, so "#region Usings" blocks inside a namespace do not block the move.
+        var sourceText = RepositoryCleanupSettings.LoadForFile(filePath).RemovesRegions
+            ? RegionRemover.Apply(originalText)
+            : originalText;
+
+        var movedText = await TryMoveAsync(filePath, projectFilePath, sourceText);
         if (movedText is null)
         {
-            return;
+            return false;
         }
 
-        File.WriteAllText(filePath, movedText, encoding);
+        try
+        {
+            File.WriteAllText(filePath, movedText, encoding);
+
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            WriteLeftUnchangedWarning(filePath, ex.Message);
+
+            return false;
+        }
     }
+
+    private static void WriteLeftUnchangedWarning(string filePath, string reason) =>
+        OutputWindowHelper.WarningWriteLine(
+            $"Using directives were not moved outside the namespace in '{filePath}': {reason} The file was left unchanged.");
 
     /// <summary>
     /// Runs the semantic move and reports its outcome; returns the moved text, or null when the document must stay
@@ -147,11 +191,11 @@ internal sealed class MoveUsingsOutsideNamespaceLogic
         catch (Exception ex) when (!(ex is OperationCanceledException))
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var reason = VisualStudioRoslynWorkspace.IsRoslynBindingFailure(ex)
-                ? "the Roslyn workspace API of this Visual Studio instance could not be used (CodeJanitor is compiled against Microsoft.CodeAnalysis 5.9; the host Roslyn may be older)"
-                : ex.Message;
-            OutputWindowHelper.WarningWriteLine(
-                $"Using directives were not moved outside the namespace in '{filePath}': {reason} The file was left unchanged.");
+            WriteLeftUnchangedWarning(
+                filePath,
+                VisualStudioRoslynWorkspace.IsRoslynBindingFailure(ex)
+                    ? "the Roslyn workspace API of this Visual Studio instance could not be used (CodeJanitor is compiled against Microsoft.CodeAnalysis 5.9; the host Roslyn may be older)."
+                    : ex.Message);
 
             return null;
         }

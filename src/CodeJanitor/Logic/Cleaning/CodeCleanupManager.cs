@@ -270,7 +270,18 @@ internal sealed class CodeCleanupManager
         // Skip the disk-based headless path for documents that are already open - the editor
         // buffer is then the source of truth and cleanup must operate on the live document.
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
-        var headlessResult = wasOpen ? HeadlessCleanupResult.NotApplicable : TryRunHeadlessPreCleanupForCSharp(projectItem);
+        var headlessResult = HeadlessCleanupResult.NotApplicable;
+        if (!wasOpen)
+        {
+            // The semantic using move needs the Visual Studio workspace and runs first, so the headless steps
+            // (header, using organization, type splitting) see the moved directives.
+            var usingsMoved = ThreadHelper.JoinableTaskFactory.Run(() => _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem));
+            headlessResult = TryRunHeadlessPreCleanupForCSharp(projectItem);
+            if (usingsMoved && headlessResult == HeadlessCleanupResult.NoChanges)
+            {
+                headlessResult = HeadlessCleanupResult.Changed;
+            }
+        }
 
         if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
@@ -283,8 +294,8 @@ internal sealed class CodeCleanupManager
                 _cleanupExecutionStats.HeadlessNoOpItems++;
             }
 
-            // Workspace cleanup (semantic using move, diagnostic cleanup) runs after the headless cleanup, against the file it wrote.
-            ThreadHelper.JoinableTaskFactory.Run(() => RunWorkspaceCleanupAsync(projectItem));
+            // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
+            ThreadHelper.JoinableTaskFactory.Run(() => RunDiagnosticCleanupAsync(projectItem));
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -358,6 +369,10 @@ internal sealed class CodeCleanupManager
 
         if (!wasOpen)
         {
+            // The semantic using move needs the Visual Studio workspace and runs first, so the headless steps
+            // (header, using organization, type splitting) see the moved directives.
+            var usingsMoved = await _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
+
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
             // and the cleanup progress dialog's Cancel button remains responsive.
@@ -365,7 +380,7 @@ internal sealed class CodeCleanupManager
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            headlessResult = outcome.Result;
+            headlessResult = usingsMoved && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
 
             if (outcome.SplitOperationOccurred)
             {
@@ -390,8 +405,8 @@ internal sealed class CodeCleanupManager
                 _cleanupExecutionStats.HeadlessNoOpItems++;
             }
 
-            // Workspace cleanup (semantic using move, diagnostic cleanup) runs after the headless cleanup, against the file it wrote.
-            await RunWorkspaceCleanupAsync(projectItem);
+            // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
+            await RunDiagnosticCleanupAsync(projectItem);
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -787,7 +802,7 @@ internal sealed class CodeCleanupManager
 
         // Region directives are policy-only structure and are removed unless the repository
         // policy (.codejanitor) explicitly opts out via removeRegions.
-        if (repositoryOverrides.RemoveRegions ?? true)
+        if (repositoryOverrides.RemovesRegions)
         {
             transformations.Add(new RegionDirectiveRemover());
         }
@@ -797,8 +812,8 @@ internal sealed class CodeCleanupManager
             transformations.Add(new ByteOrderMarkConverter());
         }
 
-        // "Move using directives outside namespace" is not a text transformation: it needs the semantic
-        // model and runs against the Visual Studio workspace in RunWorkspaceCleanupAsync.
+        // "Move using directives outside namespace" is not a text transformation: it needs the semantic model and
+        // runs against the Visual Studio workspace before this pipeline (MoveUsingsOutsideNamespaceAsync).
 
         if (IsEnabled("Cleaning_ConvertToFileScopedNamespace", Settings.Default.Cleaning_ConvertToFileScopedNamespace))
         {
@@ -1440,6 +1455,14 @@ internal sealed class CodeCleanupManager
             OutputWindowHelper.WarningWriteLine($"Activation was not completed before cleaning began for '{document.Name}'");
         }
 
+        // When types are split into their own files, the semantic using move must run before the split so the
+        // created files inherit the moved directives. It is then its own undo unit, like the split; otherwise it
+        // runs inside the cleanup undo transaction (RunCodeCleanupCSharp).
+        if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles && document.GetCodeLanguage() == CodeLanguage.CSharp)
+        {
+            _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(document.GetTextDocument());
+        }
+
         TrySplitTopLevelTypesToSeparateFiles(document);
 
         // Conditionally start cleanup with reorganization.
@@ -1579,21 +1602,27 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Runs the cleanup steps that need the Visual Studio Roslyn workspace on a C# project item whose
-    /// file the headless cleanup has just written: moving using directives outside namespaces (which
-    /// needs the semantic model), then .editorconfig/Roslyn diagnostic cleanup. Records the diagnostic
-    /// outcome in the execution statistics. Each step does nothing when it is disabled for the item.
+    /// Moves the using directives of a closed C# project item outside its namespaces, when enabled for the item. Must
+    /// run before the headless cleanup of the item (see <see cref="MoveUsingsOutsideNamespaceLogic" />).
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>True when the file was rewritten with the moved directives.</returns>
+
+    internal Task<bool> MoveUsingsOutsideNamespaceAsync(ProjectItem projectItem) =>
+        _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
+
+    /// <summary>
+    /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup
+    /// and records the outcome in the execution statistics. Does nothing when no diagnostic cleanup
+    /// category is enabled for the item.
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A task.</returns>
 
-    internal async Task RunWorkspaceCleanupAsync(ProjectItem projectItem)
+    internal async Task RunDiagnosticCleanupAsync(ProjectItem projectItem)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        await _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespaceAsync(projectItem);
-
-        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         var outcome = await _editorConfigDiagnosticCleanupLogic.CleanupAsync(projectItem);
 
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

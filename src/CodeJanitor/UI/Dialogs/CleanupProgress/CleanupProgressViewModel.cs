@@ -135,6 +135,38 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, workItem => workItem.IsOpen);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
+            // The semantic using move needs the Visual Studio workspace (UI thread), so it runs one file at a time before
+            // the parallel headless pass; the headless steps (header, using organization, type splitting) then see the
+            // moved directives. The set is only read during the parallel pass.
+            var filesWithMovedUsings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var workItem in parallelItems)
+            {
+                if (bw.CancellationPending)
+                {
+                    e.Cancel = true;
+
+                    return;
+                }
+
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+
+                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    try
+                    {
+                        if (await CodeCleanupManager.MoveUsingsOutsideNamespaceAsync(workItem.ProjectItem))
+                        {
+                            filesWithMovedUsings.Add(workItem.FilePath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
+                    }
+                });
+            }
+
             try
             {
                 Parallel.ForEach(parallelItems, parallelOptions, (workItem, loopState) =>
@@ -153,7 +185,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     try
                     {
                         var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(workItem.FilePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
-                        if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed)
+                        if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed || filesWithMovedUsings.Contains(workItem.FilePath))
                         {
                             CodeCleanupManager.IncrementHeadlessChanged();
                         }
@@ -212,7 +244,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        await CodeCleanupManager.RunWorkspaceCleanupAsync(workItem.ProjectItem);
+                        await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
                     }
                     catch (Exception ex)
                     {

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -180,12 +182,96 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
         StringAssert.Contains(result.Reason, "CS0104");
     }
 
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task QualifiedAliasTargets_StayVerbatim_InsteadOfKeywordOrShorthandSyntax()
+    {
+        var input = "namespace Company.App\r\n{\r\n    using Str = System.String;\r\n    using N = System.Nullable<System.Int32>;\r\n    using P = System.ValueTuple<System.Int32, System.Int32>;\r\n    class C { Str s; N n; P p; }\r\n}\r\n";
+
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(
+            result,
+            "using Str = System.String;\r\nusing N = System.Nullable<System.Int32>;\r\nusing P = System.ValueTuple<System.Int32, System.Int32>;\r\n\r\nnamespace Company.App\r\n");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task QualifiedAliasToSpecialType_IsMoved_OnCSharp73Projects()
+    {
+        var input = "namespace Company.App\r\n{\r\n    using Str = System.String;\r\n    using Services;\r\n    class C { Str s; Svc v; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.CSharp7_3, new MetadataReference[0], Library);
+
+        var result = await AssertMovedAndCompilesAsync(document);
+
+        StringAssert.StartsWith(result, "using Str = System.String;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ExternAliasQualifiedUsing_KeepsItsAlias()
+    {
+        var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
+        var input = "extern alias V1;\r\n\r\nnamespace Company.App\r\n{\r\n    using V1::Ext;\r\n    class C { Thing t; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library);
+
+        var result = await AssertMovedAndCompilesAsync(document);
+
+        StringAssert.Contains(result, "using V1::Ext;");
+        Assert.IsTrue(result.IndexOf("using V1::Ext;", StringComparison.Ordinal) < result.IndexOf("namespace Company.App", StringComparison.Ordinal), result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task MoveThatSilentlyRebindsAName_IsSkippedWithReason()
+    {
+        // Inside Company.App, 'using Models;' makes Foo mean Company.App.Models.Foo. At file level the import is
+        // searched after the enclosing namespaces, so Foo would silently become Company.Foo - without any error.
+        var input = "namespace Company.App\r\n{\r\n    using Models;\r\n    class C { Foo f; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, Library, "namespace Company { public class Foo { } }");
+        Assert.AreEqual(0, (await CompilingTestProject.GetCompileErrorsAsync(document, input)).Count, "The input must compile.");
+
+        var result = await MoveAsync(document);
+
+        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.IsNull(result.Text);
+        StringAssert.Contains(result.Reason, "Company.App.Models.Foo");
+        StringAssert.Contains(result.Reason, "Company.Foo");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task NestedNamespaceRelativeUsing_IsQualifiedAgainstTheInnermostNamespace()
+    {
+        var input = "namespace Company\r\n{\r\n    namespace App\r\n    {\r\n        using Services;\r\n        class C { Svc s; }\r\n    }\r\n}\r\n";
+
+        var result = await AssertMovedAndCompilesAsync(input);
+
+        StringAssert.StartsWith(result, "using Company.App.Services;\r\n\r\nnamespace Company\r\n");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task UsingsInterleavedWithPreprocessorDirectives_AreSkippedWithReason()
+    {
+        var input = "namespace Company.App\r\n{\r\n#if true\r\n    using Services;\r\n#endif\r\n    class C { Svc s; }\r\n}\r\n";
+
+        var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+
+        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.IsNull(result.Text);
+        StringAssert.Contains(result.Reason, "interleaved with preprocessor directives");
+    }
+
     private static Task<MoveUsingsOutsideNamespaceResult> MoveAsync(Microsoft.CodeAnalysis.Document document) =>
         new MoveUsingsOutsideNamespaceConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
 
-    private static async Task<string> AssertMovedAndCompilesAsync(string input)
+    private static Task<string> AssertMovedAndCompilesAsync(string input) =>
+        AssertMovedAndCompilesAsync(CompilingTestProject.CreateDocument(input, Library));
+
+    private static async Task<string> AssertMovedAndCompilesAsync(Microsoft.CodeAnalysis.Document document)
     {
-        var document = CompilingTestProject.CreateDocument(input, Library);
+        var input = (await document.GetTextAsync()).ToString();
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
         var result = await MoveAsync(document);

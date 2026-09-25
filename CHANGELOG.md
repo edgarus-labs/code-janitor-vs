@@ -47,12 +47,16 @@ This file records changes made in Code Janitor after the project became an indep
 - Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
 - Fixed "Move using directives outside namespace" breaking compilation (`CS0246`) for namespace-relative
 	directives such as `using Services;` inside `namespace Company.App`. Each moved directive, alias target and
-	`using static` is now resolved with the Roslyn semantic model and written fully qualified
-	(`using Company.App.Services;`). If a directive cannot be resolved, or the move would add compile errors,
-	the file is left unchanged and the reason is written to the output pane. The step now runs against the
-	Visual Studio Roslyn workspace (after the headless text cleanup for closed files) and is no longer part of
-	the selected-scope text preview. Converting to a file-scoped namespace no longer moves using directives on
-	its own: without the move step they stay inside the file-scoped namespace, where they keep compiling.
+	`using static` is now resolved with the Roslyn semantic model: directives that mean the same at file level
+	keep their exact text, the others are written fully qualified (`using Company.App.Services;`). If a
+	directive cannot be resolved, preprocessor directives are interleaved with the using directives, or the move
+	would add compile errors or make a name refer to a different symbol, the file is left unchanged and the
+	reason is written to the output pane. The step runs against the Visual Studio Roslyn workspace before the
+	text cleanup (and before type splitting), honors the `.codejanitor` `moveUsingsOutsideNamespace` policy in
+	the editor too, and is no longer part of the selected-scope text preview. Converting to a file-scoped
+	namespace no longer moves using directives on its own: without the move step they stay inside the
+	file-scoped namespace, where they keep compiling. Requires a Visual Studio build with Roslyn 5.9 or newer;
+	otherwise, and for files not compiled in a loaded C# project, the directives are left in place.
 
 ## CodeMaid history
 

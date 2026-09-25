@@ -17,22 +17,34 @@ Code Janitor combines the established CodeMaid feature set with ongoing moderniz
 
 ### Move using directives outside namespace (C#)
 
-With **Move using directives outside namespace** enabled, using directives declared inside a
+With **Move using directives outside namespace** enabled (the `.codejanitor` policy key
+`moveUsingsOutsideNamespace` overrides the setting), using directives declared inside a
 block-scoped or file-scoped namespace are moved to the top of the file. Inside a namespace a
 name such as `using Services;` can refer to `Company.App.Services`; at file level it could not.
 Every moved directive, alias target and `using static` is therefore resolved with the Roslyn
-semantic model and written fully qualified (`using Company.App.Services;`). Directives that are
-already fully qualified stay unchanged and duplicates of existing top-level directives are
-dropped. The file header, line endings and the blank line after the directives are kept.
+semantic model. Directives that mean the same at file level keep their exact text (for example
+`using Str = System.String;` or `using V1::Lib;`); the others are written fully qualified
+(`using Company.App.Services;`). Duplicates of existing top-level directives are dropped. The
+file header, line endings and the blank line after the directives are kept.
 
-The move is all-or-nothing per file. If a directive cannot be resolved, the file is not part of
-a C# project in the Visual Studio workspace, or the moved file would have compile errors the
-original did not have (for example an ambiguity after merging the directives of several
-namespaces), the file is left unchanged and the reason is written to the Code Janitor output
-pane. The step needs the Visual Studio Roslyn workspace (Roslyn 5.9 or newer), so it runs after
-the headless text cleanup for closed files and is not part of the C# text cleanup preview.
-Converting to a file-scoped namespace keeps using directives inside the namespace; they are
-moved only by this step.
+The move is all-or-nothing per file. The file is left unchanged, and the reason is written to
+the Code Janitor output pane, when:
+
+- a directive cannot be resolved;
+- preprocessor directives (`#if`, `#region`, ...) sit between or around the using directives;
+- the file is not part of a C# project in the Visual Studio workspace;
+- the moved file would have compile errors the original did not have (for example an
+  ambiguity after merging the directives of several namespaces);
+- a name would refer to a different symbol after the move (an import searched after a
+  same-named type of an enclosing namespace).
+
+The step needs the Visual Studio Roslyn workspace (Roslyn 5.9 or newer). It runs before the
+text cleanup and the type split, so the file header, using organization and split files see the
+moved directives. Region directives are removed before moving whenever cleanup would remove
+them anyway (always in the editor; for closed files unless the repository policy keeps regions).
+It is not part of the C# text cleanup preview. Converting to a
+file-scoped namespace keeps using directives inside the namespace; they are moved only by this
+step.
 
 ### C# text cleanup preview
 

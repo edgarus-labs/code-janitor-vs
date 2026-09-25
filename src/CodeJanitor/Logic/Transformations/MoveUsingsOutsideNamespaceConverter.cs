@@ -19,19 +19,22 @@ namespace CodeJanitor.Logic.Transformations;
 /// Inside a namespace, a using directive's name is resolved against the enclosing namespaces first
 /// (<c>using Services;</c> in <c>namespace Company.App</c> may mean <c>Company.App.Services</c>); at file level
 /// only the global namespace is searched. Syntax alone cannot tell which namespace a name refers to, so every
-/// moved directive is resolved with the document's semantic model and written fully qualified. The move is
-/// all-or-nothing: when a directive cannot be resolved, or the moved document has compile errors the original
-/// did not have, the document is left unchanged and the reason is reported.
+/// moved directive is resolved with the document's semantic model. A directive that means the same at file level
+/// keeps its exact text; any other directive is written fully qualified. The move is all-or-nothing: when a
+/// directive cannot be resolved, preprocessor directives are interleaved with the using directives, the moved
+/// document has compile errors the original did not have, or any name in it would bind to a different symbol, the
+/// document is left unchanged and the reason is reported.
 /// </remarks>
 public sealed class MoveUsingsOutsideNamespaceConverter
 {
     /// <summary>
     /// Fully qualified names without the <c>global::</c> prefix: at file level a name already starts at the
-    /// global namespace, so the prefix adds nothing but noise.
+    /// global namespace, so the prefix adds nothing but noise. <c>Nullable&lt;T&gt;</c> is written out because the
+    /// <c>T?</c> shorthand is not valid as an alias target before C# 12.
     /// </summary>
     private static readonly SymbolDisplayFormat QualifiedNameFormat = SymbolDisplayFormat.FullyQualifiedFormat
         .WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)
-        .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+        .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier | SymbolDisplayMiscellaneousOptions.ExpandNullable);
 
     /// <summary>
     /// Determines, from syntax alone, whether <paramref name="source" /> has using directives inside a namespace,
@@ -68,70 +71,151 @@ public sealed class MoveUsingsOutsideNamespaceConverter
             return MoveUsingsOutsideNamespaceResult.NoUsingsInsideNamespace;
         }
 
+        if (HasInterleavedPreprocessorDirectives(root))
+        {
+            return MoveUsingsOutsideNamespaceResult.Skipped("the using directives are interleaved with preprocessor directives");
+        }
+
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        var qualifiedUsings = new Dictionary<UsingDirectiveSyntax, UsingDirectiveSyntax>();
+        var targets = new Dictionary<UsingDirectiveSyntax, ISymbol>();
         foreach (var usingDirective in namespaceUsings)
         {
-            var qualified = Qualify(usingDirective, semanticModel, cancellationToken);
-            if (qualified == null)
+            var target = GetTarget(usingDirective, semanticModel, cancellationToken);
+            if (!IsResolved(target))
             {
                 return MoveUsingsOutsideNamespaceResult.Skipped(
                     $"'{usingDirective.WithoutTrivia().ToFullString()}' cannot be resolved semantically");
             }
 
-            qualifiedUsings.Add(usingDirective, qualified);
+            targets.Add(usingDirective, target);
         }
 
         var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
         var newline = text.ToString().Contains("\r\n") ? "\r\n" : "\n";
-        var qualifiedRoot = root.ReplaceNodes(qualifiedUsings.Keys, (original, _) => qualifiedUsings[original]);
-        var movedText = MoveUsingsOutside(qualifiedRoot, newline);
 
-        var movedDocument = document.WithText(SourceText.From(movedText, text.Encoding, text.ChecksumAlgorithm));
-        var movedSemanticModel = await movedDocument.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        var newErrors = FindNewErrors(semanticModel.GetDiagnostics(cancellationToken: cancellationToken), movedSemanticModel.GetDiagnostics(cancellationToken: cancellationToken));
+        // Move the directives verbatim first: every directive that still means the same at file level (already fully
+        // qualified, keyword/tuple syntax, global:: or extern-alias qualified) keeps its exact text. Only the others are
+        // rewritten fully qualified.
+        var verbatimText = MoveUsingsOutside(root, newline);
+        var verbatimModel = await GetSemanticModelAsync(document, verbatimText, text, cancellationToken).ConfigureAwait(false);
+        var fileLevelTargets = verbatimModel.SyntaxTree.GetCompilationUnitRoot(cancellationToken).Usings
+            .GroupBy(GetUsingKey, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => Identify(GetTarget(group.First(), verbatimModel, cancellationToken)), StringComparer.Ordinal);
+
+        var qualifiedUsings = targets.ToDictionary(
+            pair => pair.Key,
+            pair => fileLevelTargets.TryGetValue(GetUsingKey(pair.Key), out var fileLevelTarget) && fileLevelTarget == Identify(pair.Value)
+                ? pair.Key
+                : Qualify(pair.Key, pair.Value));
+
+        var movedText = MoveUsingsOutside(root.ReplaceNodes(qualifiedUsings.Keys, (original, _) => qualifiedUsings[original]), newline);
+        var movedModel = movedText == verbatimText
+            ? verbatimModel
+            : await GetSemanticModelAsync(document, movedText, text, cancellationToken).ConfigureAwait(false);
+
+        var newErrors = FindNewErrors(semanticModel.GetDiagnostics(cancellationToken: cancellationToken), movedModel.GetDiagnostics(cancellationToken: cancellationToken));
         if (newErrors.Count > 0)
         {
             return MoveUsingsOutsideNamespaceResult.Skipped(
                 $"moving them would introduce {newErrors.Count} new compile error(s): {string.Join("; ", newErrors.Take(3))}");
         }
 
+        var bindingChange = FindChangedBinding(semanticModel, movedModel, cancellationToken);
+        if (bindingChange != null)
+        {
+            return MoveUsingsOutsideNamespaceResult.Skipped(bindingChange);
+        }
+
         return MoveUsingsOutsideNamespaceResult.Moved(movedText);
     }
+
+    private static Task<SemanticModel> GetSemanticModelAsync(Document document, string newText, SourceText originalText, CancellationToken cancellationToken) =>
+        document.WithText(SourceText.From(newText, originalText.Encoding, originalText.ChecksumAlgorithm)).GetSemanticModelAsync(cancellationToken);
 
     /// <summary>
     /// Gets the using directives of every (nested) namespace declaration; namespaces can only be declared in the
     /// compilation unit or in another namespace, so no other nodes are visited.
     /// </summary>
     private static IEnumerable<UsingDirectiveSyntax> GetNamespaceUsings(CompilationUnitSyntax root) =>
+        GetNamespacesWithUsings(root).SelectMany(ns => ns.Usings);
+
+    private static IEnumerable<BaseNamespaceDeclarationSyntax> GetNamespacesWithUsings(CompilationUnitSyntax root) =>
         root.DescendantNodes(node => node is CompilationUnitSyntax || node is BaseNamespaceDeclarationSyntax)
             .OfType<BaseNamespaceDeclarationSyntax>()
-            .SelectMany(ns => ns.Usings);
+            .Where(ns => ns.Usings.Count > 0);
 
     /// <summary>
-    /// Returns <paramref name="usingDirective" /> with its name or alias target fully qualified, the directive itself
-    /// when it is already written that way, or null when it does not resolve to a namespace or a valid type.
+    /// Determines whether a preprocessor directive sits before, between or directly after the using directives of a
+    /// namespace. Moving the directives would separate them from their <c>#if</c>/<c>#region</c> brackets.
     /// </summary>
-    private static UsingDirectiveSyntax Qualify(UsingDirectiveSyntax usingDirective, SemanticModel semanticModel, CancellationToken cancellationToken)
-    {
-        var target = usingDirective.NamespaceOrType;
-        var symbol = usingDirective.Alias != null
+    private static bool HasInterleavedPreprocessorDirectives(CompilationUnitSyntax root) =>
+        GetNamespacesWithUsings(root).Any(ns =>
+            ns.Usings.Any(u => u.GetLeadingTrivia().Any(t => t.IsDirective) || u.GetTrailingTrivia().Any(t => t.IsDirective))
+            || ns.Usings.Last().GetLastToken().GetNextToken().LeadingTrivia.Any(t => t.IsDirective));
+
+    /// <summary>
+    /// Gets the namespace or type a using directive imports or aliases.
+    /// </summary>
+    private static ISymbol GetTarget(UsingDirectiveSyntax usingDirective, SemanticModel semanticModel, CancellationToken cancellationToken) =>
+        usingDirective.Alias != null
             ? (semanticModel.GetDeclaredSymbol(usingDirective, cancellationToken) as IAliasSymbol)?.Target
-            : semanticModel.GetSymbolInfo(target, cancellationToken).Symbol;
+            : semanticModel.GetSymbolInfo(usingDirective.NamespaceOrType, cancellationToken).Symbol;
 
-        if (!IsResolved(symbol))
+    /// <summary>
+    /// Identifies a symbol independently of the compilation it was bound in.
+    /// </summary>
+    private static string Identify(ISymbol symbol) =>
+        symbol == null ? null : symbol.Kind + ":" + symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    /// <summary>
+    /// Returns <paramref name="usingDirective" /> with its name or alias target replaced by the fully qualified name
+    /// of <paramref name="target" />.
+    /// </summary>
+    private static UsingDirectiveSyntax Qualify(UsingDirectiveSyntax usingDirective, ISymbol target) =>
+        usingDirective.WithNamespaceOrType(
+            SyntaxFactory.ParseTypeName(target.ToDisplayString(QualifiedNameFormat)).WithTriviaFrom(usingDirective.NamespaceOrType));
+
+    /// <summary>
+    /// Finds the first name outside the using directives whose binding differs after the move (for example an import
+    /// that is now searched after a same-named type of an enclosing namespace) and returns the skip reason; null when
+    /// all names bind as before. Only using directives move, so the names of both trees correspond in document order.
+    /// </summary>
+    private static string FindChangedBinding(SemanticModel before, SemanticModel after, CancellationToken cancellationToken)
+    {
+        var beforeNames = GetNamesOutsideUsings(before, cancellationToken);
+        var afterNames = GetNamesOutsideUsings(after, cancellationToken);
+        if (beforeNames.Count != afterNames.Count)
         {
-            return null;
+            return "the names in the moved file could not be matched with the original, so the move could not be verified";
         }
 
-        var qualifiedName = symbol.ToDisplayString(QualifiedNameFormat);
-        if (string.Equals(qualifiedName, target.NormalizeWhitespace().ToFullString(), StringComparison.Ordinal))
+        for (var i = 0; i < beforeNames.Count; i++)
         {
-            return usingDirective;
+            var beforeSymbol = GetBinding(before, beforeNames[i], cancellationToken);
+            var afterSymbol = GetBinding(after, afterNames[i], cancellationToken);
+            if (Identify(beforeSymbol) != Identify(afterSymbol))
+            {
+                return $"moving them would change what '{beforeNames[i].Identifier.ValueText}' refers to ({Describe(beforeSymbol)} -> {Describe(afterSymbol)})";
+            }
         }
 
-        return usingDirective.WithNamespaceOrType(SyntaxFactory.ParseTypeName(qualifiedName).WithTriviaFrom(target));
+        return null;
     }
+
+    private static List<SimpleNameSyntax> GetNamesOutsideUsings(SemanticModel semanticModel, CancellationToken cancellationToken) =>
+        semanticModel.SyntaxTree.GetCompilationUnitRoot(cancellationToken)
+            .DescendantNodes(node => !(node is UsingDirectiveSyntax))
+            .OfType<SimpleNameSyntax>()
+            .ToList();
+
+    private static ISymbol GetBinding(SemanticModel semanticModel, SimpleNameSyntax name, CancellationToken cancellationToken)
+    {
+        var info = semanticModel.GetSymbolInfo(name, cancellationToken);
+
+        return info.Symbol ?? (info.CandidateSymbols.Length == 1 ? info.CandidateSymbols[0] : null);
+    }
+
+    private static string Describe(ISymbol symbol) => symbol?.ToDisplayString() ?? "nothing";
 
     private static bool IsResolved(ISymbol symbol)
     {
