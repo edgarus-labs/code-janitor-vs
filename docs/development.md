@@ -56,6 +56,18 @@ Visual Studio extension changes should be tested in an experimental instance bef
 - `pkgdef` generation;
 - deployment scripts.
 
+## Code scanning
+
+`.github/workflows/codeql.yml` runs GitHub CodeQL on pull requests to `develop`, on pushes to
+`develop` and weekly (Monday 03:27 UTC). It scans:
+
+- C# sources (`csharp`, build mode `none`, so no Visual Studio build is needed);
+- GitHub Actions workflows (`actions`).
+
+Results are uploaded to the repository's **Security → Code scanning** page. The job only has
+`contents: read` and `security-events: write` permissions. CodeQL does not change the Build VSIX
+workflow.
+
 ## Pull requests
 
 Pull requests should target `develop` and explain:
