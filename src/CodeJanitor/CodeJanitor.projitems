@@ -348,6 +348,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\GeneralParentViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\General\GeneralViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\CompositeOptionsPageViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\EditorConfigOverrideNotes.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\ISettingToOptionMapping.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Dialogs\Options\OptionsPageViewModelEnumerableExtensions.cs" />
