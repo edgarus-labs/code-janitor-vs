@@ -24,6 +24,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     private readonly Stopwatch _batchStopwatch;
 
     /// <summary>
+    /// Canceled with the background worker, to stop the semantic using directive placement of the current file.
+    /// </summary>
+    private readonly CancellationTokenSource _cancellationSource = new CancellationTokenSource();
+
+    /// <summary>
     /// the progress state for an ongoing operation, tracking the target file name along with the number of completed and total work items.
     /// </summary>
     private sealed class ProgressReportState
@@ -94,6 +99,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         CancelCommand.RaiseCanExecuteChanged();
 
         _backgroundWorker.CancelAsync();
+        _cancellationSource.Cancel();
     }
 
     /// <summary>
@@ -110,14 +116,15 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
 
         int totalCount = items.Count;
         int completedCount = 0;
+        var cancellationToken = _cancellationSource.Token;
 
         bool enableParallel = Settings.Default.Cleaning_EnableParallelCleanup;
         int maxDegree = Settings.Default.Cleaning_MaxDegreeOfParallelism > 0
             ? Settings.Default.Cleaning_MaxDegreeOfParallelism
             : Math.Max(1, Environment.ProcessorCount);
 
-        // Check if all items are ProjectItems and editor cleanup is not required, enabling full parallel mode
-        if (enableParallel && items.All(item => item is EnvDTE.ProjectItem) && !CodeCleanupManager.RequiresEditorCleanupForCSharp())
+        // When all items are ProjectItems, files that need no editor cleanup run headless in parallel.
+        if (enableParallel && items.All(item => item is EnvDTE.ProjectItem))
         {
             var projectItems = items.Cast<EnvDTE.ProjectItem>().ToList();
             var parallelOptions = new ParallelOptions
@@ -132,12 +139,17 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 return projectItems.Select(CreateWorkItem).ToList();
             });
 
-            var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, workItem => workItem.IsOpen);
+            // Open documents, and files whose effective settings need editor-backed steps (Format Document, Remove and
+            // Sort Usings, third-party cleanup), are cleaned one at a time in the editor.
+            var editorItems = new HashSet<WorkItem>(workItems.Where(workItem => workItem.IsOpen || CodeCleanupManager.RequiresEditorCleanupForCSharp(workItem.FilePath)));
+            var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
-            // The semantic using move needs the Visual Studio workspace (UI thread), so it runs one file at a time before
-            // the parallel headless pass; the headless steps (header, using organization, type splitting) then see the
-            // moved directives. The set is only read during the parallel pass.
+            // The semantic using directive placement needs the Visual Studio workspace (UI thread), so it runs one file
+            // at a time before the parallel headless pass; the headless steps (header, using organization, type
+            // splitting) then see the placed directives. A file is counted as changed as soon as it is rewritten, so it
+            // is counted even when the batch is canceled before its headless cleanup. The set is only read during the
+            // parallel pass, which does not count these files again.
             var filesWithMovedUsings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var workItem in parallelItems)
             {
@@ -155,10 +167,15 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        if (await CodeCleanupManager.MoveUsingsOutsideNamespaceAsync(workItem.ProjectItem))
+                        if (await CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken))
                         {
                             filesWithMovedUsings.Add(workItem.FilePath);
+                            CodeCleanupManager.IncrementHeadlessChanged();
                         }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
                     }
                     catch (Exception ex)
                     {
@@ -185,13 +202,18 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     try
                     {
                         var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(workItem.FilePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
-                        if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed || filesWithMovedUsings.Contains(workItem.FilePath))
+
+                        // Files rewritten by the using directive placement were already counted as changed.
+                        if (!filesWithMovedUsings.Contains(workItem.FilePath))
                         {
-                            CodeCleanupManager.IncrementHeadlessChanged();
-                        }
-                        else
-                        {
-                            CodeCleanupManager.IncrementHeadlessNoOp();
+                            if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed)
+                            {
+                                CodeCleanupManager.IncrementHeadlessChanged();
+                            }
+                            else
+                            {
+                                CodeCleanupManager.IncrementHeadlessNoOp();
+                            }
                         }
 
                         if (outcome.SplitOperationOccurred && outcome.CreatedFiles.Count > 0)
@@ -269,7 +291,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        await CodeCleanupManager.CleanupAsync(workItem.ProjectItem);
+                        await CodeCleanupManager.CleanupAsync(workItem.ProjectItem, cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
                     }
                     catch (Exception ex)
                     {
@@ -284,7 +310,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             return;
         }
 
-        // Sequential / Hybrid fallback path (for mixed items or when editor-bound cleanup like ReSharper / format doc is active)
+        // Sequential fallback path (parallel cleanup disabled, or items that are not all project items)
         foreach (dynamic item in items)
         {
             if (bw.CancellationPending)
@@ -311,12 +337,16 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 {
                     if (item is EnvDTE.ProjectItem projectItem)
                     {
-                        await CodeCleanupManager.CleanupAsync(projectItem);
+                        await CodeCleanupManager.CleanupAsync(projectItem, cancellationToken);
                     }
                     else
                     {
                         CodeCleanupManager.Cleanup(item);
                     }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
                 }
                 catch (Exception ex)
                 {
@@ -427,6 +457,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             }
         }
         DialogResult = true;
+        _cancellationSource.Dispose();
     }
 
     private static WorkItem CreateWorkItem(EnvDTE.ProjectItem projectItem)

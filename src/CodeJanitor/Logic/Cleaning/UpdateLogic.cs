@@ -54,12 +54,13 @@ internal sealed class UpdateLogic
     /// separate copy of the code.
     /// </remarks>
     /// <param name="textDocument">The text document to cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void UpdateEndRegionDirectives(TextDocument textDocument)
+    internal void UpdateEndRegionDirectives(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_UpdateEndRegionDirectives) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateEndRegionDirectives))) return;
 
         var regionStack = new Stack<string>();
         EditPoint cursor = textDocument.StartPoint.CreateEditPoint();
@@ -201,12 +202,13 @@ internal sealed class UpdateLogic
     /// Updates the event accessors to either both be single-line or multi-line.
     /// </summary>
     /// <param name="events">The events to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the events.</param>
 
-    internal void UpdateEventAccessorsToBothBeSingleLineOrMultiLine(IEnumerable<CodeItemEvent> events)
+    internal void UpdateEventAccessorsToBothBeSingleLineOrMultiLine(IEnumerable<CodeItemEvent> events, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine))) return;
 
         foreach (var item in events)
         {
@@ -218,12 +220,13 @@ internal sealed class UpdateLogic
     /// Updates the property accessors to either both be single-line or multi-line.
     /// </summary>
     /// <param name="properties">The properties to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the properties.</param>
 
-    internal void UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(IEnumerable<CodeItemProperty> properties)
+    internal void UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(IEnumerable<CodeItemProperty> properties, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine))) return;
 
         foreach (var item in properties)
         {
@@ -235,12 +238,13 @@ internal sealed class UpdateLogic
     /// Updates single line methods by placing braces on separate lines.
     /// </summary>
     /// <param name="methods">The methods to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the methods.</param>
 
-    internal void UpdateSingleLineMethods(IEnumerable<CodeItemMethod> methods)
+    internal void UpdateSingleLineMethods(IEnumerable<CodeItemMethod> methods, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_UpdateSingleLineMethods) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateSingleLineMethods))) return;
 
         var singleLineMethods = methods.Where(x => x.StartPoint.Line == x.EndPoint.Line && x.OverrideKind != vsCMOverrideKind.vsCMOverrideKindAbstract && !(x.CodeFunction.Parent is CodeInterface));
         foreach (var singleLineMethod in singleLineMethods)

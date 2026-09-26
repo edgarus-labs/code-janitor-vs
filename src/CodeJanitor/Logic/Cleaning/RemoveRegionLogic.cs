@@ -130,24 +130,6 @@ internal sealed class RemoveRegionLogic
     }
 
     /// <summary>
-    /// Removes the region tags from the specified regions based on user settings.
-    /// </summary>
-    /// <param name="regions">The regions to update.</param>
-
-    internal void RemoveRegionsPerSettings(IEnumerable<CodeItemRegion> regions)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        if (!Settings.Default.Cleaning_RemoveRegions) return;
-
-        // Iterate through regions in reverse order (reduces line number updates during removal).
-        foreach (var region in regions.OrderByDescending(x => x.StartLine))
-        {
-            RemoveRegion(region);
-        }
-    }
-
-    /// <summary>
     /// Removes the region tags from the specified region.
     /// </summary>
     /// <param name="region">The region to update.</param>

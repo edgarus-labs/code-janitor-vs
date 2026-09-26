@@ -4,6 +4,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Integration.Commands;
 using CodeJanitor.Integration.Events;
 using CodeJanitor.Integration.Options;
@@ -245,6 +246,16 @@ public sealed class CodeJanitorPackage : AsyncPackage
             OutputWindowHelper.EnsurePaneCreated();
 
             SettingsMonitor = new SettingsMonitor<Settings>(Settings.Default, JoinableTaskFactory);
+
+            try
+            {
+                CSharpLanguageVersionSupport.UseVisualStudioWorkspace(this);
+            }
+            catch (Exception ex)
+            {
+                // Without the resolver no cleanup step emits syntax newer than C# 7.3 (each skip is reported).
+                OutputWindowHelper.ExceptionWriteLine("CodeJanitor could not use the Roslyn workspace to read C# language versions.", ex);
+            }
 
             await RegisterCommandsAsync();
             await RegisterEventListenersAsync();

@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using System.Text.RegularExpressions;
 namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
-/// Inserts blank line padding before and after declarations according to per-kind settings.
+/// Inserts blank line padding before and after declarations according to the effective per-kind settings of the file.
 /// Uses Roslyn only for line-number discovery; actual insertion is done on the line list
 /// (same safe pattern as <see cref="ReturnThrowBlankLinePaddingConverter"/>).
 /// </summary>
@@ -24,6 +25,18 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     private static readonly Regex SingleLineCommentPaddingPattern = new Regex(
         @"(^[ \t]*(?!//)[^ \t\r\n{].*)\r?\n([ \t]*//(?!/))",
         RegexOptions.Multiline | RegexOptions.Compiled);
+
+    private readonly EffectiveCleanupSettings _settings;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BlankLinePaddingConverter" /> class.
+    /// </summary>
+    /// <param name="settings">The effective cleanup settings of the file, which decide per kind whether padding is inserted.</param>
+
+    internal BlankLinePaddingConverter(EffectiveCleanupSettings settings)
+    {
+        _settings = settings;
+    }
 
     /// <summary>
     /// Gets the name.
@@ -62,14 +75,14 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         var result = string.Join(newline, lines);
 
         // Regex-based: case statements
-        if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)
+        if (_settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)))
         {
             result = CaseStatementPattern.Replace(result, m =>
                 m.Groups[1].Value + m.Groups[2].Value + newline + newline + m.Groups[3].Value + m.Groups[4].Value);
         }
 
         // Regex-based: single-line comments
-        if (Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)
+        if (_settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)))
         {
             result = SingleLineCommentPaddingPattern.Replace(result, m =>
                 m.Groups[1].Value + newline + newline + m.Groups[2].Value);
@@ -94,67 +107,67 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
 
             if (node is ClassDeclarationSyntax || node is RecordDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses));
             }
             else if (node is DelegateDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates));
             }
             else if (node is EnumDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEnumerations));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEnumerations));
             }
             else if (node is EventDeclarationSyntax || node is EventFieldDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEvents));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEvents));
             }
             else if (node is FieldDeclarationSyntax)
             {
                 var span = tree.GetLineSpan(node.Span);
                 bool isMultiLine = span.EndLinePosition.Line > span.StartLinePosition.Line;
                 padBefore = isMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine;
+                    ? _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine))
+                    : _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine));
                 padAfter = isMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine;
+                    ? _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine))
+                    : _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine));
             }
             else if (node is InterfaceDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeInterfaces));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterInterfaces));
             }
             else if (node is NamespaceDeclarationSyntax || node is FileScopedNamespaceDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeNamespaces));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterNamespaces));
             }
             else if (node is MethodDeclarationSyntax || node is ConstructorDeclarationSyntax ||
                      node is DestructorDeclarationSyntax || node is OperatorDeclarationSyntax ||
                      node is ConversionOperatorDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeMethods));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterMethods));
             }
             else if (node is PropertyDeclarationSyntax || node is IndexerDeclarationSyntax)
             {
                 var span = tree.GetLineSpan(node.Span);
                 bool isMultiLine = span.EndLinePosition.Line > span.StartLinePosition.Line;
                 padBefore = isMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine;
+                    ? _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine))
+                    : _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine));
                 padAfter = isMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine;
+                    ? _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine))
+                    : _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine));
             }
             else if (node is StructDeclarationSyntax)
             {
-                padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs;
-                padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs;
+                padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeStructs));
+                padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterStructs));
             }
             else
             {
@@ -202,10 +215,10 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
 
     private void CollectRegionDirectivePadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {
-        bool beforeRegion = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags;
-        bool afterRegion = Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags;
-        bool beforeEndRegion = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags;
-        bool afterEndRegion = Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags;
+        bool beforeRegion = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags));
+        bool afterRegion = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags));
+        bool beforeEndRegion = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags));
+        bool afterEndRegion = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags));
 
         if (!beforeRegion && !afterRegion && !beforeEndRegion && !afterEndRegion)
             return;
@@ -236,8 +249,8 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
 
     private void CollectUsingBlockPadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {
-        bool padBefore = Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks;
-        bool padAfter = Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks;
+        bool padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks));
+        bool padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks));
 
         if (!padBefore && !padAfter) return;
 
@@ -313,43 +326,43 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     }
 
     /// <summary>
-    /// Returns true if any of the listed blank-line padding settings is enabled, otherwise false, with no side effects and only reading application settings.
+    /// Returns true if any of the listed blank-line padding settings is enabled in the effective settings, otherwise false, with no side effects.
     /// </summary>
     /// <returns>A bool value produced by this method.</returns>
 
-    private static bool AnySettingEnabled()
+    private bool AnySettingEnabled()
     {
-        return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements ||
-               Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments;
+        return _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEnumerations)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEnumerations)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEvents)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEvents)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeInterfaces)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterInterfaces)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeMethods)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterMethods)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeNamespaces)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterNamespaces)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeStructs)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterStructs)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)) ||
+               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments));
     }
 }

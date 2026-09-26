@@ -42,15 +42,16 @@ internal sealed class JsonSerializerOptionsReuseLogic
 
     /// <summary>
     /// Replaces direct <c>new JsonSerializerOptions()</c> arguments in
-    /// <c>JsonSerializer.*</c> calls with <c>null</c>, when enabled in settings.
+    /// <c>JsonSerializer.*</c> calls with <c>null</c>, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void ReuseJsonSerializerOptionsForCA1869(TextDocument textDocument)
+    internal void ReuseJsonSerializerOptionsForCA1869(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_ReuseJsonSerializerOptionsForCA1869)))
         {
             return;
         }

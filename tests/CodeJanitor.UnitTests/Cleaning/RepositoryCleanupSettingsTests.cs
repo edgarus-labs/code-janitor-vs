@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.CodeAnalysis.CSharp;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using System;
@@ -18,12 +19,14 @@ public sealed class RepositoryCleanupSettingsTests
         Settings.Default.Cleaning_AiXmlDocumentationEnabled = false;
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
+        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
     }
 
     [TestCleanup]
     public void TestCleanup()
     {
         Settings.Default.Reset();
+        CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
 
         if (Directory.Exists(_tempDirectory))
         {

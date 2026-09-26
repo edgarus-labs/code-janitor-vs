@@ -10,11 +10,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace CodeJanitor.UnitTests.Transformations;
 
 /// <summary>
-/// Unit tests for <see cref="MoveUsingsOutsideNamespaceConverter" />. Every moved result is compiled together with
+/// Unit tests for <see cref="UsingDirectivePlacementConverter.MoveUsingsOutsideAsync" /> (the
+/// <c>csharp_using_directive_placement = outside_namespace</c> direction). Every moved result is compiled together with
 /// <see cref="Library" /> and must not contain compile errors.
 /// </summary>
 [TestClass]
-public sealed class MoveUsingsOutsideNamespaceConverterTests
+public sealed class UsingDirectivePlacementConverterOutwardTests
 {
     private const string Library =
         "namespace Company.App.Services { public class Svc { } }\r\n" +
@@ -54,6 +55,8 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
     private const string DeconstructExtension = "public static void Deconstruct(this Thing t, out int a, out int b) { a = 0; b = 0; }";
 
     private const string ServicesNamespace = "namespace Company.App\r\n{\r\n    using Services;\r\n    class C { Svc s; }\r\n}\r\n";
+
+    private const string AppToolsNamespace = "namespace Company.App.Tools { public class Tool { } }\r\n";
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -175,13 +178,13 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task UsingsAlreadyOutside_ReportsNoUsingsInsideNamespace()
+    public async Task UsingsAlreadyOutside_ReportsNothingToMove()
     {
         var input = "using System;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { }\r\n}\r\n";
 
         var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.NoUsingsInsideNamespace, result.Status);
+        Assert.AreEqual(UsingDirectivePlacementStatus.NothingToMove, result.Status);
         Assert.IsNull(result.Text);
     }
 
@@ -193,7 +196,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "using Missing;");
     }
@@ -209,7 +212,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "CS0104");
     }
@@ -241,6 +244,55 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    public async Task RelativeAliasTargets_AreQualifiedWithoutKeywords_OnCSharp73Projects()
+    {
+        // At file level an alias target does not see the file's using directives, so String and List<int> must be
+        // qualified; before C# 12 an alias target cannot be a keyword such as 'string'.
+        var input = "using System;\r\nusing System.Collections.Generic;\r\n\r\nnamespace Company.App\r\n{\r\n    using Str = String;\r\n    using L = List<int>;\r\n    class C { Str s; L l; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.CSharp7_3, new MetadataReference[0], Library);
+
+        var result = await AssertMovedAndCompilesAsync(document);
+
+        Assert.AreEqual(
+            "using System;\r\nusing System.Collections.Generic;\r\nusing Str = System.String;\r\nusing L = System.Collections.Generic.List<System.Int32>;\r\n\r\n" +
+            "namespace Company.App\r\n{\r\n    class C { Str s; L l; }\r\n}\r\n",
+            result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        LanguageVersion.CSharp7_3,
+        "using P = System.ValueTuple<Services.Svc, int>;",
+        "using P = System.ValueTuple<Company.App.Services.Svc, System.Int32>;",
+        "P p;",
+        DisplayName = "tuple on C# 7.3")]
+    [DataRow(
+        LanguageVersion.CSharp7_3,
+        "using L = System.Collections.Generic.List<(Services.Svc A, int B)>;",
+        "using L = System.Collections.Generic.List<(Company.App.Services.Svc A, System.Int32 B)>;",
+        "L l; int M() => l[0].B;",
+        DisplayName = "named tuple type argument on C# 7.3")]
+    [DataRow(
+        LanguageVersion.Latest,
+        "using P = (Services.Svc A, int B);",
+        "using P = (Company.App.Services.Svc A, System.Int32 B);",
+        "P p; int M() => p.B;",
+        DisplayName = "named tuple on latest C#")]
+    public async Task RelativeTupleAliasTargets_AreQualifiedInSyntaxTheLanguageVersionAccepts(LanguageVersion languageVersion, string alias, string expectedAlias, string members)
+    {
+        // Before C# 12 an alias target cannot be written in tuple syntax, but a type argument can; element names can only
+        // be written in tuple syntax.
+        var input = "namespace Company.App\r\n{\r\n    " + alias + "\r\n    class C { " + members + " }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, languageVersion, new MetadataReference[0], Library);
+
+        var result = await AssertMovedAndCompilesAsync(document);
+
+        StringAssert.StartsWith(result, expectedAlias + "\r\n\r\nnamespace Company.App\r\n");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async Task ExternAliasQualifiedUsing_KeepsItsAlias()
     {
         var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
@@ -255,6 +307,26 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    public async Task UsingOfAnExternAliasThatStaysInsideTheNamespace_IsSkippedWithReason()
+    {
+        // The extern alias stays inside the namespace, so V1::Ext cannot be named at file level. Written as 'using Ext;',
+        // the directive would import the project's own Ext instead, and Thing would silently bind to its Thing.
+        var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
+        var input = "namespace Company.App\r\n{\r\n    extern alias V1;\r\n    using V1::Ext;\r\n    class C { Thing t; }\r\n}\r\n";
+        var rebound = "using Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    extern alias V1;\r\n    class C { Thing t; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library, "namespace Ext { public class Thing { } }\r\n");
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, rebound), "The rebound text must compile, so that only the binding check can reject it.");
+
+        var result = await MoveAsync(document);
+
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
+        Assert.IsNull(result.Text);
+        StringAssert.Contains(result.Reason, "'using V1::Ext;'");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async Task MoveThatSilentlyRebindsAName_IsSkippedWithReason()
     {
         // Inside Company.App, 'using Models;' makes Foo mean Company.App.Models.Foo. At file level the import is
@@ -265,7 +337,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "Company.App.Models.Foo");
         StringAssert.Contains(result.Reason, "Company.Foo");
@@ -290,7 +362,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "interleaved with preprocessor directives");
     }
@@ -353,7 +425,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "using Ext;");
         StringAssert.Contains(result.Reason, "'" + memberName + "'");
@@ -375,7 +447,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "preprocessor directives");
     }
@@ -392,7 +464,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.StartsWith(result.Reason, "with DEBUG defined: ");
         StringAssert.Contains(result.Reason, "Company.App.Models.Foo -> Company.Foo");
@@ -429,7 +501,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.StartsWith(result.Reason, "with DEBUG defined: ");
         StringAssert.Contains(result.Reason, "Company.App.Models.Foo -> Company.Foo");
@@ -449,10 +521,59 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.StartsWith(result.Reason, "with DEBUG defined: ");
         StringAssert.Contains(result.Reason, "Company.App.Models.Foo -> Company.Foo");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("#if A && B\r\n" + AppToolsNamespace + "#endif\r\n", DisplayName = "both symbols in one condition")]
+    [DataRow("#if A\r\n#if B\r\n" + AppToolsNamespace + "#endif\r\n#endif\r\n", DisplayName = "nested conditions")]
+    public async Task MoveThatRebindsANameOnlyWhenTwoSymbolsOfAnotherDocumentAreDefined_IsSkippedWithReason(string otherDocument)
+    {
+        // Neither A nor B alone changes the declarations of the other document; together they declare
+        // Company.App.Tools, which 'using Tools;' means inside Company.App, while at file level it means the global Tools.
+        const string GlobalTools = "namespace Tools { public class Tool { } }\r\n";
+        var input = "namespace Company.App\r\n{\r\n    using Tools;\r\n    class C { Tool t; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, Library, GlobalTools, otherDocument);
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
+        var abDocument = CompilingTestProject.CreateDocument(input, DefiningSymbols("A", "B"), new MetadataReference[0], Library, GlobalTools, otherDocument);
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(abDocument, input), "The input must compile with A and B defined.");
+
+        var result = await MoveAsync(document);
+
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
+        Assert.IsNull(result.Text);
+        StringAssert.StartsWith(result.Reason, "with A defined, B defined: ");
+        StringAssert.Contains(result.Reason, "Company.App.Tools.Tool -> Tools.Tool");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("global using LibB;", "CS0104", DisplayName = "global using")]
+    [DataRow("global using Foo = LibB.Foo;", "LibA.Foo -> LibB.Foo", DisplayName = "global using alias")]
+    public async Task MoveThatConflictsWithAConditionalGlobalUsingOfAnotherDocument_IsSkippedWithReason(string globalUsing, string expectedReason)
+    {
+        // Inside N, 'using LibA;' is searched before the global usings; at file level it is searched together with them,
+        // so the move is safe without X, but in an X build Foo would become ambiguous or bind to LibB.Foo.
+        const string Libraries = "namespace LibA { public class Foo { } }\r\nnamespace LibB { public class Foo { } }\r\n";
+        var globalUsings = "#if X\r\n" + globalUsing + "\r\n#endif\r\n";
+        var input = "namespace N\r\n{\r\n    using LibA;\r\n    class C { Foo f; }\r\n}\r\n";
+        var moved = "using LibA;\r\n\r\nnamespace N\r\n{\r\n    class C { Foo f; }\r\n}\r\n";
+        var document = CompilingTestProject.CreateDocument(input, Library, Libraries, globalUsings);
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, moved), "The moved text must compile without X.");
+        var xDocument = CompilingTestProject.CreateDocument(input, DefiningSymbols("X"), new MetadataReference[0], Library, Libraries, globalUsings);
+        AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(xDocument, input), "The input must compile with X defined.");
+
+        var result = await MoveAsync(document);
+
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
+        Assert.IsNull(result.Text);
+        StringAssert.StartsWith(result.Reason, "with X defined: ");
+        StringAssert.Contains(result.Reason, expectedReason);
     }
 
     [TestMethod]
@@ -463,6 +584,10 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
         "#if A || B\r\n#elif C && D\r\n#endif\r\n",
         "namespace Company\r\n{\r\n    public static class Twice\r\n    {\r\n#if E\r\n        public static int Of(this long x) => 2;\r\n#else\r\n        public static int Of(this int x) => 2;\r\n#endif\r\n    }\r\n}\r\n",
         DisplayName = "fifth symbol changes only a signature in another document")]
+    [DataRow(
+        "",
+        "#if A && B && C && D && E && F && G\r\nnamespace Company { class Extra { } }\r\n#endif\r\n",
+        DisplayName = "seven symbols change the declarations of another document only together")]
     public async Task MoveDependingOnMoreThanFourConditionalCompilationSymbols_IsSkippedWithReason(string conditions, string otherDocument)
     {
         var input = "namespace Company.App\r\n{\r\n    using Services;\r\n    class C\r\n    {\r\n        Svc s;\r\n        void M()\r\n        {\r\n" + conditions + "        }\r\n    }\r\n}\r\n";
@@ -471,7 +596,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, "A, B, C, D, E");
         StringAssert.Contains(result.Reason, "more than 4 conditional-compilation symbols are too many variants to verify");
@@ -493,6 +618,26 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
         var result = await AssertMovedAndCompilesAsync(document);
 
         StringAssert.StartsWith(result, "using Company.App.Services;\r\n\r\nnamespace Company.App\r\n");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("", false, DisplayName = "empty source")]
+    [DataRow("namespace N\r\n{\r\n    using System;\r\n    class C { }\r\n}\r\n", true, DisplayName = "using inside a namespace")]
+    [DataRow("using System;\r\n\r\nnamespace N\r\n{\r\n    class C { }\r\n}\r\n", false, DisplayName = "using outside the namespace")]
+    [DataRow("#if DEBUG\r\nusing System;\r\n#endif\r\n\r\nnamespace N\r\n{\r\n    class C { }\r\n}\r\n", false, DisplayName = "#if block outside the namespace")]
+    [DataRow("namespace N\r\n{\r\n    class C\r\n    {\r\n#if DEBUG\r\n        void M() { }\r\n#endif\r\n    }\r\n}\r\n", false, DisplayName = "#if block inside a type")]
+    [DataRow("namespace N\r\n{\r\n#if DEBUG\r\n    using System;\r\n#endif\r\n    class C { }\r\n}\r\n", true, DisplayName = "using in an #if block of a block-scoped namespace")]
+    [DataRow("namespace N;\r\n\r\n#if DEBUG\r\nusing System;\r\n#endif\r\n\r\nclass C { }\r\n", true, DisplayName = "using in an #if block of a file-scoped namespace")]
+    [DataRow("namespace N\r\n{\r\n#if !DEBUG\r\n#else\r\n    using System;\r\n#endif\r\n}\r\n", true, DisplayName = "using in an #else block of a namespace without members")]
+    [DataRow("namespace N\r\n{\r\n#if DEBUG\r\n    class D { }\r\n#endif\r\n    class C { }\r\n}\r\n", false, DisplayName = "#if block of types in front of the first member")]
+    [DataRow("namespace N;\r\n\r\n#if DEBUG\r\nclass D { }\r\n#else\r\nclass C { }\r\n#endif\r\n", false, DisplayName = "#if block of types in a file-scoped namespace")]
+    [DataRow("namespace N\r\n{\r\n#if !DEBUG\r\n    class C { }\r\n#endif\r\n}\r\n", false, DisplayName = "active #if block around the first member")]
+    public void HasUsingsInsideNamespace_CountsUsingsInTheUsingSectionIncludingDisabledOnes(string source, bool expected)
+    {
+        // The precheck parses without the project's symbols: a using in an #if block is disabled text there, but may be
+        // active in the project, where the move has to decide (and skip with a reason).
+        Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsInsideNamespace(source));
     }
 
     [TestMethod]
@@ -520,7 +665,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
     }
 
@@ -604,8 +749,8 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
         StringAssert.StartsWith(result, "// header\r\n\r\nusing Str = System.String;\r\n\r\nnamespace Company.App\r\n");
     }
 
-    private static Task<MoveUsingsOutsideNamespaceResult> MoveAsync(Microsoft.CodeAnalysis.Document document) =>
-        new MoveUsingsOutsideNamespaceConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
+    private static Task<UsingDirectivePlacementResult> MoveAsync(Microsoft.CodeAnalysis.Document document) =>
+        new UsingDirectivePlacementConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
 
     private static CSharpParseOptions DefiningSymbols(params string[] symbols) =>
         new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: symbols);
@@ -620,7 +765,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Moved, result.Status, result.Reason);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), "The moved output must compile:" + Environment.NewLine + result.Text);
 
         return result.Text;
@@ -636,7 +781,7 @@ public sealed class MoveUsingsOutsideNamespaceConverterTests
 
         var result = await MoveAsync(document);
 
-        Assert.AreEqual(MoveUsingsOutsideNamespaceStatus.Skipped, result.Status, result.Text);
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
         StringAssert.Contains(result.Reason, memberName);
         StringAssert.Contains(result.Reason, "Company.App.Ext.E.");

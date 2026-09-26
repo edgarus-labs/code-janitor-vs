@@ -1,5 +1,6 @@
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
@@ -48,15 +49,16 @@ internal sealed class CollectionExpressionLogic
 
     /// <summary>
     /// Converts <c>List&lt;T&gt;</c> and array initializations in the specified document to
-    /// collection expression syntax, when enabled in settings.
+    /// collection expression syntax, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void ConvertToCollectionExpressions(TextDocument textDocument)
+    internal void ConvertToCollectionExpressions(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_ConvertToCollectionExpressions)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_ConvertToCollectionExpressions)))
         {
             return;
         }
@@ -64,7 +66,7 @@ internal sealed class CollectionExpressionLogic
         var startPoint = textDocument.StartPoint.CreateEditPoint();
         var originalText = startPoint.GetText(textDocument.EndPoint);
 
-        var convertedText = _converter.Apply(originalText);
+        var convertedText = ConvertToCollectionExpressions(originalText, textDocument.Parent.FullName);
         if (convertedText == originalText)
         {
             return;
@@ -72,5 +74,32 @@ internal sealed class CollectionExpressionLogic
 
         var endPoint = textDocument.EndPoint.CreateEditPoint();
         startPoint.ReplaceText(endPoint, convertedText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+    }
+
+    /// <summary>
+    /// Converts <c>List&lt;T&gt;</c> and array initializations in C# source text to collection expression syntax when
+    /// every project compiling the file uses C# 12 or newer (<see cref="CSharpLanguageVersionSupport" />); otherwise
+    /// the text is returned unchanged and a conversion it would have made is reported.
+    /// </summary>
+    /// <param name="text">The C# source text.</param>
+    /// <param name="filePath">The file path, used for the language version check and in log messages.</param>
+    /// <returns>The converted text, or the original text when the conversion does not apply.</returns>
+
+    internal string ConvertToCollectionExpressions(string text, string filePath)
+    {
+        var convertedText = _converter.Apply(text);
+        if (convertedText == text)
+        {
+            return text;
+        }
+
+        if (!CSharpLanguageVersionSupport.For(filePath).Supports(CSharpLanguageVersionSupport.CollectionExpressions, out var skipMessage))
+        {
+            OutputWindowHelper.WarningWriteLine(skipMessage);
+
+            return text;
+        }
+
+        return convertedText;
     }
 }

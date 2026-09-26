@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
@@ -12,7 +13,7 @@ public sealed class BlankLinePaddingConverterTests
     [TestInitialize]
     public void TestInitialize()
     {
-        _converter = new BlankLinePaddingConverter();
+        _converter = new BlankLinePaddingConverter(EffectiveCleanupSettings.For(null));
         DisableAllSettings();
     }
 

@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 
 namespace CodeJanitor.Logic.Transformations;
@@ -12,20 +13,32 @@ namespace CodeJanitor.Logic.Transformations;
 
 public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTransformation
 {
+    private readonly EffectiveCleanupSettings _settings;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdateAccessorsToBothBeSingleLineOrMultiLineConverter" /> class.
+    /// </summary>
+    /// <param name="settings">The effective cleanup settings of the file, which decide whether accessors are updated.</param>
+
+    internal UpdateAccessorsToBothBeSingleLineOrMultiLineConverter(EffectiveCleanupSettings settings)
+    {
+        _settings = settings;
+    }
+
     /// <summary>
     /// Gets the name.
     /// </summary>
     public string Name => "Update accessors to both be single line or multi-line";
 
     /// <summary>
-    /// Parses the input C# source with Roslyn and, if the source is non-empty and the cleaning setting is enabled, applies AccessorFormatRewriter to normalize accessor formatting, returning the rewritten source; otherwise, it returns the original input unchanged with no side effects.
+    /// Parses the input C# source with Roslyn and, if the source is non-empty and the effective cleaning setting is enabled, applies AccessorFormatRewriter to normalize accessor formatting, returning the rewritten source; otherwise, it returns the original input unchanged with no side effects.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
 
     public string Apply(string source)
     {
-        if (string.IsNullOrEmpty(source) || !Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)
+        if (string.IsNullOrEmpty(source) || !_settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)))
         {
             return source;
         }

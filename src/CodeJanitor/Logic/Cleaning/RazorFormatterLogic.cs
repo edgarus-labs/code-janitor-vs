@@ -44,16 +44,17 @@ internal sealed class RazorFormatterLogic
     }
 
     /// <summary>
-    /// Formats the text of a Razor (.razor) TextDocument on the UI thread when Razor component formatting is enabled, replacing the original content with the formatted output only if it differs and preserving any existing markers.
+    /// Formats the text of a Razor (.razor) TextDocument on the UI thread when Razor component formatting is enabled in the effective settings, replacing the original content with the formatted output only if it differs and preserving any existing markers.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
-    internal void FormatRazorDocument(TextDocument textDocument)
+    /// <param name="settings">The effective cleanup settings of the document.</param>
+    internal void FormatRazorDocument(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         if (textDocument?.Parent?.FullName is null) return;
         if (!string.Equals(Path.GetExtension(textDocument.Parent.FullName), ".razor", StringComparison.OrdinalIgnoreCase)) return;
-        if (!Settings.Default.Cleaning_FormatRazorComponents) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_FormatRazorComponents))) return;
 
         var start = textDocument.StartPoint.CreateEditPoint();
         var end = textDocument.EndPoint.CreateEditPoint();

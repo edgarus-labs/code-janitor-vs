@@ -44,13 +44,25 @@ internal sealed class InsertBlankLinePaddingLogic
     }
 
     /// <summary>
-    /// Determines if the specified code item instance should be preceded by a blank line.
+    /// Determines if the specified code item instance should be preceded by a blank line, per the user's Visual
+    /// Studio settings (the reorganizer does not resolve per-file cleanup settings).
     /// Defaults to false for unknown kinds or null objects.
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>True if code item should be preceded by a blank line, otherwise false.</returns>
 
-    internal bool ShouldBePrecededByBlankLine(BaseCodeItem codeItem)
+    internal bool ShouldBePrecededByBlankLine(BaseCodeItem codeItem) =>
+        ShouldBePrecededByBlankLine(codeItem, EffectiveCleanupSettings.For(null));
+
+    /// <summary>
+    /// Determines if the specified code item instance should be preceded by a blank line.
+    /// Defaults to false for unknown kinds or null objects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the code item.</param>
+    /// <returns>True if code item should be preceded by a blank line, otherwise false.</returns>
+
+    internal bool ShouldBePrecededByBlankLine(BaseCodeItem codeItem, EffectiveCleanupSettings settings)
     {
         if (codeItem is null)
         {
@@ -60,61 +72,73 @@ internal sealed class InsertBlankLinePaddingLogic
         switch (codeItem.Kind)
         {
             case KindCodeItem.Class:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses));
 
             case KindCodeItem.Delegate:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates));
 
             case KindCodeItem.Enum:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEnumerations));
 
             case KindCodeItem.Event:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEvents));
 
             case KindCodeItem.Field:
                 return codeItem.IsMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine;
+                    ? settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine))
+                    : settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine));
 
             case KindCodeItem.Interface:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeInterfaces));
 
             case KindCodeItem.Namespace:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeNamespaces));
 
             case KindCodeItem.Constructor:
             case KindCodeItem.Destructor:
             case KindCodeItem.Method:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeMethods));
 
             case KindCodeItem.Indexer:
             case KindCodeItem.Property:
                 return codeItem.IsMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine;
+                    ? settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine))
+                    : settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine));
 
             case KindCodeItem.Region:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags));
 
             case KindCodeItem.Struct:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeStructs));
 
             case KindCodeItem.Using:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks));
 
             default:
                 return false;
         }
     }
+
+    /// <summary>
+    /// Determines if the specified code item instance should be followed by a blank line, per the user's Visual
+    /// Studio settings (the reorganizer does not resolve per-file cleanup settings).
+    /// Defaults to false for unknown kinds or null objects.
+    /// </summary>
+    /// <param name="codeItem">The code item.</param>
+    /// <returns>True if code item should be followed by a blank line, otherwise false.</returns>
+
+    internal bool ShouldBeFollowedByBlankLine(BaseCodeItem codeItem) =>
+        ShouldBeFollowedByBlankLine(codeItem, EffectiveCleanupSettings.For(null));
 
     /// <summary>
     /// Determines if the specified code item instance should be followed by a blank line.
     /// Defaults to false for unknown kinds or null objects.
     /// </summary>
     /// <param name="codeItem">The code item.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the code item.</param>
     /// <returns>True if code item should be followed by a blank line, otherwise false.</returns>
 
-    internal bool ShouldBeFollowedByBlankLine(BaseCodeItem codeItem)
+    internal bool ShouldBeFollowedByBlankLine(BaseCodeItem codeItem, EffectiveCleanupSettings settings)
     {
         if (codeItem is null)
         {
@@ -124,47 +148,47 @@ internal sealed class InsertBlankLinePaddingLogic
         switch (codeItem.Kind)
         {
             case KindCodeItem.Class:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses));
 
             case KindCodeItem.Delegate:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates));
 
             case KindCodeItem.Enum:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEnumerations));
 
             case KindCodeItem.Event:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEvents));
 
             case KindCodeItem.Field:
                 return codeItem.IsMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine;
+                    ? settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine))
+                    : settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine));
 
             case KindCodeItem.Interface:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterInterfaces));
 
             case KindCodeItem.Namespace:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterNamespaces));
 
             case KindCodeItem.Constructor:
             case KindCodeItem.Destructor:
             case KindCodeItem.Method:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterMethods));
 
             case KindCodeItem.Indexer:
             case KindCodeItem.Property:
                 return codeItem.IsMultiLine
-                    ? Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine
-                    : Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine;
+                    ? settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine))
+                    : settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine));
 
             case KindCodeItem.Region:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags));
 
             case KindCodeItem.Struct:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterStructs));
 
             case KindCodeItem.Using:
-                return Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks;
+                return settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks));
 
             default:
                 return false;
@@ -172,15 +196,25 @@ internal sealed class InsertBlankLinePaddingLogic
     }
 
     /// <summary>
-    /// Inserts a blank line before #region tags except where adjacent to a brace.
+    /// Inserts a blank line before #region tags except where adjacent to a brace, per the user's Visual Studio
+    /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
 
-    internal void InsertPaddingBeforeRegionTags(IEnumerable<CodeItemRegion> regions)
+    internal void InsertPaddingBeforeRegionTags(IEnumerable<CodeItemRegion> regions) =>
+        InsertPaddingBeforeRegionTags(regions, EffectiveCleanupSettings.For(null));
+
+    /// <summary>
+    /// Inserts a blank line before #region tags except where adjacent to a brace.
+    /// </summary>
+    /// <param name="regions">The regions to pad.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
+
+    internal void InsertPaddingBeforeRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags))) return;
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -191,15 +225,25 @@ internal sealed class InsertBlankLinePaddingLogic
     }
 
     /// <summary>
-    /// Inserts a blank line after #region tags except where adjacent to a brace.
+    /// Inserts a blank line after #region tags except where adjacent to a brace, per the user's Visual Studio
+    /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
 
-    internal void InsertPaddingAfterRegionTags(IEnumerable<CodeItemRegion> regions)
+    internal void InsertPaddingAfterRegionTags(IEnumerable<CodeItemRegion> regions) =>
+        InsertPaddingAfterRegionTags(regions, EffectiveCleanupSettings.For(null));
+
+    /// <summary>
+    /// Inserts a blank line after #region tags except where adjacent to a brace.
+    /// </summary>
+    /// <param name="regions">The regions to pad.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
+
+    internal void InsertPaddingAfterRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags))) return;
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -210,15 +254,25 @@ internal sealed class InsertBlankLinePaddingLogic
     }
 
     /// <summary>
-    /// Inserts a blank line before #endregion tags except where adjacent to a brace.
+    /// Inserts a blank line before #endregion tags except where adjacent to a brace, per the user's Visual Studio
+    /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
 
-    internal void InsertPaddingBeforeEndRegionTags(IEnumerable<CodeItemRegion> regions)
+    internal void InsertPaddingBeforeEndRegionTags(IEnumerable<CodeItemRegion> regions) =>
+        InsertPaddingBeforeEndRegionTags(regions, EffectiveCleanupSettings.For(null));
+
+    /// <summary>
+    /// Inserts a blank line before #endregion tags except where adjacent to a brace.
+    /// </summary>
+    /// <param name="regions">The regions to pad.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
+
+    internal void InsertPaddingBeforeEndRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags))) return;
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -229,15 +283,25 @@ internal sealed class InsertBlankLinePaddingLogic
     }
 
     /// <summary>
-    /// Inserts a blank line after #endregion tags except where adjacent to a brace.
+    /// Inserts a blank line after #endregion tags except where adjacent to a brace, per the user's Visual Studio
+    /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
 
-    internal void InsertPaddingAfterEndRegionTags(IEnumerable<CodeItemRegion> regions)
+    internal void InsertPaddingAfterEndRegionTags(IEnumerable<CodeItemRegion> regions) =>
+        InsertPaddingAfterEndRegionTags(regions, EffectiveCleanupSettings.For(null));
+
+    /// <summary>
+    /// Inserts a blank line after #endregion tags except where adjacent to a brace.
+    /// </summary>
+    /// <param name="regions">The regions to pad.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
+
+    internal void InsertPaddingAfterEndRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags))) return;
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -252,13 +316,14 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <typeparam name="T">The type of the code element.</typeparam>
     /// <param name="codeElements">The code elements to pad.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the code elements.</param>
 
-    internal void InsertPaddingBeforeCodeElements<T>(IEnumerable<T> codeElements)
+    internal void InsertPaddingBeforeCodeElements<T>(IEnumerable<T> codeElements, EffectiveCleanupSettings settings)
         where T : BaseCodeItemElement
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        foreach (T codeElement in codeElements.Where(ShouldBePrecededByBlankLine))
+        foreach (T codeElement in codeElements.Where(element => ShouldBePrecededByBlankLine(element, settings)))
         {
             TextDocumentHelper.InsertBlankLineBeforePoint(GetPointAboveDocumentationComment(codeElement.StartPoint));
         }
@@ -298,13 +363,14 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <typeparam name="T">The type of the code element.</typeparam>
     /// <param name="codeElements">The code elements to pad.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the code elements.</param>
 
-    internal void InsertPaddingAfterCodeElements<T>(IEnumerable<T> codeElements)
+    internal void InsertPaddingAfterCodeElements<T>(IEnumerable<T> codeElements, EffectiveCleanupSettings settings)
         where T : BaseCodeItemElement
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        foreach (T codeElement in codeElements.Where(ShouldBeFollowedByBlankLine))
+        foreach (T codeElement in codeElements.Where(element => ShouldBeFollowedByBlankLine(element, settings)))
         {
             TextDocumentHelper.InsertBlankLineAfterPoint(codeElement.EndPoint);
         }
@@ -314,12 +380,13 @@ internal sealed class InsertBlankLinePaddingLogic
     /// Inserts a blank line before case statements except for single-line case statements.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void InsertPaddingBeforeCaseStatements(TextDocument textDocument)
+    internal void InsertPaddingBeforeCaseStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements))) return;
 
         const string pattern = @"(^[ \t]*)(break;|return([ \t][^;]*)?;)\r?\n([ \t]*)(case|default)";
         string replacement = @"$1$2" + Environment.NewLine + Environment.NewLine + @"$4$5";
@@ -332,12 +399,13 @@ internal sealed class InsertBlankLinePaddingLogic
     /// another single line comment line or a quadruple slash comment.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void InsertPaddingBeforeSingleLineComments(TextDocument textDocument)
+    internal void InsertPaddingBeforeSingleLineComments(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments))) return;
 
         const string pattern = @"(^[ \t]*(?!//)[^ \t\r\n\{].*\r?\n)([ \t]*//)(?!//)";
         string replacement = @"$1" + Environment.NewLine + @"$2";
@@ -349,12 +417,13 @@ internal sealed class InsertBlankLinePaddingLogic
     /// Inserts a blank line between multi-line property accessors.
     /// </summary>
     /// <param name="properties">The properties.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the properties.</param>
 
-    internal void InsertPaddingBetweenMultiLinePropertyAccessors(IEnumerable<CodeItemProperty> properties)
+    internal void InsertPaddingBetweenMultiLinePropertyAccessors(IEnumerable<CodeItemProperty> properties, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors))) return;
 
         foreach (var property in properties)
         {

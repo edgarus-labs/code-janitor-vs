@@ -1,5 +1,4 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using System;
@@ -15,49 +14,50 @@ namespace CodeJanitor.Helpers;
 internal static class FileHeaderHelper
 {
     /// <summary>
-    /// Gets the file header from settings based on the language of the specified document.
+    /// Gets the file header configured for the specified language in the effective cleanup settings of a document.
     /// </summary>
-    /// <param name="textDocument">The text document.</param>
-    /// <returns>A file header from settings.</returns>
+    /// <param name="language">The code language of the document.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
+    /// <returns>The configured file header, or null for a language without a file header setting.</returns>
 
-    internal static string GetFileHeaderFromSettings(TextDocument textDocument)
+    internal static string GetFileHeaderFromSettings(CodeLanguage language, EffectiveCleanupSettings settings)
     {
-        ThreadHelper.ThrowIfNotOnUIThread();
-        switch (textDocument.GetCodeLanguage())
+        switch (language)
         {
-            case CodeLanguage.CPlusPlus: return Settings.Default.Cleaning_UpdateFileHeaderCPlusPlus;
-            case CodeLanguage.CSharp: return Settings.Default.Cleaning_UpdateFileHeaderCSharp;
-            case CodeLanguage.CSS: return Settings.Default.Cleaning_UpdateFileHeaderCSS;
-            case CodeLanguage.FSharp: return Settings.Default.Cleaning_UpdateFileHeaderFSharp;
-            case CodeLanguage.HTML: return Settings.Default.Cleaning_UpdateFileHeaderHTML;
-            case CodeLanguage.JavaScript: return Settings.Default.Cleaning_UpdateFileHeaderJavaScript;
-            case CodeLanguage.JSON: return Settings.Default.Cleaning_UpdateFileHeaderJSON;
-            case CodeLanguage.LESS: return Settings.Default.Cleaning_UpdateFileHeaderLESS;
-            case CodeLanguage.PHP: return Settings.Default.Cleaning_UpdateFileHeaderPHP;
-            case CodeLanguage.PowerShell: return Settings.Default.Cleaning_UpdateFileHeaderPowerShell;
-            case CodeLanguage.R: return Settings.Default.Cleaning_UpdateFileHeaderR;
-            case CodeLanguage.SCSS: return Settings.Default.Cleaning_UpdateFileHeaderSCSS;
-            case CodeLanguage.TypeScript: return Settings.Default.Cleaning_UpdateFileHeaderTypeScript;
-            case CodeLanguage.VisualBasic: return Settings.Default.Cleaning_UpdateFileHeaderVB;
-            case CodeLanguage.XAML: return Settings.Default.Cleaning_UpdateFileHeaderXAML;
-            case CodeLanguage.XML: return Settings.Default.Cleaning_UpdateFileHeaderXML;
+            case CodeLanguage.CPlusPlus: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCPlusPlus));
+            case CodeLanguage.CSharp: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSharp));
+            case CodeLanguage.CSS: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSS));
+            case CodeLanguage.FSharp: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderFSharp));
+            case CodeLanguage.HTML: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderHTML));
+            case CodeLanguage.JavaScript: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderJavaScript));
+            case CodeLanguage.JSON: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderJSON));
+            case CodeLanguage.LESS: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderLESS));
+            case CodeLanguage.PHP: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderPHP));
+            case CodeLanguage.PowerShell: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderPowerShell));
+            case CodeLanguage.R: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderR));
+            case CodeLanguage.SCSS: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderSCSS));
+            case CodeLanguage.TypeScript: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderTypeScript));
+            case CodeLanguage.VisualBasic: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderVB));
+            case CodeLanguage.XAML: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderXAML));
+            case CodeLanguage.XML: return settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderXML));
             default: return null;
         }
     }
 
     /// <summary>
-    /// Returns the header position based on the document&apos;s code language, using the saved setting only for C# and defaulting to DocumentStart otherwise, while ensuring execution on the UI thread.
+    /// Returns the header position for the specified language: the configured position from the effective cleanup
+    /// settings of the document for C#, and <see cref="HeaderPosition.DocumentStart" /> for every other language.
     /// </summary>
-    /// <param name="textDocument">The text document.</param>
-    /// <returns>A HeaderPosition value produced by this method.</returns>
+    /// <param name="language">The code language of the document.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
+    /// <returns>The header position.</returns>
 
-    internal static HeaderPosition GetFileHeaderPositionFromSettings(TextDocument textDocument)
+    internal static HeaderPosition GetFileHeaderPositionFromSettings(CodeLanguage language, EffectiveCleanupSettings settings)
     {
-        ThreadHelper.ThrowIfNotOnUIThread();
-        switch (textDocument.GetCodeLanguage())
+        switch (language)
         {
             case CodeLanguage.CSharp:
-                return (HeaderPosition)Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition;
+                return (HeaderPosition)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderPosition));
 
             default:
                 return HeaderPosition.DocumentStart;

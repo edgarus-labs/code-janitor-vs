@@ -600,14 +600,16 @@ public sealed class DiagnosticCleanupEngine
 
             foreach (var projectId in projectIds)
             {
+                var project = solution.GetProject(projectId);
                 if (!_errors.TryGetValue(projectId, out var before))
                 {
-                    before = await CompilerErrors.GetAsync(solution.GetProject(projectId), cancellationToken).ConfigureAwait(false);
+                    before = await CompilerErrors.GetAsync(project, cancellationToken).ConfigureAwait(false);
                     _errors.Add(projectId, before);
                 }
 
-                var after = await CompilerErrors.GetAsync(candidate.GetProject(projectId), cancellationToken).ConfigureAwait(false);
-                if (CompilerErrors.FindFirstNew(before, after) is not null)
+                var candidateProject = candidate.GetProject(projectId);
+                var after = await CompilerErrors.GetAsync(candidateProject, cancellationToken).ConfigureAwait(false);
+                if (await CompilerErrors.FindFirstNewAsync(project, before, candidateProject, after, cancellationToken).ConfigureAwait(false) is not null)
                 {
                     return true;
                 }

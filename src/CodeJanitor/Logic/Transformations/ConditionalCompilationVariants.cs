@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,10 +19,27 @@ namespace CodeJanitor.Logic.Transformations;
 internal static class ConditionalCompilationVariants
 {
     /// <summary>
+    /// The most condition symbols of another document whose assignments are enumerated to find those that change its
+    /// declarations (see <see cref="GetDeclarationSymbols" />): each one doubles the number of parses.
+    /// </summary>
+    private const int MaxEnumeratedSymbols = 6;
+
+    /// <summary>
+    /// The symbols of the <c>#if</c>/<c>#elif</c> conditions of a syntax tree that change the tree's declarations or
+    /// imports (see <see cref="GetDeclarationSymbols" />). A tree is immutable and carries its parse options, and forked
+    /// solutions share the trees of unchanged documents, so each tree is examined once.
+    /// </summary>
+    private static readonly ConditionalWeakTable<SyntaxTree, IReadOnlyList<string>> DeclarationSymbolsByTree =
+        new ConditionalWeakTable<SyntaxTree, IReadOnlyList<string>>();
+
+    /// <summary>
     /// Gets, ordered, every symbol used in an <c>#if</c>/<c>#elif</c> condition of <paramref name="root" />, and every
-    /// symbol of such a condition in another document of the project or of a referenced project whose toggling changes
-    /// the namespaces, types or members that document declares, or their signatures. A symbol that only changes code
-    /// inside members cannot change how the document binds.
+    /// symbol of such a condition in another document of the project or of a referenced project whose value, alone or
+    /// together with the other symbols of that document's conditions, changes the namespaces, types or members that
+    /// document declares, their signatures, or its extern alias and using directives (a global using imports into every
+    /// document of the project, and any directive changes what the signatures bind to), or every symbol of its
+    /// conditions when there are too many to tell (see <see cref="GetDeclarationSymbols" />). A symbol that only changes
+    /// code inside members cannot change how the document binds.
     /// </summary>
     /// <param name="document">The document.</param>
     /// <param name="root">The syntax root of <paramref name="document" />.</param>
@@ -39,24 +57,7 @@ internal static class ConditionalCompilationVariants
             }
 
             var tree = await otherDocument.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
-            var otherRoot = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
-            var candidates = GetConditionSymbols(otherRoot).Where(symbol => !symbols.Contains(symbol)).ToList();
-            if (candidates.Count == 0)
-            {
-                continue;
-            }
-
-            var text = await tree.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            var options = (CSharpParseOptions)tree.Options;
-            var declarations = GetDeclarations(otherRoot);
-            foreach (var symbol in candidates)
-            {
-                var toggledTree = CSharpSyntaxTree.ParseText(text, options.WithPreprocessorSymbols(Toggle(options.PreprocessorSymbolNames, symbol)), cancellationToken: cancellationToken);
-                if (!declarations.SequenceEqual(GetDeclarations(toggledTree.GetRoot(cancellationToken)), StringComparer.Ordinal))
-                {
-                    symbols.Add(symbol);
-                }
-            }
+            symbols.UnionWith(DeclarationSymbolsByTree.GetValue(tree, key => GetDeclarationSymbols(key, cancellationToken)));
         }
 
         return symbols.ToList();
@@ -127,32 +128,77 @@ internal static class ConditionalCompilationVariants
         return symbols.Distinct(StringComparer.Ordinal);
     }
 
-    private static IEnumerable<string> Toggle(IEnumerable<string> symbols, string symbol)
+    /// <summary>
+    /// Gets every symbol of the conditions of <paramref name="tree" /> that changes its declarations or imports (see
+    /// <see cref="GetDeclarations" />) in some assignment of the other symbols of its conditions: a declaration in an
+    /// <c>#if A &amp;&amp; B</c> block (or in <c>#if B</c> nested in <c>#if A</c>) changes only when A and B are both
+    /// defined, so toggling either one alone from the tree's configuration would miss it. With more than
+    /// <see cref="MaxEnumeratedSymbols" /> symbols the assignments are not enumerated and every symbol counts.
+    /// </summary>
+    private static IReadOnlyList<string> GetDeclarationSymbols(SyntaxTree tree, CancellationToken cancellationToken)
     {
-        var toggled = symbols.ToList();
-        if (!toggled.Remove(symbol))
+        var root = tree.GetRoot(cancellationToken);
+        var candidates = GetConditionSymbols(root).ToList();
+        if (candidates.Count == 0)
         {
-            toggled.Add(symbol);
+            return Array.Empty<string>();
         }
 
-        return toggled;
+        if (candidates.Count > MaxEnumeratedSymbols)
+        {
+            return candidates;
+        }
+
+        // Only the symbols of its conditions decide how the tree parses. Bit i of an assignment defines candidates[i].
+        var text = tree.GetText(cancellationToken);
+        var options = (CSharpParseOptions)tree.Options;
+        var activeAssignment = candidates
+            .Select((symbol, index) => options.PreprocessorSymbolNames.Contains(symbol, StringComparer.Ordinal) ? 1 << index : 0)
+            .Sum();
+        var declarations = new List<string>[1 << candidates.Count];
+        for (var assignment = 0; assignment < declarations.Length; assignment++)
+        {
+            declarations[assignment] = assignment == activeAssignment
+                ? GetDeclarations(root)
+                : GetDeclarations(CSharpSyntaxTree.ParseText(
+                    text,
+                    options.WithPreprocessorSymbols(candidates.Where((symbol, index) => (assignment & (1 << index)) != 0)),
+                    cancellationToken: cancellationToken).GetRoot(cancellationToken));
+        }
+
+        return candidates
+            .Where((symbol, index) => Enumerable.Range(0, declarations.Length).Any(assignment =>
+                (assignment & (1 << index)) == 0
+                && !declarations[assignment].SequenceEqual(declarations[assignment | (1 << index)], StringComparer.Ordinal)))
+            .ToList();
     }
 
     /// <summary>
     /// Gets the namespace, type and member declarations of a document, each identified by its containing declarations,
-    /// its kind and its signature, in ordinal order (a multiset: an added overload changes it).
+    /// its kind and its signature, and the extern alias and using directives of its compilation unit and namespaces,
+    /// each identified by its container and its text (including <c>global</c>, <c>static</c> and the alias), in ordinal
+    /// order (a multiset: an added overload changes it).
     /// </summary>
     private static List<string> GetDeclarations(SyntaxNode root)
     {
         var declarations = new List<string>();
         if (root is CompilationUnitSyntax compilationUnit)
         {
+            AddImports(compilationUnit.Externs, compilationUnit.Usings, string.Empty, declarations);
             AddDeclarations(compilationUnit.Members, string.Empty, declarations);
         }
 
         declarations.Sort(StringComparer.Ordinal);
 
         return declarations;
+    }
+
+    private static void AddImports(SyntaxList<ExternAliasDirectiveSyntax> externs, SyntaxList<UsingDirectiveSyntax> usings, string container, List<string> declarations)
+    {
+        foreach (var directive in externs.Concat<SyntaxNode>(usings))
+        {
+            declarations.Add(container + "/" + directive.Kind() + " " + string.Join(" ", directive.DescendantTokens().Select(token => token.Text)));
+        }
     }
 
     private static void AddDeclarations(IEnumerable<MemberDeclarationSyntax> members, string container, List<string> declarations)
@@ -171,6 +217,7 @@ internal static class ConditionalCompilationVariants
             switch (member)
             {
                 case BaseNamespaceDeclarationSyntax namespaceDeclaration:
+                    AddImports(namespaceDeclaration.Externs, namespaceDeclaration.Usings, declaration, declarations);
                     AddDeclarations(namespaceDeclaration.Members, declaration, declarations);
                     break;
 

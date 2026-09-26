@@ -53,15 +53,16 @@ internal sealed class SealedClassLogic
 
     /// <summary>
     /// Adds the <c>sealed</c> modifier to classes in the specified document that are provably
-    /// safe to convert, when enabled in settings.
+    /// safe to convert, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void SealWhenSafe(TextDocument textDocument)
+    internal void SealWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_SealClassesWhenSafe)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_SealClassesWhenSafe)))
         {
             return;
         }

@@ -49,15 +49,16 @@ internal sealed class ReturnThrowBlankLinePaddingLogic
 
     /// <summary>
     /// Inserts a blank line before <c>return</c> and <c>throw</c> statements in the specified
-    /// document, when enabled in settings.
+    /// document, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void InsertPaddingBeforeReturnAndThrowStatements(TextDocument textDocument)
+    internal void InsertPaddingBeforeReturnAndThrowStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)))
         {
             OutputWindowHelper.InfoWriteLine(
                 $"ReturnThrowBlankLinePaddingLogic.InsertPaddingBeforeReturnAndThrowStatements skipped for '{textDocument.Parent.FullName}' because Cleaning_InsertBlankLineBeforeReturnAndThrowStatements is false.");

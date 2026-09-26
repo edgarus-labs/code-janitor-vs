@@ -1,3 +1,4 @@
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,7 +13,7 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestInitialize]
     public void TestInitialize()
     {
-        _converter = new ExplicitAccessModifierConverter();
+        _converter = new ExplicitAccessModifierConverter(EffectiveCleanupSettings.For(null));
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses = true;
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates = true;
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations = true;

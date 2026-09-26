@@ -1,3 +1,7 @@
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
 
@@ -22,6 +26,39 @@ public sealed class NullCheckPatternMatchingConverterTests
     public void Name_IsNotEmpty()
     {
         Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task Apply_CompilesWhereLambdasMayBecomeExpressionTrees_AndConvertsElsewhere()
+    {
+        // An 'is' pattern is not allowed in an expression tree (CS8122); only syntax that can never become one is converted.
+        var input =
+            "using System;\r\nusing System.Linq;\r\nusing System.Linq.Expressions;\r\n\r\n" +
+            "class Item { public string Name; }\r\n\r\n" +
+            "class C\r\n{\r\n" +
+            "    Expression<Func<Item, bool>> tree = item => item.Name != null;\r\n" +
+            "    Expression<Func<Item, object>> projection = item => new { Missing = item.Name == null };\r\n" +
+            "    IQueryable<Item> Query(IQueryable<Item> items) => items.Where(item => item.Name != null);\r\n" +
+            "    IQueryable<Item> Syntax(IQueryable<Item> items) => from item in items where item.Name == null select item;\r\n" +
+            "    Func<Item, bool> Block => item => { return item.Name != null; };\r\n" +
+            "    bool Method(Item item) => item.Name == null;\r\n" +
+            "}\r\n";
+        var document = CompilingTestProject.CreateDocument(
+            input,
+            LanguageVersion.CSharp9,
+            new[] { MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location) });
+
+        var output = _converter.Apply(input);
+
+        var errors = await CompilingTestProject.GetCompileErrorsAsync(document, output);
+        Assert.AreEqual(0, errors.Count, output + "\r\n" + string.Join("\r\n", errors));
+        StringAssert.Contains(output, "item => item.Name != null;");
+        StringAssert.Contains(output, "Missing = item.Name == null");
+        StringAssert.Contains(output, "items.Where(item => item.Name != null)");
+        StringAssert.Contains(output, "where item.Name == null");
+        StringAssert.Contains(output, "{ return item.Name is not null; }");
+        StringAssert.Contains(output, "bool Method(Item item) => item.Name is null;");
     }
 
     [TestMethod]

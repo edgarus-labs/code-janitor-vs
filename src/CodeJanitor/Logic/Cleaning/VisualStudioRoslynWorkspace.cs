@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
@@ -18,7 +19,7 @@ namespace CodeJanitor.Logic.Cleaning;
 /// </summary>
 /// <remarks>
 /// Roslyn workspace types are only touched from methods marked <see cref="MethodImplOptions.NoInlining" />; callers
-/// invoke them inside a try/catch, so a host whose Roslyn cannot satisfy the compile-time Microsoft.CodeAnalysis 5.9
+/// invoke them inside a try/catch, so a host whose Roslyn cannot satisfy the compile-time Microsoft.CodeAnalysis 5.0
 /// reference produces an explicit, logged failure (see <see cref="IsRoslynBindingFailure" />).
 /// </remarks>
 internal sealed class VisualStudioRoslynWorkspace
@@ -26,13 +27,14 @@ internal sealed class VisualStudioRoslynWorkspace
     /// <summary>
     /// The MEF contract name of Microsoft.VisualStudio.LanguageServices.VisualStudioWorkspace. The
     /// type is resolved at runtime because no Microsoft.VisualStudio.LanguageServices package
-    /// compatible with Microsoft.CodeAnalysis 5.9 is published.
+    /// compatible with Microsoft.CodeAnalysis 5.0 is published.
     /// </summary>
     private const string VisualStudioWorkspaceTypeName = "Microsoft.VisualStudio.LanguageServices.VisualStudioWorkspace";
 
     private const string VisualStudioWorkspaceAssemblyName = "Microsoft.VisualStudio.LanguageServices";
 
     private readonly CodeJanitorPackage _package;
+    private Workspace _workspace;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VisualStudioRoslynWorkspace" /> class.
@@ -87,7 +89,7 @@ internal sealed class VisualStudioRoslynWorkspace
         }
 
         throw new InvalidOperationException(
-            $"The Visual Studio Roslyn workspace uses {DescribeWorkspaceAssembly(workspace.GetType())}, which is not the Microsoft.CodeAnalysis.Workspaces {typeof(Workspace).Assembly.GetName().Version} this extension is bound to. Features that use the Roslyn workspace require a Visual Studio version whose Roslyn is 5.9 or newer.");
+            $"The Visual Studio Roslyn workspace uses {DescribeWorkspaceAssembly(workspace.GetType())}, which is not the Microsoft.CodeAnalysis.Workspaces {typeof(Workspace).Assembly.GetName().Version} this extension is bound to. Features that use the Roslyn workspace require a Visual Studio version whose Roslyn is 5.0 or newer (Visual Studio 2026).");
     }
 
     /// <summary>
@@ -151,6 +153,51 @@ internal sealed class VisualStudioRoslynWorkspace
         }
 
         return documentIds.Select(documentId => updatedSolution.GetDocument(documentId)).ToList();
+    }
+
+    /// <summary>
+    /// Gets the C# language versions of the projects that compile the file (see
+    /// <see cref="GetCSharpLanguageVersions(Solution, string)" />). Callable from any thread: the workspace is resolved
+    /// once on the UI thread, and its current solution is an immutable snapshot.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>The language versions, one per project flavor; empty when no C# project compiles the file.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal IReadOnlyList<LanguageVersion> GetCSharpLanguageVersions(string filePath)
+    {
+        var workspace = _workspace ?? (_workspace = ThreadHelper.JoinableTaskFactory.Run(async () =>
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            return GetWorkspace();
+        }));
+
+        return GetCSharpLanguageVersions(workspace.CurrentSolution, filePath);
+    }
+
+    /// <summary>
+    /// Gets the effective C# language versions of the projects that compile the file: one per document of the file
+    /// (linked files, shared projects, multi-targeted projects). A file the solution does not contain yet (for example
+    /// one just created by type splitting) gets the versions of the C# projects in the closest directory above it,
+    /// which is where SDK-style projects include it from.
+    /// </summary>
+    /// <param name="solution">The solution.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>The language versions, one per project flavor; empty when no C# project compiles the file.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static IReadOnlyList<LanguageVersion> GetCSharpLanguageVersions(Solution solution, string filePath)
+    {
+        var projects = FindDocumentIds(solution, filePath, null).Select(documentId => solution.GetProject(documentId.ProjectId)).ToList();
+        if (projects.Count == 0)
+        {
+            projects = FindProjectsInClosestDirectory(solution, filePath);
+        }
+
+        return projects
+            .Select(project => project.ParseOptions)
+            .OfType<CSharpParseOptions>()
+            .Select(options => options.LanguageVersion.MapSpecifiedToEffectiveVersion())
+            .ToList();
     }
 
     /// <summary>
@@ -234,6 +281,23 @@ internal sealed class VisualStudioRoslynWorkspace
             .ThenBy(document => document.Project.Name, StringComparer.Ordinal)
             .Select(document => document.Id)
             .ToList();
+    }
+
+    private static List<Project> FindProjectsInClosestDirectory(Solution solution, string filePath)
+    {
+        var candidates = solution.Projects
+            .Where(project => project.Language == LanguageNames.CSharp && !string.IsNullOrEmpty(project.FilePath))
+            .Select(project => (Project: project, Directory: Path.GetDirectoryName(project.FilePath) + Path.DirectorySeparatorChar))
+            .Where(candidate => filePath.StartsWith(candidate.Directory, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return new List<Project>();
+        }
+
+        var closest = candidates.Max(candidate => candidate.Directory.Length);
+
+        return candidates.Where(candidate => candidate.Directory.Length == closest).Select(candidate => candidate.Project).ToList();
     }
 
     /// <summary>

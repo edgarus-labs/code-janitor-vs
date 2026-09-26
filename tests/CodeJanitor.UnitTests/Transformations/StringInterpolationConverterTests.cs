@@ -169,4 +169,14 @@ public class C
         var input2 = "public class C { public string M(string s) => string.Format(s); }";
         Assert.AreEqual(input2, _converter.Apply(input2));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_ArgumentSpanningLines_Skipped()
+    {
+        // A line break inside an interpolation hole of a regular interpolated string needs C# 11 (CS8967 before).
+        var input = "public class C { public string M(int a, int b) => string.Format(\"{0}\", a +\r\n    b); }";
+
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
 }

@@ -47,7 +47,7 @@ internal struct DiagnosticCleanupOutcome
 /// <remarks>
 /// Roslyn workspace types are only touched from methods marked <see cref="MethodImplOptions.NoInlining" />
 /// that are called inside a try/catch, so a host whose Roslyn cannot satisfy the compile-time
-/// Microsoft.CodeAnalysis 5.9 reference (type/file load failures) produces an explicit, logged failure
+/// Microsoft.CodeAnalysis 5.0 reference (type/file load failures) produces an explicit, logged failure
 /// instead of crashing cleanup or silently succeeding.
 /// </remarks>
 
@@ -156,7 +156,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             return new DiagnosticCleanupOutcome
             {
                 Failure = new InvalidOperationException(
-                    $"Diagnostic cleanup could not bind to the Roslyn workspace API of this Visual Studio instance (CodeJanitor is compiled against Microsoft.CodeAnalysis 5.9; the host Roslyn may be older). '{filePath}' was not modified by diagnostic cleanup.",
+                    $"Diagnostic cleanup could not bind to the Roslyn workspace API of this Visual Studio instance (CodeJanitor is compiled against Microsoft.CodeAnalysis 5.0; the host Roslyn may be older). '{filePath}' was not modified by diagnostic cleanup.",
                     ex)
             };
         }
@@ -326,9 +326,14 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         foreach (var flavor in otherFlavors.GroupBy(flavor => flavor.ProjectId).Select(group => group.First()))
         {
-            var newError = CompilerErrors.FindFirstNew(
-                await CompilerErrors.GetAsync(baseline.GetProject(flavor.ProjectId), cancellationToken),
-                await CompilerErrors.GetAsync(candidate.GetProject(flavor.ProjectId), cancellationToken));
+            var baselineProject = baseline.GetProject(flavor.ProjectId);
+            var candidateProject = candidate.GetProject(flavor.ProjectId);
+            var newError = await CompilerErrors.FindFirstNewAsync(
+                baselineProject,
+                await CompilerErrors.GetAsync(baselineProject, cancellationToken),
+                candidateProject,
+                await CompilerErrors.GetAsync(candidateProject, cancellationToken),
+                cancellationToken);
             if (newError is not null)
             {
                 return $"they would add compiler errors in project '{originalSolution.GetProject(flavor.ProjectId).Name}', which also compiles '{flavor.FilePath}': {newError}";

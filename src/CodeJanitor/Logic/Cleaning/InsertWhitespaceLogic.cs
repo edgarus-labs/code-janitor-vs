@@ -44,11 +44,12 @@ internal sealed class InsertWhitespaceLogic
     /// Inserts a single blank space before a self-closing angle bracket.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument)
+    internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets))) return;
 
         const string pattern = @"([^ \t])/>";
         const string replacement = @"$1 />";
@@ -57,13 +58,17 @@ internal sealed class InsertWhitespaceLogic
     }
 
     /// <summary>
-    /// Insert the trailing newline to the end of the specified text document.
+    /// Insert the trailing newline to the end of the specified text document, unless the effective settings require
+    /// the file to end without a final newline (see <see cref="RemoveWhitespaceLogic.RemoveEOFTrailingNewLine" />).
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void InsertEOFTrailingNewLine(TextDocument textDocument)
+    internal void InsertEOFTrailingNewLine(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!settings.InsertFinalNewline) return;
 
         EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
 

@@ -3,7 +3,7 @@
     <Metadata>
         <Identity Publisher="edgarus-labs" Version="0.1.0.55" Id="b1b6d05b-97f7-426d-9d6f-fdf8c7662ab2" Language="en-US" />
         <DisplayName>Code Janitor</DisplayName>
-        <Description xml:space="preserve">Code Janitor is an independently maintained fork of CodeMaid for cleaning, formatting, navigating and reorganizing code in Visual Studio, with additional C# and Razor cleanup features and optional AI assistance.</Description>
+        <Description xml:space="preserve">Code Janitor is an independently maintained fork of CodeMaid for cleaning, formatting, navigating and reorganizing code in Visual Studio, with additional C# and Razor cleanup features and optional AI assistance. Requires Visual Studio 2026 (any version, 18.0 or newer); Visual Studio 2022 is not supported.</Description>
         <MoreInfo>https://github.com/edgarus-labs/code-janitor-vs</MoreInfo>
         <License>LICENSE.txt</License>
         <Icon>CodeJanitor.png</Icon>
