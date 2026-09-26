@@ -58,6 +58,7 @@
 			</WrapPanel>
 
 			<TextBlock Margin="5,5,5,0" Text="{x:Static p:Resources.InsertExplicitAccessModifiersOn}" />
+			<TextBlock Margin="35,0,5,7" Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_InsertExplicitAccessModifiersOnClasses]}" />
 			<WrapPanel Margin="35,0,5,20">
 				<ToggleButton Content="classes" IsChecked="{Binding InsertExplicitAccessModifiersOnClasses}" />
 				<ToggleButton Content="delegates" IsChecked="{Binding InsertExplicitAccessModifiersOnDelegates}" />

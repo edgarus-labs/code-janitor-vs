@@ -224,6 +224,14 @@ Where Code Janitor has no step for the opposite style (for example `var` to expl
 its own step is turned off and the diagnostic cleanup applies the Roslyn code fix when the rule
 is reported as `suggestion`, `warning` or `error` (not `silent` or `none`).
 
+Options shows which of these settings the open solution's `.editorconfig` overrides: under each
+affected option (Cleaning > Remove, Update and Insert), a note names the key and the `.editorconfig`
+file that sets it, for example *Overridden by .editorconfig: csharp_style_var_when_type_is_apparent
+in C:\repo\.editorconfig*. Visual Studio options are global, so the note describes a C# file in the
+solution's directory: `.editorconfig` files nested below it are not considered, and a key ignored with
+`:none` or an unrecognized value shows no note. The option stays editable and applies wherever
+`.editorconfig` does not set the key. No note is shown when no solution is open.
+
 ## Repository-level settings (.codejanitor)
 
 Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-janitor.json`) file shared with the VS Code extension. The file is discovered by walking up from the cleaned file's directory; the nearest file wins. Unknown keys, wrong value types and invalid JSON are ignored.

@@ -1,4 +1,5 @@
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System.Collections.Generic;
 
 namespace CodeJanitor.UI.Dialogs.Options;
@@ -63,13 +64,25 @@ public abstract class OptionsPageViewModel : Bindable
     /// </summary>
     protected SettingsToOptionsList Mappings { get; set; }
 
+    private EditorConfigOverrideNotes _editorConfigOverrides;
+
     /// <summary>
-    /// Loads the settings.
+    /// Gets the notes for the settings the open solution's .editorconfig overrides, resolved when first bound after
+    /// the settings are loaded; no setting is annotated when no solution is open.
+    /// </summary>
+    public EditorConfigOverrideNotes EditorConfigOverrides =>
+        _editorConfigOverrides ??= EditorConfigOverrideNotes.ForSolution(GetOpenSolutionFullName());
+
+    /// <summary>
+    /// Loads the settings and discards the .editorconfig notes, so they are resolved again for the solution open now.
     /// </summary>
 
     public virtual void LoadSettings()
     {
         Mappings?.CopySettingsToOptions();
+
+        _editorConfigOverrides = null;
+        RaisePropertyChanged(nameof(EditorConfigOverrides));
     }
 
     /// <summary>
@@ -79,5 +92,18 @@ public abstract class OptionsPageViewModel : Bindable
     public virtual void SaveSettings()
     {
         Mappings?.CopyOptionsToSettings();
+    }
+
+    /// <summary>
+    /// Gets the full path of the open solution file.
+    /// </summary>
+    /// <returns>The solution file path, or null when no solution is open.</returns>
+
+    private string GetOpenSolutionFullName()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var solution = Package?.IDE?.Solution;
+        return solution is not null && solution.IsOpen ? solution.FullName : null;
     }
 }

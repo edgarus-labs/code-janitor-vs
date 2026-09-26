@@ -103,6 +103,7 @@ internal sealed class EffectiveCleanupSettings
 
     private readonly IReadOnlyDictionary<string, string> _editorConfigOptions;
     private readonly Dictionary<string, object> _editorConfigValues = new Dictionary<string, object>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _editorConfigKeys = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly RepositoryCleanupOverrides _repositoryOverrides;
 
     /// <summary>
@@ -138,6 +139,12 @@ internal sealed class EffectiveCleanupSettings
         // The closed-file cleanup always ensured a final newline; only an enforced .editorconfig "false" reverses it.
         InsertFinalNewline = !(TryReadOption("insert_final_newline", ParseBoolean, out var insertFinalNewline) && insertFinalNewline == false);
     }
+
+    /// <summary>
+    /// Gets the Visual Studio settings decided by .editorconfig for this file, each mapped to the .editorconfig option
+    /// name that decides it. A setting absent from the map follows the repository policy or the user setting.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> EditorConfigKeys => _editorConfigKeys;
 
     /// <summary>
     /// Gets a value indicating whether region directives are removed: always, unless the repository policy opts
@@ -254,8 +261,8 @@ internal sealed class EffectiveCleanupSettings
 
         if (TryReadOption("insert_final_newline", ParseBoolean, out var insertFinalNewline))
         {
-            _editorConfigValues["Cleaning_InsertEndOfFileTrailingNewLine"] = insertFinalNewline == true;
-            _editorConfigValues["Cleaning_RemoveEndOfFileTrailingNewLine"] = insertFinalNewline == false;
+            SetEditorConfigValue("Cleaning_InsertEndOfFileTrailingNewLine", "insert_final_newline", insertFinalNewline == true);
+            SetEditorConfigValue("Cleaning_RemoveEndOfFileTrailingNewLine", "insert_final_newline", insertFinalNewline == false);
         }
     }
 
@@ -275,8 +282,21 @@ internal sealed class EffectiveCleanupSettings
 
         foreach (var settingName in settingNames)
         {
-            _editorConfigValues[settingName] = value == true;
+            SetEditorConfigValue(settingName, key, value == true);
         }
+    }
+
+    /// <summary>
+    /// Records a setting value defined by .editorconfig together with the option name that defines it.
+    /// </summary>
+    /// <param name="settingName">The Visual Studio setting property name.</param>
+    /// <param name="key">The .editorconfig option name.</param>
+    /// <param name="value">The setting value.</param>
+
+    private void SetEditorConfigValue(string settingName, string key, object value)
+    {
+        _editorConfigValues[settingName] = value;
+        _editorConfigKeys[settingName] = key;
     }
 
     /// <summary>
@@ -296,7 +316,7 @@ internal sealed class EffectiveCleanupSettings
         template = template?.Trim() ?? string.Empty;
         if (template.Length == 0 || string.Equals(template, "unset", StringComparison.OrdinalIgnoreCase))
         {
-            _editorConfigValues[FileHeaderSetting] = string.Empty;
+            SetEditorConfigValue(FileHeaderSetting, "file_header_template", string.Empty);
             return;
         }
 
@@ -305,7 +325,7 @@ internal sealed class EffectiveCleanupSettings
             .Split(new[] { "\\n" }, StringSplitOptions.None)
             .Select(line => line.Length == 0 ? "//" : "// " + line);
 
-        _editorConfigValues[FileHeaderSetting] = string.Join(Environment.NewLine, lines);
+        SetEditorConfigValue(FileHeaderSetting, "file_header_template", string.Join(Environment.NewLine, lines));
     }
 
     /// <summary>
@@ -318,7 +338,7 @@ internal sealed class EffectiveCleanupSettings
     {
         if (TryReadOption("csharp_style_namespace_declarations", ParseNamespaceDeclarations, out var preference))
         {
-            _editorConfigValues[ConvertToFileScopedNamespaceSetting] = preference == NamespaceDeclarationPreference.FileScoped;
+            SetEditorConfigValue(ConvertToFileScopedNamespaceSetting, "csharp_style_namespace_declarations", preference == NamespaceDeclarationPreference.FileScoped);
             return preference.Value;
         }
 
@@ -337,7 +357,7 @@ internal sealed class EffectiveCleanupSettings
     {
         if (TryReadOption("csharp_using_directive_placement", ParseUsingDirectivePlacement, out var preference))
         {
-            _editorConfigValues[MoveUsingsOutsideNamespaceSetting] = preference == UsingDirectivePlacementPreference.OutsideNamespace;
+            SetEditorConfigValue(MoveUsingsOutsideNamespaceSetting, "csharp_using_directive_placement", preference == UsingDirectivePlacementPreference.OutsideNamespace);
             return preference.Value;
         }
 

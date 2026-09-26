@@ -67,6 +67,7 @@
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="UI\AboutVersionTests.cs" />
+    <Compile Include="UI\EditorConfigOverrideNotesTests.cs" />
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
     <Compile Include="Cleaning\EditorCleanupSettingsTests.cs" />

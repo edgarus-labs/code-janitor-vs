@@ -39,6 +39,9 @@ This file records changes made in Code Janitor after the project became an indep
 	`indent_style = tab` converts leading spaces to tabs and `insert_final_newline = false` removes the final
 	newline in closed-file cleanup. Namespace conversion moves the body by one `indent_size` (`tab_width` when
 	`indent_size = tab`). See the key mapping in `docs/features.md`.
+- Options notes for settings overridden by `.editorconfig`: under each affected Cleaning option, a note
+	names the `.editorconfig` key and file that decide it for the open solution (evaluated for a C# file in
+	the solution directory). No note is shown when no solution is open or the key is ignored.
 
 ### Changed
 

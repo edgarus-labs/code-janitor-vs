@@ -24,6 +24,7 @@
 					</WrapPanel>
 
 					<CheckBox Content="{x:Static p:Resources.RemoveEndOfLineWhitespace}" IsChecked="{Binding RemoveEndOfLineWhitespace}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RemoveEndOfLineWhitespace]}" />
 					<CheckBox Content="{x:Static p:Resources.RemoveMultipleConsecutiveBlankLines}" IsChecked="{Binding RemoveMultipleConsecutiveBlankLines}" />
 				</StackPanel>
 			</GroupBox>

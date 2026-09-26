@@ -41,6 +41,26 @@
 		<Setter Property="VerticalAlignment" Value="Center" />
 	</Style>
 
+	<!--
+		Note under an option that the open solution's .editorconfig overrides, naming the key and file.
+		Collapsed when the option has no note (no solution open, or .editorconfig does not configure it).
+	-->
+	<Style
+		x:Key="EditorConfigOverrideNote"
+		BasedOn="{StaticResource {x:Type TextBlock}}"
+		TargetType="{x:Type TextBlock}">
+		<Setter Property="Margin" Value="20,-4,7,7" />
+		<Setter Property="FontStyle" Value="Italic" />
+		<Style.Triggers>
+			<Trigger Property="Text" Value="{x:Null}">
+				<Setter Property="Visibility" Value="Collapsed" />
+			</Trigger>
+			<Trigger Property="Text" Value="">
+				<Setter Property="Visibility" Value="Collapsed" />
+			</Trigger>
+		</Style.Triggers>
+	</Style>
+
 	<!--  Multi-line text areas (file headers, third-party command expressions, etc.).  -->
 	<Style
 		x:Key="TextBoxMultiLine"
