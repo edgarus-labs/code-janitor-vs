@@ -48,15 +48,16 @@ internal sealed class ReadonlyFieldLogic
 
     /// <summary>
     /// Adds the <c>readonly</c> modifier to fields in the specified document that are
-    /// provably safe to convert, when enabled in settings.
+    /// provably safe to convert, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void AddReadonlyWhenSafe(TextDocument textDocument)
+    internal void AddReadonlyWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_MakeFieldsReadonlyWhenSafe)))
         {
             return;
         }

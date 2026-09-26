@@ -169,7 +169,7 @@ internal sealed class CodeCleanupManager
     private readonly JsonSerializerOptionsReuseLogic _jsonSerializerOptionsReuseLogic;
     private readonly FileHeaderLogic _fileHeaderLogic;
     private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
-    private readonly MoveUsingsOutsideNamespaceLogic _moveUsingsOutsideNamespaceLogic;
+    private readonly UsingDirectivePlacementLogic _usingDirectivePlacementLogic;
     private readonly VarWhenApparentLogic _varWhenApparentLogic;
     private readonly ReadonlyFieldLogic _readonlyFieldLogic;
     private readonly RazorFormatterLogic _razorFormatterLogic;
@@ -183,7 +183,7 @@ internal sealed class CodeCleanupManager
     private readonly EditorConfigDiagnosticCleanupLogic _editorConfigDiagnosticCleanupLogic;
     private readonly UsingStatementCleanupLogic _usingStatementCleanupLogic;
 
-    private readonly CachedSettingSet<string> _otherCleaningCommands =
+    private static readonly CachedSettingSet<string> OtherCleaningCommands =
         new CachedSettingSet<string>(() => Settings.Default.ThirdParty_OtherCleaningCommandsExpression,
                                      expression =>
                                      expression.Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
@@ -236,7 +236,7 @@ internal sealed class CodeCleanupManager
         _editorConfigDiagnosticCleanupLogic = EditorConfigDiagnosticCleanupLogic.GetInstance(_package);
         _fileHeaderLogic = FileHeaderLogic.GetInstance(_package);
         _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
-        _moveUsingsOutsideNamespaceLogic = MoveUsingsOutsideNamespaceLogic.GetInstance(_package);
+        _usingDirectivePlacementLogic = UsingDirectivePlacementLogic.GetInstance(_package);
         _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
         _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
         _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
@@ -270,9 +270,21 @@ internal sealed class CodeCleanupManager
         // Skip the disk-based headless path for documents that are already open - the editor
         // buffer is then the source of truth and cleanup must operate on the live document.
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
-        var headlessResult = wasOpen ? HeadlessCleanupResult.NotApplicable : TryRunHeadlessPreCleanupForCSharp(projectItem);
+        var headlessResult = HeadlessCleanupResult.NotApplicable;
+        var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
+        if (!wasOpen)
+        {
+            // The semantic using directive placement needs the Visual Studio workspace and runs first, so the
+            // headless steps (header, using organization, type splitting) see the placed directives.
+            usingsMoveOutcome = ThreadHelper.JoinableTaskFactory.Run(() => _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem));
+            headlessResult = TryRunHeadlessPreCleanupForCSharp(projectItem);
+            if (usingsMoveOutcome == UsingsMoveOutcome.Moved && headlessResult == HeadlessCleanupResult.NoChanges)
+            {
+                headlessResult = HeadlessCleanupResult.Changed;
+            }
+        }
 
-        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp(projectItemFileName))
         {
             if (headlessResult == HeadlessCleanupResult.Changed)
             {
@@ -309,7 +321,7 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            Cleanup(projectItem.Document);
+            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -337,8 +349,10 @@ internal sealed class CodeCleanupManager
     /// calls run on a background thread so the IDE stays responsive and can be canceled.
     /// </summary>
     /// <param name="projectItem">The project item for cleanup.</param>
+    /// <param name="cancellationToken">Cancels the semantic using directive placement of a closed file.</param>
+    /// <exception cref="OperationCanceledException">The using directive placement was canceled; the file is left unchanged.</exception>
 
-    internal async Task CleanupAsync(ProjectItem projectItem)
+    internal async Task CleanupAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -355,9 +369,14 @@ internal sealed class CodeCleanupManager
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
 
         var headlessResult = HeadlessCleanupResult.NotApplicable;
+        var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
 
         if (!wasOpen)
         {
+            // The semantic using directive placement needs the Visual Studio workspace and runs first, so the
+            // headless steps (header, using organization, type splitting) see the placed directives.
+            usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
+
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
             // and the cleanup progress dialog's Cancel button remains responsive.
@@ -365,7 +384,7 @@ internal sealed class CodeCleanupManager
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            headlessResult = outcome.Result;
+            headlessResult = usingsMoveOutcome == UsingsMoveOutcome.Moved && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
 
             if (outcome.SplitOperationOccurred)
             {
@@ -379,7 +398,7 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp(projectItemFileName))
         {
             if (headlessResult == HeadlessCleanupResult.Changed)
             {
@@ -416,7 +435,7 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            Cleanup(projectItem.Document);
+            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -497,9 +516,10 @@ internal sealed class CodeCleanupManager
                 encoding = reader.CurrentEncoding;
             }
 
+            var settings = EffectiveCleanupSettings.For(projectItemFileName);
             bool splitChanged = false;
             bool splitOperationOccurred = false;
-            if (Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles)
+            if (settings.GetBoolean(nameof(Settings.Cleaning_MoveTopLevelTypesToSeparateFiles)))
             {
                 var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
                     originalSource,
@@ -525,9 +545,8 @@ internal sealed class CodeCleanupManager
                 }
             }
 
-            var transformedSource = ApplyHeadlessCSharpTransformations(originalSource, projectItemFileName, solutionDisqualifiedTypes);
-            var removeByteOrderMark = RepositoryCleanupSettings.LoadForFile(projectItemFileName)
-                .TryGetBoolean("Cleaning_RemoveByteOrderMark", Settings.Default.Cleaning_RemoveByteOrderMark);
+            var transformedSource = CreateHeadlessCSharpPipeline(originalSource, projectItemFileName, settings, solutionDisqualifiedTypes).Run(originalSource);
+            var removeByteOrderMark = settings.GetBoolean(nameof(Settings.Cleaning_RemoveByteOrderMark));
             var fileHadBom = removeByteOrderMark &&
                              RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
             var targetEncoding = removeByteOrderMark
@@ -760,6 +779,7 @@ internal sealed class CodeCleanupManager
     /// in-editor cleanup path.
     /// </summary>
     /// <param name="source">The source text.</param>
+    /// <param name="filePath">The file path whose effective cleanup settings select the transformations.</param>
     /// <returns>Transformed source text.</returns>
 
     internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
@@ -775,238 +795,308 @@ internal sealed class CodeCleanupManager
         return CreateHeadlessCSharpPipeline(source, filePath, solutionDisqualifiedTypes).Run(source);
     }
 
+    /// <summary>
+    /// Creates the closed-file C# cleanup pipeline for a file from its effective cleanup settings
+    /// (.editorconfig, then the .codejanitor repository policy, then the Visual Studio settings).
+    /// </summary>
+    /// <param name="source">The source text the pipeline will run on.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="solutionDisqualifiedTypes">The type names that must not be sealed, or null to discover them.</param>
+    /// <returns>The pipeline.</returns>
+
     internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(
         string source,
         string filePath,
         IReadOnlyCollection<string> solutionDisqualifiedTypes = null)
     {
-        var editorConfig = EditorConfigHelper.LoadCSharpOptions(filePath);
-        var repositoryOverrides = RepositoryCleanupSettings.LoadForFile(filePath);
-        bool IsEnabled(string settingName, bool fallback) => repositoryOverrides.TryGetBoolean(settingName, fallback);
+        return CreateHeadlessCSharpPipeline(source, filePath, EffectiveCleanupSettings.For(filePath), solutionDisqualifiedTypes);
+    }
+
+    /// <summary>
+    /// Creates the closed-file C# cleanup pipeline for a file from its already resolved effective cleanup settings.
+    /// </summary>
+    /// <param name="source">The source text the pipeline will run on.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="settings">The effective cleanup settings of the file.</param>
+    /// <param name="solutionDisqualifiedTypes">The type names that must not be sealed, or null to discover them.</param>
+    /// <returns>The pipeline.</returns>
+
+    private static SourceTransformationPipeline CreateHeadlessCSharpPipeline(
+        string source,
+        string filePath,
+        EffectiveCleanupSettings settings,
+        IReadOnlyCollection<string> solutionDisqualifiedTypes)
+    {
+        bool IsEnabled(string settingName) => settings.GetBoolean(settingName);
         var transformations = new List<ISourceTransformation>();
+
+        // A step whose output needs a C# version newer than C# 7.3 runs only when every project compiling the file uses
+        // that version; otherwise it is skipped, with a warning when it would have changed the file.
+        var languageVersion = CSharpLanguageVersionSupport.For(filePath);
+        void AddForLanguageVersion(ISourceTransformation transformation, CSharpLanguageVersionSupport.SyntaxRequirement requirement)
+        {
+            transformations.Add(languageVersion.Supports(requirement, out var skipMessage)
+                ? transformation
+                : CreateSkippedTransformation(transformation, skipMessage));
+        }
 
         // Region directives are policy-only structure and are removed unless the repository
         // policy (.codejanitor) explicitly opts out via removeRegions.
-        if (repositoryOverrides.RemoveRegions ?? true)
+        if (settings.RemovesRegions)
         {
             transformations.Add(new RegionDirectiveRemover());
         }
 
-        if (IsEnabled("Cleaning_RemoveByteOrderMark", Settings.Default.Cleaning_RemoveByteOrderMark))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveByteOrderMark)))
         {
             transformations.Add(new ByteOrderMarkConverter());
         }
 
-        if (IsEnabled("Cleaning_MoveUsingsOutsideNamespace", Settings.Default.Cleaning_MoveUsingsOutsideNamespace))
+        // Using directive placement is not a text transformation: it needs the semantic model and runs against the
+        // Visual Studio workspace before this pipeline (UsingDirectivePlacementLogic.PlaceUsingDirectivesAsync).
+
+        switch (settings.NamespaceDeclarations)
         {
-            transformations.Add(new MoveUsingsOutsideNamespaceConverter());
+            case NamespaceDeclarationPreference.FileScoped:
+                var fileScopedConverter = FileScopedNamespaceLogic.CreateConverter(settings);
+                if (!fileScopedConverter.HasMultipleNamespaces(source))
+                {
+                    AddForLanguageVersion(fileScopedConverter, CSharpLanguageVersionSupport.FileScopedNamespaces);
+                }
+
+                break;
+
+            case NamespaceDeclarationPreference.BlockScoped:
+                transformations.Add(new DelegateSourceTransformation("Block-Scoped Namespace", FileScopedNamespaceLogic.CreateConverter(settings).ConvertToBlockScoped));
+                break;
         }
 
-        if (IsEnabled("Cleaning_ConvertToFileScopedNamespace", Settings.Default.Cleaning_ConvertToFileScopedNamespace))
-        {
-            var fileScopedConverter = new FileScopedNamespaceConverter();
-            if (!fileScopedConverter.HasMultipleNamespaces(source))
-            {
-                transformations.Add(fileScopedConverter);
-            }
-        }
-
-        if (IsEnabled("Cleaning_ConvertToVarWhenApparent", Settings.Default.Cleaning_ConvertToVarWhenApparent))
+        if (IsEnabled(nameof(Settings.Cleaning_ConvertToVarWhenApparent)))
         {
             transformations.Add(new VarWhenApparentConverter());
         }
 
-        if (IsEnabled("Cleaning_MakeFieldsReadonlyWhenSafe", Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe))
+        if (IsEnabled(nameof(Settings.Cleaning_MakeFieldsReadonlyWhenSafe)))
         {
             transformations.Add(new ReadonlyFieldConverter());
         }
 
-        if (IsEnabled("Cleaning_SealClassesWhenSafe", Settings.Default.Cleaning_SealClassesWhenSafe))
+        if (IsEnabled(nameof(Settings.Cleaning_SealClassesWhenSafe)))
         {
             var disqualified = solutionDisqualifiedTypes ?? DiscoverDisqualifiedTypesForFile(filePath);
             transformations.Add(new SealedClassConverter(disqualified));
         }
 
-        if (IsEnabled("Cleaning_InsertBlankLineBeforeReturnAndThrowStatements", Settings.Default.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements))
+        if (IsEnabled(nameof(Settings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)))
         {
             transformations.Add(new ReturnThrowBlankLinePaddingConverter());
         }
 
-        if (IsEnabled("Cleaning_ConvertToCollectionExpressions", Settings.Default.Cleaning_ConvertToCollectionExpressions))
+        if (IsEnabled(nameof(Settings.Cleaning_ConvertToCollectionExpressions)))
         {
-            transformations.Add(new CollectionExpressionConverter());
+            AddForLanguageVersion(new CollectionExpressionConverter(), CSharpLanguageVersionSupport.CollectionExpressions);
         }
 
-
-        if (IsEnabled("Cleaning_ReuseJsonSerializerOptionsForCA1869", Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869))
+        if (IsEnabled(nameof(Settings.Cleaning_ReuseJsonSerializerOptionsForCA1869)))
         {
             transformations.Add(new JsonSerializerOptionsReuseConverter());
         }
 
-        if (IsEnabled("Cleaning_SimplifySingleStatementLambdas", Settings.Default.Cleaning_SimplifySingleStatementLambdas))
+        if (IsEnabled(nameof(Settings.Cleaning_SimplifySingleStatementLambdas)))
         {
             transformations.Add(new SingleStatementLambdaConverter());
         }
 
-        if (IsEnabled("Cleaning_ConvertToPatternMatchingNullChecks", Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks))
+        if (IsEnabled(nameof(Settings.Cleaning_ConvertToPatternMatchingNullChecks)))
         {
-            transformations.Add(new NullCheckPatternMatchingConverter());
+            // 'is null' needs C# 7.0 and is always emitted; 'is not null' needs C# 9.
+            if (languageVersion.Supports(CSharpLanguageVersionSupport.NotNullPatterns, out var skipMessage))
+            {
+                transformations.Add(new NullCheckPatternMatchingConverter());
+            }
+            else
+            {
+                transformations.Add(new NullCheckPatternMatchingConverter(convertInequalityChecks: false));
+                transformations.Add(CreateSkippedTransformation(new NullCheckPatternMatchingConverter(), skipMessage));
+            }
         }
 
-        if (IsEnabled("Cleaning_ConvertStringFormatToInterpolation", Settings.Default.Cleaning_ConvertStringFormatToInterpolation))
+        if (IsEnabled(nameof(Settings.Cleaning_ConvertStringFormatToInterpolation)))
         {
             transformations.Add(new StringInterpolationConverter());
         }
 
-        if (IsEnabled("Cleaning_ConvertToStringNameOf", Settings.Default.Cleaning_ConvertToStringNameOf))
+        if (IsEnabled(nameof(Settings.Cleaning_ConvertToStringNameOf)))
         {
             transformations.Add(new NameOfOperatorConverter());
         }
 
-        if (IsEnabled("Cleaning_InlineOutVariableDeclarations", Settings.Default.Cleaning_InlineOutVariableDeclarations))
+        if (IsEnabled(nameof(Settings.Cleaning_InlineOutVariableDeclarations)))
         {
             transformations.Add(new OutVarInliningConverter());
         }
 
-        if (IsEnabled("Cleaning_InsertExplicitAccessModifiersOnClasses", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnDelegates", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnEnumerations", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnEvents", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnFields", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnInterfaces", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnMethods", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnProperties", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties) ||
-            IsEnabled("Cleaning_InsertExplicitAccessModifiersOnStructs", Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs))
+        if (IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs)))
         {
-            transformations.Add(new ExplicitAccessModifierConverter());
+            transformations.Add(new ExplicitAccessModifierConverter(settings));
         }
 
-        if (IsEnabled("Cleaning_InsertBlankLinePaddingBeforeClasses", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterClasses", Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeDelegates", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeDelegates) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterDelegates", Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeEnumerations", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterEnumerations", Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeEvents", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEvents) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterEvents", Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeInterfaces", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterInterfaces", Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeMethods", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterMethods", Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeNamespaces", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeNamespaces) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterNamespaces", Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine", Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeStructs", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterStructs", Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks", Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeEndRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingAfterEndRegionTags", Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeCaseStatements", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeCaseStatements) ||
-            IsEnabled("Cleaning_InsertBlankLinePaddingBeforeSingleLineComments", Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments))
+        if (IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEnumerations)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEnumerations)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEvents)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEvents)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeInterfaces)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterInterfaces)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeMethods)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterMethods)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeNamespaces)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterNamespaces)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeStructs)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterStructs)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)) ||
+            IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)))
         {
-            transformations.Add(new BlankLinePaddingConverter());
+            transformations.Add(new BlankLinePaddingConverter(settings));
         }
 
-        if (IsEnabled("Cleaning_UpdateEndRegionDirectives", Settings.Default.Cleaning_UpdateEndRegionDirectives))
+        if (IsEnabled(nameof(Settings.Cleaning_UpdateEndRegionDirectives)))
         {
             transformations.Add(new UpdateEndRegionDirectivesConverter());
         }
 
-        if (IsEnabled("Cleaning_UpdateSingleLineMethods", Settings.Default.Cleaning_UpdateSingleLineMethods))
+        if (IsEnabled(nameof(Settings.Cleaning_UpdateSingleLineMethods)))
         {
-            transformations.Add(new UpdateSingleLineMethodsConverter());
+            transformations.Add(new UpdateSingleLineMethodsConverter(settings));
         }
 
-        if (IsEnabled("Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine", Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine))
+        if (IsEnabled(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)))
         {
-            transformations.Add(new UpdateAccessorsToBothBeSingleLineOrMultiLineConverter());
+            transformations.Add(new UpdateAccessorsToBothBeSingleLineOrMultiLineConverter(settings));
         }
 
-        if (IsEnabled("Formatting_CommentRunDuringCleanup", Settings.Default.Formatting_CommentRunDuringCleanup))
+        if (IsEnabled(nameof(Settings.Formatting_CommentRunDuringCleanup)))
         {
             transformations.Add(new CommentFormatConverter());
         }
 
-        var fileHeader = repositoryOverrides.TryGetString("Cleaning_UpdateFileHeaderCSharp", Settings.Default.Cleaning_UpdateFileHeaderCSharp);
+        var fileHeader = settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSharp));
         if (!string.IsNullOrWhiteSpace(fileHeader))
         {
-            var fileHeaderPosition = (HeaderPosition)repositoryOverrides.TryGetInt32("Cleaning_UpdateFileHeader_HeaderPosition", Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition);
-            var fileHeaderUpdateMode = (HeaderUpdateMode)repositoryOverrides.TryGetInt32("Cleaning_UpdateFileHeader_HeaderUpdateMode", Settings.Default.Cleaning_UpdateFileHeader_HeaderUpdateMode);
+            var fileHeaderPosition = (HeaderPosition)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderPosition));
+            var fileHeaderUpdateMode = (HeaderUpdateMode)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderUpdateMode));
             transformations.Add(new DelegateSourceTransformation(
                 "Update C# file header",
                 text => ApplyConfiguredCSharpFileHeader(text, fileHeader, fileHeaderPosition, fileHeaderUpdateMode)));
         }
 
-        if (string.Equals(editorConfig.IndentStyle, "space", StringComparison.OrdinalIgnoreCase))
+        switch (settings.Indentation)
         {
-            var tabSize = editorConfig.TabWidth ?? editorConfig.IndentSize ?? 4;
-            transformations.Add(new TabToSpaceConverter(tabSize));
+            case IndentationPreference.Spaces:
+                transformations.Add(new TabToSpaceConverter(settings.TabSize));
+                break;
+
+            case IndentationPreference.Tabs:
+                transformations.Add(new SpaceToTabConverter(settings.TabSize));
+                break;
         }
 
-        if (!IsEnabled("Cleaning_RunVisualStudioRemoveAndSortUsingStatements", Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) &&
-            (repositoryOverrides.OrganizeUsings == true ||
-             (editorConfig.SortSystemDirectivesFirst == true && editorConfig.SeparateImportDirectiveGroups != true)))
+        if (!IsEnabled(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)) && settings.OrganizeUsings)
         {
             transformations.Add(new UsingDirectiveOrganizer());
         }
 
-        if (IsEnabled("Cleaning_RemoveEndOfLineWhitespace", Settings.Default.Cleaning_RemoveEndOfLineWhitespace))
-        {
-            transformations.Add(new RemoveTrailingWhitespaceConverter());
-        }
-        else if (editorConfig.TrimTrailingWhitespace == true)
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveEndOfLineWhitespace)))
         {
             transformations.Add(new RemoveTrailingWhitespaceConverter());
         }
 
-        if (IsEnabled("Cleaning_RemoveBlankLinesAtTop", Settings.Default.Cleaning_RemoveBlankLinesAtTop))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesAtTop)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines at top", RemoveBlankLinesAtTop));
         }
 
-        if (IsEnabled("Cleaning_RemoveBlankLinesAtBottom", Settings.Default.Cleaning_RemoveBlankLinesAtBottom))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesAtBottom)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines at bottom", RemoveBlankLinesAtBottom));
         }
 
-        if (IsEnabled("Cleaning_RemoveBlankLinesAfterAttributes", Settings.Default.Cleaning_RemoveBlankLinesAfterAttributes))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterAttributes)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines after attributes", RemoveBlankLinesAfterAttributes));
         }
 
-        if (IsEnabled("Cleaning_RemoveBlankLinesAfterOpeningBrace", Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterOpeningBrace)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines after opening brace", RemoveBlankLinesAfterOpeningBrace));
         }
 
-        if (IsEnabled("Cleaning_RemoveBlankLinesBeforeClosingBrace", Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingBrace)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines before closing brace", RemoveBlankLinesBeforeClosingBrace));
         }
 
-        if (IsEnabled("Cleaning_RemoveBlankLinesBetweenChainedStatements", Settings.Default.Cleaning_RemoveBlankLinesBetweenChainedStatements))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesBetweenChainedStatements)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines between chained statements", RemoveBlankLinesBetweenChainedStatements));
         }
 
-        if (IsEnabled("Cleaning_RemoveMultipleConsecutiveBlankLines", Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines))
+        if (IsEnabled(nameof(Settings.Cleaning_RemoveMultipleConsecutiveBlankLines)))
         {
             transformations.Add(new NormalizeBlankLinesConverter());
         }
 
-        transformations.Add(new EnsureFinalNewlineConverter());
+        transformations.Add(settings.InsertFinalNewline
+            ? new EnsureFinalNewlineConverter()
+            : (ISourceTransformation)new RemoveFinalNewlineConverter());
 
         return new SourceTransformationPipeline(transformations);
+    }
+
+    /// <summary>
+    /// Creates the pipeline step that replaces a transformation whose output the file's C# language version does not
+    /// support: it leaves the source unchanged and logs the skip message when the transformation would have changed it.
+    /// </summary>
+    /// <param name="transformation">The skipped transformation.</param>
+    /// <param name="skipMessage">The warning explaining why the transformation is skipped.</param>
+    /// <returns>The pipeline step.</returns>
+
+    private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage)
+    {
+        return new DelegateSourceTransformation(transformation.Name, source =>
+        {
+            if (transformation.Apply(source) != source)
+            {
+                OutputWindowHelper.WarningWriteLine(skipMessage);
+            }
+
+            return source;
+        });
     }
 
     /// <summary>
@@ -1103,24 +1193,31 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Determines whether the C# cleanup settings still require the editor-backed DTE path.
+    /// Determines whether the C# cleanup of a file still requires the editor-backed DTE path. The Visual Studio
+    /// commands follow the effective settings of the file (.editorconfig, then the .codejanitor repository policy, then
+    /// the Visual Studio settings), like the editor steps that run them.
     /// </summary>
+    /// <param name="filePath">The file path.</param>
     /// <returns>True if editor-backed cleanup must run, otherwise false.</returns>
 
-    internal bool RequiresEditorCleanupForCSharp()
+    internal static bool RequiresEditorCleanupForCSharp(string filePath)
     {
         if (Settings.Default.Reorganizing_RunAtStartOfCleanup) return true;
 
-        if (Settings.Default.Cleaning_RunVisualStudioFormatDocumentCommand ||
-            Settings.Default.ThirdParty_UseJetBrainsReSharperCleanup ||
+        if (Settings.Default.ThirdParty_UseJetBrainsReSharperCleanup ||
             Settings.Default.ThirdParty_UseTelerikJustCodeCleanup ||
             Settings.Default.ThirdParty_UseXAMLStylerCleanup ||
-            _otherCleaningCommands.Value.Any())
+            OtherCleaningCommands.Value.Any())
         {
             return true;
         }
 
-        if (Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return true;
+        var settings = EffectiveCleanupSettings.For(filePath);
+        if (settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand)) ||
+            settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)))
+        {
+            return true;
+        }
 
         if (Settings.Default.Cleaning_AiXmlDocumentationEnabled &&
             Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup)
@@ -1424,6 +1521,22 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
+        CleanupDocument(document, usingsLeftInPlace: false);
+    }
+
+    /// <summary>
+    /// Attempts to run code cleanup on the specified document.
+    /// </summary>
+    /// <param name="document">The document for cleanup.</param>
+    /// <param name="usingsLeftInPlace">
+    /// True when the semantic using directive placement was already attempted for the file in this cleanup and left
+    /// the using directives in place: it is not retried, since that would repeat the analysis and the warning.
+    /// </param>
+
+    private void CleanupDocument(Document document, bool usingsLeftInPlace)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
         _cleanupExecutionStats.EditorItems++;
 
         if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true)) return;
@@ -1442,7 +1555,20 @@ internal sealed class CodeCleanupManager
             OutputWindowHelper.WarningWriteLine($"Activation was not completed before cleaning began for '{document.Name}'");
         }
 
-        TrySplitTopLevelTypesToSeparateFiles(document);
+        // The cleanup steps of this document follow its effective settings: .editorconfig, then the .codejanitor
+        // repository policy, then the Visual Studio settings.
+        var settings = EffectiveCleanupSettings.For(document.FullName);
+
+        // When types are split into their own files, the semantic using directive placement must run before the split
+        // so the created files inherit the placed directives. It is then its own undo unit, like the split, and the
+        // calls in the cleanup undo transaction (RunCodeCleanupCSharp) find nothing left to move. Once a placement left
+        // the directives in place (including the closed-file placement of this cleanup), no later step retries it.
+        if (!usingsLeftInPlace && settings.GetBoolean(nameof(Settings.Cleaning_MoveTopLevelTypesToSeparateFiles)) && document.GetCodeLanguage() == CodeLanguage.CSharp)
+        {
+            usingsLeftInPlace = _usingDirectivePlacementLogic.PlaceUsingDirectives(document.GetTextDocument()) == UsingsMoveOutcome.LeftInPlace;
+        }
+
+        TrySplitTopLevelTypesToSeparateFiles(document, settings);
 
         // Conditionally start cleanup with reorganization.
         if (Settings.Default.Reorganizing_RunAtStartOfCleanup)
@@ -1461,7 +1587,7 @@ internal sealed class CodeCleanupManager
         new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorCleanupFor0, document.Name)).Run(
             delegate
             {
-                var cleanupMethod = FindCodeCleanupMethod(document);
+                var cleanupMethod = FindCodeCleanupMethod(document, settings, usingsLeftInPlace);
                 if (cleanupMethod is not null)
                 {
                     OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");
@@ -1581,6 +1707,18 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
+    /// Places the using directives of a closed C# project item inside or outside its namespaces, as its effective
+    /// settings require. Must run before the headless cleanup of the item (see <see cref="UsingDirectivePlacementLogic" />).
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <param name="cancellationToken">Cancels the semantic analysis of the move; the file is then left unchanged.</param>
+    /// <returns>True when the file was rewritten with the placed directives.</returns>
+    /// <exception cref="OperationCanceledException">The move was canceled.</exception>
+
+    internal async Task<bool> PlaceUsingDirectivesAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
+        await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken) == UsingsMoveOutcome.Moved;
+
+    /// <summary>
     /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup
     /// and records the outcome in the execution statistics. Does nothing when no diagnostic cleanup
     /// category is enabled for the item.
@@ -1647,19 +1785,23 @@ internal sealed class CodeCleanupManager
     /// Finds a code cleanup method appropriate for the specified document, otherwise null.
     /// </summary>
     /// <param name="document">The document.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
+    /// <param name="usingsLeftInPlace">
+    /// True when the semantic using directive placement already left the using directives in place in this cleanup.
+    /// </param>
     /// <returns>The code cleanup method, otherwise null.</returns>
 
-    private Action<Document> FindCodeCleanupMethod(Document document)
+    private Action<Document> FindCodeCleanupMethod(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         switch (document.GetCodeLanguage())
         {
             case CodeLanguage.CSharp:
-                return RunCodeCleanupCSharp;
+                return csharpDocument => RunCodeCleanupCSharp(csharpDocument, settings, usingsLeftInPlace);
 
             case CodeLanguage.VisualBasic:
-                return RunCodeCleanupVB;
+                return vbDocument => RunCodeCleanupVB(vbDocument, settings);
 
             case CodeLanguage.CPlusPlus:
             case CodeLanguage.CSS:
@@ -1671,16 +1813,16 @@ internal sealed class CodeCleanupManager
             case CodeLanguage.R:
             case CodeLanguage.SCSS:
             case CodeLanguage.TypeScript:
-                return RunCodeCleanupC;
+                return cDocument => RunCodeCleanupC(cDocument, settings);
 
             case CodeLanguage.HTML:
             case CodeLanguage.XAML:
             case CodeLanguage.XML:
-                return RunCodeCleanupMarkup;
+                return markupDocument => RunCodeCleanupMarkup(markupDocument, settings);
 
             case CodeLanguage.FSharp:
             case CodeLanguage.Unknown:
-                return RunCodeCleanupGeneric;
+                return genericDocument => RunCodeCleanupGeneric(genericDocument, settings);
 
             default:
                 OutputWindowHelper.WarningWriteLine($"FindCodeCleanupMethod does not recognize document language '{document.Language}'");
@@ -1692,12 +1834,13 @@ internal sealed class CodeCleanupManager
     /// Splits top-level C# types in the active document into separate files when enabled, adding generated files to the project, updating execution stats, writing a diagnostic message, and replacing the document&apos;s source with the updated content.
     /// </summary>
     /// <param name="document">The document.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void TrySplitTopLevelTypesToSeparateFiles(Document document)
+    private void TrySplitTopLevelTypesToSeparateFiles(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles ||
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_MoveTopLevelTypesToSeparateFiles)) ||
             document is null ||
             document.GetCodeLanguage() != CodeLanguage.CSharp)
         {
@@ -1824,46 +1967,63 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified CSharp document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
+    /// <param name="usingsLeftInPlace">
+    /// True when the semantic using directive placement already left the using directives in place in this cleanup;
+    /// it is then not retried.
+    /// </param>
 
-    private void RunCodeCleanupCSharp(Document document)
+    private void RunCodeCleanupCSharp(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
 
-        // Move using directives outside namespace (to top of file), when enabled.
-        _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
+        // Place using directives inside or outside the namespace, as the effective settings require. Each attempt
+        // re-analyzes the document semantically, so once the placement left the directives in place it is not
+        // attempted again.
+        if (!usingsLeftInPlace)
+        {
+            usingsLeftInPlace = _usingDirectivePlacementLogic.PlaceUsingDirectives(textDocument) == UsingsMoveOutcome.LeftInPlace;
+        }
 
-        // Convert to a file-scoped namespace first (changes file structure), when enabled.
-        _fileScopedNamespaceLogic.ConvertToFileScopedNamespace(textDocument);
+        // Convert to the enforced namespace declaration style first (changes file structure).
+        _fileScopedNamespaceLogic.ApplyNamespaceDeclarationStyle(textDocument, settings);
 
         // Convert local variable declarations to 'var' when the type is apparent, when enabled.
-        _varWhenApparentLogic.ConvertToVarWhenApparent(textDocument);
+        _varWhenApparentLogic.ConvertToVarWhenApparent(textDocument, settings);
 
         // Add 'readonly' to fields provably never written outside their constructor, when enabled.
-        _readonlyFieldLogic.AddReadonlyWhenSafe(textDocument);
+        _readonlyFieldLogic.AddReadonlyWhenSafe(textDocument, settings);
 
         // Add 'sealed' to classes provably safe to seal within this file, when enabled.
-        _sealedClassLogic.SealWhenSafe(textDocument);
+        _sealedClassLogic.SealWhenSafe(textDocument, settings);
 
         // Insert a blank line before return/throw statements that end a block, when enabled.
-        _returnThrowBlankLinePaddingLogic.InsertPaddingBeforeReturnAndThrowStatements(textDocument);
+        _returnThrowBlankLinePaddingLogic.InsertPaddingBeforeReturnAndThrowStatements(textDocument, settings);
 
         // Convert List<T>/array initializations to collection expression syntax, when enabled.
-        _collectionExpressionLogic.ConvertToCollectionExpressions(textDocument);
+        _collectionExpressionLogic.ConvertToCollectionExpressions(textDocument, settings);
 
         // Replace direct JsonSerializerOptions allocations in JsonSerializer calls, when enabled.
-        _jsonSerializerOptionsReuseLogic.ReuseJsonSerializerOptionsForCA1869(textDocument);
+        _jsonSerializerOptionsReuseLogic.ReuseJsonSerializerOptionsForCA1869(textDocument, settings);
 
         // Simplify single-statement lambda blocks to expression-bodied lambdas, when enabled.
-        _singleStatementLambdaLogic.SimplifySingleStatementLambdas(textDocument);
+        _singleStatementLambdaLogic.SimplifySingleStatementLambdas(textDocument, settings);
 
         // Perform any actions that can modify the file code model first.
-        RunExternalFormatting(textDocument);
+        RunExternalFormatting(textDocument, settings);
         if (!document.IsExternal())
         {
-            _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument);
-            _moveUsingsOutsideNamespaceLogic.MoveUsingsOutsideNamespace(textDocument);
+            _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument, settings);
+
+            // External cleanup (e.g. ReSharper, or Format Document running a code cleanup profile) can move using
+            // directives across the namespace boundary; place them again unless the placement already proved unsafe.
+            // When every directive is already where it belongs this is a syntax-only check, without semantic analysis.
+            if (!usingsLeftInPlace)
+            {
+                _usingDirectivePlacementLogic.PlaceUsingDirectives(textDocument);
+            }
         }
 
         // Interpret the document into a collection of elements.
@@ -1888,83 +2048,88 @@ internal sealed class CodeCleanupManager
         var usingStatementsThatEndBlocks = (from IEnumerable<CodeItemUsingStatement> block in usingStatementBlocks select block.Last()).ToList();
 
         // Perform file header cleanup.
-        _fileHeaderLogic.UpdateFileHeader(textDocument);
+        _fileHeaderLogic.UpdateFileHeader(textDocument, settings);
 
         // Perform removal cleanup.
-        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
-        _removeRegionLogic.RemoveRegions(regions);
-        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument);
-        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument);
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument, settings);
+        if (settings.RemovesRegions)
+        {
+            _removeRegionLogic.RemoveRegions(regions);
+        }
+
+        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
+        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
         // Perform insertion of blank line padding cleanup.
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeRegionTags(regions);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterRegionTags(regions);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeRegionTags(regions, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterRegionTags(regions, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeEndRegionTags(regions);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterEndRegionTags(regions);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeEndRegionTags(regions, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterEndRegionTags(regions, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(usingStatementsThatStartBlocks);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(usingStatementsThatEndBlocks);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(usingStatementsThatStartBlocks, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(usingStatementsThatEndBlocks, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(namespaces);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(namespaces);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(namespaces, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(namespaces, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(classes);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(classes);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(classes, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(classes, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(delegates);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(delegates);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(delegates, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(delegates, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(enumerations);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(enumerations);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(enumerations, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(enumerations, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(events);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(events);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(events, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(events, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(fields);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(fields);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(fields, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(fields, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(interfaces);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(interfaces);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(interfaces, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(interfaces, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(methods);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(methods);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(methods, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(methods, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(properties);
-        _insertBlankLinePaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(properties);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(properties);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(properties, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(properties, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(properties, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(structs);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(structs);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(structs, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(structs, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCaseStatements(textDocument);
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCaseStatements(textDocument, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument, settings);
 
         // Perform insertion of explicit access modifier cleanup.
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnClasses(classes);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnDelegates(delegates);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnEnumerations(enumerations);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnEvents(events);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnFields(fields);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnInterfaces(interfaces);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnMethods(methods);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnProperties(properties);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnStructs(structs);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnClasses(classes, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnDelegates(delegates, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnEnumerations(enumerations, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnEvents(events, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnFields(fields, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnInterfaces(interfaces, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnMethods(methods, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnProperties(properties, settings);
+        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnStructs(structs, settings);
 
-        // Perform insertion of whitespace cleanup.
-        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument);
+        // Perform the final newline cleanup (insert or remove, as the effective settings require).
+        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOFTrailingNewLine(textDocument, settings);
 
         // Perform update cleanup.
-        _updateLogic.UpdateEndRegionDirectives(textDocument);
-        _updateLogic.UpdateEventAccessorsToBothBeSingleLineOrMultiLine(events);
-        _updateLogic.UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(properties);
-        _updateLogic.UpdateSingleLineMethods(methods);
+        _updateLogic.UpdateEndRegionDirectives(textDocument, settings);
+        _updateLogic.UpdateEventAccessorsToBothBeSingleLineOrMultiLine(events, settings);
+        _updateLogic.UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(properties, settings);
+        _updateLogic.UpdateSingleLineMethods(methods, settings);
 
         // Perform comment cleaning.
         _commentFormatLogic.FormatComments(textDocument);
@@ -1974,18 +2139,19 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified VB.Net document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void RunCodeCleanupVB(Document document)
+    private void RunCodeCleanupVB(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
 
         // Perform any actions that can modify the file code model first.
-        RunExternalFormatting(textDocument);
+        RunExternalFormatting(textDocument, settings);
         if (!document.IsExternal())
         {
-            _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument);
+            _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument, settings);
         }
 
         // Interpret the document into a collection of elements.
@@ -2010,64 +2176,69 @@ internal sealed class CodeCleanupManager
         var usingStatementsThatEndBlocks = (from IEnumerable<CodeItemUsingStatement> block in usingStatementBlocks select block.Last()).ToList();
 
         // Perform file header cleanup.
-        _fileHeaderLogic.UpdateFileHeader(textDocument);
+        _fileHeaderLogic.UpdateFileHeader(textDocument, settings);
 
         // Perform removal cleanup.
-        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
-        _removeRegionLogic.RemoveRegions(regions);
-        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument);
-        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument);
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument, settings);
+        if (settings.RemovesRegions)
+        {
+            _removeRegionLogic.RemoveRegions(regions);
+        }
+
+        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
+        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
         // Perform insertion of blank line padding cleanup.
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeRegionTags(regions);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterRegionTags(regions);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeRegionTags(regions, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterRegionTags(regions, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeEndRegionTags(regions);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterEndRegionTags(regions);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeEndRegionTags(regions, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterEndRegionTags(regions, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(usingStatementsThatStartBlocks);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(usingStatementsThatEndBlocks);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(usingStatementsThatStartBlocks, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(usingStatementsThatEndBlocks, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(namespaces);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(namespaces);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(namespaces, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(namespaces, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(classes);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(classes);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(classes, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(classes, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(delegates);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(delegates);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(delegates, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(delegates, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(enumerations);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(enumerations);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(enumerations, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(enumerations, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(events);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(events);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(events, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(events, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(fields);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(fields);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(fields, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(fields, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(interfaces);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(interfaces);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(interfaces, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(interfaces, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(methods);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(methods);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(methods, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(methods, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(properties);
-        _insertBlankLinePaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(properties);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(properties);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(properties, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(properties, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(properties, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(structs);
-        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(structs);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCodeElements(structs, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingAfterCodeElements(structs, settings);
 
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeCaseStatements(textDocument);
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeCaseStatements(textDocument, settings);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument, settings);
 
-        // Perform insertion of whitespace cleanup.
-        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument);
+        // Perform the final newline cleanup (insert or remove, as the effective settings require).
+        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOFTrailingNewLine(textDocument, settings);
 
         // Perform comment cleaning.
         _commentFormatLogic.FormatComments(textDocument);
@@ -2077,109 +2248,116 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified C/C++ document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void RunCodeCleanupC(Document document)
+    private void RunCodeCleanupC(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
 
-        RunExternalFormatting(textDocument);
+        RunExternalFormatting(textDocument, settings);
 
         // Perform file header cleanup.
-        _fileHeaderLogic.UpdateFileHeader(textDocument);
+        _fileHeaderLogic.UpdateFileHeader(textDocument, settings);
 
         // Perform removal cleanup.
-        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
-        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument);
-        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument);
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
         // Perform insertion of blank line padding cleanup.
-        _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument);
+        _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument, settings);
 
-        // Perform insertion of whitespace cleanup.
-        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument);
+        // Perform the final newline cleanup (insert or remove, as the effective settings require).
+        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOFTrailingNewLine(textDocument, settings);
     }
 
     /// <summary>
     /// Attempts to run code cleanup on the specified markup document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void RunCodeCleanupMarkup(Document document)
+    private void RunCodeCleanupMarkup(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
 
-        RunExternalFormatting(textDocument);
+        RunExternalFormatting(textDocument, settings);
 
         // Run Razor-specific formatting in a safe, scoped way for .razor files only.
-        _razorFormatterLogic.FormatRazorDocument(textDocument);
+        _razorFormatterLogic.FormatRazorDocument(textDocument, settings);
 
         if (!document.IsExternal())
         {
-            _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument);
+            _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument, settings);
         }
 
         // Perform file header cleanup.
-        _fileHeaderLogic.UpdateFileHeader(textDocument);
+        _fileHeaderLogic.UpdateFileHeader(textDocument, settings);
 
         // Perform removal cleanup.
-        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
-        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingTag(textDocument);
-        _removeWhitespaceLogic.RemoveBlankSpacesBeforeClosingAngleBracket(textDocument);
-        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument);
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingTag(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankSpacesBeforeClosingAngleBracket(textDocument, settings);
+        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
         // Perform insertion cleanup.
-        _insertWhitespaceLogic.InsertBlankSpaceBeforeSelfClosingAngleBracket(textDocument);
-        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument);
+        _insertWhitespaceLogic.InsertBlankSpaceBeforeSelfClosingAngleBracket(textDocument, settings);
+        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOFTrailingNewLine(textDocument, settings);
     }
 
     /// <summary>
     /// Attempts to run code cleanup on the specified generic document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void RunCodeCleanupGeneric(Document document)
+    private void RunCodeCleanupGeneric(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
 
-        RunExternalFormatting(textDocument);
+        RunExternalFormatting(textDocument, settings);
 
         // Perform file header cleanup.
-        _fileHeaderLogic.UpdateFileHeader(textDocument);
+        _fileHeaderLogic.UpdateFileHeader(textDocument, settings);
 
         // Perform removal cleanup.
-        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument);
-        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument);
-        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument);
-        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument);
+        _removeByteOrderMarkLogic.RemoveByteOrderMark(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOLWhitespace(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
+        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
-        // Perform insertion cleanup.
-        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument);
+        // Perform the final newline cleanup (insert or remove, as the effective settings require).
+        _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument, settings);
+        _removeWhitespaceLogic.RemoveEOFTrailingNewLine(textDocument, settings);
     }
 
     /// <summary>
     /// Runs external formatting tools (e.g. Visual Studio, JetBrains ReSharper, Telerik JustCode).
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void RunExternalFormatting(TextDocument textDocument)
+    private void RunExternalFormatting(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        RunVisualStudioFormatDocument(textDocument);
+        RunVisualStudioFormatDocument(textDocument, settings);
         RunJetBrainsReSharperCleanup(textDocument);
         RunTelerikJustCodeCleanup(textDocument);
         RunXAMLStylerCleanup(textDocument);
@@ -2190,12 +2368,13 @@ internal sealed class CodeCleanupManager
     /// Runs the Visual Studio built-in format document command.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    private void RunVisualStudioFormatDocument(TextDocument textDocument)
+    private void RunVisualStudioFormatDocument(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_RunVisualStudioFormatDocumentCommand) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand))) return;
 
         _commandHelper.ExecuteCommand(textDocument, "Edit.FormatDocument");
     }
@@ -2253,9 +2432,9 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!_otherCleaningCommands.Value.Any()) return;
+        if (!OtherCleaningCommands.Value.Any()) return;
 
-        foreach (var commandName in _otherCleaningCommands.Value)
+        foreach (var commandName in OtherCleaningCommands.Value)
         {
             _commandHelper.ExecuteCommand(textDocument, commandName);
         }

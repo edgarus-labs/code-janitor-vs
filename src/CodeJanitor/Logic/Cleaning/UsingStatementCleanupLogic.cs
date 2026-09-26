@@ -16,14 +16,6 @@ internal sealed class UsingStatementCleanupLogic
     private readonly CodeJanitorPackage _package;
     private readonly CommandHelper _commandHelper;
 
-    private readonly CachedSettingSet<string> _usingStatementsToReinsertWhenRemoved =
-        new CachedSettingSet<string>(() => Settings.Default.Cleaning_UsingStatementsToReinsertWhenRemovedExpression,
-                                     expression =>
-                                     expression.Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
-                                               .Select(x => x.Trim())
-                                               .Where(y => !string.IsNullOrEmpty(y))
-                                               .ToList());
-
     /// <summary>
     /// The singleton instance of the <see cref="UsingStatementCleanupLogic" /> class.
     /// </summary>
@@ -59,18 +51,22 @@ internal sealed class UsingStatementCleanupLogic
     /// Before VS2017 these were two separate commands.  Starting in VS2017 they were merged into one.
     /// </remarks>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    public void RemoveAndSortUsingStatements(TextDocument textDocument)
+    public void RemoveAndSortUsingStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements) return;
-        if (_package.IsAutoSaveContext && Settings.Default.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements))) return;
+        if (_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave))) return;
 
         // Capture all existing using statements that should be re-inserted if removed.
         const string patternFormat = @"^[ \t]*{0}[ \t]*\r?\n";
 
-        var usingStatementsToReinsert = _usingStatementsToReinsertWhenRemoved.Value
-            .Where(usingStatement => TextDocumentHelper.FirstOrDefaultMatch(textDocument, string.Format(patternFormat, usingStatement)) is not null)
+        var usingStatementsToReinsert = (settings.GetString(nameof(Settings.Cleaning_UsingStatementsToReinsertWhenRemovedExpression)) ?? string.Empty)
+            .Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(usingStatement => usingStatement.Trim())
+            .Where(usingStatement => usingStatement.Length > 0 &&
+                                     TextDocumentHelper.FirstOrDefaultMatch(textDocument, string.Format(patternFormat, usingStatement)) is not null)
             .ToList();
 
         _commandHelper.ExecuteCommand(textDocument, "EditorContextMenus.CodeWindow.RemoveAndSort");

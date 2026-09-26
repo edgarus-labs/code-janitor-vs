@@ -15,6 +15,69 @@ Code Janitor combines the established CodeMaid feature set with ongoing moderniz
 - Fix and normalize namespaces.
 - Show a one-time cleanup options dialog for selected-scope cleanup.
 
+### Using directive placement (C#)
+
+With **Move using directives outside namespace** enabled, using directives declared inside a
+block-scoped or file-scoped namespace are moved to the top of the file. When `.editorconfig`
+sets `csharp_using_directive_placement = inside_namespace`, file-level using directives are
+moved into the namespace instead (see [Settings precedence](#settings-precedence-editorconfig-codejanitor-user-settings)).
+Inside a namespace a
+name such as `using Services;` can refer to `Company.App.Services`; at file level it could not.
+Every moved directive, alias target and `using static` is therefore resolved with the Roslyn
+semantic model. Directives that mean the same at file level keep their exact text (for example
+`using Str = System.String;` or `using V1::Lib;`); the others are written fully qualified
+(`using Company.App.Services;`). Duplicates of existing top-level directives are dropped; their
+comments move to the surviving directive. Comments on using directives, the file header, line
+endings and the blank line after the directives are kept.
+
+The move is all-or-nothing per file. The using directives are left in place (the rest of the
+cleanup still runs), and the reason is written to the Code Janitor output pane, when:
+
+- a directive cannot be resolved, or its fully qualified form would refer to something else
+  at its new place (for example a target reached only through an `extern alias` declared
+  inside the namespace, which stays there);
+- the file, another document of the project or a project it references uses conditional
+  compilation (`#if`/`#elif`) and the move is unsafe in any combination of the relevant
+  symbols (symbols of another document count when they change its declarations or directives
+  alone or only together, as in `#if A && B`; every combination of up to four symbols is
+  verified; with more than four the directives are left in place). Usings inside a namespace
+  that is excluded in the current build configuration stay where they are;
+- the directives would move across other preprocessor directives (`#region`, `#nullable`,
+  `#pragma`, ...) between the file-level using directives and the namespace;
+- the file is not part of a C# project in the Visual Studio workspace;
+- the file is compiled by several projects or target frameworks (linked files, shared
+  projects, multi-targeting) and the move is unsafe in any of them or gives a different
+  result in each of them;
+- the moved file would have compile errors the original did not have (for example an
+  ambiguity after merging the directives of several namespaces);
+- a name, member or implicitly called member (for example the `GetEnumerator` of a `foreach`,
+  a collection-initializer `Add`, `GetAwaiter`, `Deconstruct` or a query operator) would bind
+  to a different symbol after the move (an import searched after a same-named type or an
+  extension method of an enclosing namespace, or a same-named type of another assembly);
+- a moved directive imports an extension member that the compiler calls without exposing the
+  binding to verify: `Add` or `GetEnumerator` used by a collection expression or spread
+  element, `GetPinnableReference` used by a `fixed` statement, or `operator ==`/`!=` used
+  element-wise by tuple equality.
+
+The step needs the Visual Studio Roslyn workspace (Roslyn 5.0 or newer, which every supported Visual Studio ships). It runs before the
+text cleanup and the type split, so the file header, using organization and split files see the
+moved directives. Region directives are removed before moving whenever cleanup would remove
+them anyway (unless the repository policy keeps regions).
+It is not part of the C# text cleanup preview. Converting to a
+file-scoped namespace keeps using directives inside the namespace; they are moved only by this
+step. The file-scoped conversion itself runs only when every project and target framework that
+compiles the file uses C# 10 or newer (read from the Visual Studio Roslyn workspace); otherwise,
+or when the language version is unknown, the namespace stays block-scoped and the reason is
+written to the output pane. With `csharp_style_namespace_declarations = block_scoped`, a
+file-scoped namespace is converted back to a block-scoped one.
+
+The inward move uses the same all-or-nothing checks. A directive that would bind to a
+different symbol inside the namespace is written `global::`-qualified. Files with no namespace
+or with several namespaces, and files with anything other than using and extern alias
+directives outside their single namespace (a type, a delegate, top-level statements or an
+assembly attribute such as `[assembly: InternalsVisibleTo(...)]`), are left unchanged without
+analysis, so no reason is written to the output pane for them.
+
 ### C# text cleanup preview
 
 The selected-scope cleanup options dialog includes **Preview C# Text Changes**.
@@ -60,9 +123,12 @@ other analyzers (for example analyzer NuGet packages). There is no separate sett
   Cleanup applies the fix to the whole document when the provider supports Fix All.
   Otherwise it fixes one diagnostic at a time and analyzes the document again, up to
   50 passes.
-- **Safety.** A fix is rejected when it would increase the number of compiler errors in
-  any changed project. It is also rejected when it does more than change document text,
-  for example adding or removing files or references.
+- **Safety.** A fix is rejected when it would add any compiler error to a changed project,
+  even if it also removes another one. It is also rejected when it does more than change
+  document text, for example adding or removing files or references. When the file is also
+  compiled by other projects or target frameworks (linked files, shared projects,
+  multi-targeting), the new text is checked in each of them first; if any gets a new compiler
+  error, nothing is applied and the failure names that project and error.
 - **Unsupported and unsafe diagnostics.** Code Janitor never modifies code for a
   diagnostic without a code fix, without a usable code action, with a rejected fix or
   that does not converge. It reports the diagnostic in the CodeJanitor output pane.
@@ -79,8 +145,8 @@ other analyzers (for example analyzer NuGet packages). There is no separate sett
 - **Multi-targeted and linked files.** A file shared by several projects or target
   frameworks is analyzed in one context: the project that contains the cleaned item,
   otherwise the first by project path and name.
-- **Requirements.** This feature needs a Visual Studio build whose Roslyn is 5.9 or
-  newer. On older hosts it fails with a logged error, and the other cleanup still runs.
+- **Requirements.** This feature needs Roslyn 5.0 or newer, which every supported Visual
+  Studio version (2026, 18.0 or newer) ships.
 
 ## Code organization
 
@@ -126,6 +192,38 @@ AI-assisted processing is opt-in. The project does not treat AI processing as a 
 
 Settings are provided by grouped WPF pages under **Tools > Options > Code Janitor**, registered through the classic Visual Studio SDK. The experimental VisualStudio.Extensibility settings bridge has been removed; it is not part of the extension's current feature set.
 
+## Settings precedence (.editorconfig, .codejanitor, user settings)
+
+Each cleanup setting is resolved per file, in the editor and for closed files alike:
+
+1. `.editorconfig`, for the keys in the table below. `.editorconfig` is then the source of
+   truth in both directions. A value with the severity suffix `:none` (for example
+   `csharp_style_namespace_declarations = file_scoped:none`) is ignored, as if the key were
+   not there: the `.codejanitor` entry for that step decides, or else your Visual Studio
+   setting. Any other severity (`silent`, `suggestion`, `warning`, `error`) or no suffix
+   enforces the value for Code Janitor's own steps;
+2. the `.codejanitor` repository policy;
+3. your Visual Studio settings.
+
+| `.editorconfig` key | Code Janitor step |
+|---|---|
+| `csharp_style_namespace_declarations` = `file_scoped` / `block_scoped` | convert to file-scoped (C# 10+) / convert to block-scoped; the body moves by one `indent_size` (`tab_width` when `indent_size = tab`, otherwise 4 spaces) |
+| `csharp_using_directive_placement` = `outside_namespace` / `inside_namespace` | move using directives outside / inside the namespace |
+| `indent_style` = `space` / `tab` (`tab_width`, `indent_size`) | leading tabs to spaces / leading spaces to tabs (closed-file cleanup; the editor uses Visual Studio formatting) |
+| `insert_final_newline` = `true` / `false` | ensure / remove the final newline |
+| `trim_trailing_whitespace` | remove end-of-line whitespace |
+| `dotnet_sort_system_directives_first`, `dotnet_separate_import_directive_groups` | organize using directives (only when `System` directives go first and groups are not separated) |
+| `csharp_style_var_when_type_is_apparent` | convert to `var` when the type is apparent |
+| `dotnet_style_require_accessibility_modifiers` (`always`, `for_non_interface_members` / `never`, `omit_if_default`) | insert explicit access modifiers / do not insert them |
+| `csharp_style_inlined_variable_declaration` | inline `out` variable declarations |
+| `dotnet_style_prefer_collection_expression` | convert to collection expressions |
+| `dotnet_style_readonly_field` | make fields `readonly` when safe |
+| `file_header_template` (`unset` = no header) | C# file header (each template line is written as a `//` comment) |
+
+Where Code Janitor has no step for the opposite style (for example `var` to explicit types),
+its own step is turned off and the diagnostic cleanup applies the Roslyn code fix when the rule
+is reported as `suggestion`, `warning` or `error` (not `silent` or `none`).
+
 ## Repository-level settings (.codejanitor)
 
 Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-janitor.json`) file shared with the VS Code extension. The file is discovered by walking up from the cleaned file's directory; the nearest file wins. Unknown keys, wrong value types and invalid JSON are ignored.
@@ -143,7 +241,7 @@ Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-j
 }
 ```
 
-The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group aliases `insertBlankLinePadding` and `insertExplicitAccessModifiers` (individual keys override the alias), and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization independent of `.editorconfig`).
+The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group aliases `insertBlankLinePadding` and `insertExplicitAccessModifiers` (individual keys override the alias), and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization when `.editorconfig` does not configure the using order). `.codejanitor` values apply in the editor as well as to closed files; keys that `.editorconfig` defines take precedence over them.
 
 Two commands manage the file from the Code Janitor menu:
 
@@ -161,4 +259,4 @@ Two commands manage the file from the Code Janitor menu:
 
 ## Supported Visual Studio versions
 
-The development branch includes installation compatibility for Visual Studio 2022 and Visual Studio 2026. Release support will be documented per published build after the modernization work is verified.
+The VSIX installs only on Visual Studio 2026 (18.0 or newer; Community, Professional and Enterprise). Code Janitor uses the Roslyn that Visual Studio ships instead of carrying its own copy and is built against Roslyn 5.0, the version of Visual Studio 2026 18.0. Visual Studio 2022 (Roslyn 4.x) is not supported, and the installer rejects it.

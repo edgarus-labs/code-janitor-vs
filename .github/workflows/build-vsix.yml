@@ -123,7 +123,7 @@ jobs:
           }
 
           foreach ($file in $vsixFiles) {
-            $artifactName = "CodeJanitor-VS2022Plus-$env:VSIX_VERSION.vsix"
+            $artifactName = "CodeJanitor-VS2026-$env:VSIX_VERSION.vsix"
             Copy-Item -Path $file.FullName -Destination (Join-Path artifacts $artifactName) -Force
           }
 

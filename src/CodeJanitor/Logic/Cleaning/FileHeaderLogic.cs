@@ -52,11 +52,13 @@ internal sealed class FileHeaderLogic
     /// Updates the file header for the specified text document.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void UpdateFileHeader(TextDocument textDocument)
+    internal void UpdateFileHeader(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        var settingsFileHeader = FileHeaderHelper.GetFileHeaderFromSettings(textDocument);
+        var language = textDocument.GetCodeLanguage();
+        var settingsFileHeader = FileHeaderHelper.GetFileHeaderFromSettings(language, settings);
         if (string.IsNullOrWhiteSpace(settingsFileHeader))
         {
             return;
@@ -67,14 +69,15 @@ internal sealed class FileHeaderLogic
             settingsFileHeader += Environment.NewLine;
         }
 
-        switch ((HeaderUpdateMode)Settings.Default.Cleaning_UpdateFileHeader_HeaderUpdateMode)
+        var headerPosition = FileHeaderHelper.GetFileHeaderPositionFromSettings(language, settings);
+        switch ((HeaderUpdateMode)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderUpdateMode)))
         {
             case HeaderUpdateMode.Insert:
-                InsertFileHeader(textDocument, settingsFileHeader);
+                InsertFileHeader(textDocument, settingsFileHeader, headerPosition);
                 break;
 
             case HeaderUpdateMode.Replace:
-                ReplaceFileHeader(textDocument, settingsFileHeader);
+                ReplaceFileHeader(textDocument, settingsFileHeader, headerPosition);
                 break;
 
             default:
@@ -138,16 +141,17 @@ internal sealed class FileHeaderLogic
     }
 
     /// <summary>
-    /// Inserts the file header into the given text document at the position determined by settings (document start or after usings), throwing InvalidEnumArgumentException for an invalid position, and requires the UI thread.
+    /// Inserts the file header into the given text document at the configured position (document start or after usings), throwing InvalidEnumArgumentException for an invalid position, and requires the UI thread.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <param name="headerPosition">The configured header position.</param>
     /// <exception cref="InvalidEnumArgumentException">Thrown when method validation or execution fails for this exception type.</exception>
 
-    private void InsertFileHeader(TextDocument textDocument, string settingsFileHeader)
+    private void InsertFileHeader(TextDocument textDocument, string settingsFileHeader, HeaderPosition headerPosition)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        switch (FileHeaderHelper.GetFileHeaderPositionFromSettings(textDocument))
+        switch (headerPosition)
         {
             case HeaderPosition.DocumentStart:
                 InsertFileHeaderDocumentStart(textDocument, settingsFileHeader);
@@ -233,12 +237,13 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
+    /// <param name="headerPosition">The configured header position.</param>
     /// <exception cref="InvalidEnumArgumentException">Thrown when method validation or execution fails for this exception type.</exception>
 
-    private void ReplaceFileHeader(TextDocument textDocument, string settingsFileHeader)
+    private void ReplaceFileHeader(TextDocument textDocument, string settingsFileHeader, HeaderPosition headerPosition)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        switch (FileHeaderHelper.GetFileHeaderPositionFromSettings(textDocument))
+        switch (headerPosition)
         {
             case HeaderPosition.DocumentStart:
                 ReplaceFileHeaderAfterUsings(textDocument, string.Empty); // Removes header after usings if present

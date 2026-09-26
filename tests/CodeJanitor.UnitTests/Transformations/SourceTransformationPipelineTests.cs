@@ -123,7 +123,7 @@ public sealed class SourceTransformationPipelineTests
         // converters won't apply but should not disrupt the pipeline.
         // FileScopedNamespaceConverter appends: header + "namespace N;" + newline + newline + dedented body + newline
         var input = "namespace N\n{\n\tusing B;\n\tusing A;\n}\n";
-        var expected = "using A;\nusing B;\n\nnamespace N;\n";
+        var expected = "namespace N;\n\nusing A;\nusing B;\n";
 
         var result = pipeline.Run(input);
         Assert.AreEqual(expected, result, $"Expected length: {expected.Length}, Actual length: {result.Length}. Expected repr: {repr(expected)}, Actual repr: {repr(result)}");

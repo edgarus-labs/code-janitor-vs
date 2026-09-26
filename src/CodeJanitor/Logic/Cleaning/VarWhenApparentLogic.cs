@@ -48,15 +48,16 @@ internal sealed class VarWhenApparentLogic
 
     /// <summary>
     /// Converts local variable declarations in the specified document to <c>var</c> when
-    /// the type is apparent from the right-hand side, when enabled in settings.
+    /// the type is apparent from the right-hand side, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void ConvertToVarWhenApparent(TextDocument textDocument)
+    internal void ConvertToVarWhenApparent(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_ConvertToVarWhenApparent)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_ConvertToVarWhenApparent)))
         {
             return;
         }

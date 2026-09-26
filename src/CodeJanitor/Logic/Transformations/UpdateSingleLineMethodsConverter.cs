@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 
 namespace CodeJanitor.Logic.Transformations;
@@ -12,20 +13,32 @@ namespace CodeJanitor.Logic.Transformations;
 
 public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
 {
+    private readonly EffectiveCleanupSettings _settings;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdateSingleLineMethodsConverter" /> class.
+    /// </summary>
+    /// <param name="settings">The effective cleanup settings of the file, which decide whether single-line methods are updated.</param>
+
+    internal UpdateSingleLineMethodsConverter(EffectiveCleanupSettings settings)
+    {
+        _settings = settings;
+    }
+
     /// <summary>
     /// Gets the name.
     /// </summary>
     public string Name => "Update single-line methods";
 
     /// <summary>
-    /// Returns the original source unchanged if it is null/empty or the setting is disabled, otherwise parses the source as a C# syntax tree, applies SingleLineMethodRewriter to rewrite single-line methods, and returns the resulting full string.
+    /// Returns the original source unchanged if it is null/empty or the effective setting is disabled, otherwise parses the source as a C# syntax tree, applies SingleLineMethodRewriter to rewrite single-line methods, and returns the resulting full string.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
 
     public string Apply(string source)
     {
-        if (string.IsNullOrEmpty(source) || !Settings.Default.Cleaning_UpdateSingleLineMethods)
+        if (string.IsNullOrEmpty(source) || !_settings.GetBoolean(nameof(Settings.Cleaning_UpdateSingleLineMethods)))
         {
             return source;
         }

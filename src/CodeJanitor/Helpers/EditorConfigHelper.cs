@@ -1,229 +1,108 @@
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 
 namespace CodeJanitor.Helpers;
 
 /// <summary>
-/// utility class that reads .editorconfig files and applies their C# formatting settings to source text.
+/// Reads the .editorconfig options that apply to a source file through Roslyn's editorconfig engine, so section
+/// globs, nearest-file-wins ordering and <c>root = true</c> behave exactly as in the compiler and the IDE.
 /// </summary>
 internal static class EditorConfigHelper
 {
     /// <summary>
-    /// Loads EditorConfig-based C# options for the given file path, returning default options if the path is blank, otherwise enumerating and applying each relevant config file to the options object.
+    /// The editorconfig file name searched in the source file's directory and its ancestors.
     /// </summary>
-    /// <param name="filePath">The file path.</param>
-    /// <returns>A EditorConfigCSharpOptions value produced by this method.</returns>
+    internal const string EditorConfigFileName = ".editorconfig";
 
-    internal static EditorConfigCSharpOptions LoadCSharpOptions(string filePath)
+    /// <summary>
+    /// Parsed editorconfig files keyed by their exact full path, validated against the file's last write time and
+    /// length before reuse. The comparison is ordinal on purpose: Roslyn matches the source path against the config
+    /// directory ordinally, so a config parsed under a differently-cased path must not be reused.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, (DateTime LastWriteTimeUtc, long Length, AnalyzerConfig Config)> ParsedConfigs =
+        new ConcurrentDictionary<string, (DateTime, long, AnalyzerConfig)>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Loads the editorconfig options that apply to the specified source file, collecting every .editorconfig from
+    /// the file's directory up to the file system root and letting Roslyn resolve sections, precedence and
+    /// <c>root = true</c>. Keys are the lower-cased option names and values are the raw option values, including
+    /// any <c>:severity</c> suffix. Never throws: blank or invalid paths and unreadable files yield no options.
+    /// </summary>
+    /// <param name="filePath">The source file path.</param>
+    /// <returns>The applicable options, or an empty dictionary when no .editorconfig applies.</returns>
+
+    internal static IReadOnlyDictionary<string, string> LoadOptions(string filePath)
     {
-        var options = new EditorConfigCSharpOptions();
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            return options;
+            return ImmutableDictionary<string, string>.Empty;
         }
 
-        var configFiles = EnumerateEditorConfigFiles(filePath).ToList();
-        foreach (var configFile in configFiles)
+        try
         {
-            ApplyFile(configFile, filePath, options);
-        }
+            // Config paths are derived from the same full path string as the source path, so Roslyn's ordinal
+            // directory prefix match is not defeated by casing or relative segments.
+            var fullPath = Path.GetFullPath(filePath);
+            var configs = new List<AnalyzerConfig>();
 
-        return options;
-    }
-
-    /// <summary>
-    /// This method parses an EditorConfig-style text, ignoring blank lines and comments, toggling active state based on C# section headers, and mutating the provided options object by applying each matching key-value setting, with no exceptions thrown.
-    /// </summary>
-    /// <param name="editorConfigText">The editor config text.</param>
-    /// <param name="filePath">The file path.</param>
-    /// <param name="options">The options.</param>
-
-    internal static void ApplyText(string editorConfigText, string filePath, EditorConfigCSharpOptions options)
-    {
-        if (string.IsNullOrWhiteSpace(editorConfigText) || options is null || string.IsNullOrWhiteSpace(filePath))
-        {
-            return;
-        }
-
-        var active = true;
-        using (var reader = new StringReader(editorConfigText))
-        {
-            string line;
-            while ((line = reader.ReadLine()) is not null)
+            for (var directory = Path.GetDirectoryName(fullPath); !string.IsNullOrEmpty(directory); directory = Path.GetDirectoryName(directory))
             {
-                var trimmed = line.Trim();
-                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";", StringComparison.Ordinal))
+                var config = TryLoadConfig(Path.Combine(directory, EditorConfigFileName));
+                if (config is not null)
                 {
-                    continue;
-                }
-
-                if (trimmed.StartsWith("[", StringComparison.Ordinal) && trimmed.EndsWith("]", StringComparison.Ordinal))
-                {
-                    var section = trimmed.Substring(1, trimmed.Length - 2).Trim();
-                    active = MatchesCSharpSection(section, filePath);
-                    continue;
-                }
-
-                if (!active)
-                {
-                    continue;
-                }
-
-                var separatorIndex = trimmed.IndexOf('=');
-                if (separatorIndex <= 0)
-                {
-                    continue;
-                }
-
-                var key = trimmed.Substring(0, separatorIndex).Trim();
-                var value = trimmed.Substring(separatorIndex + 1).Trim();
-                ApplySetting(options, key, value);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Walks from the file&apos;s directory up through parent directories, pushing each found .editorconfig onto a stack and reading its text to break early if it contains &quot;root = true&quot; (case-insensitive), returning the collected configs nearest-first without throwing exceptions.
-    /// </summary>
-    /// <param name="filePath">The file path.</param>
-    /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
-
-    private static IEnumerable<string> EnumerateEditorConfigFiles(string filePath)
-    {
-        var directory = Path.GetDirectoryName(filePath);
-        var found = new Stack<string>();
-
-        while (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
-        {
-            var configPath = Path.Combine(directory, ".editorconfig");
-            if (File.Exists(configPath))
-            {
-                found.Push(configPath);
-                var text = File.ReadAllText(configPath);
-                if (text.IndexOf("root = true", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    break;
+                    configs.Add(config);
                 }
             }
 
-            directory = Path.GetDirectoryName(directory);
+            return configs.Count == 0
+                ? ImmutableDictionary<string, string>.Empty
+                : AnalyzerConfigSet.Create(configs).GetOptionsForSourcePath(fullPath).AnalyzerOptions;
         }
-
-        return found;
-    }
-
-    /// <summary>
-    /// Reads the entire content of the specified config file and delegates it along with the target file path and options to ApplyText, which applies the formatting logic and may modify the target file.
-    /// </summary>
-    /// <param name="configPath">The config path.</param>
-    /// <param name="filePath">The file path.</param>
-    /// <param name="options">The options.</param>
-
-    private static void ApplyFile(string configPath, string filePath, EditorConfigCSharpOptions options)
-    {
-        ApplyText(File.ReadAllText(configPath), filePath, options);
-    }
-
-    /// <summary>
-    /// Returns true if the section is non-empty and either equals &quot;*&quot; or contains &quot;cs&quot; (case-insensitive) while the filePath has a &quot;.cs&quot; extension, with no side effects or exceptions.
-    /// </summary>
-    /// <param name="section">The section.</param>
-    /// <param name="filePath">The file path.</param>
-    /// <returns>A bool value produced by this method.</returns>
-
-    private static bool MatchesCSharpSection(string section, string filePath)
-    {
-        if (string.IsNullOrWhiteSpace(section))
+        catch (Exception)
         {
-            return false;
-        }
-
-        var normalized = section.Replace(" ", string.Empty);
-        if (normalized == "*")
-        {
-            return true;
-        }
-
-        if (normalized.IndexOf("cs", StringComparison.OrdinalIgnoreCase) < 0)
-        {
-            return false;
-        }
-
-        return string.Equals(Path.GetExtension(filePath), ".cs", StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Applies recognized EditorConfig key-value pairs to the provided EditorConfigCSharpOptions by mutating its properties, parsing boolean or integer values where appropriate via TryParseBool and TryParseInt, and silently ignoring unrecognized keys.
-    /// </summary>
-    /// <param name="options">The options.</param>
-    /// <param name="key">The key.</param>
-    /// <param name="value">The value.</param>
-
-    private static void ApplySetting(EditorConfigCSharpOptions options, string key, string value)
-    {
-        switch (key)
-        {
-            case "trim_trailing_whitespace":
-                options.TrimTrailingWhitespace = TryParseBool(value);
-                break;
-
-            case "dotnet_sort_system_directives_first":
-                options.SortSystemDirectivesFirst = TryParseBool(value);
-                break;
-
-            case "dotnet_separate_import_directive_groups":
-                options.SeparateImportDirectiveGroups = TryParseBool(value);
-                break;
-
-            case "insert_final_newline":
-                options.InsertFinalNewline = TryParseBool(value);
-                break;
-
-            case "indent_style":
-                options.IndentStyle = value;
-                break;
-
-            case "indent_size":
-                options.IndentSize = TryParseInt(value);
-                break;
-
-            case "tab_width":
-                options.TabWidth = TryParseInt(value);
-                break;
+            return ImmutableDictionary<string, string>.Empty;
         }
     }
 
     /// <summary>
-    /// Attempts to parse the input string as a Boolean using bool.TryParse, returning the parsed value on success or null on failure without throwing exceptions or producing side effects.
+    /// Returns the parsed editorconfig at the specified path, reusing the cached parse while the file's last write
+    /// time and length are unchanged.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>A bool? value produced by this method.</returns>
+    /// <param name="configPath">The full .editorconfig path.</param>
+    /// <returns>The parsed config, or null when the file does not exist or cannot be read.</returns>
 
-    private static bool? TryParseBool(string value)
+    private static AnalyzerConfig TryLoadConfig(string configPath)
     {
-        if (bool.TryParse(value, out var parsed))
+        try
         {
-            return parsed;
+            var file = new FileInfo(configPath);
+            if (!file.Exists)
+            {
+                return null;
+            }
+
+            if (ParsedConfigs.TryGetValue(configPath, out var cached) &&
+                cached.LastWriteTimeUtc == file.LastWriteTimeUtc &&
+                cached.Length == file.Length)
+            {
+                return cached.Config;
+            }
+
+            var config = AnalyzerConfig.Parse(File.ReadAllText(configPath), configPath);
+            ParsedConfigs[configPath] = (file.LastWriteTimeUtc, file.Length, config);
+            return config;
         }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Attempts to parse the string as an int using int.TryParse and returns the parsed value on success or null on failure without throwing exceptions or causing side effects.
-    /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>A int? value produced by this method.</returns>
-
-    private static int? TryParseInt(string value)
-    {
-        if (int.TryParse(value, out var parsed))
+        catch (IOException)
         {
-            return parsed;
+            return null;
         }
-
-        return null;
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 }

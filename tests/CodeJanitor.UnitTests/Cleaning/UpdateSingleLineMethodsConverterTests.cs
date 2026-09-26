@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
@@ -12,7 +13,7 @@ public sealed class UpdateSingleLineMethodsConverterTests
     [TestInitialize]
     public void TestInitialize()
     {
-        _converter = new UpdateSingleLineMethodsConverter();
+        _converter = new UpdateSingleLineMethodsConverter(EffectiveCleanupSettings.For(null));
         Settings.Default.Cleaning_UpdateSingleLineMethods = true;
     }
 

@@ -13,6 +13,8 @@ public sealed class StringInterpolationConverter : ISourceTransformation
 {
     private static readonly Regex PlaceholderRegex = new Regex(@"\{(\d+)(?:,(-?\d+))?(?::([^}]+))?\}", RegexOptions.Compiled);
 
+    private static readonly char[] LineBreakCharacters = { '\r', '\n' };
+
     /// <inheritdoc />
     public string Name => "Convert string.Format to String Interpolation";
 
@@ -85,7 +87,8 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                 formatArgs[i - 1] = arguments[i].Expression;
             }
 
-            // Check that all placeholder indices are within range of formatArgs
+            // Check that all placeholder indices are within range of formatArgs, and that each referenced argument
+            // fits on one line: a line break inside an interpolation hole of a regular interpolated string needs C# 11.
             var matches = PlaceholderRegex.Matches(formatString);
             if (matches.Count == 0)
             {
@@ -99,6 +102,11 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                     if (idx < 0 || idx >= formatArgs.Length)
                     {
                         return visited; // Invalid index or mismatch, keep original
+                    }
+
+                    if (formatArgs[idx].ToString().IndexOfAny(LineBreakCharacters) >= 0)
+                    {
+                        return visited;
                     }
                 }
                 else

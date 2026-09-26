@@ -9,10 +9,35 @@ namespace CodeJanitor.Logic.Transformations;
 /// to modern pattern matching (is null, is not null). Skips expression-bodied non-async lambdas
 /// and LINQ query-expression clauses, since those can be converted to expression trees where the
 /// compiler rejects the `is`/`is not` pattern-matching operator (CS8122) and this tool has no
-/// semantic model to prove otherwise.
+/// semantic model to prove otherwise. The `is null` pattern needs C# 7.0, `is not null` needs C# 9.
 /// </summary>
 public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
 {
+    private readonly bool _convertInequalityChecks;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NullCheckPatternMatchingConverter" /> class that converts both
+    /// equality (<c>== null</c>) and inequality (<c>!= null</c>) checks.
+    /// </summary>
+
+    public NullCheckPatternMatchingConverter()
+        : this(true)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NullCheckPatternMatchingConverter" /> class.
+    /// </summary>
+    /// <param name="convertInequalityChecks">
+    /// True to also convert inequality checks (<c>!= null</c>) to <c>is not null</c>, which needs C# 9; false to
+    /// convert only equality checks (<c>== null</c>) to <c>is null</c>, which needs C# 7.0.
+    /// </param>
+
+    public NullCheckPatternMatchingConverter(bool convertInequalityChecks)
+    {
+        _convertInequalityChecks = convertInequalityChecks;
+    }
+
     /// <inheritdoc />
     public string Name => "Convert to Pattern Matching Null Checks";
 
@@ -26,7 +51,7 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
 
         var tree = CSharpSyntaxTree.ParseText(source);
         var root = tree.GetRoot();
-        var rewriter = new NullCheckRewriter();
+        var rewriter = new NullCheckRewriter(_convertInequalityChecks);
         var newRoot = rewriter.Visit(root);
 
         return newRoot.ToFullString();
@@ -38,6 +63,18 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
 
     private sealed class NullCheckRewriter : CSharpSyntaxRewriter
     {
+        private readonly bool _convertInequalityChecks;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NullCheckRewriter" /> class.
+        /// </summary>
+        /// <param name="convertInequalityChecks">Whether inequality checks are converted to <c>is not null</c>.</param>
+
+        internal NullCheckRewriter(bool convertInequalityChecks)
+        {
+            _convertInequalityChecks = convertInequalityChecks;
+        }
+
         /// <summary>
 
         /// Overriding a syntax visitor, this method rewrites binary `==`/`!=` expressions where one operand is `null` into equivalent `is` or `is not` pattern expressions, preserving the original trivia.
@@ -49,7 +86,7 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
         {
             var visitedNode = (BinaryExpressionSyntax)base.VisitBinaryExpression(node);
 
-            var isNotEquals = visitedNode.IsKind(SyntaxKind.NotEqualsExpression);
+            var isNotEquals = visitedNode.IsKind(SyntaxKind.NotEqualsExpression) && _convertInequalityChecks;
             var isEquals = visitedNode.IsKind(SyntaxKind.EqualsExpression);
 
             if (!isNotEquals && !isEquals)

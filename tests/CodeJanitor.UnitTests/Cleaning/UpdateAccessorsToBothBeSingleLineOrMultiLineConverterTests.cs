@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text.RegularExpressions;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 
@@ -13,7 +14,7 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
     [TestInitialize]
     public void TestInitialize()
     {
-        _converter = new UpdateAccessorsToBothBeSingleLineOrMultiLineConverter();
+        _converter = new UpdateAccessorsToBothBeSingleLineOrMultiLineConverter(EffectiveCleanupSettings.For(null));
         Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine = true;
     }
 

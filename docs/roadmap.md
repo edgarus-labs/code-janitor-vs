@@ -15,7 +15,7 @@ See the [preview help](cleanup-preview.md) for the exact supported scope.
 ## Completed or in progress
 
 - Establish the Code Janitor identity and transparent fork documentation.
-- Add Visual Studio 2026 installation compatibility.
+- Add Visual Studio 2026 installation compatibility (Visual Studio 2022 support dropped).
 - Provide grouped WPF pages in Visual Studio's Options dialog.
 - Organize the settings model into clear categories.
 - Add a safe Razor and Blazor formatter.

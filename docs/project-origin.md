@@ -41,7 +41,7 @@ Code Janitor retains substantial functionality and source code derived from Code
 
 Code Janitor also contains independent work, including:
 
-- Visual Studio 2026 compatibility;
+- Visual Studio 2026 compatibility; Visual Studio 2022 is no longer supported;
 - grouped settings pages integrated with Visual Studio's Options dialog;
 - Razor and Blazor formatting support;
 - new tests and bug fixes;

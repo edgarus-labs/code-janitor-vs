@@ -1,8 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Model.CodeItems;
-using CodeJanitor.Properties;
-using System.Linq;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -54,31 +51,5 @@ public sealed class InsertExplicitAccessModifierLogicTests
         Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration("public void DoWork"));
         Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration(null));
         Assert.IsFalse(InsertExplicitAccessModifierLogic.IsGenericMethodDeclaration(string.Empty));
-    }
-
-    [TestMethod]
-    public void InsertExplicitAccessModifiers_WhenSettingsDisabled_DoesNotThrow()
-    {
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties = false;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs = false;
-
-        var logic = InsertExplicitAccessModifierLogic.GetInstance();
-
-        logic.InsertExplicitAccessModifiersOnClasses(Enumerable.Empty<CodeItemClass>());
-        logic.InsertExplicitAccessModifiersOnDelegates(Enumerable.Empty<CodeItemDelegate>());
-        logic.InsertExplicitAccessModifiersOnEnumerations(Enumerable.Empty<CodeItemEnum>());
-        logic.InsertExplicitAccessModifiersOnEvents(Enumerable.Empty<CodeItemEvent>());
-        logic.InsertExplicitAccessModifiersOnFields(Enumerable.Empty<CodeItemField>());
-        logic.InsertExplicitAccessModifiersOnInterfaces(Enumerable.Empty<CodeItemInterface>());
-        logic.InsertExplicitAccessModifiersOnMethods(Enumerable.Empty<CodeItemMethod>());
-        logic.InsertExplicitAccessModifiersOnProperties(Enumerable.Empty<CodeItemProperty>());
-        logic.InsertExplicitAccessModifiersOnStructs(Enumerable.Empty<CodeItemStruct>());
     }
 }

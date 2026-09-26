@@ -13,8 +13,8 @@
 					<CheckBox Content="{x:Static p:Resources.UpdateEndregionTagsWithRegionName}" IsChecked="{Binding UpdateEndRegionDirectives}" />
 					<TextBlock Margin="35,0,5,10" Text="{x:Static p:Resources.ExEndregionMethods}" />
 					<CheckBox Content="{x:Static p:Resources.UpdateSingleLineMethodsByPlacingBracesOnSeparateLinesSA1502}" IsChecked="{Binding UpdateSingleLineMethods}" />
-					<CheckBox Content="Convert block-scoped namespace to file-scoped (C# 10+)" IsChecked="{Binding ConvertToFileScopedNamespace}" />
-					<CheckBox Content="Move using directives outside namespace (to top of file)" IsChecked="{Binding MoveUsingsOutsideNamespace}" />
+					<CheckBox Content="Convert block-scoped namespace to file-scoped (C# 10+; .editorconfig csharp_style_namespace_declarations takes precedence)" IsChecked="{Binding ConvertToFileScopedNamespace}" />
+					<CheckBox Content="Move using directives outside namespace (to top of file; namespace-relative names are fully qualified; usings stay in place if the move is not safe; .editorconfig csharp_using_directive_placement takes precedence)" IsChecked="{Binding MoveUsingsOutsideNamespace}" />
 					<CheckBox Content="Move extra top-level C# types into their own files (skip partial, nested, and non-region preprocessor cases)" IsChecked="{Binding MoveTopLevelTypesToSeparateFiles}" />
 					<CheckBox Content="Convert local variables to 'var' when the type is apparent" IsChecked="{Binding ConvertToVarWhenApparent}" />
 					<CheckBox Content="Convert List&lt;T&gt;/array initializations to collection expressions ([] / [a, b, c])" IsChecked="{Binding ConvertToCollectionExpressions}" />

@@ -579,20 +579,21 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp">
-      <Version>5.9.0</Version>
+      <Version>5.0.0</Version>
     </PackageReference>
     <!--
       Workspaces API (Document/Solution/CodeFixProvider) for the .editorconfig/Roslyn diagnostic cleanup.
       Same version as Microsoft.CodeAnalysis.CSharp. At runtime the host's binding redirects for
-      Microsoft.CodeAnalysis.* decide which copy loads: on hosts whose Roslyn is >= 5.9 the host copy is
-      used (required: VisualStudioWorkspace and MEF CodeFixProviders are host types); on older hosts the
-      shipped copy loads side by side and diagnostic cleanup fails explicitly with a logged error.
+      Microsoft.CodeAnalysis.* decide which copy loads. The Roslyn assemblies are not shipped in the VSIX: the host
+      Roslyn is used (required: VisualStudioWorkspace and MEF CodeFixProviders are host types), so the manifest
+      installs on Visual Studio 18.0 or newer, whose Roslyn is 5.0 or newer. The reference is
+      kept at 5.0.0, the lowest version that provides every API used; do not raise it without raising the manifest range.
       Microsoft.VisualStudio.LanguageServices is intentionally NOT referenced (nuget.org only ships 4.x,
       which pins Microsoft.CodeAnalysis.Common to its own exact version); VisualStudioWorkspace is
       resolved through MEF by contract name instead.
     -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces">
-      <Version>5.9.0</Version>
+      <Version>5.0.0</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="CodeJanitor.projitems" Label="Shared" />

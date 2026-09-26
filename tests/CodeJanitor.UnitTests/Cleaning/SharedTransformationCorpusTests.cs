@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.CodeAnalysis.CSharp;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using System;
@@ -24,12 +25,16 @@ public sealed class SharedTransformationCorpusTests
         Settings.Default.Reset();
         Settings.Default.Cleaning_AiXmlDocumentationEnabled = false;
         _corpusDirectory = LocateCorpusDirectory();
+
+        // The fixtures describe files of a C# 10+ project.
+        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
     }
 
     [TestCleanup]
     public void TestCleanup()
     {
         Settings.Default.Reset();
+        CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
     }
 
     [TestMethod]

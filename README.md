@@ -1,7 +1,7 @@
 # Code Janitor for Visual Studio
 
 [![Build VSIX](https://github.com/edgarus-labs/code-janitor-vs/actions/workflows/build-vsix.yml/badge.svg)](https://github.com/edgarus-labs/code-janitor-vs/actions/workflows/build-vsix.yml)
-[![Visual Studio](https://img.shields.io/badge/Visual%20Studio-2022%2B-purple.svg)](https://visualstudio.microsoft.com/)
+[![Visual Studio](https://img.shields.io/badge/Visual%20Studio-2026-purple.svg)](https://visualstudio.microsoft.com/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](LICENSE.txt)
 
 Code Janitor is an independently maintained open-source Visual Studio extension for cleaning, simplifying, navigating and reorganizing code.
@@ -16,11 +16,19 @@ Code Janitor exists to provide an independently maintained development path for 
 
 The name **Code Janitor** distinguishes this project from the original CodeMaid project and makes clear that it has a new, independent maintainer and roadmap.
 
+## Requirements
+
+| | Supported |
+|---|---|
+| Visual Studio | **Visual Studio 2026** (18.0 or newer) (Community, Professional, Enterprise), 64-bit |
+| Not supported | Visual Studio 2022 (17.x) and earlier |
+| .NET Framework | 4.7.2 or newer |
+
+The installer rejects unsupported Visual Studio versions. Code Janitor uses the Roslyn compiler platform that Visual Studio ships (5.0 or newer, first included in Visual Studio 2026) instead of carrying its own copy, so it cannot run on Visual Studio 2022, whose Roslyn is 4.x. There is no Visual Studio 2022 build and none is planned; on Visual Studio 2022, use the original [CodeMaid](https://github.com/codecadwallader/codemaid).
+
 ## Installation
 
 Download a `.vsix` package from [GitHub Releases](https://github.com/edgarus-labs/code-janitor-vs/releases), if available, close Visual Studio, and run the package to install it. Restart Visual Studio after installation. To build from source, follow the [development guide](docs/development.md).
-
-The current VSIX manifest targets 64-bit Visual Studio Community, Professional and Enterprise versions 17.x and 18.x (Visual Studio 2022 and 2026). Check each release for version-specific requirements.
 
 For Visual Studio Code, use the separate [Code Janitor for VS Code](https://github.com/edgarus-labs/code-janitor-vscode) extension; the two extensions have different feature sets.
 
@@ -28,7 +36,7 @@ For Visual Studio Code, use the separate [Code Janitor for VS Code](https://gith
 
 The current development branch includes:
 
-- Visual Studio 2026 installation compatibility;
+- Visual Studio 2026 only;
 - grouped WPF settings pages under **Tools > Options > Code Janitor**;
 - a safe Razor formatter for Blazor applications;
 - Razor control-block formatting for `@if`, `@else`, `@for`, `@foreach`, `@while`, `@switch`, `@try`, `@catch` and `@finally`;

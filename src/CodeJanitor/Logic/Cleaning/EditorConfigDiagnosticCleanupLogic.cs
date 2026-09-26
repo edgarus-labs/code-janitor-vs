@@ -3,13 +3,11 @@ using CodeJanitor.Logic.Cleaning.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Text;
-using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Threading;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -49,22 +47,14 @@ internal struct DiagnosticCleanupOutcome
 /// <remarks>
 /// Roslyn workspace types are only touched from methods marked <see cref="MethodImplOptions.NoInlining" />
 /// that are called inside a try/catch, so a host whose Roslyn cannot satisfy the compile-time
-/// Microsoft.CodeAnalysis 5.9 reference (type/file load failures) produces an explicit, logged failure
+/// Microsoft.CodeAnalysis 5.0 reference (type/file load failures) produces an explicit, logged failure
 /// instead of crashing cleanup or silently succeeding.
 /// </remarks>
 
 internal sealed class EditorConfigDiagnosticCleanupLogic
 {
-    /// <summary>
-    /// The MEF contract name of Microsoft.VisualStudio.LanguageServices.VisualStudioWorkspace. The
-    /// type is resolved at runtime because no Microsoft.VisualStudio.LanguageServices package
-    /// compatible with Microsoft.CodeAnalysis 5.9 is published.
-    /// </summary>
-    private const string VisualStudioWorkspaceTypeName = "Microsoft.VisualStudio.LanguageServices.VisualStudioWorkspace";
-
-    private const string VisualStudioWorkspaceAssemblyName = "Microsoft.VisualStudio.LanguageServices";
-
     private readonly CodeJanitorPackage _package;
+    private readonly VisualStudioRoslynWorkspace _workspace;
     private DiagnosticCleanupEngine _engine;
 
     /// <summary>
@@ -91,6 +81,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     private EditorConfigDiagnosticCleanupLogic(CodeJanitorPackage package)
     {
         _package = package;
+        _workspace = new VisualStudioRoslynWorkspace(package);
     }
 
     private static readonly DiagnosticCleanupCategory[] AllCategories =
@@ -113,7 +104,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         return document is not null
             ? await CleanupAsync(document)
-            : await CleanupCoreAsync(filePath, GetContainingProjectPath(projectItem), () => ReadFileText(filePath));
+            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath));
     }
 
     /// <summary>
@@ -128,7 +119,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         return await CleanupCoreAsync(
             document.FullName,
-            GetContainingProjectPath(document.ProjectItem),
+            VisualStudioRoslynWorkspace.GetContainingProjectPath(document.ProjectItem),
             () =>
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
@@ -158,14 +149,14 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         {
             return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText);
         }
-        catch (Exception ex) when (IsRoslynBindingFailure(ex))
+        catch (Exception ex) when (VisualStudioRoslynWorkspace.IsRoslynBindingFailure(ex))
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             return new DiagnosticCleanupOutcome
             {
                 Failure = new InvalidOperationException(
-                    $"Diagnostic cleanup could not bind to the Roslyn workspace API of this Visual Studio instance (CodeJanitor is compiled against Microsoft.CodeAnalysis 5.9; the host Roslyn may be older). '{filePath}' was not modified by diagnostic cleanup.",
+                    $"Diagnostic cleanup could not bind to the Roslyn workspace API of this Visual Studio instance (CodeJanitor is compiled against Microsoft.CodeAnalysis 5.0; the host Roslyn may be older). '{filePath}' was not modified by diagnostic cleanup.",
                     ex)
             };
         }
@@ -181,36 +172,11 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     }
 
     /// <summary>
-    /// Determines whether an exception indicates that the Roslyn assemblies this extension is compiled
-    /// against could not be bound to the host's Roslyn (missing/older assemblies, mismatched types).
-    /// </summary>
-    /// <param name="exception">The exception.</param>
-    /// <returns>True for binding failures, otherwise false.</returns>
-
-    private static bool IsRoslynBindingFailure(Exception exception)
-    {
-        switch (exception)
-        {
-            case TypeLoadException _:
-            case MissingMemberException _:
-            case FileLoadException _:
-            case BadImageFormatException _:
-            case InvalidCastException _:
-                return true;
-
-            case FileNotFoundException fileNotFound:
-                // Assembly load failures report the assembly display name, not a source file path.
-                return fileNotFound.FileName?.StartsWith("Microsoft.CodeAnalysis", StringComparison.Ordinal) == true;
-
-            default:
-                return false;
-        }
-    }
-
-    /// <summary>
     /// Runs the engine against the Visual Studio workspace and applies its result. When the workspace
     /// rejects the changes (the solution changed while the engine ran), the result is recomputed once
-    /// from a fresh solution before failing explicitly.
+    /// from a fresh solution before failing explicitly. Nothing is applied, and cleanup fails explicitly, when the
+    /// fixes would add a compiler error in another project flavor of a changed file
+    /// (see <see cref="FindNewErrorInOtherFlavorsAsync" />).
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
@@ -225,7 +191,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        var workspace = GetVisualStudioWorkspace();
+        var workspace = _workspace.GetWorkspace();
         var engine = _engine ?? (_engine = new DiagnosticCleanupEngine(new CodeFixProviderCatalog(GetMefCodeFixProviders())));
         var options = new DiagnosticCleanupOptions(AllCategories);
         var cancellationToken = _package.DisposalToken;
@@ -238,7 +204,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
             // The engine is host-agnostic and CPU bound: run it off the UI thread.
             await TaskScheduler.Default;
-            var document = await GetInputDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
+            var document = await VisualStudioRoslynWorkspace.GetDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
             var result = await engine.CleanupAsync(document, options, cancellationToken);
 
             // Headless cleanup writes closed files to disk, and the workspace may not have observed those
@@ -265,6 +231,18 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
                 }
             }
 
+            // The engine validated only the project flavors it changed; a linked, shared or multi-targeted file must
+            // not gain compiler errors in any other project that compiles it.
+            if (result.HasChanges)
+            {
+                var otherFlavorError = await FindNewErrorInOtherFlavorsAsync(result.OriginalSolution, result.ChangedSolution, cancellationToken);
+                if (otherFlavorError is not null)
+                {
+                    throw new InvalidOperationException(
+                        $"Diagnostic fixes for '{filePath}' were computed in project '{document.Project.Name}', but {otherFlavorError}. No diagnostic fixes were applied.");
+                }
+            }
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             if (!result.HasChanges)
@@ -287,6 +265,82 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         throw new InvalidOperationException(
             $"Visual Studio rejected the diagnostic fixes for '{filePath}' twice because the solution kept changing during cleanup. No diagnostic fixes were applied.");
+    }
+
+    /// <summary>
+    /// Checks that diagnostic fixes computed in one project flavor add no compiler error in the other flavors of the
+    /// changed files: a file compiled by several projects (linked files, shared projects) or target frameworks
+    /// (multi-targeted projects) has one document per flavor, bound against its own references and preprocessor
+    /// symbols, and the engine only validated the flavors it changed. Every other flavor gets the changed text in a
+    /// fork of <paramref name="originalSolution" />, and the Error-severity compiler diagnostics of its project are
+    /// compared with the same flavor holding the original text. Files compiled by a single project need no extra work.
+    /// </summary>
+    /// <param name="originalSolution">The solution the fixes were computed from.</param>
+    /// <param name="changedSolution">The solution with the fixes; compared to <paramref name="originalSolution" /> only document texts differ.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Null when no other flavor gets a new compiler error, otherwise the reason naming the first project that does and its first new error.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static async Task<string> FindNewErrorInOtherFlavorsAsync(Solution originalSolution, Solution changedSolution, CancellationToken cancellationToken)
+    {
+        var changedDocumentIds = new HashSet<DocumentId>(changedSolution.GetChanges(originalSolution)
+            .GetProjectChanges()
+            .SelectMany(projectChanges => projectChanges.GetChangedDocuments()));
+
+        var baseline = originalSolution;
+        var candidate = changedSolution;
+        var otherFlavors = new List<(ProjectId ProjectId, string FilePath)>();
+        var checkedFilePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var documentId in changedDocumentIds)
+        {
+            var original = originalSolution.GetDocument(documentId);
+            if (original?.FilePath is null || !checkedFilePaths.Add(original.FilePath))
+            {
+                continue;
+            }
+
+            var flavorIds = VisualStudioRoslynWorkspace.FindDocumentIds(originalSolution, original.FilePath, projectFilePath: null)
+                .Where(id => !changedDocumentIds.Contains(id))
+                .ToList();
+            if (flavorIds.Count == 0)
+            {
+                continue;
+            }
+
+            var oldText = await original.GetTextAsync(cancellationToken);
+            var newText = await changedSolution.GetDocument(documentId).GetTextAsync(cancellationToken);
+            foreach (var flavorId in flavorIds)
+            {
+                // The workspace text of another flavor can lag behind the text the engine started from (e.g. the
+                // current editor buffer), so both sides of the comparison get the engine's texts.
+                var flavorText = await originalSolution.GetDocument(flavorId).GetTextAsync(cancellationToken);
+                if (!flavorText.ContentEquals(oldText))
+                {
+                    baseline = baseline.WithDocumentText(flavorId, oldText);
+                }
+
+                candidate = candidate.WithDocumentText(flavorId, newText);
+                otherFlavors.Add((flavorId.ProjectId, original.FilePath));
+            }
+        }
+
+        foreach (var flavor in otherFlavors.GroupBy(flavor => flavor.ProjectId).Select(group => group.First()))
+        {
+            var baselineProject = baseline.GetProject(flavor.ProjectId);
+            var candidateProject = candidate.GetProject(flavor.ProjectId);
+            var newError = await CompilerErrors.FindFirstNewAsync(
+                baselineProject,
+                await CompilerErrors.GetAsync(baselineProject, cancellationToken),
+                candidateProject,
+                await CompilerErrors.GetAsync(candidateProject, cancellationToken),
+                cancellationToken);
+            if (newError is not null)
+            {
+                return $"they would add compiler errors in project '{originalSolution.GetProject(flavor.ProjectId).Name}', which also compiles '{flavor.FilePath}': {newError}";
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -328,42 +382,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     }
 
     /// <summary>
-    /// Resolves the input document for the engine: the C# document for the file in the given
-    /// solution, with its text replaced by the current cleaned text when the workspace has not yet
-    /// observed it (e.g. right after the headless cleanup wrote the file).
-    /// </summary>
-    /// <param name="solution">The current workspace solution.</param>
-    /// <param name="filePath">The file path.</param>
-    /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
-    /// <param name="currentText">The current cleaned text of the file.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The input document.</returns>
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static async Task<Microsoft.CodeAnalysis.Document> GetInputDocumentAsync(
-        Solution solution,
-        string filePath,
-        string projectFilePath,
-        string currentText,
-        CancellationToken cancellationToken)
-    {
-        var documentId = FindDocumentId(solution, filePath, projectFilePath)
-            ?? throw new InvalidOperationException(
-                $"'{filePath}' is not part of any C# project loaded in the Visual Studio Roslyn workspace (for example it is excluded from compilation), so its diagnostics cannot be analyzed.");
-
-        var document = solution.GetDocument(documentId);
-        var workspaceText = await document.GetTextAsync(cancellationToken);
-        if (string.Equals(workspaceText.ToString(), currentText, StringComparison.Ordinal))
-        {
-            return document;
-        }
-
-        return solution
-            .WithDocumentText(documentId, SourceText.From(currentText, workspaceText.Encoding, workspaceText.ChecksumAlgorithm))
-            .GetDocument(documentId);
-    }
-
-    /// <summary>
     /// Finds documents other than the target that the result changes, that are not open in an editor
     /// and whose text in <see cref="DiagnosticCleanupResult.OriginalSolution" /> differs from the file
     /// on disk (read with the same encoding detection as the headless cleanup).
@@ -402,7 +420,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             }
 
             var originalText = await original.GetTextAsync(cancellationToken);
-            var diskText = ReadFileText(original.FilePath);
+            var diskText = VisualStudioRoslynWorkspace.ReadFileText(original.FilePath);
             if (!string.Equals(originalText.ToString(), diskText, StringComparison.Ordinal))
             {
                 staleDocuments[documentId] = SourceText.From(diskText, originalText.Encoding, originalText.ChecksumAlgorithm);
@@ -410,78 +428,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         }
 
         return staleDocuments;
-    }
-
-    /// <summary>
-    /// Finds the C# document for the specified file. A file can map to several documents (linked
-    /// files, shared projects, multi-targeted projects); the document of the project containing the
-    /// project item is preferred, then the choice is made deterministically by project file path and
-    /// project name (ordinal), so the same target framework flavor is always used.
-    /// </summary>
-    /// <param name="solution">The solution.</param>
-    /// <param name="filePath">The file path.</param>
-    /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
-    /// <returns>The document id, otherwise null.</returns>
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static DocumentId FindDocumentId(Solution solution, string filePath, string projectFilePath)
-    {
-        return solution.GetDocumentIdsWithFilePath(filePath)
-            .Select(id => solution.GetDocument(id))
-            .Where(document => document is not null && document.Project.Language == LanguageNames.CSharp)
-            .OrderBy(document => string.Equals(document.Project.FilePath, projectFilePath, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-            .ThenBy(document => document.Project.FilePath ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(document => document.Project.Name, StringComparer.Ordinal)
-            .Select(document => document.Id)
-            .FirstOrDefault();
-    }
-
-    /// <summary>
-    /// Gets the Visual Studio Roslyn workspace through MEF, verifying that it shares the
-    /// Microsoft.CodeAnalysis.Workspaces assembly this extension is bound to.
-    /// </summary>
-    /// <returns>The Visual Studio workspace.</returns>
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private Workspace GetVisualStudioWorkspace()
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        var componentModel = _package.ComponentModel
-            ?? throw new InvalidOperationException("The Visual Studio component model (MEF) service is unavailable.");
-
-        object workspace = null;
-        var workspaceType = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(assembly => string.Equals(assembly.GetName().Name, VisualStudioWorkspaceAssemblyName, StringComparison.Ordinal))
-            .Select(assembly => assembly.GetType(VisualStudioWorkspaceTypeName, throwOnError: false))
-            .FirstOrDefault(type => type is not null);
-
-        if (workspaceType is not null)
-        {
-            // Equivalent to componentModel.GetService<VisualStudioWorkspace>().
-            workspace = typeof(IComponentModel).GetMethod(nameof(IComponentModel.GetService))
-                .MakeGenericMethod(workspaceType)
-                .Invoke(componentModel, null);
-        }
-        else
-        {
-            // Language services not loaded yet: resolve the export by contract name (a null required
-            // type identity, i.e. object, matches the export regardless of its declared type).
-            workspace = componentModel.DefaultExportProvider.GetExportedValueOrDefault<object>(VisualStudioWorkspaceTypeName);
-        }
-
-        if (workspace is null)
-        {
-            throw new InvalidOperationException("The Visual Studio Roslyn workspace (VisualStudioWorkspace) is unavailable.");
-        }
-
-        if (workspace is Workspace compatibleWorkspace)
-        {
-            return compatibleWorkspace;
-        }
-
-        throw new InvalidOperationException(
-            $"The Visual Studio Roslyn workspace uses {DescribeWorkspaceAssembly(workspace.GetType())}, which is not the Microsoft.CodeAnalysis.Workspaces {typeof(Workspace).Assembly.GetName().Version} this extension is bound to. Diagnostic cleanup requires a Visual Studio version whose Roslyn is 5.9 or newer.");
     }
 
     /// <summary>
@@ -594,60 +540,5 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             Changed = changed,
             UnresolvedCount = result.Unresolved.Count,
         };
-    }
-
-    /// <summary>
-    /// Describes the Microsoft.CodeAnalysis.Workspaces assembly a host workspace type derives from.
-    /// </summary>
-    /// <param name="workspaceType">The host workspace type.</param>
-    /// <returns>A human-readable assembly description.</returns>
-
-    private static string DescribeWorkspaceAssembly(Type workspaceType)
-    {
-        for (var type = workspaceType; type is not null; type = type.BaseType)
-        {
-            if (string.Equals(type.FullName, "Microsoft.CodeAnalysis.Workspace", StringComparison.Ordinal))
-            {
-                return type.Assembly.GetName().FullName;
-            }
-        }
-
-        return workspaceType.Assembly.GetName().FullName;
-    }
-
-    /// <summary>
-    /// Gets the file path of the project containing the project item, when available.
-    /// </summary>
-    /// <param name="projectItem">The project item.</param>
-    /// <returns>The project file path, otherwise null.</returns>
-
-    private static string GetContainingProjectPath(EnvDTE.ProjectItem projectItem)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        try
-        {
-            return projectItem?.ContainingProject?.FullName;
-        }
-        catch (Exception)
-        {
-            // Some project systems do not expose a containing project; fall back to the
-            // deterministic document ordering.
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Reads the text of a file from disk, detecting its encoding from the byte order mark.
-    /// </summary>
-    /// <param name="filePath">The file path.</param>
-    /// <returns>The file text.</returns>
-
-    private static string ReadFileText(string filePath)
-    {
-        using (var reader = new StreamReader(filePath, detectEncodingFromByteOrderMarks: true))
-        {
-            return reader.ReadToEnd();
-        }
     }
 }

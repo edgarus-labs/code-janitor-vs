@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -5,6 +6,7 @@ using CodeJanitor.Logic.Cleaning.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning.Diagnostics;
@@ -235,6 +237,35 @@ public sealed class DiagnosticCleanupEngineTests
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
         Assert.AreEqual(DiagnosticCleanupCategory.Formatting, result.AppliedFixes.Single().Category);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixOnlyMovingCodeWithAnExistingCompilerError_IsApplied()
+    {
+        // The existing CS0246 moves to another line; the gate still matches it by its unchanged message.
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(s_useBraceOnSameLine));
+        var documentId = workspace.AddDocument("Widget.cs", Lines(
+            "class Widget",
+            "{",
+            "    void Draw()",
+            "    {",
+            "        MissingType value = null;",
+            "    }",
+            "}"));
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
+
+        Assert.AreEqual(
+            Lines(
+                "class Widget {",
+                "    void Draw() {",
+                "        MissingType value = null;",
+                "    }",
+                "}"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.IsTrue(result.IsComplete);
     }
 
     [TestMethod]
@@ -655,6 +686,27 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    [DataRow(true, DisplayName = "hidden by default")]
+    [DataRow(false, DisplayName = "warning by default")]
+    public async Task CleanupAsync_RuleConfiguredAsSilent_IsNeitherFixedNorReported(bool hiddenByDefault)
+    {
+        // Silent is refactoring-only: even an explicit silent severity with an available fix leaves the code alone.
+        DiagnosticAnalyzer analyzer = hiddenByDefault
+            ? new HiddenLegacyFieldAnalyzer("CJT0030")
+            : new LegacyFieldAnalyzer("CJT0030", "Performance");
+        using var workspace = new DiagnosticCleanupTestWorkspace(analyzer);
+        workspace.AddEditorConfig(string.Empty, EditorConfig("dotnet_diagnostic.CJT0030.severity = silent"));
+        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        var solution = workspace.CreateSolution();
+
+        var result = await CleanupAsync(solution, documentId, new RenameLegacyFieldCodeFixProvider("CJT0030"));
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.AreEqual(0, result.Unresolved.Count);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ActionableDiagnosticWithoutCodeFixProvider_IsReportedAndNeverModified()
     {
         using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0001", "Style"));
@@ -897,6 +949,153 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixRemovingOneCompilerErrorButAddingAnother_IsRejected()
+    {
+        // Renaming only the declaration resolves 'renamedValue' (one CS0103 fewer) but breaks 'legacyValue' (a new
+        // CS0103): the error count is unchanged, yet the fix introduces an error.
+        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0014", "Performance"));
+        workspace.ConfigureRuleSeverity("CJT0014", "warning");
+        var documentId = workspace.AddDocument("Settings.cs", Lines(
+            "class Settings",
+            "{",
+            "    public int legacyValue;",
+            "",
+            "    public int Read()",
+            "    {",
+            "        return legacyValue;",
+            "    }",
+            "",
+            "    public int ReadRenamed()",
+            "    {",
+            "        return renamedValue;",
+            "    }",
+            "}"));
+        var solution = workspace.CreateSolution();
+        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+            "CJT0014",
+            (_, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed) });
+
+        var result = await CleanupAsync(solution, documentId, provider);
+
+        Assert.AreSame(solution, result.ChangedSolution, "The fix swaps one compiler error for another and must not be applied.");
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, result.Unresolved.Single().Reason);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_RenameChangingTheMessageOfAnExistingCompilerError_IsApplied()
+    {
+        // The existing CS0161 names the renamed method, so its message changes ('Widget.doWork()' becomes
+        // 'Widget.DoWork()'), but it stays at the same position once mapped through the rename: no error is added.
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(
+            "dotnet_naming_rule.methods_rule.symbols = methods",
+            "dotnet_naming_rule.methods_rule.style = pascal_style",
+            "dotnet_naming_rule.methods_rule.severity = warning",
+            "dotnet_naming_symbols.methods.applicable_kinds = method",
+            "dotnet_naming_symbols.methods.applicable_accessibilities = *",
+            "dotnet_naming_style.pascal_style.capitalization = pascal_case"));
+        var documentId = workspace.AddDocument("Widget.cs", Lines(
+            "class Widget",
+            "{",
+            "    int doWork()",
+            "    {",
+            "    }",
+            "}"));
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+
+        Assert.AreEqual(
+            Lines(
+                "class Widget",
+                "{",
+                "    int DoWork()",
+                "    {",
+                "    }",
+                "}"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.AreEqual("IDE1006", result.AppliedFixes.Single().DiagnosticId);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_RenameAddingASuffixToASymbolNamedByAnExistingCompilerError_IsApplied()
+    {
+        // The rename is diffed as a pure insertion of 'Async' at the end of 'Get', so the existing CS0161 on the
+        // identifier grows to cover the suffix: it must still match, not count as a new error.
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(
+            "dotnet_naming_rule.methods_rule.symbols = methods",
+            "dotnet_naming_rule.methods_rule.style = async_style",
+            "dotnet_naming_rule.methods_rule.severity = warning",
+            "dotnet_naming_symbols.methods.applicable_kinds = method",
+            "dotnet_naming_symbols.methods.applicable_accessibilities = *",
+            "dotnet_naming_style.async_style.required_suffix = Async",
+            "dotnet_naming_style.async_style.capitalization = pascal_case"));
+        var documentId = workspace.AddDocument("Widget.cs", Lines(
+            "class Widget",
+            "{",
+            "    int Get()",
+            "    {",
+            "    }",
+            "}"));
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+
+        Assert.AreEqual(
+            Lines(
+                "class Widget",
+                "{",
+                "    int GetAsync()",
+                "    {",
+                "    }",
+                "}"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.AreEqual("IDE1006", result.AppliedFixes.Single().DiagnosticId);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_RenameAddingAPrefixToASymbolNamedByAnExistingCompilerError_IsApplied()
+    {
+        // The rename is diffed as a pure insertion of 'Try' at the start of 'Get', so the existing CS0161 on the
+        // identifier keeps its start and grows to cover the prefix: it must still match, not count as a new error.
+        using var workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(
+            "dotnet_naming_rule.methods_rule.symbols = methods",
+            "dotnet_naming_rule.methods_rule.style = try_style",
+            "dotnet_naming_rule.methods_rule.severity = warning",
+            "dotnet_naming_symbols.methods.applicable_kinds = method",
+            "dotnet_naming_symbols.methods.applicable_accessibilities = *",
+            "dotnet_naming_style.try_style.required_prefix = Try",
+            "dotnet_naming_style.try_style.capitalization = pascal_case"));
+        var documentId = workspace.AddDocument("Widget.cs", Lines(
+            "class Widget",
+            "{",
+            "    int Get()",
+            "    {",
+            "    }",
+            "}"));
+
+        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+
+        Assert.AreEqual(
+            Lines(
+                "class Widget",
+                "{",
+                "    int TryGet()",
+                "    {",
+                "    }",
+                "}"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.AreEqual("IDE1006", result.AppliedFixes.Single().DiagnosticId);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixWithSeveralSolutionChanges_IsRejectedAsUnsupported()
     {
         using var workspace = CreateLegacySettingsWorkspace("CJT0011", out var documentId);
@@ -1080,4 +1279,48 @@ public sealed class DiagnosticCleanupEngineTests
         Lines(new[] { "root = true", string.Empty, "[*.cs]" }.Concat(properties).ToArray());
 
     private static string Lines(params string[] lines) => string.Join("\n", lines) + "\n";
+
+    // A test double handed to the workspace as an instance; the analyzer-authoring rules about shipping compiler
+    // extensions do not apply.
+#pragma warning disable RS1036, RS1038, RS1041, RS2008
+
+    /// <summary>
+    /// Reports every source field whose name starts with <c>legacy</c> with a rule that is hidden by default, like
+    /// the refactoring-only rules of the IDE analyzers.
+    /// </summary>
+    [DiagnosticAnalyzer(LanguageNames.CSharp)]
+    private sealed class HiddenLegacyFieldAnalyzer : DiagnosticAnalyzer
+    {
+        private readonly DiagnosticDescriptor _descriptor;
+
+        public HiddenLegacyFieldAnalyzer(string diagnosticId)
+        {
+            _descriptor = new DiagnosticDescriptor(
+                diagnosticId,
+                "Legacy field",
+                "Field '{0}' uses the legacy prefix",
+                "Performance",
+                DiagnosticSeverity.Hidden,
+                isEnabledByDefault: true);
+        }
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(_descriptor);
+
+        public override void Initialize(AnalysisContext context)
+        {
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+            context.EnableConcurrentExecution();
+            context.RegisterSymbolAction(
+                symbolContext =>
+                {
+                    if (symbolContext.Symbol.Name.StartsWith("legacy", System.StringComparison.Ordinal))
+                    {
+                        symbolContext.ReportDiagnostic(Diagnostic.Create(_descriptor, symbolContext.Symbol.Locations[0], symbolContext.Symbol.Name));
+                    }
+                },
+                SymbolKind.Field);
+        }
+    }
+
+#pragma warning restore RS1036, RS1038, RS1041, RS2008
 }

@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using System.Linq;
 
@@ -8,12 +9,24 @@ namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
 /// Inserts the default access modifier on declarations that omit it, governed per-kind by
-/// the Cleaning_InsertExplicitAccessModifiersOn* settings. Pure Roslyn; unit-testable without
-/// Visual Studio.
+/// the effective Cleaning_InsertExplicitAccessModifiersOn* settings of the file. Pure Roslyn;
+/// unit-testable without Visual Studio.
 /// </summary>
 
 public sealed class ExplicitAccessModifierConverter : ISourceTransformation
 {
+    private readonly EffectiveCleanupSettings _settings;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExplicitAccessModifierConverter" /> class.
+    /// </summary>
+    /// <param name="settings">The effective cleanup settings of the file, which decide per kind whether a modifier is inserted.</param>
+
+    internal ExplicitAccessModifierConverter(EffectiveCleanupSettings settings)
+    {
+        _settings = settings;
+    }
+
     /// <summary>
     /// Gets the name.
     /// </summary>
@@ -34,7 +47,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
 
         var tree = CSharpSyntaxTree.ParseText(source);
         var root = tree.GetRoot();
-        var rewriter = new AccessModifierRewriter();
+        var rewriter = new AccessModifierRewriter(_settings);
         var newRoot = rewriter.Visit(root);
 
         return newRoot.ToFullString();
@@ -45,6 +58,18 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
     /// </summary>
     private sealed class AccessModifierRewriter : CSharpSyntaxRewriter
     {
+        private readonly EffectiveCleanupSettings _settings;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AccessModifierRewriter" /> class.
+        /// </summary>
+        /// <param name="settings">The effective cleanup settings of the file.</param>
+
+        internal AccessModifierRewriter(EffectiveCleanupSettings settings)
+        {
+            _settings = settings;
+        }
+
         // ── Type declarations ──────────────────────────────────────────────────
 
         /// <summary>
@@ -56,7 +81,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             var visited = (ClassDeclarationSyntax)base.VisitClassDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Keyword);
@@ -74,7 +99,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitStructDeclaration(StructDeclarationSyntax node)
         {
             var visited = (StructDeclarationSyntax)base.VisitStructDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Keyword);
@@ -92,7 +117,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
             var visited = (InterfaceDeclarationSyntax)base.VisitInterfaceDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Keyword);
@@ -110,7 +135,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
             var visited = (EnumDeclarationSyntax)base.VisitEnumDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.EnumKeyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
@@ -127,7 +152,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             var visited = (RecordDeclarationSyntax)base.VisitRecordDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.ClassOrStructKeyword);
@@ -145,7 +170,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
             var visited = (DelegateDeclarationSyntax)base.VisitDelegateDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.DelegateKeyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
@@ -164,7 +189,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
             var visited = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax)) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.FixedKeyword)) return visited;
@@ -184,7 +209,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             var visited = (MethodDeclarationSyntax)base.VisitMethodDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
@@ -205,7 +230,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
             var visited = (ConstructorDeclarationSyntax)base.VisitConstructorDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.StaticKeyword)) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
@@ -235,7 +260,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             var visited = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
@@ -255,7 +280,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEventDeclaration(EventDeclarationSyntax node)
         {
             var visited = (EventDeclarationSyntax)base.VisitEventDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
@@ -275,7 +300,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
         {
             var visited = (EventFieldDeclarationSyntax)base.VisitEventFieldDeclaration(node);
-            if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;

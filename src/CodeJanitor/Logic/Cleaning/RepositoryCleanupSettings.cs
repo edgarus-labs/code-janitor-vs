@@ -53,6 +53,12 @@ internal sealed class RepositoryCleanupOverrides
     internal bool? RemoveRegions { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the headless cleanup removes region directives: always, unless the
+    /// repository policy opts out with <c>removeRegions: false</c>.
+    /// </summary>
+    internal bool RemovesRegions => RemoveRegions ?? true;
+
+    /// <summary>
     /// Gets the repository policy for forcing using directive organization independent of .editorconfig,
     /// if specified.
     /// </summary>

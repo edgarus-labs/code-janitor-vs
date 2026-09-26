@@ -5,11 +5,11 @@
 Development requires:
 
 - Windows;
-- Visual Studio with the Visual Studio extension development workload;
+- Visual Studio 2026 with the Visual Studio extension development workload (the extension binds to the Roslyn that Visual Studio ships, so the experimental instance must be Visual Studio 2026 too);
 - the SDKs and build tools required by the solution;
 - access to the `develop` branch and the repository history.
 
-The exact supported Visual Studio version is determined by the current solution and VSIX manifest.
+The supported Visual Studio range is defined by `src/CodeJanitor/source.extension.vsixmanifest` (`[18.0, 19.0)`); keep it, the README requirements and `docs/features.md` in sync. The product references Microsoft.CodeAnalysis 5.0.0, the Roslyn of Visual Studio 18.0; raising that reference raises the lowest Visual Studio version that can load the extension, so change both together.
 
 ## Getting started
 

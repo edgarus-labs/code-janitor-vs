@@ -47,12 +47,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on classes where they are not specified.
     /// </summary>
     /// <param name="classes">The classes.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the classes.</param>
 
-    public void InsertExplicitAccessModifiersOnClasses(IEnumerable<CodeItemClass> classes)
+    public void InsertExplicitAccessModifiersOnClasses(IEnumerable<CodeItemClass> classes, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return;
 
         foreach (var codeClass in classes.Select(x => x.CodeClass).Where(y => y is not null))
         {
@@ -76,12 +77,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on delegates where they are not specified.
     /// </summary>
     /// <param name="delegates">The delegates.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the delegates.</param>
 
-    public void InsertExplicitAccessModifiersOnDelegates(IEnumerable<CodeItemDelegate> delegates)
+    public void InsertExplicitAccessModifiersOnDelegates(IEnumerable<CodeItemDelegate> delegates, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnDelegates) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates))) return;
 
         foreach (var codeDelegate in delegates.Select(x => x.CodeDelegate).Where(y => y is not null))
         {
@@ -99,12 +101,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on enumerations where they are not specified.
     /// </summary>
     /// <param name="enumerations">The enumerations.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the enumerations.</param>
 
-    public void InsertExplicitAccessModifiersOnEnumerations(IEnumerable<CodeItemEnum> enumerations)
+    public void InsertExplicitAccessModifiersOnEnumerations(IEnumerable<CodeItemEnum> enumerations, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEnumerations) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations))) return;
 
         foreach (var codeEnum in enumerations.Select(x => x.CodeEnum).Where(y => y is not null))
         {
@@ -122,12 +125,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on events where they are not specified.
     /// </summary>
     /// <param name="events">The events.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the events.</param>
 
-    public void InsertExplicitAccessModifiersOnEvents(IEnumerable<CodeItemEvent> events)
+    public void InsertExplicitAccessModifiersOnEvents(IEnumerable<CodeItemEvent> events, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents))) return;
 
         foreach (var codeEvent in events.Select(x => x.CodeEvent).Where(y => y is not null))
         {
@@ -165,12 +169,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on fields where they are not specified.
     /// </summary>
     /// <param name="fields">The fields.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the fields.</param>
 
-    public void InsertExplicitAccessModifiersOnFields(IEnumerable<CodeItemField> fields)
+    public void InsertExplicitAccessModifiersOnFields(IEnumerable<CodeItemField> fields, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields))) return;
 
         foreach (var codeField in fields.Select(x => x.CodeVariable).Where(y => y is not null))
         {
@@ -209,12 +214,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on interfaces where they are not specified.
     /// </summary>
     /// <param name="interfaces">The interfaces.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the interfaces.</param>
 
-    public void InsertExplicitAccessModifiersOnInterfaces(IEnumerable<CodeItemInterface> interfaces)
+    public void InsertExplicitAccessModifiersOnInterfaces(IEnumerable<CodeItemInterface> interfaces, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnInterfaces) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces))) return;
 
         foreach (var codeInterface in interfaces.Select(x => x.CodeInterface).Where(y => y is not null))
         {
@@ -232,12 +238,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on methods where they are not specified.
     /// </summary>
     /// <param name="methods">The methods.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the methods.</param>
 
-    public void InsertExplicitAccessModifiersOnMethods(IEnumerable<CodeItemMethod> methods)
+    public void InsertExplicitAccessModifiersOnMethods(IEnumerable<CodeItemMethod> methods, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods))) return;
 
         foreach (var codeFunction in methods.Select(x => x.CodeFunction).Where(y => y is not null))
         {
@@ -305,12 +312,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on properties where they are not specified.
     /// </summary>
     /// <param name="properties">The properties.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the properties.</param>
 
-    public void InsertExplicitAccessModifiersOnProperties(IEnumerable<CodeItemProperty> properties)
+    public void InsertExplicitAccessModifiersOnProperties(IEnumerable<CodeItemProperty> properties, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties))) return;
 
         foreach (var codeProperty in properties.Select(x => x.CodeProperty).Where(y => y is not null))
         {
@@ -348,12 +356,13 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Inserts the explicit access modifiers on structs where they are not specified.
     /// </summary>
     /// <param name="structs">The structs.</param>
+    /// <param name="settings">The effective cleanup settings of the document containing the structs.</param>
 
-    public void InsertExplicitAccessModifiersOnStructs(IEnumerable<CodeItemStruct> structs)
+    public void InsertExplicitAccessModifiersOnStructs(IEnumerable<CodeItemStruct> structs, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_InsertExplicitAccessModifiersOnStructs) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs))) return;
 
         foreach (var codeStruct in structs.Select(x => x.CodeStruct).Where(y => y is not null))
         {

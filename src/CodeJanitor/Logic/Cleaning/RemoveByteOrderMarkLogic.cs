@@ -46,11 +46,12 @@ internal sealed class RemoveByteOrderMarkLogic
     /// Removes the Byte Order Mark character from the beginning of the open text document if present.
     /// </summary>
     /// <param name="textDocument">The text document to clean.</param>
-    internal void RemoveByteOrderMark(TextDocument textDocument)
+    /// <param name="settings">The effective cleanup settings of the document.</param>
+    internal void RemoveByteOrderMark(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_RemoveByteOrderMark || textDocument is null)
+        if (textDocument is null || !settings.GetBoolean(nameof(Settings.Cleaning_RemoveByteOrderMark)))
         {
             return;
         }
@@ -82,7 +83,7 @@ internal sealed class RemoveByteOrderMarkLogic
         var textDocument = document.GetTextDocument();
         if (textDocument is not null)
         {
-            RemoveByteOrderMark(textDocument);
+            RemoveByteOrderMark(textDocument, EffectiveCleanupSettings.For(document.FullName));
         }
     }
 
@@ -123,7 +124,8 @@ internal sealed class RemoveByteOrderMarkLogic
     /// <returns>True if the file was modified, otherwise false.</returns>
     internal bool RemoveByteOrderMark(string filePath)
     {
-        if (!Settings.Default.Cleaning_RemoveByteOrderMark || string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) ||
+            !EffectiveCleanupSettings.For(filePath).GetBoolean(nameof(Settings.Cleaning_RemoveByteOrderMark)))
         {
             return false;
         }

@@ -40,15 +40,16 @@ internal sealed class SingleStatementLambdaLogic
     }
 
     /// <summary>
-    /// Simplifies single-statement lambda block bodies to expression bodies, when enabled in settings.
+    /// Simplifies single-statement lambda block bodies to expression bodies, when enabled in the effective settings.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
+    /// <param name="settings">The effective cleanup settings of the document.</param>
 
-    internal void SimplifySingleStatementLambdas(TextDocument textDocument)
+    internal void SimplifySingleStatementLambdas(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.Cleaning_SimplifySingleStatementLambdas)
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_SimplifySingleStatementLambdas)))
         {
             return;
         }
