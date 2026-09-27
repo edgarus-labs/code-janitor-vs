@@ -13,6 +13,7 @@
 					<ResourceDictionary.MergedDictionaries>
 						<ResourceDictionary Source="OptionsLayoutStyles.xaml" />
 						<ResourceDictionary Source="CompositeOptionsPageDataTemplate.xaml" />
+						<ResourceDictionary Source="Cleaning/CleaningCodeStyleDataTemplate.xaml" />
 						<ResourceDictionary Source="Cleaning/CleaningFileTypesDataTemplate.xaml" />
 						<ResourceDictionary Source="Cleaning/CleaningGeneralDataTemplate.xaml" />
 						<ResourceDictionary Source="Cleaning/CleaningInsertDataTemplate.xaml" />

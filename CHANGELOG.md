@@ -46,6 +46,20 @@ This file records changes made in Code Janitor after the project became an indep
 	controls that show the override note).
 - Blank lines between a documentation comment (`///` in C#, `'''` in VB) and the declaration it documents
 	are always removed.
+- Cleaning > Code Style options: Roslyn code-style rules (modifiers, blocks, expression-bodied members,
+	pattern matching, null checking, modern expressions, `this.` qualification, language keywords vs.
+	framework type names, parentheses) that the diagnostic cleanup applies through the Roslyn code fixes
+	when the repository's `.editorconfig` does not enforce them. Each rule has an on/off switch (off by
+	default) and a value, and can be set per repository in the `.codejanitor` `codeStyle` section. A rule
+	`.editorconfig` enforces keeps its `.editorconfig` value and is locked in Options. Naming rules stay
+	`.editorconfig`-only.
+- Options linked to their Roslyn `.editorconfig` counterpart, with the override note and lock: simplify
+	single-statement lambdas (`csharp_style_expression_bodied_lambdas`), pattern-matching null checks
+	(`csharp_style_prefer_null_check_over_type_check`, `dotnet_style_prefer_is_null_check_over_reference_equality_method`),
+	seal classes (CA1852), `nameof` (CA1507), `JsonSerializerOptions` reuse (CA1869), multiple blank lines
+	(`dotnet_style_allow_multiple_blank_lines_experimental`), blank lines at braces
+	(`csharp_style_allow_blank_lines_between_consecutive_braces_experimental`), Remove and Sort Usings (IDE0005)
+	and Format Document (IDE0055).
 
 ### Changed
 
@@ -54,8 +68,10 @@ This file records changes made in Code Janitor after the project became an indep
 - Removed the legacy classic Options UI after the native settings migration.
 - Added secure configuration boundaries for AI-assisted operations.
 - Cleanup settings are resolved per file with one precedence in the editor and for closed files:
-	`.editorconfig` (for the keys it maps; a key with the `:none` severity is ignored, any other severity enforces
-	the value) over the `.codejanitor` policy over the Visual Studio settings. Editor cleanup previously ignored
+	`.editorconfig` (for the keys it maps; a key with the `:none` or `:silent` severity is ignored, `suggestion`
+	or higher, or no severity, enforces the value, and `dotnet_diagnostic.<id>.severity` wins over the suffix for
+	keys tied to Roslyn diagnostics) over the `.codejanitor` policy over the Visual Studio settings. `:silent`
+	previously enforced the value. Editor cleanup previously ignored
 	`.codejanitor` for every step except moving using directives, and read only a few `.editorconfig` keys for
 	closed files, with incorrect section matching and file precedence. Closed-file cleanup applies the resolved
 	settings to each kind of explicit access modifier, blank-line padding and single-line method/accessor update,

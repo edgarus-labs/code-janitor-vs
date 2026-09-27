@@ -70,6 +70,7 @@
     <Compile Include="UI\EditorConfigOverrideNotesTests.cs" />
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
+    <Compile Include="Cleaning\CodeStyleCleanupTests.cs" />
     <Compile Include="Cleaning\EditorCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\EffectiveCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\RazorFormatterLogicTests.cs" />

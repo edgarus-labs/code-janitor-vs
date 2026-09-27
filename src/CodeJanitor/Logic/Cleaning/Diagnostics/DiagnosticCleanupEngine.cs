@@ -17,8 +17,9 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 
 /// <summary>
 /// Fixes the Roslyn diagnostics of one document with the existing analyzers and code fix providers. Which rules are
-/// active, and how they are configured, comes from .editorconfig (the project's analyzer config documents); which rule
-/// families may be fixed comes from <see cref="DiagnosticCleanupOptions.EnabledCategories" />.
+/// active, and how they are configured, comes from .editorconfig (the project's analyzer config documents) and
+/// <see cref="DiagnosticCleanupOptions.AnalyzerConfigOverrides" />; which rule families may be fixed comes from
+/// <see cref="DiagnosticCleanupOptions.EnabledCategories" />.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -88,13 +89,14 @@ public sealed class DiagnosticCleanupEngine
             throw new ArgumentNullException(nameof(options));
         }
 
-        var project = document.Project;
-        var solution = project.Solution;
+        var solution = document.Project.Solution;
         if (options.IsEmpty)
         {
             return CreateUnchangedResult(solution);
         }
 
+        var workingDocument = await WithAnalyzerConfigOverridesAsync(document, options.AnalyzerConfigOverrides, cancellationToken).ConfigureAwait(false);
+        var project = workingDocument.Project;
         var analyzers = GetAnalyzers(project, options);
 
         // Suppressors alone cannot report anything actionable: no analyzer of an enabled category means no analysis.
@@ -104,12 +106,73 @@ public sealed class DiagnosticCleanupEngine
         }
 
         var run = new CleanupRun(document.Id, options, analyzers, new Lazy<ILookup<string, CodeFixProvider>>(() => IndexByDiagnosticId(_catalog.GetProviders(project))));
+        var result = await run.ExecuteAsync(project.Solution, cancellationToken).ConfigureAwait(false);
 
-        return await run.ExecuteAsync(solution, cancellationToken).ConfigureAwait(false);
+        return ReferenceEquals(workingDocument, document)
+            ? result
+            : await RebaseAsync(result, solution, cancellationToken).ConfigureAwait(false);
     }
 
     private static DiagnosticCleanupResult CreateUnchangedResult(Solution solution) =>
         new DiagnosticCleanupResult(solution, solution, Array.Empty<AppliedDiagnosticFix>(), Array.Empty<UnresolvedDiagnostic>(), Array.Empty<CodeActionOperation>());
+
+    /// <summary>
+    /// Returns the document in a solution whose analyzer configuration also contains <paramref name="overrides" />, as
+    /// the last section of an .editorconfig in the document's directory: the nearest .editorconfig and its last
+    /// section win, so the overrides beat every other .editorconfig and global configuration. An existing
+    /// .editorconfig there gets the section appended; otherwise one is added.
+    /// </summary>
+    private static async Task<Document> WithAnalyzerConfigOverridesAsync(Document document, IReadOnlyDictionary<string, string> overrides, CancellationToken cancellationToken)
+    {
+        if (overrides.Count == 0)
+        {
+            return document;
+        }
+
+        if (string.IsNullOrEmpty(document.FilePath) || !Path.IsPathRooted(document.FilePath))
+        {
+            throw new InvalidOperationException($"Analyzer configuration overrides need a document with an absolute file path; '{document.Name}' has none.");
+        }
+
+        var section = "[*]\n" + string.Concat(overrides.Select(entry => entry.Key + " = " + entry.Value + "\n"));
+        var configPath = Path.Combine(Path.GetDirectoryName(document.FilePath), ".editorconfig");
+        var project = document.Project;
+        var existing = project.AnalyzerConfigDocuments.FirstOrDefault(config => string.Equals(config.FilePath, configPath, StringComparison.OrdinalIgnoreCase));
+
+        Solution solution;
+        if (existing is null)
+        {
+            solution = project.Solution.AddAnalyzerConfigDocument(DocumentId.CreateNewId(project.Id), ".editorconfig", SourceText.From(section), filePath: configPath);
+        }
+        else
+        {
+            var text = (await existing.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+            var separator = text.Length == 0 || text.EndsWith("\n", StringComparison.Ordinal) ? string.Empty : "\n";
+            solution = project.Solution.WithAnalyzerConfigDocumentText(existing.Id, SourceText.From(text + separator + section));
+        }
+
+        return solution.GetDocument(document.Id);
+    }
+
+    /// <summary>
+    /// Moves the text changes of a run on the overridden solution onto <paramref name="solution" />, so the result
+    /// never carries the analyzer configuration overrides.
+    /// </summary>
+    private static async Task<DiagnosticCleanupResult> RebaseAsync(DiagnosticCleanupResult result, Solution solution, CancellationToken cancellationToken)
+    {
+        var changedSolution = solution;
+
+        foreach (var projectChanges in result.ChangedSolution.GetChanges(result.OriginalSolution).GetProjectChanges())
+        {
+            foreach (var documentId in projectChanges.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true))
+            {
+                var text = await result.ChangedSolution.GetDocument(documentId).GetTextAsync(cancellationToken).ConfigureAwait(false);
+                changedSolution = changedSolution.WithDocumentText(documentId, text);
+            }
+        }
+
+        return new DiagnosticCleanupResult(solution, changedSolution, result.AppliedFixes, result.Unresolved, result.PostApplyOperations);
+    }
 
     /// <summary>
     /// Gets the analyzers of the project and solution analyzer references (the latter are the host analyzers, e.g.

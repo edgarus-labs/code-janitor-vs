@@ -12,12 +12,13 @@
 					<WrapPanel Margin="35,0,5,10">
 						<ToggleButton Content="{x:Static p:Resources.AtTopOfFile}" IsChecked="{Binding RemoveBlankLinesAtTop}" />
 						<ToggleButton Content="{x:Static p:Resources.AfterAttributes}" IsChecked="{Binding RemoveBlankLinesAfterAttributes}" />
-						<ToggleButton Content="{x:Static p:Resources.AfterOpeningBraces}" IsChecked="{Binding RemoveBlankLinesAfterOpeningBraces}" />
-						<ToggleButton Content="{x:Static p:Resources.BeforeClosingBraces}" IsChecked="{Binding RemoveBlankLinesBeforeClosingBraces}" />
+						<ToggleButton Content="{x:Static p:Resources.AfterOpeningBraces}" IsChecked="{Binding RemoveBlankLinesAfterOpeningBraces}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RemoveBlankLinesAfterOpeningBrace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+						<ToggleButton Content="{x:Static p:Resources.BeforeClosingBraces}" IsChecked="{Binding RemoveBlankLinesBeforeClosingBraces}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RemoveBlankLinesBeforeClosingBrace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
 						<ToggleButton Content="{x:Static p:Resources.BeforeClosingTags}" IsChecked="{Binding RemoveBlankLinesBeforeClosingTags}" />
 						<ToggleButton Content="{x:Static p:Resources.BetweenChainedStatements}" IsChecked="{Binding RemoveBlankLinesBetweenChainedStatements}" />
 						<ToggleButton Content="{x:Static p:Resources.AtBottomOfFile}" IsChecked="{Binding RemoveBlankLinesAtBottom}" />
 					</WrapPanel>
+					<TextBlock Margin="35,-6,7,10" Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RemoveBlankLinesAfterOpeningBrace]}" />
 
 					<TextBlock Margin="5,5,5,0" Text="{x:Static p:Resources.RemoveBlankSpaces}" />
 					<WrapPanel Margin="35,0,5,20">
@@ -26,7 +27,8 @@
 
 					<CheckBox Content="{x:Static p:Resources.RemoveEndOfLineWhitespace}" IsChecked="{Binding RemoveEndOfLineWhitespace}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RemoveEndOfLineWhitespace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RemoveEndOfLineWhitespace]}" />
-					<CheckBox Content="{x:Static p:Resources.RemoveMultipleConsecutiveBlankLines}" IsChecked="{Binding RemoveMultipleConsecutiveBlankLines}" />
+					<CheckBox Content="{x:Static p:Resources.RemoveMultipleConsecutiveBlankLines}" IsChecked="{Binding RemoveMultipleConsecutiveBlankLines}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RemoveMultipleConsecutiveBlankLines], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RemoveMultipleConsecutiveBlankLines]}" />
 				</StackPanel>
 			</GroupBox>
 			<GroupBox Header="{x:Static p:Resources.Regions}">

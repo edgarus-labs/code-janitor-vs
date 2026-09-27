@@ -10,9 +10,10 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// Resolves the cleanup settings that apply to one file for both the editor and the closed-file cleanup:
 /// a setting defined by .editorconfig wins, otherwise the repository policy (.codejanitor) wins, otherwise the
-/// user's Visual Studio setting applies. An .editorconfig option whose severity suffix is <c>:none</c> is ignored,
-/// as are options with unrecognized values or severities, so the next source decides; any other severity, or no
-/// suffix, enforces the value.
+/// user's Visual Studio setting applies. An .editorconfig option whose severity suffix is <c>:none</c> or
+/// <c>:silent</c> is ignored, as are options with unrecognized values or severities, so the next source decides;
+/// <c>suggestion</c> or higher, or no suffix, enforces the value. The same order resolves the Code Janitor
+/// code-style rules (<see cref="CodeStyleRules" />).
 /// </summary>
 internal sealed class EffectiveCleanupSettings
 {
@@ -41,6 +42,8 @@ internal sealed class EffectiveCleanupSettings
     private readonly IReadOnlyDictionary<string, string> _editorConfigOptions;
     private readonly Dictionary<string, object> _editorConfigValues = new Dictionary<string, object>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _editorConfigKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _codeStyleValues = new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _codeStyleEditorConfigKeys = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly RepositoryCleanupOverrides _repositoryOverrides;
 
     /// <summary>
@@ -58,7 +61,10 @@ internal sealed class EffectiveCleanupSettings
         _repositoryOverrides = repositoryOverrides;
 
         ApplyEditorConfigBooleans();
+        ApplyEditorConfigRules();
         ApplyEditorConfigFileHeader(filePath);
+        ResolveCodeStyleRules();
+        AnalyzerConfigOverrides = BuildAnalyzerConfigOverrides();
 
         NamespaceDeclarations = ResolveNamespaceDeclarations();
         UsingDirectivePlacement = ResolveUsingDirectivePlacement();
@@ -81,6 +87,27 @@ internal sealed class EffectiveCleanupSettings
     /// name that decides it. A setting absent from the map follows the repository policy or the user setting.
     /// </summary>
     internal IReadOnlyDictionary<string, string> EditorConfigKeys => _editorConfigKeys;
+
+    /// <summary>
+    /// Gets the Code Janitor code-style rules (<see cref="CodeStyleRules" />) that apply to this file because
+    /// .editorconfig does not enforce them, keyed by .editorconfig option name, with the value from the repository
+    /// policy or the user setting.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> CodeStyleValues => _codeStyleValues;
+
+    /// <summary>
+    /// Gets the Code Janitor code-style rules that .editorconfig enforces for this file, keyed by .editorconfig option
+    /// name, each mapped to the .editorconfig option that enforces it.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> CodeStyleEditorConfigKeys => _codeStyleEditorConfigKeys;
+
+    /// <summary>
+    /// Gets the analyzer configuration entries the diagnostic cleanup applies on top of .editorconfig so that Roslyn
+    /// reports, and fixes, exactly the rules of <see cref="CodeStyleValues" />: each rule with its value and
+    /// <c>suggestion</c> severity, the severity of its diagnostics raised to <c>suggestion</c>, and every other rule
+    /// reported through one of those diagnostics, unless .editorconfig enforces it, silenced with <c>none</c>.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> AnalyzerConfigOverrides { get; }
 
     /// <summary>
     /// Gets a value indicating whether region directives are removed: always, unless the repository policy opts
@@ -229,6 +256,147 @@ internal sealed class EffectiveCleanupSettings
     }
 
     /// <summary>
+    /// Records the boolean settings whose cleanup step has a Roslyn rule counterpart, when .editorconfig enforces that
+    /// rule (see <see cref="TryReadRule" />). A rule enforced only through a diagnostic severity uses Roslyn's default
+    /// option value; a rule configured by severity only turns its step on.
+    /// </summary>
+    private void ApplyEditorConfigRules()
+    {
+        ApplyRule("Cleaning_SimplifySingleStatementLambdas", "csharp_style_expression_bodied_lambdas", new[] { "IDE0053" }, ParseExpressionBodyPreference, defaultValue: true);
+        ApplyNullCheckRules();
+        ApplyRule("Cleaning_SealClassesWhenSafe", null, new[] { "CA1852" }, null, defaultValue: true);
+        ApplyRule("Cleaning_ConvertToStringNameOf", null, new[] { "CA1507" }, null, defaultValue: true);
+        ApplyRule("Cleaning_ReuseJsonSerializerOptionsForCA1869", null, new[] { "CA1869" }, null, defaultValue: true);
+        ApplyRule("Cleaning_RemoveMultipleConsecutiveBlankLines", "dotnet_style_allow_multiple_blank_lines_experimental", new[] { "IDE2000" }, ParseInvertedBoolean, defaultValue: false);
+        ApplyRule("Cleaning_RemoveBlankLinesAfterOpeningBrace", "csharp_style_allow_blank_lines_between_consecutive_braces_experimental", new[] { "IDE2002" }, ParseInvertedBoolean, defaultValue: false);
+        ApplyRule("Cleaning_RemoveBlankLinesBeforeClosingBrace", "csharp_style_allow_blank_lines_between_consecutive_braces_experimental", new[] { "IDE2002" }, ParseInvertedBoolean, defaultValue: false);
+        ApplyRule("Cleaning_RunVisualStudioRemoveAndSortUsingStatements", null, new[] { "IDE0005" }, null, defaultValue: true);
+        ApplyRule("Cleaning_RunVisualStudioFormatDocumentCommand", null, new[] { "IDE0055" }, null, defaultValue: true);
+    }
+
+    /// <summary>
+    /// Records a boolean setting decided by a Roslyn rule when .editorconfig enforces the rule.
+    /// </summary>
+    /// <param name="settingName">The Visual Studio setting property name.</param>
+    /// <param name="key">The .editorconfig option name, or null for a rule configured by severity only.</param>
+    /// <param name="diagnosticIds">The IDs of the rule's diagnostics.</param>
+    /// <param name="parseValue">Maps the option value to the setting value; null when <paramref name="key" /> is null.</param>
+    /// <param name="defaultValue">The setting value when the rule is enforced with Roslyn's default option value.</param>
+    private void ApplyRule(string settingName, string key, string[] diagnosticIds, Func<string, bool?> parseValue, bool defaultValue)
+    {
+        if (TryReadRule(key, diagnosticIds, value => parseValue(value).HasValue, out var ruleValue, out var decidingKey))
+        {
+            SetEditorConfigValue(settingName, decidingKey, ruleValue is null ? defaultValue : parseValue(ruleValue).Value);
+        }
+    }
+
+    /// <summary>
+    /// Records <c>Cleaning_ConvertToPatternMatchingNullChecks</c>, decided by two Roslyn rules: when .editorconfig
+    /// enforces either, null checks are converted only if every enforced rule prefers null checks (both default to
+    /// true). The note names the first enforced rule, or the first one that turns the conversion off.
+    /// </summary>
+    private void ApplyNullCheckRules()
+    {
+        var rules = new[]
+        {
+            (Key: "csharp_style_prefer_null_check_over_type_check", DiagnosticId: "IDE0150"),
+            (Key: "dotnet_style_prefer_is_null_check_over_reference_equality_method", DiagnosticId: "IDE0041"),
+        };
+        bool? convert = null;
+        string decidingKey = null;
+
+        foreach (var rule in rules)
+        {
+            if (!TryReadRule(rule.Key, new[] { rule.DiagnosticId }, value => ParseBoolean(value).HasValue, out var value, out var ruleKey))
+            {
+                continue;
+            }
+
+            var prefersNullCheck = value is null || ParseBoolean(value) == true;
+            if (convert is null || (convert == true && !prefersNullCheck))
+            {
+                decidingKey = ruleKey;
+            }
+
+            convert = (convert ?? true) && prefersNullCheck;
+        }
+
+        if (convert.HasValue)
+        {
+            SetEditorConfigValue("Cleaning_ConvertToPatternMatchingNullChecks", decidingKey, convert.Value);
+        }
+    }
+
+    /// <summary>
+    /// Resolves every Code Janitor code-style rule: .editorconfig wins when it enforces the rule (see
+    /// <see cref="TryReadRule" />); otherwise the repository policy decides (a null value disables the rule), and
+    /// otherwise the user setting.
+    /// </summary>
+    private void ResolveCodeStyleRules()
+    {
+        var userValues = CodeStyleRules.ParseSetting((string)Settings.Default[nameof(Settings.Cleaning_CodeStyleRules)]);
+
+        foreach (var rule in CodeStyleRules.All)
+        {
+            if (TryReadRule(rule.Key, rule.DiagnosticIds, rule.IsValidValue, out _, out var decidingKey))
+            {
+                _codeStyleEditorConfigKeys[rule.Key] = decidingKey;
+            }
+            else if (_repositoryOverrides.CodeStyle.TryGetValue(rule.Key, out var policyValue))
+            {
+                if (policyValue is not null)
+                {
+                    _codeStyleValues[rule.Key] = policyValue;
+                }
+            }
+            else if (userValues.TryGetValue(rule.Key, out var userValue))
+            {
+                _codeStyleValues[rule.Key] = userValue;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds <see cref="AnalyzerConfigOverrides" />.
+    /// </summary>
+    /// <returns>The analyzer configuration entries.</returns>
+    private IReadOnlyDictionary<string, string> BuildAnalyzerConfigOverrides()
+    {
+        var overrides = new Dictionary<string, string>(StringComparer.Ordinal);
+        var raisedDiagnosticIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var rule in CodeStyleRules.All.Where(rule => _codeStyleValues.ContainsKey(rule.Key)))
+        {
+            overrides[rule.Key] = _codeStyleValues[rule.Key] + ":suggestion";
+            foreach (var diagnosticId in rule.DiagnosticIds)
+            {
+                overrides["dotnet_diagnostic." + diagnosticId + ".severity"] = "suggestion";
+                raisedDiagnosticIds.Add(diagnosticId);
+            }
+        }
+
+        // A raised severity would also surface the diagnostics other rules report under the same ID (e.g. IDE0009 for
+        // every 'this.' qualification option), so the rules Code Janitor does not apply and .editorconfig does not
+        // enforce are switched off.
+        foreach (var rule in CodeStyleRules.All)
+        {
+            if (_codeStyleValues.ContainsKey(rule.Key)
+                || _codeStyleEditorConfigKeys.ContainsKey(rule.Key)
+                || !rule.DiagnosticIds.Any(raisedDiagnosticIds.Contains))
+            {
+                continue;
+            }
+
+            var value = TryReadRawOption(rule.Key, out var configuredValue, out _) && rule.IsValidValue(configuredValue)
+                ? configuredValue
+                : rule.DefaultValue;
+            overrides[rule.Key] = value + ":none";
+        }
+
+        return overrides;
+    }
+
+    /// <summary>
     /// Records the C# file header defined by <c>file_header_template</c>: each template line becomes a
     /// <c>//</c> comment line, <c>\n</c> escapes separate lines and <c>{fileName}</c> is replaced by the file name.
     /// <c>unset</c> or an empty template defines an empty header. The option takes no severity suffix.
@@ -332,19 +500,46 @@ internal sealed class EffectiveCleanupSettings
     /// <param name="parseValue">Maps the option value, or returns null when the value is unrecognized.</param>
     /// <param name="value">The enforced value, or null when the option is ignored.</param>
     /// <returns>
-    /// True when the option is defined with a recognized value and a severity other than <c>none</c>; otherwise false,
+    /// True when the option is defined with a recognized value and no severity or an enforcing one; otherwise false,
     /// so the option is ignored.
     /// </returns>
     private bool TryReadOption<T>(string key, Func<string, T?> parseValue, out T? value)
         where T : struct
     {
         value = null;
+        if (!TryReadRawOption(key, out var rawValue, out var enforced))
+        {
+            return false;
+        }
+
+        var parsed = parseValue(rawValue);
+        if (parsed is null || !enforced)
+        {
+            return false;
+        }
+
+        value = parsed;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Splits an .editorconfig option in the <c>value[:severity]</c> form.
+    /// </summary>
+    /// <param name="key">The .editorconfig option name.</param>
+    /// <param name="value">The trimmed value.</param>
+    /// <param name="enforced">False when the severity does not enforce the option; true without a severity.</param>
+    /// <returns>True when the option is defined with no severity or a recognized one.</returns>
+    private bool TryReadRawOption(string key, out string value, out bool enforced)
+    {
+        value = null;
+        enforced = false;
         if (!_editorConfigOptions.TryGetValue(key, out var rawValue) || rawValue is null)
         {
             return false;
         }
 
-        var enforced = true;
+        enforced = true;
         var separatorIndex = rawValue.IndexOf(':');
         if (separatorIndex >= 0)
         {
@@ -357,13 +552,68 @@ internal sealed class EffectiveCleanupSettings
             rawValue = rawValue.Substring(0, separatorIndex);
         }
 
-        var parsed = parseValue(rawValue.Trim());
-        if (parsed is null || !enforced)
+        value = rawValue.Trim();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Reads a Roslyn rule configured by an option and the severities of its diagnostics. As in Roslyn, a
+    /// <c>dotnet_diagnostic.&lt;id&gt;.severity</c> of one of the diagnostics beats the option's own severity suffix:
+    /// the rule is enforced when one of them is <c>suggestion</c> or higher, and not enforced when all of them are
+    /// <c>none</c> or <c>silent</c>. Without such a severity, the option decides as in <see cref="TryReadOption{T}" />.
+    /// </summary>
+    /// <param name="key">The .editorconfig option name, or null for a rule configured by severity only.</param>
+    /// <param name="diagnosticIds">The IDs of the rule's diagnostics.</param>
+    /// <param name="isValidValue">Validates the option value.</param>
+    /// <param name="value">The enforced option value, or null when the rule is enforced with its default value.</param>
+    /// <param name="decidingKey">The .editorconfig option that enforces the rule.</param>
+    /// <returns>True when .editorconfig enforces the rule.</returns>
+    private bool TryReadRule(string key, IEnumerable<string> diagnosticIds, Func<string, bool> isValidValue, out string value, out string decidingKey)
+    {
+        value = null;
+        decidingKey = null;
+
+        var optionEnforced = false;
+        var optionDefined = key is not null && TryReadRawOption(key, out value, out optionEnforced) && isValidValue(value);
+        if (!optionDefined)
         {
+            value = null;
+        }
+
+        var severityConfigured = false;
+        string enforcingKey = null;
+        foreach (var severityKey in diagnosticIds.Select(EditorConfigHelper.DiagnosticSeverityKey))
+        {
+            if (_editorConfigOptions.TryGetValue(severityKey, out var severity) && TryParseSeverity(severity.Trim(), out var enforced))
+            {
+                severityConfigured = true;
+                enforcingKey ??= enforced ? severityKey : null;
+            }
+        }
+
+        if (severityConfigured)
+        {
+            if (enforcingKey is null)
+            {
+                value = null;
+
+                return false;
+            }
+
+            decidingKey = optionDefined ? key : enforcingKey;
+
+            return true;
+        }
+
+        if (!optionDefined || !optionEnforced)
+        {
+            value = null;
+
             return false;
         }
 
-        value = parsed;
+        decidingKey = key;
 
         return true;
     }
@@ -372,7 +622,10 @@ internal sealed class EffectiveCleanupSettings
     /// Parses an .editorconfig option severity suffix.
     /// </summary>
     /// <param name="severity">The severity text.</param>
-    /// <param name="enforced">False for <c>none</c> (the option is ignored); true for every other recognized severity.</param>
+    /// <param name="enforced">
+    /// False for <c>none</c>, <c>silent</c> and <c>refactoring</c> (Visual Studio does not act on them, so the option is
+    /// ignored); true for <c>suggestion</c>, <c>warning</c> and <c>error</c>.
+    /// </param>
     /// <returns>True when the severity is recognized.</returns>
     private static bool TryParseSeverity(string severity, out bool enforced)
     {
@@ -380,11 +633,11 @@ internal sealed class EffectiveCleanupSettings
         switch (severity.ToLowerInvariant())
         {
             case "none":
+            case "silent":
+            case "refactoring":
                 enforced = false;
                 return true;
 
-            case "silent":
-            case "refactoring":
             case "suggestion":
             case "warning":
             case "error":
@@ -403,6 +656,26 @@ internal sealed class EffectiveCleanupSettings
     private static bool? ParseBoolean(string value)
     {
         return bool.TryParse(value, out var parsed) ? parsed : null;
+    }
+
+    /// <summary>
+    /// Parses <c>true</c> or <c>false</c> and inverts it, for options that allow what the cleanup step removes.
+    /// </summary>
+    /// <param name="value">The option value.</param>
+    /// <returns>The inverted value, or null when unrecognized.</returns>
+    private static bool? ParseInvertedBoolean(string value)
+    {
+        return bool.TryParse(value, out var parsed) ? !parsed : null;
+    }
+
+    /// <summary>
+    /// Parses an expression body preference such as <c>csharp_style_expression_bodied_lambdas</c>.
+    /// </summary>
+    /// <param name="value">The option value.</param>
+    /// <returns>True when expression bodies are preferred (always or on a single line), false when not, or null when unrecognized.</returns>
+    private static bool? ParseExpressionBodyPreference(string value)
+    {
+        return string.Equals(value, "when_on_single_line", StringComparison.OrdinalIgnoreCase) ? true : ParseBoolean(value);
     }
 
     /// <summary>

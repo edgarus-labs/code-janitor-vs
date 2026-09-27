@@ -337,7 +337,7 @@ public sealed class HeadlessCSharpCleanupTests
     [TestMethod]
     public void ApplyHeadlessCSharpTransformations_ConvertsToBlockScopedNamespace_WhenEditorConfigRequiresIt_OverPolicyAndUserSetting()
     {
-        WriteEditorConfig("csharp_style_namespace_declarations = block_scoped:silent");
+        WriteEditorConfig("csharp_style_namespace_declarations = block_scoped:suggestion");
         WriteRepositoryPolicy("\"convertToFileScopedNamespace\": true");
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
 
@@ -458,7 +458,7 @@ public sealed class HeadlessCSharpCleanupTests
     [TestMethod]
     public void ApplyHeadlessCSharpTransformations_InsertsAccessModifiersOnMethods_WhenEditorConfigRequiresThem_OverUserSetting()
     {
-        WriteEditorConfig("dotnet_style_require_accessibility_modifiers = for_non_interface_members:silent");
+        WriteEditorConfig("dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion");
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods = false;
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(MethodWithoutAccessModifierSource, Path.Combine(_tempDirectory, "Sample.cs"));

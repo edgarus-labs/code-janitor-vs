@@ -706,6 +706,8 @@
     <Compile Include="Logic\Cleaning\CleanupBatchPartitioner.cs" />
     <Compile Include="Logic\Cleaning\ClosedFileWriteResult.cs" />
     <Compile Include="Logic\Cleaning\CodeCleanupManager.cs" />
+    <Compile Include="Logic\Cleaning\CodeStyleRule.cs" />
+    <Compile Include="Logic\Cleaning\CodeStyleRules.cs" />
     <Compile Include="Logic\Cleaning\DiagnosticCleanupOutcome.cs" />
     <Compile Include="Logic\Cleaning\EditorConfigDiagnosticCleanupLogic.cs" />
     <Compile Include="Logic\Cleaning\EffectiveCleanupSettings.cs" />
@@ -931,6 +933,7 @@
       <DependentUpon>CleanupProgressWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Dialogs\CleanupProgress\XmlDocProgressViewModel.cs" />
+    <Compile Include="UI\Dialogs\Options\Cleaning\CleaningCodeStyleViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Cleaning\CleaningFileTypesViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Cleaning\CleaningGeneralViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Cleaning\CleaningInsertViewModel.cs" />
@@ -938,6 +941,8 @@
     <Compile Include="UI\Dialogs\Options\Cleaning\CleaningRemoveViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Cleaning\CleaningUpdateViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Cleaning\CleaningVisualStudioViewModel.cs" />
+    <Compile Include="UI\Dialogs\Options\Cleaning\CodeStyleRuleGroupViewModel.cs" />
+    <Compile Include="UI\Dialogs\Options\Cleaning\CodeStyleRuleOptionViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Collapsing\CollapsingViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Navigation\NavigationParentViewModel.cs" />
     <Compile Include="UI\Dialogs\Options\Digging\DiggingViewModel.cs" />
@@ -1022,6 +1027,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="UI\Dialogs\CleanupOptions\CleanupOptionsWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Dialogs\Options\Cleaning\CleaningCodeStyleDataTemplate.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Dialogs\Options\Cleaning\CleaningFileTypesDataTemplate.xaml">

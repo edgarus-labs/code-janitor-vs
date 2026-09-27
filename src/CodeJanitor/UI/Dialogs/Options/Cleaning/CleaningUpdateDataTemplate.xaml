@@ -22,15 +22,20 @@
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToVarWhenApparent]}" />
 					<CheckBox Content="Convert List&lt;T&gt;/array initializations to collection expressions ([] / [a, b, c])" IsChecked="{Binding ConvertToCollectionExpressions}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToCollectionExpressions], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToCollectionExpressions]}" />
-					<CheckBox Content="CA1869: replace direct JsonSerializerOptions allocations in JsonSerializer calls with null (conservative)" IsChecked="{Binding ReuseJsonSerializerOptionsForCA1869}" />
-					<CheckBox Content="Simplify single-statement lambda blocks to expression lambdas (remove braces/return)" IsChecked="{Binding SimplifySingleStatementLambdas}" />
+					<CheckBox Content="CA1869: replace direct JsonSerializerOptions allocations in JsonSerializer calls with null (conservative)" IsChecked="{Binding ReuseJsonSerializerOptionsForCA1869}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ReuseJsonSerializerOptionsForCA1869], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ReuseJsonSerializerOptionsForCA1869]}" />
+					<CheckBox Content="Simplify single-statement lambda blocks to expression lambdas (remove braces/return)" IsChecked="{Binding SimplifySingleStatementLambdas}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas]}" />
 					<CheckBox Content="Add 'readonly' to fields never written outside their constructor" IsChecked="{Binding MakeFieldsReadonlyWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe]}" />
-					<CheckBox Content="Add 'sealed' to classes not derived from in the same file (single-file heuristic)" IsChecked="{Binding SealClassesWhenSafe}" />
+					<CheckBox Content="Add 'sealed' to classes not derived from in the same file (single-file heuristic)" IsChecked="{Binding SealClassesWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe]}" />
 					<CheckBox
 						Content="{x:Static p:Resources.ConvertToPatternMatchingNullChecks}"
 						IsChecked="{Binding ConvertToPatternMatchingNullChecks}"
+						IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToPatternMatchingNullChecks], Converter={x:Static converters:NullToBooleanConverter.IsNull}}"
 						ToolTip="{x:Static p:Resources.ConvertToPatternMatchingNullChecksToolTip}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToPatternMatchingNullChecks]}" />
 					<CheckBox
 						Content="{x:Static p:Resources.ConvertStringFormatToInterpolation}"
 						IsChecked="{Binding ConvertStringFormatToInterpolation}"
@@ -38,7 +43,9 @@
 					<CheckBox
 						Content="{x:Static p:Resources.ConvertToStringNameOf}"
 						IsChecked="{Binding ConvertToStringNameOf}"
+						IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToStringNameOf], Converter={x:Static converters:NullToBooleanConverter.IsNull}}"
 						ToolTip="{x:Static p:Resources.ConvertToStringNameOfToolTip}" />
+					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToStringNameOf]}" />
 					<CheckBox
 						Content="{x:Static p:Resources.InlineOutVariableDeclarations}"
 						IsChecked="{Binding InlineOutVariableDeclarations}"

@@ -86,11 +86,22 @@ editor path (the EnvDTE `*Logic` classes, resolved once per document in
 `CodeCleanupManager`) and the headless text pipeline (`CreateHeadlessCSharpPipeline`):
 
 1. `.editorconfig`, for the keys it maps (see `docs/features.md`), read with Roslyn's
-   `AnalyzerConfigSet` (`EditorConfigHelper`), so sections, globs, `root = true` and
-   nearest-file-wins follow the EditorConfig rules. A value with severity `:none` is ignored, so
-   the next source decides; any other severity, or no suffix, enforces the value;
+   `AnalyzerConfigSet` (`EditorConfigHelper`, which also reports `dotnet_diagnostic.<id>.severity`),
+   so sections, globs, `root = true` and nearest-file-wins follow the EditorConfig rules. A value
+   with severity `:none` or `:silent` is ignored, so the next source decides; `suggestion` or
+   higher, or no suffix, enforces the value. For keys tied to Roslyn diagnostics
+   (`TryReadRule`), a `dotnet_diagnostic.<id>.severity` of one of them wins over the suffix;
 2. the `.codejanitor` repository policy (`RepositoryCleanupSettings`);
 3. the user's Visual Studio settings.
+
+The same order resolves the Code Style rules (`CodeStyleRules`): a rule `.editorconfig` does not
+enforce is taken from `.codejanitor` `codeStyle` or the `Cleaning_CodeStyleRules` setting.
+`EffectiveCleanupSettings.AnalyzerConfigOverrides` turns them into analyzer configuration entries
+(the rule's value with `suggestion`, its diagnostic IDs raised to `suggestion`, other rules sharing
+those IDs set to `none`). `DiagnosticCleanupEngine` appends them as the last section of an
+in-memory `.editorconfig` in the document's directory, so they win over every other analyzer
+configuration, analyzes and fixes with that solution, and moves only the resulting document texts
+onto the original solution, so no configuration change ever reaches the workspace.
 
 Namespace declarations, using placement and indentation are directional
 (`NamespaceDeclarationPreference`, `UsingDirectivePlacementPreference`,

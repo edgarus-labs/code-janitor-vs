@@ -23,12 +23,27 @@ internal sealed class RepositoryCleanupOverrides
     /// <param name="values">The overridden setting values keyed by Visual Studio setting property name.</param>
     /// <param name="removeRegions">The repository policy for region removal, if specified.</param>
     /// <param name="organizeUsings">The repository policy for forcing using directive organization, if specified.</param>
-    internal RepositoryCleanupOverrides(IReadOnlyDictionary<string, object> values, bool? removeRegions, bool? organizeUsings)
+    /// <param name="codeStyle">
+    /// The code-style rules the policy defines, keyed by .editorconfig option name: the value to apply, or null when
+    /// the policy disables the rule. Null for none.
+    /// </param>
+    internal RepositoryCleanupOverrides(
+        IReadOnlyDictionary<string, object> values,
+        bool? removeRegions,
+        bool? organizeUsings,
+        IReadOnlyDictionary<string, string> codeStyle = null)
     {
         _values = values;
         RemoveRegions = removeRegions;
         OrganizeUsings = organizeUsings;
+        CodeStyle = codeStyle ?? new Dictionary<string, string>(StringComparer.Ordinal);
     }
+
+    /// <summary>
+    /// Gets the code-style rules the policy defines (<c>cleanup.codeStyle</c>), keyed by .editorconfig option name:
+    /// the value to apply, or null when the policy disables the rule.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> CodeStyle { get; }
 
     /// <summary>
     /// Gets the overridden setting values keyed by Visual Studio setting property name.

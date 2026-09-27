@@ -92,15 +92,68 @@ internal static class EditorConfigHelper
 
     /// <summary>
     /// Merges the options that the specified configs apply to a source file; Roslyn orders the configs by directory.
+    /// Roslyn keeps <c>dotnet_diagnostic.&lt;id&gt;.severity</c> apart from the other options; it is included as
+    /// <c>dotnet_diagnostic.&lt;lower-cased id&gt;.severity = none|silent|suggestion|warning|error</c>.
     /// </summary>
     /// <param name="configs">The parsed configs.</param>
     /// <param name="fullPath">The full source file path.</param>
     /// <returns>The applicable options, or an empty dictionary when there are no configs.</returns>
     private static IReadOnlyDictionary<string, string> MergeOptions(IReadOnlyCollection<AnalyzerConfig> configs, string fullPath)
     {
-        return configs.Count == 0
-            ? ImmutableDictionary<string, string>.Empty
-            : AnalyzerConfigSet.Create(configs).GetOptionsForSourcePath(fullPath).AnalyzerOptions;
+        if (configs.Count == 0)
+        {
+            return ImmutableDictionary<string, string>.Empty;
+        }
+
+        var result = AnalyzerConfigSet.Create(configs).GetOptionsForSourcePath(fullPath);
+        var options = result.AnalyzerOptions.ToBuilder();
+        foreach (var severity in result.TreeOptions)
+        {
+            var text = ToSeverityText(severity.Value);
+            if (text is not null)
+            {
+                options[DiagnosticSeverityKey(severity.Key)] = text;
+            }
+        }
+
+        return options.ToImmutable();
+    }
+
+    /// <summary>
+    /// Gets the option name under which <see cref="LoadOptions" /> reports the configured severity of a diagnostic.
+    /// </summary>
+    /// <param name="diagnosticId">The diagnostic ID, in any case.</param>
+    /// <returns>The option name, for example <c>dotnet_diagnostic.ide0011.severity</c>.</returns>
+    internal static string DiagnosticSeverityKey(string diagnosticId) =>
+        "dotnet_diagnostic." + diagnosticId.ToLowerInvariant() + ".severity";
+
+    /// <summary>
+    /// Maps a configured severity to its .editorconfig text.
+    /// </summary>
+    /// <param name="severity">The configured severity.</param>
+    /// <returns>The .editorconfig text, or null for <see cref="ReportDiagnostic.Default" />.</returns>
+    private static string ToSeverityText(ReportDiagnostic severity)
+    {
+        switch (severity)
+        {
+            case ReportDiagnostic.Suppress:
+                return "none";
+
+            case ReportDiagnostic.Hidden:
+                return "silent";
+
+            case ReportDiagnostic.Info:
+                return "suggestion";
+
+            case ReportDiagnostic.Warn:
+                return "warning";
+
+            case ReportDiagnostic.Error:
+                return "error";
+
+            default:
+                return null;
+        }
     }
 
     /// <summary>
