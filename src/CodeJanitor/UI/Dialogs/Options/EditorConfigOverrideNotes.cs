@@ -56,6 +56,16 @@ public sealed class EditorConfigOverrideNotes
     internal static EditorConfigOverrideNotes ForSolution(string solutionFullName) =>
         ForSolution(solutionFullName, EditorConfigHelper.FindDefiningConfigPath);
 
+    /// <summary>
+    /// Resolves the notes for the solution at the specified path, using the specified lookup to find the file that
+    /// defines each key. The lookup runs once per distinct key.
+    /// </summary>
+    /// <param name="solutionFullName">The full path of the open solution file, or null when no solution is open.</param>
+    /// <param name="findDefiningConfigPath">
+    /// Returns the path of the .editorconfig that defines a key, given the probe file path and the key; returns null
+    /// when the file cannot be resolved.
+    /// </param>
+    /// <returns>The notes for the solution.</returns>
     internal static EditorConfigOverrideNotes ForSolution(string solutionFullName, Func<string, string, string> findDefiningConfigPath)
     {
         if (string.IsNullOrWhiteSpace(solutionFullName))
