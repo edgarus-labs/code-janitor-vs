@@ -6,7 +6,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A set of extension methods for <see cref="TextDocument" />.
 /// </summary>
-
 internal static class TextDocumentExtensions
 {
     /// <summary>
@@ -14,7 +13,6 @@ internal static class TextDocumentExtensions
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>A <see cref="CodeLanguage"/>.</returns>
-
     internal static CodeLanguage GetCodeLanguage(this TextDocument document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -27,7 +25,6 @@ internal static class TextDocumentExtensions
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <returns>An edit point at the cursor.</returns>
-
     internal static EditPoint GetEditPointAtCursor(this TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

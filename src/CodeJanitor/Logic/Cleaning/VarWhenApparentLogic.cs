@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -13,7 +13,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// This is a thin integration layer over the pure, unit-tested
 /// <see cref="ITypeStyleConverter" /> (see ADR-0005 / ADR-0006 / ADR-0007).
 /// </remarks>
-
 internal sealed class VarWhenApparentLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -29,7 +28,6 @@ internal sealed class VarWhenApparentLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="VarWhenApparentLogic" /> class.</returns>
-
     internal static VarWhenApparentLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new VarWhenApparentLogic(package));
@@ -39,7 +37,6 @@ internal sealed class VarWhenApparentLogic
     /// Initializes a new instance of the <see cref="VarWhenApparentLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private VarWhenApparentLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -52,7 +49,6 @@ internal sealed class VarWhenApparentLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void ConvertToVarWhenApparent(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

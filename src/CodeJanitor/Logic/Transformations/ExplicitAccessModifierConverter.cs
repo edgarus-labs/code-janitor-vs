@@ -1,8 +1,8 @@
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Properties;
 using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
@@ -12,7 +12,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// the effective Cleaning_InsertExplicitAccessModifiersOn* settings of the file. Pure Roslyn;
 /// unit-testable without Visual Studio.
 /// </summary>
-
 public sealed class ExplicitAccessModifierConverter : ISourceTransformation
 {
     private readonly EffectiveCleanupSettings _settings;
@@ -21,7 +20,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
     /// Initializes a new instance of the <see cref="ExplicitAccessModifierConverter" /> class.
     /// </summary>
     /// <param name="settings">The effective cleanup settings of the file, which decide per kind whether a modifier is inserted.</param>
-
     internal ExplicitAccessModifierConverter(EffectiveCleanupSettings settings)
     {
         _settings = settings;
@@ -37,7 +35,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -64,7 +61,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// Initializes a new instance of the <see cref="AccessModifierRewriter" /> class.
         /// </summary>
         /// <param name="settings">The effective cleanup settings of the file.</param>
-
         internal AccessModifierRewriter(EffectiveCleanupSettings settings)
         {
             _settings = settings;
@@ -77,7 +73,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             var visited = (ClassDeclarationSyntax)base.VisitClassDeclaration(node);
@@ -95,7 +90,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitStructDeclaration(StructDeclarationSyntax node)
         {
             var visited = (StructDeclarationSyntax)base.VisitStructDeclaration(node);
@@ -113,7 +107,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
             var visited = (InterfaceDeclarationSyntax)base.VisitInterfaceDeclaration(node);
@@ -131,7 +124,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
             var visited = (EnumDeclarationSyntax)base.VisitEnumDeclaration(node);
@@ -148,7 +140,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             var visited = (RecordDeclarationSyntax)base.VisitRecordDeclaration(node);
@@ -166,7 +157,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
             var visited = (DelegateDeclarationSyntax)base.VisitDelegateDeclaration(node);
@@ -185,7 +175,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
             var visited = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);
@@ -205,7 +194,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             var visited = (MethodDeclarationSyntax)base.VisitMethodDeclaration(node);
@@ -226,7 +214,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
             var visited = (ConstructorDeclarationSyntax)base.VisitConstructorDeclaration(node);
@@ -245,7 +232,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitDestructorDeclaration(DestructorDeclarationSyntax node)
         {
             return base.VisitDestructorDeclaration(node);
@@ -256,7 +242,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             var visited = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
@@ -276,7 +261,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitEventDeclaration(EventDeclarationSyntax node)
         {
             var visited = (EventDeclarationSyntax)base.VisitEventDeclaration(node);
@@ -296,7 +280,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
         {
             var visited = (EventFieldDeclarationSyntax)base.VisitEventFieldDeclaration(node);
@@ -317,7 +300,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="modifiers">The modifiers.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private static bool HasAccessModifier(SyntaxTokenList modifiers)
         {
             return modifiers.Any(m =>
@@ -333,14 +315,12 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// <param name="modifiers">The modifiers.</param>
         /// <param name="kind">The kind.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private static bool HasModifier(SyntaxTokenList modifiers, SyntaxKind kind)
         {
             return modifiers.Any(m => m.IsKind(kind));
         }
 
         /// <summary>Returns the default implicit access modifier for a declaration in its current context.</summary>
-
         private static SyntaxKind DefaultAccessFor(MemberDeclarationSyntax node)
         {
             return node.Parent is TypeDeclarationSyntax
@@ -349,7 +329,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         }
 
         /// <summary>Returns the leading trivia that belongs on the new first token of a declaration.</summary>
-
         private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, SyntaxToken fallback)
         {
             return modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.LeadingTrivia;
@@ -361,7 +340,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// <param name="modifiers">The modifiers.</param>
         /// <param name="fallback">The fallback.</param>
         /// <returns>A SyntaxTriviaList value produced by this method.</returns>
-
         private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, TypeSyntax fallback)
         {
             return modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.GetLeadingTrivia();
@@ -371,7 +349,6 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// Builds a new modifier list with <paramref name="kind"/> prepended carrying
         /// <paramref name="leadingTrivia"/>.  Strips leading trivia from the formerly-first modifier.
         /// </summary>
-
         private static SyntaxTokenList PrependModifier(
             SyntaxTokenList existing,
             SyntaxKind kind,

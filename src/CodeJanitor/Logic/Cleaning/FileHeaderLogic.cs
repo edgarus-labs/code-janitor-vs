@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,7 +12,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating the logic of file header updates.
 /// </summary>
-
 internal sealed class FileHeaderLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -32,7 +31,6 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="FileHeaderLogic" /> class.</returns>
-
     internal static FileHeaderLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new FileHeaderLogic(package));
@@ -42,7 +40,6 @@ internal sealed class FileHeaderLogic
     /// Initializes a new instance of the <see cref="FileHeaderLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private FileHeaderLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -53,7 +50,6 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void UpdateFileHeader(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -91,7 +87,6 @@ internal sealed class FileHeaderLogic
     /// <param name="textDocument">The text document.</param>
     /// <param name="skipUsings">The skip usings.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private int GetHeaderLength(TextDocument textDocument, bool skipUsings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -107,7 +102,6 @@ internal sealed class FileHeaderLogic
     /// <param name="textDocument">The text document.</param>
     /// <param name="skipUsings">The skip usings.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private string GetCurrentHeader(TextDocument textDocument, bool skipUsings)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
@@ -131,7 +125,6 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private int GetNbLinesToSkip(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -147,7 +140,6 @@ internal sealed class FileHeaderLogic
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <param name="headerPosition">The configured header position.</param>
     /// <exception cref="InvalidEnumArgumentException">Thrown when method validation or execution fails for this exception type.</exception>
-
     private void InsertFileHeader(TextDocument textDocument, string settingsFileHeader, HeaderPosition headerPosition)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -172,7 +164,6 @@ internal sealed class FileHeaderLogic
     /// <param name="textDocument">The document to update</param>
     /// <param name="settingsFileHeader">The new file header read from the settings</param>
     /// <remarks>Only valid for languages containing "using" directive</remarks>
-
     private void InsertFileHeaderAfterUsings(TextDocument textDocument, string settingsFileHeader)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
@@ -202,7 +193,6 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
-
     private void InsertFileHeaderDocumentStart(TextDocument textDocument, string settingsFileHeader)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
@@ -221,7 +211,6 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="textDocument">The document to read</param>
     /// <returns>A string representing the first <see cref="HeaderMaxNbLines"/> lines of the document</returns>
-
     private string ReadTextBlock(TextDocument textDocument)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
@@ -239,7 +228,6 @@ internal sealed class FileHeaderLogic
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <param name="headerPosition">The configured header position.</param>
     /// <exception cref="InvalidEnumArgumentException">Thrown when method validation or execution fails for this exception type.</exception>
-
     private void ReplaceFileHeader(TextDocument textDocument, string settingsFileHeader, HeaderPosition headerPosition)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -266,7 +254,6 @@ internal sealed class FileHeaderLogic
     /// <param name="textDocument">The document to update</param>
     /// <param name="settingsFileHeader">The new file header read from the settings</param>
     /// <remarks>Only valid for languages containing "using" directive</remarks>
-
     private void ReplaceFileHeaderAfterUsings(TextDocument textDocument, string settingsFileHeader)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
@@ -299,7 +286,6 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
-
     private void ReplaceFileHeaderDocumentStart(TextDocument textDocument, string settingsFileHeader)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();

@@ -12,14 +12,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// This avoids per-call options allocations while preserving the selected overload. The
 /// transformation is intentionally narrow and skips configured options instances.
 /// </remarks>
-
 public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "CA1869 JsonSerializerOptions Reuse";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -44,7 +42,6 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             node = (InvocationExpressionSyntax)base.VisitInvocationExpression(node);
@@ -82,7 +79,6 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
         /// </summary>
         /// <param name="invocation">The invocation.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private static bool IsJsonSerializerCall(InvocationExpressionSyntax invocation)
         {
             if (!(invocation.Expression is MemberAccessExpressionSyntax memberAccess))
@@ -102,7 +98,6 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
         /// </summary>
         /// <param name="expression">The expression.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private static bool IsPlainJsonSerializerOptionsCreation(ExpressionSyntax expression)
         {
             if (!(expression is ObjectCreationExpressionSyntax creation))

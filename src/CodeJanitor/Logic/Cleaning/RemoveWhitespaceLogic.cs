@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 
 namespace CodeJanitor.Logic.Cleaning;
@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating the logic of removing whitespace.
 /// </summary>
-
 internal sealed class RemoveWhitespaceLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -26,7 +25,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="RemoveWhitespaceLogic" /> class.</returns>
-
     internal static RemoveWhitespaceLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new RemoveWhitespaceLogic(package));
@@ -36,7 +34,6 @@ internal sealed class RemoveWhitespaceLogic
     /// Initializes a new instance of the <see cref="RemoveWhitespaceLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private RemoveWhitespaceLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -48,7 +45,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesAtBottom(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -64,7 +60,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesAtTop(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -80,7 +75,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesAfterAttributes(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -94,11 +88,32 @@ internal sealed class RemoveWhitespaceLogic
     }
 
     /// <summary>
+    /// The pattern matching the last line of a C# documentation comment followed by one or more blank lines.
+    /// </summary>
+    internal const string BlankLinesAfterDocumentationCommentPattern = @"(^[ \t]*///(?!/)[^\r\n]*)\r?\n(?:[ \t]*\r?\n)+";
+
+    /// <summary>
+    /// The pattern matching the last line of a Visual Basic documentation comment followed by one or more blank lines.
+    /// </summary>
+    internal const string BlankLinesAfterVisualBasicDocumentationCommentPattern = @"(^[ \t]*'''(?!')[^\r\n]*)\r?\n(?:[ \t]*\r?\n)+";
+
+    /// <summary>
+    /// Removes the blank lines between a documentation comment and the declaration it documents.
+    /// </summary>
+    /// <param name="textDocument">The text document to cleanup.</param>
+    /// <param name="pattern">The documentation comment pattern of the document's language: <see cref="BlankLinesAfterDocumentationCommentPattern" /> or <see cref="BlankLinesAfterVisualBasicDocumentationCommentPattern" />.</param>
+    internal void RemoveBlankLinesAfterDocumentationComments(TextDocument textDocument, string pattern)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, @"$1" + Environment.NewLine);
+    }
+
+    /// <summary>
     /// Removes blank lines after an opening brace.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesAfterOpeningBrace(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -116,7 +131,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesBeforeClosingBrace(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -134,7 +148,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesBeforeClosingTag(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -152,7 +165,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankLinesBetweenChainedStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -170,7 +182,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveBlankSpacesBeforeClosingAngleBracket(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -205,7 +216,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveEOLWhitespace(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -223,7 +233,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveMultipleConsecutiveBlankLines(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -243,7 +252,6 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void RemoveEOFTrailingNewLine(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

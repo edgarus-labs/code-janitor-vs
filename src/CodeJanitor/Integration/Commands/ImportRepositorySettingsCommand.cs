@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System.IO;
 using Task = System.Threading.Tasks.Task;
 
@@ -11,14 +11,12 @@ namespace CodeJanitor.Integration.Commands;
 /// A command that imports cleanup settings from a repository-level .codejanitor policy file shared
 /// with the VS Code extension into the current user settings.
 /// </summary>
-
 internal sealed class ImportRepositorySettingsCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ImportRepositorySettingsCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal ImportRepositorySettingsCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorImportRepositorySettings)
     {
@@ -34,7 +32,6 @@ internal sealed class ImportRepositorySettingsCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new ImportRepositorySettingsCommand(package);
@@ -44,7 +41,6 @@ internal sealed class ImportRepositorySettingsCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -54,6 +50,7 @@ internal sealed class ImportRepositorySettingsCommand : BaseCommand
         if (string.IsNullOrEmpty(solutionFile))
         {
             Package.IDE.StatusBar.Text = "CodeJanitor: open a solution to import repository settings.";
+
             return;
         }
 
@@ -61,6 +58,7 @@ internal sealed class ImportRepositorySettingsCommand : BaseCommand
         if (!RepositoryCleanupSettings.TryFindConfigFile(solutionDirectory, out var configPath))
         {
             Package.IDE.StatusBar.Text = $"CodeJanitor: {RepositoryCleanupSettings.PrimaryConfigFileName} was not found.";
+
             return;
         }
 

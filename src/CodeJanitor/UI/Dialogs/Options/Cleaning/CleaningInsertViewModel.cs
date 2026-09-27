@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// <summary>
 /// The view model for cleaning insert options.
 /// </summary>
-
 public sealed class CleaningInsertViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CleaningInsertViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -73,7 +71,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after classes.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterClasses
     {
         get { return GetPropertyValue<bool>(); }
@@ -83,7 +80,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after delegates.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterDelegates
     {
         get { return GetPropertyValue<bool>(); }
@@ -93,7 +89,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after end region tags.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterEndRegionTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -103,7 +98,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after enumerations.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterEnumerations
     {
         get { return GetPropertyValue<bool>(); }
@@ -113,7 +107,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after events.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterEvents
     {
         get { return GetPropertyValue<bool>(); }
@@ -123,7 +116,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after multi-line fields.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterFieldsMultiLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -133,7 +125,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after single-line fields.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterFieldsSingleLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -143,7 +134,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after interfaces.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterInterfaces
     {
         get { return GetPropertyValue<bool>(); }
@@ -153,7 +143,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after methods.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterMethods
     {
         get { return GetPropertyValue<bool>(); }
@@ -163,7 +152,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after namespaces.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterNamespaces
     {
         get { return GetPropertyValue<bool>(); }
@@ -173,7 +161,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after multi-line properties.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterPropertiesMultiLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -183,7 +170,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after single-line properties.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterPropertiesSingleLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -193,7 +179,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after region tags.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterRegionTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -203,7 +188,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added after structs.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterStructs
     {
         get { return GetPropertyValue<bool>(); }
@@ -214,7 +198,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if blank line padding should be added after using
     /// statement blocks.
     /// </summary>
-
     public bool InsertBlankLinePaddingAfterUsingStatementBlocks
     {
         get { return GetPropertyValue<bool>(); }
@@ -224,7 +207,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before case statements.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeCaseStatements
     {
         get { return GetPropertyValue<bool>(); }
@@ -234,7 +216,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before classes.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeClasses
     {
         get { return GetPropertyValue<bool>(); }
@@ -244,7 +225,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before delegates.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeDelegates
     {
         get { return GetPropertyValue<bool>(); }
@@ -254,7 +234,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before end region tags.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeEndRegionTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -264,7 +243,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before enumerations.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeEnumerations
     {
         get { return GetPropertyValue<bool>(); }
@@ -274,7 +252,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before events.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeEvents
     {
         get { return GetPropertyValue<bool>(); }
@@ -284,7 +261,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before multi-line fields.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeFieldsMultiLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -294,7 +270,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before single-line fields.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeFieldsSingleLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -304,7 +279,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before interfaces.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeInterfaces
     {
         get { return GetPropertyValue<bool>(); }
@@ -314,7 +288,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before methods.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeMethods
     {
         get { return GetPropertyValue<bool>(); }
@@ -324,7 +297,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before namespaces.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeNamespaces
     {
         get { return GetPropertyValue<bool>(); }
@@ -334,7 +306,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before multi-line properties.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforePropertiesMultiLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -344,7 +315,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before single-line properties.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforePropertiesSingleLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -354,7 +324,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before region tags.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeRegionTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -365,7 +334,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if blank line padding should be added before single
     /// line comments.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeSingleLineComments
     {
         get { return GetPropertyValue<bool>(); }
@@ -375,7 +343,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank line padding should be added before structs.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeStructs
     {
         get { return GetPropertyValue<bool>(); }
@@ -386,7 +353,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if blank line padding should be added before using
     /// statement blocks.
     /// </summary>
-
     public bool InsertBlankLinePaddingBeforeUsingStatementBlocks
     {
         get { return GetPropertyValue<bool>(); }
@@ -397,7 +363,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if blank line padding should be added between
     /// properties with multi-line accessors.
     /// </summary>
-
     public bool InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors
     {
         get { return GetPropertyValue<bool>(); }
@@ -408,7 +373,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if a blank space should be added before self closing
     /// angle brackets.
     /// </summary>
-
     public bool InsertBlankSpaceBeforeSelfClosingAngleBrackets
     {
         get { return GetPropertyValue<bool>(); }
@@ -418,7 +382,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on classes.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnClasses
     {
         get { return GetPropertyValue<bool>(); }
@@ -428,7 +391,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on delegates.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnDelegates
     {
         get { return GetPropertyValue<bool>(); }
@@ -438,7 +400,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on enumerations.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnEnumerations
     {
         get { return GetPropertyValue<bool>(); }
@@ -448,7 +409,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on events.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnEvents
     {
         get { return GetPropertyValue<bool>(); }
@@ -458,7 +418,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on fields.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnFields
     {
         get { return GetPropertyValue<bool>(); }
@@ -468,7 +427,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on interfaces.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnInterfaces
     {
         get { return GetPropertyValue<bool>(); }
@@ -478,7 +436,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on methods.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnMethods
     {
         get { return GetPropertyValue<bool>(); }
@@ -488,7 +445,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on properties.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnProperties
     {
         get { return GetPropertyValue<bool>(); }
@@ -498,7 +454,6 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if explicit access modifiers should be added on structs.
     /// </summary>
-
     public bool InsertExplicitAccessModifiersOnStructs
     {
         get { return GetPropertyValue<bool>(); }

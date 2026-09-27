@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 
 namespace CodeJanitor.Logic.Cleaning;
@@ -9,7 +9,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating the logic of inserting whitespace.
 /// </summary>
-
 internal sealed class InsertWhitespaceLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -24,7 +23,6 @@ internal sealed class InsertWhitespaceLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="InsertWhitespaceLogic" /> class.</returns>
-
     internal static InsertWhitespaceLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new InsertWhitespaceLogic(package));
@@ -34,7 +32,6 @@ internal sealed class InsertWhitespaceLogic
     /// Initializes a new instance of the <see cref="InsertWhitespaceLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private InsertWhitespaceLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -45,7 +42,6 @@ internal sealed class InsertWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -63,7 +59,6 @@ internal sealed class InsertWhitespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void InsertEOFTrailingNewLine(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

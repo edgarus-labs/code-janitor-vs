@@ -7,7 +7,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code field.
 /// </summary>
-
 public sealed class CodeItemField : BaseCodeItemElement
 {
     private readonly Lazy<bool> _isConstant;
@@ -17,7 +16,6 @@ public sealed class CodeItemField : BaseCodeItemElement
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemField" /> class.
     /// </summary>
-
     public CodeItemField()
     {
         _Access = LazyTryDefault(
@@ -53,7 +51,6 @@ public sealed class CodeItemField : BaseCodeItemElement
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         base.LoadLazyInitializedValues();

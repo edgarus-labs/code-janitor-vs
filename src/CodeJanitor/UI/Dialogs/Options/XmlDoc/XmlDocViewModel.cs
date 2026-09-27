@@ -1,9 +1,9 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Ai;
 using CodeJanitor.Properties;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace CodeJanitor.UI.Dialogs.Options.XmlDoc;
 

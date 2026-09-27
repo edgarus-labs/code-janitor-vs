@@ -81,6 +81,7 @@
     <Compile Include="Cleaning\HeadlessCSharpCleanupTests.cs" />
     <Compile Include="Cleaning\RepositoryCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\CleanupBatchPartitionerTests.cs" />
+    <Compile Include="Cleaning\ClosedFileWriteTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\RemoveXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
@@ -90,6 +91,7 @@
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupEngineTests.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupTestAnalyzers.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupTestWorkspace.cs" />
+    <Compile Include="Cleaning\Diagnostics\RoslynDocumentCleanupTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitFileProcessorTests.cs" />
     <Compile Include="Cleaning\BlankLinePaddingConverterTests.cs" />
     <Compile Include="Cleaning\ExplicitAccessModifierConverterTests.cs" />

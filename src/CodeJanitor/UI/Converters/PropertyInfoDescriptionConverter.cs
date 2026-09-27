@@ -9,7 +9,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// A converter that retrieves the description attribute from a specified property info value.
 /// </summary>
-
 public sealed class PropertyInfoDescriptionConverter : IValueConverter
 {
     /// <summary>
@@ -25,7 +24,6 @@ public sealed class PropertyInfoDescriptionConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var propertyInfo = value as PropertyInfo;
@@ -45,7 +43,6 @@ public sealed class PropertyInfoDescriptionConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

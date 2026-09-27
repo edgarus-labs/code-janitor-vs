@@ -1,3 +1,16 @@
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Formatting;
+using CodeJanitor.Logic.Reorganizing;
+using CodeJanitor.Logic.Transformations;
+using CodeJanitor.Model;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,21 +21,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using CodeJanitor.Helpers;
-using CodeJanitor.Logic.Formatting;
-using CodeJanitor.Logic.Reorganizing;
-using CodeJanitor.Logic.Transformations;
-using CodeJanitor.Model;
-using CodeJanitor.Model.CodeItems;
-using CodeJanitor.Properties;
-using CodeJanitor.UI.Enumerations;
-using EnvDTE;
 using Document = EnvDTE.Document;
 using TextDocument = EnvDTE.TextDocument;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -34,7 +34,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// Note: All POSIXRegEx text replacements search against '\n' but insert/replace with
 /// Environment.NewLine. This handles line endings correctly.
 /// </remarks>
-
 internal sealed class CodeCleanupManager
 {
     /// <summary>
@@ -60,7 +59,6 @@ internal sealed class CodeCleanupManager
         /// </summary>
         /// <param name="source">The source.</param>
         /// <returns>A string value produced by this method.</returns>
-
         public string Apply(string source)
         {
             return _apply(source) ?? source;
@@ -204,7 +202,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeCleanupManager" /> class.</returns>
-
     internal static CodeCleanupManager GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CodeCleanupManager(package));
@@ -214,7 +211,6 @@ internal sealed class CodeCleanupManager
     /// Initializes a new instance of the <see cref="CodeCleanupManager" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CodeCleanupManager(CodeJanitorPackage package)
     {
         _package = package;
@@ -254,7 +250,6 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified project item.
     /// </summary>
     /// <param name="projectItem">The project item for cleanup.</param>
-
     internal void Cleanup(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -284,7 +279,7 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp(projectItemFileName))
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
             if (headlessResult == HeadlessCleanupResult.Changed)
             {
@@ -351,7 +346,6 @@ internal sealed class CodeCleanupManager
     /// <param name="projectItem">The project item for cleanup.</param>
     /// <param name="cancellationToken">Cancels the semantic using directive placement of a closed file.</param>
     /// <exception cref="OperationCanceledException">The using directive placement was canceled; the file is left unchanged.</exception>
-
     internal async Task CleanupAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -398,7 +392,7 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp(projectItemFileName))
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
             if (headlessResult == HeadlessCleanupResult.Changed)
             {
@@ -461,7 +455,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
-
     private HeadlessCleanupResult TryRunHeadlessPreCleanupForCSharp(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -491,7 +484,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="projectItemFileName">The full path of the C# file to clean up.</param>
     /// <returns>The outcome of the headless pre-cleanup attempt.</returns>
-
     internal HeadlessPreCleanupOutcome TryRunHeadlessPreCleanupForCSharpCore(
         string projectItemFileName,
         IReadOnlyCollection<string> solutionDisqualifiedTypes = null)
@@ -720,7 +712,7 @@ internal sealed class CodeCleanupManager
                         syntaxError = ex;
                     }
 
-                    if (syntaxError != null)
+                    if (syntaxError is not null)
                     {
                         failures.TryAdd(file, syntaxError);
                         Interlocked.Increment(ref failedCount);
@@ -781,7 +773,6 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source text.</param>
     /// <param name="filePath">The file path whose effective cleanup settings select the transformations.</param>
     /// <returns>Transformed source text.</returns>
-
     internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
     {
         return ApplyHeadlessCSharpTransformations(source, filePath, null);
@@ -803,7 +794,6 @@ internal sealed class CodeCleanupManager
     /// <param name="filePath">The file path.</param>
     /// <param name="solutionDisqualifiedTypes">The type names that must not be sealed, or null to discover them.</param>
     /// <returns>The pipeline.</returns>
-
     internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(
         string source,
         string filePath,
@@ -820,7 +810,6 @@ internal sealed class CodeCleanupManager
     /// <param name="settings">The effective cleanup settings of the file.</param>
     /// <param name="solutionDisqualifiedTypes">The type names that must not be sealed, or null to discover them.</param>
     /// <returns>The pipeline.</returns>
-
     private static SourceTransformationPipeline CreateHeadlessCSharpPipeline(
         string source,
         string filePath,
@@ -1051,6 +1040,8 @@ internal sealed class CodeCleanupManager
             transformations.Add(new DelegateSourceTransformation("Remove blank lines after attributes", RemoveBlankLinesAfterAttributes));
         }
 
+        transformations.Add(new DelegateSourceTransformation("Remove blank lines after documentation comments", RemoveBlankLinesAfterDocumentationComments));
+
         if (IsEnabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterOpeningBrace)))
         {
             transformations.Add(new DelegateSourceTransformation("Remove blank lines after opening brace", RemoveBlankLinesAfterOpeningBrace));
@@ -1085,7 +1076,6 @@ internal sealed class CodeCleanupManager
     /// <param name="transformation">The skipped transformation.</param>
     /// <param name="skipMessage">The warning explaining why the transformation is skipped.</param>
     /// <returns>The pipeline step.</returns>
-
     private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage)
     {
         return new DelegateSourceTransformation(transformation.Name, source =>
@@ -1106,6 +1096,7 @@ internal sealed class CodeCleanupManager
     {
         return ApplyHeadlessCSharpTransformations(source, filePath);
     }
+
     /// <summary>
     /// Discovers types across multiple files that should not be sealed, such as types used as
     /// base classes in <c>BaseListSyntax</c> or generic type constraints in <c>where T : Base</c>.
@@ -1193,14 +1184,11 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Determines whether the C# cleanup of a file still requires the editor-backed DTE path. The Visual Studio
-    /// commands follow the effective settings of the file (.editorconfig, then the .codejanitor repository policy, then
-    /// the Visual Studio settings), like the editor steps that run them.
+    /// Determines whether the C# cleanup of a closed file still requires the editor-backed DTE path. "Remove and Sort
+    /// Usings" and "Format Document" do not: diagnostic cleanup runs their Roslyn equivalents on closed files.
     /// </summary>
-    /// <param name="filePath">The file path.</param>
     /// <returns>True if editor-backed cleanup must run, otherwise false.</returns>
-
-    internal static bool RequiresEditorCleanupForCSharp(string filePath)
+    internal static bool RequiresEditorCleanupForCSharp()
     {
         if (Settings.Default.Reorganizing_RunAtStartOfCleanup) return true;
 
@@ -1208,13 +1196,6 @@ internal sealed class CodeCleanupManager
             Settings.Default.ThirdParty_UseTelerikJustCodeCleanup ||
             Settings.Default.ThirdParty_UseXAMLStylerCleanup ||
             OtherCleaningCommands.Value.Any())
-        {
-            return true;
-        }
-
-        var settings = EffectiveCleanupSettings.For(filePath);
-        if (settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand)) ||
-            settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)))
         {
             return true;
         }
@@ -1236,7 +1217,6 @@ internal sealed class CodeCleanupManager
     /// <param name="headerPosition">The effective header position.</param>
     /// <param name="headerUpdateMode">The effective header update mode.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string ApplyConfiguredCSharpFileHeader(
         string source,
         string settingsFileHeader,
@@ -1278,7 +1258,6 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
     {
         return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
@@ -1292,7 +1271,6 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string ReplaceHeaderAtDocumentStart(string source, string settingsFileHeader)
     {
         TryExtractLeadingHeaderSegment(source, out var currentHeaderLength, out var currentHeader);
@@ -1308,7 +1286,6 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string InsertHeaderAfterUsings(string source, string settingsFileHeader)
     {
         var insertionIndex = GetTopLevelUsingInsertionIndex(source);
@@ -1330,7 +1307,6 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string ReplaceHeaderAfterUsings(string source, string settingsFileHeader)
     {
         var insertionIndex = GetTopLevelUsingInsertionIndex(source);
@@ -1354,7 +1330,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="header">The header.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string EnsureHeaderStartsOnNewLine(string header)
     {
         var newline = header.Contains("\r\n") ? "\r\n" : Environment.NewLine;
@@ -1367,7 +1342,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int GetTopLevelUsingInsertionIndex(string source)
     {
         var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
@@ -1382,7 +1356,6 @@ internal sealed class CodeCleanupManager
     /// <param name="segmentLength">The segment length.</param>
     /// <param name="trimmedHeader">The trimmed header.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool TryExtractLeadingHeaderSegment(string source, out int segmentLength, out string trimmedHeader)
     {
         var lineHeaderMatch = Regex.Match(
@@ -1425,7 +1398,6 @@ internal sealed class CodeCleanupManager
     /// <param name="value">The value.</param>
     /// <param name="newline">The newline.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string NormalizeLineEndings(string value, string newline)
     {
         return value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", newline);
@@ -1436,7 +1408,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string RemoveBlankLinesAtTop(string source)
     {
         return Regex.Replace(source, @"\A(?:[ \t]*\r?\n)+", string.Empty);
@@ -1447,7 +1418,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string RemoveBlankLinesAtBottom(string source)
     {
         return Regex.Replace(source, @"(?:\r?\n[ \t]*)+\z", string.Empty);
@@ -1458,10 +1428,20 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string RemoveBlankLinesAfterAttributes(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
+    }
+
+    /// <summary>
+    /// Removes the blank lines between a documentation comment and the declaration it documents, keeping the
+    /// file's line ending style.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The source without blank lines after documentation comments.</returns>
+    private static string RemoveBlankLinesAfterDocumentationComments(string source)
+    {
+        return ReplaceUsingFileLineEnding(source, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern, "$1{NL}");
     }
 
     /// <summary>
@@ -1469,7 +1449,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string RemoveBlankLinesAfterOpeningBrace(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}", "{$1{NL}");
@@ -1480,7 +1459,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string RemoveBlankLinesBeforeClosingBrace(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)\}", "{NL}$2}");
@@ -1491,7 +1469,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string RemoveBlankLinesBetweenChainedStatements(string source)
     {
         return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)", "{NL}$2$3$4");
@@ -1504,7 +1481,6 @@ internal sealed class CodeCleanupManager
     /// <param name="pattern">The pattern.</param>
     /// <param name="replacement">The replacement.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string ReplaceUsingFileLineEnding(string source, string pattern, string replacement)
     {
         var newline = source.Contains("\r\n") ? "\r\n" : "\n";
@@ -1516,7 +1492,6 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
-
     internal void Cleanup(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -1532,7 +1507,6 @@ internal sealed class CodeCleanupManager
     /// True when the semantic using directive placement was already attempted for the file in this cleanup and left
     /// the using directives in place: it is not retried, since that would repeat the analysis and the warning.
     /// </param>
-
     private void CleanupDocument(Document document, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -1616,7 +1590,6 @@ internal sealed class CodeCleanupManager
     /// <summary>
     /// Resets execution statistics for the next cleanup batch.
     /// </summary>
-
     internal void ResetCleanupExecutionStats()
     {
         _cleanupExecutionStats = default(CleanupExecutionStats);
@@ -1631,7 +1604,6 @@ internal sealed class CodeCleanupManager
     /// single-document cleanup (e.g. cleanup-on-save) never triggers a full solution rescan.
     /// </summary>
     /// <param name="disqualifiedTypes">The batch-scoped disqualified type names, or null to clear.</param>
-
     internal void SetCurrentBatchDisqualifiedTypes(IReadOnlyCollection<string> disqualifiedTypes)
     {
         _currentBatchDisqualifiedTypes = disqualifiedTypes;
@@ -1641,7 +1613,6 @@ internal sealed class CodeCleanupManager
     /// Gets the solution-wide disqualified type names for the currently active cleanup batch,
     /// or null when no batch is active.
     /// </summary>
-
     internal IReadOnlyCollection<string> GetCurrentBatchDisqualifiedTypes()
     {
         return _currentBatchDisqualifiedTypes;
@@ -1655,7 +1626,6 @@ internal sealed class CodeCleanupManager
     /// when the solution is unavailable or enumeration fails, so callers can fall back safely.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal static HashSet<string> DiscoverSolutionDisqualifiedTypes(CodeJanitorPackage package)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -1694,7 +1664,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="filePath">The item path.</param>
     /// <param name="exception">The failure.</param>
-
     internal void RecordCleanupFailure(string filePath, Exception exception)
     {
         lock (_cleanupStatsLock)
@@ -1714,7 +1683,6 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis of the move; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with the placed directives.</returns>
     /// <exception cref="OperationCanceledException">The move was canceled.</exception>
-
     internal async Task<bool> PlaceUsingDirectivesAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
         await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken) == UsingsMoveOutcome.Moved;
 
@@ -1725,7 +1693,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A task.</returns>
-
     internal async Task RunDiagnosticCleanupAsync(ProjectItem projectItem)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -1743,12 +1710,12 @@ internal sealed class CodeCleanupManager
     /// <param name="filePath">The file path.</param>
     /// <param name="outcome">The diagnostic cleanup outcome.</param>
     /// <returns>True when diagnostic cleanup did not run or fully succeeded, otherwise false.</returns>
-
     private bool RecordDiagnosticCleanupOutcome(string filePath, DiagnosticCleanupOutcome outcome)
     {
         if (outcome.Failure is not null)
         {
             RecordCleanupFailure(filePath, outcome.Failure);
+
             return false;
         }
 
@@ -1772,7 +1739,6 @@ internal sealed class CodeCleanupManager
     /// Returns the current execution statistics for the ongoing cleanup batch.
     /// </summary>
     /// <returns>The current cleanup execution statistics.</returns>
-
     internal CleanupExecutionStats GetCleanupExecutionStats()
     {
         lock (_cleanupStatsLock)
@@ -1790,7 +1756,6 @@ internal sealed class CodeCleanupManager
     /// True when the semantic using directive placement already left the using directives in place in this cleanup.
     /// </param>
     /// <returns>The code cleanup method, otherwise null.</returns>
-
     private Action<Document> FindCodeCleanupMethod(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -1835,7 +1800,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void TrySplitTopLevelTypesToSeparateFiles(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -1899,11 +1863,11 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Adds the generated file to the source project item&apos;s collection if on the UI thread, the file exists, and it isn&apos;t already in the solution, logging a warning if the add fails.
+    /// Adds a file split out of a project item to the source item's collection of the project. Does nothing when the
+    /// file does not exist or is already part of the solution; a failure is logged as a warning.
     /// </summary>
     /// <param name="sourceProjectItem">The source project item.</param>
     /// <param name="filePath">The file path.</param>
-
     internal void AddGeneratedFileToProject(ProjectItem sourceProjectItem, string filePath)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -1920,7 +1884,7 @@ internal sealed class CodeCleanupManager
 
         try
         {
-            var projectItems = sourceProjectItem.Collection ?? sourceProjectItem.ContainingProject?.ProjectItems;
+            ProjectItems projectItems = sourceProjectItem.Collection ?? sourceProjectItem.ContainingProject?.ProjectItems;
             projectItems?.AddFromFile(filePath);
         }
         catch (Exception ex)
@@ -1972,7 +1936,6 @@ internal sealed class CodeCleanupManager
     /// True when the semantic using directive placement already left the using directives in place in this cleanup;
     /// it is then not retried.
     /// </param>
-
     private void RunCodeCleanupCSharp(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2061,6 +2024,7 @@ internal sealed class CodeCleanupManager
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterDocumentationComments(textDocument, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern);
         _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
@@ -2140,7 +2104,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void RunCodeCleanupVB(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2189,6 +2152,7 @@ internal sealed class CodeCleanupManager
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument, settings);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterDocumentationComments(textDocument, RemoveWhitespaceLogic.BlankLinesAfterVisualBasicDocumentationCommentPattern);
         _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
         _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
@@ -2249,7 +2213,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void RunCodeCleanupC(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2283,7 +2246,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void RunCodeCleanupMarkup(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2323,7 +2285,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void RunCodeCleanupGeneric(Document document, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2352,7 +2313,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void RunExternalFormatting(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2369,7 +2329,6 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     private void RunVisualStudioFormatDocument(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2383,7 +2342,6 @@ internal sealed class CodeCleanupManager
     /// Runs the JetBrains ReSharper cleanup command.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
-
     private void RunJetBrainsReSharperCleanup(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2399,7 +2357,6 @@ internal sealed class CodeCleanupManager
     /// Runs the Telerik JustCode cleanup command.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
-
     private void RunTelerikJustCodeCleanup(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2413,7 +2370,6 @@ internal sealed class CodeCleanupManager
     /// Runs the XAML Styler cleanup command.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
-
     private void RunXAMLStylerCleanup(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -2427,7 +2383,6 @@ internal sealed class CodeCleanupManager
     /// Runs the other cleanup commands.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
-
     private void RunOtherCleanupCommands(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

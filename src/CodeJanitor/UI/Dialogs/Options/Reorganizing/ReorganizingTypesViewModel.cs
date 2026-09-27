@@ -11,7 +11,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
 /// <summary>
 /// The view model for reorganizing types options.
 /// </summary>
-
 public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -19,7 +18,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public ReorganizingTypesViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -48,7 +46,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Loads the settings.
     /// </summary>
-
     public override void LoadSettings()
     {
         base.LoadSettings();
@@ -127,7 +124,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// Called when the <see cref="SplitCommand" /> is executed.
     /// </summary>
     /// <param name="parameter">The command parameter.</param>
-
     private void OnSplitCommandExecuted(object parameter)
     {
         var list = parameter as IList;
@@ -150,7 +146,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets an observable collection of the types.
     /// </summary>
-
     public ObservableCollection<object> MemberTypes
     {
         get { return GetPropertyValue<ObservableCollection<object>>(); }
@@ -160,7 +155,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Creates the member types collection from the current state.
     /// </summary>
-
     private void CreateMemberTypesFromCurrentState()
     {
         var allMemberTypes = new[] { Classes, Constructors, Delegates, Destructors, Enums, Events, Fields, Indexers, Interfaces, Methods, Properties, Structs };
@@ -181,7 +175,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnMemberTypeSettingPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         var memberTypeSetting = sender as MemberTypeSetting;
@@ -208,7 +201,6 @@ public sealed class ReorganizingTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Updates the member type settings based on the current collection state.
     /// </summary>
-
     private void UpdateMemberTypeSettings()
     {
         int index = 1;

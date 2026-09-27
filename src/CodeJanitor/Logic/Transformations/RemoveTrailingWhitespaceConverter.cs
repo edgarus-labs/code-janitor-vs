@@ -1,6 +1,6 @@
-using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Collections.Generic;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -17,14 +17,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// removed reliably when that whitespace lands in the end-of-file token; combine with
 /// <see cref="EnsureFinalNewlineConverter" /> for that edge case.
 /// </remarks>
-
 public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Remove trailing whitespace";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Convert(source);
@@ -33,7 +31,6 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
     /// <summary>
     /// Removes trailing whitespace from the given C# source.
     /// </summary>
-
     public string Convert(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -59,7 +56,6 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
         /// </summary>
         /// <param name="token">The token.</param>
         /// <returns>A SyntaxToken value produced by this method.</returns>
-
         public override SyntaxToken VisitToken(SyntaxToken token)
         {
             var leading = StripBeforeEndOfLine(token.LeadingTrivia);
@@ -84,7 +80,6 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
         /// </summary>
         /// <param name="trivia">The trivia.</param>
         /// <returns>A SyntaxTriviaList value produced by this method.</returns>
-
         private static SyntaxTriviaList StripBeforeEndOfLine(SyntaxTriviaList trivia)
         {
             if (trivia.Count == 0)

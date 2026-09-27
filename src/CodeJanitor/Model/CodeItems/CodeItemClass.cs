@@ -7,13 +7,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code class.
 /// </summary>
-
 public sealed class CodeItemClass : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemClass" /> class.
     /// </summary>
-
     public CodeItemClass()
     {
         _Access = LazyTryDefault(

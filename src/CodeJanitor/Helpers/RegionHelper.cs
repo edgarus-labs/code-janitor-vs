@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A static helper class for working with regions.
 /// </summary>
-
 internal static class RegionHelper
 {
     /// <summary>
@@ -17,7 +16,6 @@ internal static class RegionHelper
     /// <param name="regionText">The region text.</param>
     /// <returns>A string value produced by this method.</returns>
     /// <exception cref="NotImplementedException">Thrown when method validation or execution fails for this exception type.</exception>
-
     internal static string GetRegionName(EditPoint editPoint, string regionText)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -45,7 +43,6 @@ internal static class RegionHelper
     /// <param name="name">The name.</param>
     /// <returns>A string value produced by this method.</returns>
     /// <exception cref="NotImplementedException">Thrown when method validation or execution fails for this exception type.</exception>
-
     internal static string GetRegionTagText(EditPoint editPoint, string name = null)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -71,7 +68,6 @@ internal static class RegionHelper
     /// <param name="editPoint">The edit point.</param>
     /// <returns>A string value produced by this method.</returns>
     /// <exception cref="NotImplementedException">Thrown when method validation or execution fails for this exception type.</exception>
-
     internal static string GetEndRegionTagText(EditPoint editPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -94,7 +90,6 @@ internal static class RegionHelper
     /// </summary>
     /// <param name="editPoint">The edit point.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     internal static bool LanguageSupportsUpdatingEndRegionDirectives(EditPoint editPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

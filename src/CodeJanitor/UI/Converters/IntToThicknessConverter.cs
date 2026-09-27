@@ -8,7 +8,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// Converts an integer into a thickness value, building on top of the converter parameter if specified.
 /// </summary>
-
 public sealed class IntToThicknessConverter : IValueConverter
 {
     /// <summary>
@@ -62,7 +61,6 @@ public sealed class IntToThicknessConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var thickness = parameter as Thickness? ?? new Thickness();
@@ -99,7 +97,6 @@ public sealed class IntToThicknessConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

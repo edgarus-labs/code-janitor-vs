@@ -1,3 +1,6 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -5,9 +8,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 
@@ -26,6 +26,7 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 public sealed class CodeFixProviderCatalog
 {
     private readonly ImmutableArray<ProviderEntry> _hostProviders;
+
     private readonly ConcurrentDictionary<Assembly, ImmutableArray<ProviderEntry>> _scannedAssemblies =
         new ConcurrentDictionary<Assembly, ImmutableArray<ProviderEntry>>();
 
@@ -35,7 +36,7 @@ public sealed class CodeFixProviderCatalog
     /// <param name="additionalProviders">Providers supplied by the host, e.g. Visual Studio's MEF exports.</param>
     public CodeFixProviderCatalog(IEnumerable<CodeFixProvider> additionalProviders = null)
     {
-        _hostProviders = additionalProviders == null
+        _hostProviders = additionalProviders is null
             ? ImmutableArray<ProviderEntry>.Empty
             : additionalProviders
                 .Where(provider => provider != null)
@@ -50,7 +51,7 @@ public sealed class CodeFixProviderCatalog
     /// <returns>The providers, ordered by type assembly-qualified name, one per provider type.</returns>
     public ImmutableArray<CodeFixProvider> GetProviders(Project project)
     {
-        if (project == null)
+        if (project is null)
         {
             throw new ArgumentNullException(nameof(project));
         }
@@ -118,7 +119,7 @@ public sealed class CodeFixProviderCatalog
             }
 
             var provider = TryCreateProvider(type);
-            if (provider != null)
+            if (provider is not null)
             {
                 builder.Add(new ProviderEntry(provider, languages));
             }

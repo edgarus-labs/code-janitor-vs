@@ -1,6 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Properties;
 using System;
+using CodeJanitor.Properties;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Formatting;
 
@@ -8,7 +8,6 @@ namespace CodeJanitor.UnitTests.Formatting;
 /// Class with list oriented unit tests for formatting. This calls the formatter directly, rather
 /// than invoking it through the UI as with the integration tests.
 /// </summary>
-
 [TestClass]
 public sealed class ListFormattingTests
 {
@@ -22,13 +21,13 @@ public sealed class ListFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void ListFormattingTests_DashedList()
     {
-        var input =
+        string input =
             @"Some text before." + Environment.NewLine +
             @"- The first item with enough words to require wrapping." + Environment.NewLine +
             @"- The second item with enough words to require wrapping." + Environment.NewLine +
             @"Some trailing text.";
 
-        var expected =
+        string expected =
             @"Some text before." + Environment.NewLine +
             @"- The first item with enough" + Environment.NewLine +
             @"  words to require wrapping." + Environment.NewLine +
@@ -43,13 +42,13 @@ public sealed class ListFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void ListFormattingTests_NumberedList()
     {
-        var input =
+        string input =
             @"Some text before." + Environment.NewLine +
             @"1) The first item with enough words to require wrapping." + Environment.NewLine +
             @"2) The second item with enough words to require wrapping." + Environment.NewLine +
             @"Some trailing text.";
 
-        var expected =
+        string expected =
             @"Some text before." + Environment.NewLine +
             @"1) The first item with enough" + Environment.NewLine +
             @"   words to require wrapping." + Environment.NewLine +
@@ -64,13 +63,13 @@ public sealed class ListFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void ListFormattingTests_WordList()
     {
-        var input =
+        string input =
             @"Some text before." + Environment.NewLine +
             @"item) The first item with enough words to require wrapping." + Environment.NewLine +
             @"meti) The second item with enough words to require wrapping." + Environment.NewLine +
             @"Some trailing text.";
 
-        var expected =
+        string expected =
             @"Some text before." + Environment.NewLine +
             @"item) The first item with enough" + Environment.NewLine +
             @"      words to require wrapping." + Environment.NewLine +
@@ -85,7 +84,7 @@ public sealed class ListFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void ListFormattingTests_XmlListWithHeader()
     {
-        var input =
+        string input =
             "Some text before." + Environment.NewLine +
             "<list type=\"bullet\">" + Environment.NewLine +
             "   <listheader>" + Environment.NewLine +
@@ -99,7 +98,7 @@ public sealed class ListFormattingTests
             "</list>" + Environment.NewLine +
             "Some trailing text.";
 
-        var expected =
+        string expected =
             "Some text before." + Environment.NewLine +
             "<list type=\"bullet\">" + Environment.NewLine +
             "<listheader>" + Environment.NewLine +
@@ -120,7 +119,7 @@ public sealed class ListFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void ListFormattingTests_XmlListWithHeaderAndIndent()
     {
-        var input =
+        string input =
             "Some text before." + Environment.NewLine +
             "<list type=\"bullet\">" + Environment.NewLine +
             "<listheader>" + Environment.NewLine +
@@ -134,7 +133,7 @@ public sealed class ListFormattingTests
             "</list>" + Environment.NewLine +
             "Some trailing text.";
 
-        var expected =
+        string expected =
             "Some text before." + Environment.NewLine +
             "<list type=\"bullet\">" + Environment.NewLine +
             "  <listheader>" + Environment.NewLine +

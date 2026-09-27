@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -17,18 +17,15 @@ namespace CodeJanitor.Logic.Transformations;
 /// fields) - never in a regular method, accessor, local function, or nested lambda, since those
 /// could execute after construction. Pure logic, unit-testable without Visual Studio.
 /// </remarks>
-
 public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Readonly Field";
 
     /// <inheritdoc />
-
     public string Apply(string source) => AddReadonlyWhenSafe(source);
 
     /// <inheritdoc />
-
     public string AddReadonlyWhenSafe(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -83,7 +80,6 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     /// <param name="typeDecl">The type decl.</param>
     /// <param name="fieldDecl">The field decl.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool IsSafeToMakeReadonly(TypeDeclarationSyntax typeDecl, FieldDeclarationSyntax fieldDecl)
     {
         if (fieldDecl.Declaration.Variables.Count != 1)
@@ -142,7 +138,6 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
                 return false;
             }
         }
-
 
         var writeNodes = new List<SyntaxNode>();
 
@@ -266,7 +261,6 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     /// <param name="typeDecl">The type decl.</param>
     /// <param name="isStatic">The is static.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool IsWriteInMatchingConstructor(SyntaxNode writeNode, TypeDeclarationSyntax typeDecl, bool isStatic)
     {
         foreach (var ancestor in writeNode.Ancestors())
@@ -303,7 +297,6 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     /// </summary>
     /// <param name="fieldDecl">The field decl.</param>
     /// <returns>A FieldDeclarationSyntax value produced by this method.</returns>
-
     private static FieldDeclarationSyntax WithReadonlyModifier(FieldDeclarationSyntax fieldDecl)
     {
         var readonlyToken = SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword).WithTrailingTrivia(SyntaxFactory.Space);

@@ -11,70 +11,70 @@ public sealed class CleanupBatchPartitionerTests
     [TestCategory("Cleaning UnitTests")]
     public void Partition_ClosedFiles_GoToTheParallelPass()
     {
-        var items = new[] { Item(@"C:\repo\A.cs"), Item(@"C:\repo\View.xaml") };
+        TestItem[] items = [Item(@"C:\repo\A.cs"), Item(@"C:\repo\View.xaml")];
 
-        var (parallel, sequential) = Partition(items);
+        (List<TestItem> parallel, List<TestItem> sequential) = Partition(items);
 
-        CollectionAssert.AreEqual(items, parallel);
-        Assert.AreEqual(0, sequential.Count);
+        Assert.AreSequenceEqual(items, parallel);
+        Assert.IsEmpty(sequential);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void Partition_OpenAndUnresolvedItems_GoToTheSequentialCleanup()
     {
-        var open = Item(@"C:\repo\Open.cs", isOpen: true);
-        var unresolved = Item(null);
+        TestItem open = Item(@"C:\repo\Open.cs", isOpen: true);
+        TestItem unresolved = Item(null);
 
-        var (parallel, sequential) = Partition(new[] { open, unresolved });
+        (List<TestItem> parallel, List<TestItem> sequential) = Partition(new[] { open, unresolved });
 
-        Assert.AreEqual(0, parallel.Count);
-        CollectionAssert.AreEqual(new[] { open, unresolved }, sequential);
+        Assert.IsEmpty(parallel);
+        Assert.AreSequenceEqual(new[] { open, unresolved }, sequential);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void Partition_SameFileInSeveralProjects_IsCleanedOnce()
     {
-        var closed = Item(@"C:\repo\Shared.cs");
-        var closedLinked = Item(@"c:\REPO\shared.cs");
-        var open = Item(@"C:\repo\Open.cs", isOpen: true);
-        var openLinked = Item(@"C:\repo\open.cs", isOpen: true);
+        TestItem closed = Item(@"C:\repo\Shared.cs");
+        TestItem closedLinked = Item(@"c:\REPO\shared.cs");
+        TestItem open = Item(@"C:\repo\Open.cs", isOpen: true);
+        TestItem openLinked = Item(@"C:\repo\open.cs", isOpen: true);
 
-        var (parallel, sequential) = Partition(new[] { closed, closedLinked, open, openLinked });
+        (List<TestItem> parallel, List<TestItem> sequential) = Partition(new[] { closed, closedLinked, open, openLinked });
 
-        CollectionAssert.AreEqual(new[] { closed }, parallel);
-        CollectionAssert.AreEqual(new[] { open }, sequential);
+        Assert.AreSequenceEqual(new[] { closed }, parallel);
+        Assert.AreSequenceEqual(new[] { open }, sequential);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void Partition_SameFileUnderDifferentPathSpellings_IsCleanedOnce()
     {
-        var first = Item(@"C:\repo\Shared.cs");
-        var relativeSpelling = Item(@"C:\repo\sub\..\Shared.cs");
+        TestItem first = Item(@"C:\repo\Shared.cs");
+        TestItem relativeSpelling = Item(@"C:\repo\sub\..\Shared.cs");
 
-        var (parallel, sequential) = Partition(new[] { first, relativeSpelling });
+        (List<TestItem> parallel, List<TestItem> sequential) = Partition(new[] { first, relativeSpelling });
 
-        CollectionAssert.AreEqual(new[] { first }, parallel);
-        Assert.AreEqual(0, sequential.Count);
+        Assert.AreSequenceEqual(new[] { first }, parallel);
+        Assert.IsEmpty(sequential);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void Partition_ClosedItemOfAFileOpenThroughAnotherItem_IsOnlyCleanedThroughTheEditor()
     {
-        var closed = Item(@"C:\repo\Shared.cs");
-        var open = Item(@"C:\repo\Shared.cs", isOpen: true);
+        TestItem closed = Item(@"C:\repo\Shared.cs");
+        TestItem open = Item(@"C:\repo\Shared.cs", isOpen: true);
 
-        var (parallel, sequential) = Partition(new[] { closed, open });
+        (List<TestItem> parallel, List<TestItem> sequential) = Partition(new[] { closed, open });
 
-        Assert.AreEqual(0, parallel.Count);
-        CollectionAssert.AreEqual(new[] { open }, sequential);
+        Assert.IsEmpty(parallel);
+        Assert.AreSequenceEqual(new[] { open }, sequential);
     }
 
-    private static (List<TestItem> Parallel, List<TestItem> Sequential) Partition(TestItem[] items) =>
-        CleanupBatchPartitioner.Partition(items, item => item.FilePath, item => item.IsOpen);
+    private static (List<TestItem> Parallel, List<TestItem> Sequential) Partition(TestItem[] items)
+        => CleanupBatchPartitioner.Partition(items, item => item.FilePath, item => item.IsOpen);
 
     private static TestItem Item(string filePath, bool isOpen = false) => new TestItem(filePath, isOpen);
 

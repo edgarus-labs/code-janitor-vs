@@ -8,13 +8,11 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// A behavior for making TreeView's SelectedItem bindable based on http://stackoverflow.com/questions/1000040/selecteditem-in-a-wpf-treeview.
 /// </summary>
-
 public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
 {
     /// <summary>
     /// The dependency property definition for the SelectedItem property.
     /// </summary>
-
     public static DependencyProperty SelectedItemProperty = DependencyProperty.Register(
         "SelectedItem", typeof(object), typeof(TreeViewBindableSelectedItemBehavior),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSelectedItemChanged));
@@ -22,7 +20,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// <summary>
     /// Gets or sets the selected item.
     /// </summary>
-
     public object SelectedItem
     {
         get { return GetValue(SelectedItemProperty); }
@@ -37,7 +34,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// The <see cref="System.Windows.DependencyPropertyChangedEventArgs" /> instance containing
     /// the event data.
     /// </param>
-
     private static void OnSelectedItemChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
     {
         if (obj is TreeViewBindableSelectedItemBehavior behavior)
@@ -65,7 +61,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// <param name="itemsControl">The items control.</param>
     /// <param name="contentToFind">The content to find.</param>
     /// <returns>The matching TreeViewItem, otherwise null.</returns>
-
     private static TreeViewItem FindTreeViewItemRecursively(ItemsControl itemsControl, object contentToFind)
     {
         if (itemsControl is null)
@@ -97,7 +92,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// Forces the specified items control to generate containers for its items.
     /// </summary>
     /// <param name="itemsControl">The items control.</param>
-
     private static void ForceItemsControlToGenerateContainers(ItemsControl itemsControl)
     {
         itemsControl.ApplyTemplate();
@@ -134,7 +128,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// <summary>
     /// Called after the behavior is attached to an AssociatedObject.
     /// </summary>
-
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -146,7 +139,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// Called when the behavior is being detached from its AssociatedObject, but before it has
     /// actually occurred.
     /// </summary>
-
     protected override void OnDetaching()
     {
         base.OnDetaching();
@@ -165,7 +157,6 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// The <see cref="System.Windows.RoutedPropertyChangedEventArgs&lt;Object&gt;" /> instance
     /// containing the event data.
     /// </param>
-
     private void OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         SelectedItem = e.NewValue;

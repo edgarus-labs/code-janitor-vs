@@ -1,5 +1,3 @@
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using System;
@@ -9,7 +7,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// <summary>
 /// The view model for cleaning update options.
 /// </summary>
-
 public sealed class CleaningUpdateViewModel : OptionsPageViewModel
 {
     private static readonly TimeSpan SuccessfulConnectionCacheDuration = TimeSpan.FromMinutes(30);
@@ -21,7 +18,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CleaningUpdateViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -74,7 +70,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the position of the file header.
     /// </summary>
-
     public HeaderPosition HeaderPosition
     {
         get { return GetPropertyValue<HeaderPosition>(); }
@@ -84,7 +79,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the position of the file header.
     /// </summary>
-
     public HeaderUpdateMode HeaderUpdateMode
     {
         get { return GetPropertyValue<HeaderUpdateMode>(); }
@@ -95,7 +89,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if accessors should be updated to both be single line
     /// or multi line.
     /// </summary>
-
     public bool UpdateAccessorsToBothBeSingleLineOrMultiLine
     {
         get { return GetPropertyValue<bool>(); }
@@ -105,7 +98,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if end region directives should be updated.
     /// </summary>
-
     public bool UpdateEndRegionDirectives
     {
         get { return GetPropertyValue<bool>(); }
@@ -115,7 +107,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of C++ files.
     /// </summary>
-
     public string UpdateFileHeaderCPlusPlus
     {
         get { return GetPropertyValue<string>(); }
@@ -125,7 +116,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of C# files.
     /// </summary>
-
     public string UpdateFileHeaderCSharp
     {
         get { return GetPropertyValue<string>(); }
@@ -135,7 +125,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of CSS files.
     /// </summary>
-
     public string UpdateFileHeaderCSS
     {
         get { return GetPropertyValue<string>(); }
@@ -145,7 +134,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of F# files.
     /// </summary>
-
     public string UpdateFileHeaderFSharp
     {
         get { return GetPropertyValue<string>(); }
@@ -155,7 +143,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of HTML files.
     /// </summary>
-
     public string UpdateFileHeaderHTML
     {
         get { return GetPropertyValue<string>(); }
@@ -165,7 +152,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of JavaScript files.
     /// </summary>
-
     public string UpdateFileHeaderJavaScript
     {
         get { return GetPropertyValue<string>(); }
@@ -175,7 +161,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of JSON files.
     /// </summary>
-
     public string UpdateFileHeaderJSON
     {
         get { return GetPropertyValue<string>(); }
@@ -185,7 +170,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of LESS files.
     /// </summary>
-
     public string UpdateFileHeaderLESS
     {
         get { return GetPropertyValue<string>(); }
@@ -195,7 +179,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of PHP files.
     /// </summary>
-
     public string UpdateFileHeaderPHP
     {
         get { return GetPropertyValue<string>(); }
@@ -205,7 +188,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of PowerShell files.
     /// </summary>
-
     public string UpdateFileHeaderPowerShell
     {
         get { return GetPropertyValue<string>(); }
@@ -215,7 +197,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of R files.
     /// </summary>
-
     public string UpdateFileHeaderR
     {
         get { return GetPropertyValue<string>(); }
@@ -225,7 +206,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of SCSS files.
     /// </summary>
-
     public string UpdateFileHeaderSCSS
     {
         get { return GetPropertyValue<string>(); }
@@ -235,7 +215,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of TypeScript files.
     /// </summary>
-
     public string UpdateFileHeaderTypeScript
     {
         get { return GetPropertyValue<string>(); }
@@ -245,7 +224,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of VB files.
     /// </summary>
-
     public string UpdateFileHeaderVisualBasic
     {
         get { return GetPropertyValue<string>(); }
@@ -255,7 +233,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of XAML files.
     /// </summary>
-
     public string UpdateFileHeaderXAML
     {
         get { return GetPropertyValue<string>(); }
@@ -265,7 +242,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the file header that should be at the top of XML files.
     /// </summary>
-
     public string UpdateFileHeaderXML
     {
         get { return GetPropertyValue<string>(); }
@@ -275,7 +251,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if single line methods should be updated.
     /// </summary>
-
     public bool UpdateSingleLineMethods
     {
         get { return GetPropertyValue<bool>(); }
@@ -285,7 +260,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if block-scoped namespaces should be converted to file-scoped.
     /// </summary>
-
     public bool ConvertToFileScopedNamespace
     {
         get { return GetPropertyValue<bool>(); }
@@ -305,7 +279,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if extra top-level C# types should be moved into
     /// their own files during cleanup.
     /// </summary>
-
     public bool MoveTopLevelTypesToSeparateFiles
     {
         get { return GetPropertyValue<bool>(); }
@@ -316,7 +289,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if local variable declarations should be converted to
     /// <c>var</c> when the type is apparent from the right-hand side.
     /// </summary>
-
     public bool ConvertToVarWhenApparent
     {
         get { return GetPropertyValue<bool>(); }
@@ -327,7 +299,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if <c>List&lt;T&gt;</c> and array initializations
     /// should be converted to the C# 12 collection expression syntax.
     /// </summary>
-
     public bool ConvertToCollectionExpressions
     {
         get { return GetPropertyValue<bool>(); }
@@ -339,7 +310,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// allocations in <c>JsonSerializer.*</c> calls should be replaced with <c>null</c>
     /// (conservative CA1869-focused optimization).
     /// </summary>
-
     public bool ReuseJsonSerializerOptionsForCA1869
     {
         get { return GetPropertyValue<bool>(); }
@@ -350,7 +320,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if single-statement lambda block bodies should be
     /// simplified to expression bodies (including removing unnecessary <c>return</c>).
     /// </summary>
-
     public bool SimplifySingleStatementLambdas
     {
         get { return GetPropertyValue<bool>(); }
@@ -361,7 +330,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if fields provably never written outside their
     /// constructor should have the <c>readonly</c> modifier added.
     /// </summary>
-
     public bool MakeFieldsReadonlyWhenSafe
     {
         get { return GetPropertyValue<bool>(); }
@@ -373,7 +341,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// file should have the <c>sealed</c> modifier added. This is a single-file heuristic and
     /// changes the API surface, so it defaults to disabled.
     /// </summary>
-
     public bool SealClassesWhenSafe
     {
         get { return GetPropertyValue<bool>(); }
@@ -421,7 +388,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// <c>return</c> and <c>throw</c> statements that are preceded by other statements within
     /// the same block, to visually separate the exit/failure path from the preceding logic.
     /// </summary>
-
     public bool InsertBlankLineBeforeReturnAndThrowStatements
     {
         get { return GetPropertyValue<bool>(); }
@@ -432,7 +398,6 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if safe Razor component formatting should run for
     /// <c>.razor</c> files during cleanup.
     /// </summary>
-
     public bool FormatRazorComponents
     {
         get { return GetPropertyValue<bool>(); }

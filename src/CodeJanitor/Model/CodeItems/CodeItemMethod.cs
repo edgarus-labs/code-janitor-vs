@@ -1,6 +1,6 @@
+using CodeJanitor.Helpers;
 using EnvDTE;
 using EnvDTE80;
-using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code method.
 /// </summary>
-
 public sealed class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, ICodeItemParameters, IInterfaceItem
 {
     private readonly Lazy<int> _complexity;
@@ -23,7 +22,6 @@ public sealed class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, I
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemMethod" /> class.
     /// </summary>
-
     public CodeItemMethod()
     {
         // Make exceptions for static constructors and explicit interface implementations -
@@ -65,7 +63,6 @@ public sealed class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, I
     /// <summary>
     /// Gets the kind.
     /// </summary>
-
     public override KindCodeItem Kind
     {
         get
@@ -87,7 +84,6 @@ public sealed class CodeItemMethod : BaseCodeItemElement, ICodeItemComplexity, I
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         base.LoadLazyInitializedValues();

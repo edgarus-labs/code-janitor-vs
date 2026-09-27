@@ -7,7 +7,6 @@ namespace CodeJanitor.Logic.Reorganizing;
 /// <summary>
 /// An implementation of <see cref="IEqualityComparer{T}"/> for handling region comparison by name.
 /// </summary>
-
 public sealed class RegionComparerByName : IEqualityComparer<CodeItemRegion>
 {
     /// <summary>
@@ -16,7 +15,6 @@ public sealed class RegionComparerByName : IEqualityComparer<CodeItemRegion>
     /// <param name="x">The first object of type <see cref="CodeItemRegion" /> to compare.</param>
     /// <param name="y">The second object of type <see cref="CodeItemRegion" /> to compare.</param>
     /// <returns>True if the specified objects are equal; otherwise, false.</returns>
-
     public bool Equals(CodeItemRegion x, CodeItemRegion y)
     {
         if (x is null && y is null) return true;
@@ -39,7 +37,6 @@ public sealed class RegionComparerByName : IEqualityComparer<CodeItemRegion>
     /// /> is null.
     /// </exception>
     /// <returns>A hash code for the specified object.</returns>
-
     public int GetHashCode(CodeItemRegion region)
     {
         if (region is null)

@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -9,8 +9,8 @@ public sealed class InsertExplicitAccessModifierLogicTests
     [TestMethod]
     public void GetInstance_ReturnsSingletonInstance()
     {
-        var instance1 = InsertExplicitAccessModifierLogic.GetInstance();
-        var instance2 = InsertExplicitAccessModifierLogic.GetInstance();
+        InsertExplicitAccessModifierLogic instance1 = InsertExplicitAccessModifierLogic.GetInstance();
+        InsertExplicitAccessModifierLogic instance2 = InsertExplicitAccessModifierLogic.GetInstance();
 
         Assert.IsNotNull(instance1);
         Assert.AreSame(instance1, instance2);

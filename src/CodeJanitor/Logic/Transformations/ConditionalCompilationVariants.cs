@@ -117,7 +117,7 @@ internal static class ConditionalCompilationVariants
         }
 
         var symbols = new List<string>();
-        for (var directive = root.GetFirstDirective(); directive != null; directive = directive.GetNextDirective())
+        for (var directive = root.GetFirstDirective(); directive is not null; directive = directive.GetNextDirective())
         {
             if (directive is ConditionalDirectiveTriviaSyntax conditional)
             {

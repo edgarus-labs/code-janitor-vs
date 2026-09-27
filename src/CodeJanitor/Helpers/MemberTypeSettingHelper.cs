@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A helper class that simplifies access to <see cref="MemberTypeSetting"/> instances.
 /// </summary>
-
 public static class MemberTypeSettingHelper
 {
     private static readonly CachedSetting<MemberTypeSetting> CachedClassSettings;
@@ -26,7 +25,6 @@ public static class MemberTypeSettingHelper
     /// <summary>
     /// The static initializer for the <see cref="MemberTypeSettingHelper"/> class.
     /// </summary>
-
     static MemberTypeSettingHelper()
     {
         CachedClassSettings = new CachedSetting<MemberTypeSetting>(() => Settings.Default.Reorganizing_MemberTypeClasses, x => (MemberTypeSetting)x);
@@ -46,7 +44,6 @@ public static class MemberTypeSettingHelper
     /// <summary>
     /// Gets an enumerable set of all of the settings.
     /// </summary>
-
     public static IEnumerable<MemberTypeSetting> AllSettings => new[]
     {
         ClassSettings, ConstructorSettings, DelegateSettings, DestructorSettings,
@@ -119,7 +116,6 @@ public static class MemberTypeSettingHelper
     /// </summary>
     /// <param name="kindCodeItem">The kind of code item.</param>
     /// <returns>The associated <see cref="MemberTypeSetting"/>, otherwise null.</returns>
-
     public static MemberTypeSetting LookupByKind(KindCodeItem kindCodeItem)
     {
         switch (kindCodeItem)

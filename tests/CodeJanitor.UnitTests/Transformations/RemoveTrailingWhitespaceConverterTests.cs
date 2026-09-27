@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -8,7 +8,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// and whitespace-only lines are cleaned while indentation and whitespace inside string literals
 /// are preserved (headless-Roslyn cleanup block, BL-018, C#-only per scope).
 /// </summary>
-
 [TestClass]
 public sealed class RemoveTrailingWhitespaceConverterTests
 {
@@ -24,8 +23,8 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void TrailingSpacesAfterCode_Removed()
     {
-        var input = "class C\n{\n    int x;   \n}\n";
-        var expected = "class C\n{\n    int x;\n}\n";
+        string input = "class C\n{\n    int x;   \n}\n";
+        string expected = "class C\n{\n    int x;\n}\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }
@@ -34,8 +33,8 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void TrailingTabsAfterCode_Removed()
     {
-        var input = "class C\n{\n    int x;\t\t\n}\n";
-        var expected = "class C\n{\n    int x;\n}\n";
+        string input = "class C\n{\n    int x;\t\t\n}\n";
+        string expected = "class C\n{\n    int x;\n}\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }
@@ -44,8 +43,8 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void WhitespaceOnlyLine_Emptied()
     {
-        var input = "class C\n{\n   \n}\n";
-        var expected = "class C\n{\n\n}\n";
+        string input = "class C\n{\n   \n}\n";
+        string expected = "class C\n{\n\n}\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }
@@ -54,7 +53,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Indentation_Preserved()
     {
-        var input = "class C\n{\n    int x;\n}\n";
+        string input = "class C\n{\n    int x;\n}\n";
 
         Assert.AreEqual(input, _converter.Convert(input));
     }
@@ -63,7 +62,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void TrailingWhitespaceInsideVerbatimString_Preserved()
     {
-        var input = "class C\n{\n    string s = @\"a   \nb\";\n}\n";
+        string input = "class C\n{\n    string s = @\"a   \nb\";\n}\n";
 
         Assert.AreEqual(input, _converter.Convert(input));
     }
@@ -72,7 +71,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NoTrailingWhitespace_Unchanged()
     {
-        var input = "using System;\n\nclass C\n{\n}\n";
+        string input = "using System;\n\nclass C\n{\n}\n";
 
         Assert.AreEqual(input, _converter.Convert(input));
     }
@@ -96,8 +95,8 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     public void ImplementsSourceTransformation()
     {
         ISourceTransformation transformation = new RemoveTrailingWhitespaceConverter();
-        var input = "class C\n{\n    int x;   \n}\n";
-        var expected = "class C\n{\n    int x;\n}\n";
+        string input = "class C\n{\n    int x;   \n}\n";
+        string expected = "class C\n{\n    int x;\n}\n";
 
         Assert.AreEqual(expected, transformation.Apply(input));
         Assert.AreEqual("Remove trailing whitespace", transformation.Name);

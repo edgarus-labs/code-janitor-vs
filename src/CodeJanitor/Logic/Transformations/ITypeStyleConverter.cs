@@ -3,7 +3,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// <summary>
 /// Applies C# type-style rules to source text.
 /// </summary>
-
 public interface ITypeStyleConverter
 {
     /// <summary>
@@ -13,6 +12,5 @@ public interface ITypeStyleConverter
     /// </summary>
     /// <param name="source">The full C# source text.</param>
     /// <returns>The transformed source, or the original when nothing applies.</returns>
-
     string UseVarWhenApparent(string source);
 }

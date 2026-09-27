@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Ai;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Ai;
 
@@ -9,7 +9,7 @@ public sealed class CodeBranchDescriptorTests
     [TestMethod]
     public void Properties_RoundTripAssignedValues()
     {
-        var descriptor = new CodeBranchDescriptor
+        CodeBranchDescriptor descriptor = new CodeBranchDescriptor
         {
             Id = "B1",
             BranchType = CodeBranchType.GuardClause,
@@ -28,7 +28,7 @@ public sealed class CodeBranchDescriptorTests
     [TestMethod]
     public void ToString_FormatsBranchTypeDescriptionAndLineNumber()
     {
-        var descriptor = new CodeBranchDescriptor
+        CodeBranchDescriptor descriptor = new CodeBranchDescriptor
         {
             BranchType = CodeBranchType.ElseBranch,
             Description = "Fallback path",

@@ -1,10 +1,9 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.IO;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -12,14 +11,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for toggling the read only attribute of a file.
 /// </summary>
-
 internal sealed class ReadOnlyToggleCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ReadOnlyToggleCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal ReadOnlyToggleCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorReadOnlyToggle)
     {
@@ -35,7 +32,6 @@ internal sealed class ReadOnlyToggleCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new ReadOnlyToggleCommand(package);
@@ -45,7 +41,6 @@ internal sealed class ReadOnlyToggleCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -55,7 +50,6 @@ internal sealed class ReadOnlyToggleCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

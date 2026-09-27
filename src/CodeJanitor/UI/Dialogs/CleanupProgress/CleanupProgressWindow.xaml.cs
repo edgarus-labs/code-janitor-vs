@@ -7,13 +7,11 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 /// <summary>
 /// Interaction logic for CleanupProgressWindow.xaml
 /// </summary>
-
 public partial class CleanupProgressWindow
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleanupProgressWindow" /> class.
     /// </summary>
-
     public CleanupProgressWindow()
     {
         Application.ResourceAssembly = Assembly.GetExecutingAssembly();
@@ -28,7 +26,6 @@ public partial class CleanupProgressWindow
     /// <param name="e">
     /// The <see cref="System.ComponentModel.CancelEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnClosing(object sender, CancelEventArgs e)
     {
         var viewModel = DataContext as BaseProgressViewModel;

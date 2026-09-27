@@ -1,7 +1,7 @@
+using CodeJanitor.Properties;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A static helper class for working with the UI hierarchies.
 /// </summary>
-
 internal static class UIHierarchyHelper
 {
     /// <summary>
@@ -19,7 +18,6 @@ internal static class UIHierarchyHelper
     /// selections to change.
     /// </summary>
     /// <param name="parentItem">The parent item to collapse from.</param>
-
     internal static void CollapseRecursively(UIHierarchyItem parentItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -56,7 +54,6 @@ internal static class UIHierarchyHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>The enumerable set of selected UI hierarchy items.</returns>
-
     internal static IEnumerable<UIHierarchyItem> GetSelectedUIHierarchyItems(CodeJanitorPackage package)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -71,7 +68,6 @@ internal static class UIHierarchyHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>The solution explorer.</returns>
-
     internal static UIHierarchy GetSolutionExplorer(CodeJanitorPackage package)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -84,7 +80,6 @@ internal static class UIHierarchyHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>The top level (solution) UI hierarchy item, otherwise null.</returns>
-
     internal static UIHierarchyItem GetTopUIHierarchyItem(CodeJanitorPackage package)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -101,7 +96,6 @@ internal static class UIHierarchyHelper
     /// </summary>
     /// <param name="parentItem">The parent item.</param>
     /// <returns>True if there are expanded children, false otherwise.</returns>
-
     internal static bool HasExpandedChildren(UIHierarchyItem parentItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -120,7 +114,6 @@ internal static class UIHierarchyHelper
     /// </summary>
     /// <param name="parentItem">The parent item.</param>
     /// <returns>True if the item should be collapsed, otherwise false.</returns>
-
     private static bool ShouldCollapseItem(UIHierarchyItem parentItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

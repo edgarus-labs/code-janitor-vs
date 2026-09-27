@@ -5,13 +5,11 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// A collection of attached properties related to drag and drop behavior.
 /// </summary>
-
 public static class DragDropAttachedProperties
 {
     /// <summary>
     /// The dependency property definition for the IsBeingDragged attached property.
     /// </summary>
-
     public static DependencyProperty IsBeingDraggedProperty = DependencyProperty.RegisterAttached(
         "IsBeingDragged", typeof(bool), typeof(DragDropAttachedProperties));
 
@@ -20,7 +18,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-
     public static bool GetIsBeingDragged(UIElement target)
     {
         return (bool)target.GetValue(IsBeingDraggedProperty);
@@ -31,7 +28,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-
     public static void SetIsBeingDragged(UIElement target, bool value)
     {
         target.SetValue(IsBeingDraggedProperty, value);
@@ -40,7 +36,6 @@ public static class DragDropAttachedProperties
     /// <summary>
     /// The dependency property definition for the IsDropAboveTarget attached property.
     /// </summary>
-
     public static DependencyProperty IsDropAboveTargetProperty = DependencyProperty.RegisterAttached(
         "IsDropAboveTarget", typeof(bool), typeof(DragDropAttachedProperties));
 
@@ -49,7 +44,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-
     public static bool GetIsDropAboveTarget(UIElement target)
     {
         return (bool)target.GetValue(IsDropAboveTargetProperty);
@@ -60,7 +54,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-
     public static void SetIsDropAboveTarget(UIElement target, bool value)
     {
         target.SetValue(IsDropAboveTargetProperty, value);
@@ -69,7 +62,6 @@ public static class DragDropAttachedProperties
     /// <summary>
     /// The dependency property definition for the IsDropBelowTarget attached property.
     /// </summary>
-
     public static DependencyProperty IsDropBelowTargetProperty = DependencyProperty.RegisterAttached(
         "IsDropBelowTarget", typeof(bool), typeof(DragDropAttachedProperties));
 
@@ -78,7 +70,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-
     public static bool GetIsDropBelowTarget(UIElement target)
     {
         return (bool)target.GetValue(IsDropBelowTargetProperty);
@@ -89,7 +80,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-
     public static void SetIsDropBelowTarget(UIElement target, bool value)
     {
         target.SetValue(IsDropBelowTargetProperty, value);
@@ -98,7 +88,6 @@ public static class DragDropAttachedProperties
     /// <summary>
     /// The dependency property definition for the IsDropOnTarget attached property.
     /// </summary>
-
     public static DependencyProperty IsDropOnTargetProperty = DependencyProperty.RegisterAttached(
         "IsDropOnTarget", typeof(bool), typeof(DragDropAttachedProperties));
 
@@ -107,7 +96,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-
     public static bool GetIsDropOnTarget(UIElement target)
     {
         return (bool)target.GetValue(IsDropOnTargetProperty);
@@ -118,7 +106,6 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-
     public static void SetIsDropOnTarget(UIElement target, bool value)
     {
         target.SetValue(IsDropOnTargetProperty, value);

@@ -1,9 +1,9 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,6 @@ namespace CodeJanitor.Logic.Reorganizing;
 /// <summary>
 /// A class for encapsulating the logic of generating regions.
 /// </summary>
-
 internal sealed class GenerateRegionLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -31,7 +30,6 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="GenerateRegionLogic" /> class.</returns>
-
     internal static GenerateRegionLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new GenerateRegionLogic(package));
@@ -41,7 +39,6 @@ internal sealed class GenerateRegionLogic
     /// Initializes a new instance of the <see cref="GenerateRegionLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private GenerateRegionLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -59,7 +56,6 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>An enumerable set of regions to be removed.</returns>
-
     public IEnumerable<CodeItemRegion> GetRegionsToRemove(IEnumerable<BaseCodeItem> codeItems)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -82,7 +78,6 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <param name="insertPoint">The default insertion point.</param>
-
     public void InsertRegions(IEnumerable<BaseCodeItem> codeItems, EditPoint insertPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -161,7 +156,6 @@ internal sealed class GenerateRegionLogic
     /// <param name="region">The region to start.</param>
     /// <param name="startPoint">The starting point.</param>
     /// <returns>The updated cursor.</returns>
-
     public EditPoint InsertRegionTag(CodeItemRegion region, EditPoint startPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -196,7 +190,6 @@ internal sealed class GenerateRegionLogic
     /// <param name="region">The region to end.</param>
     /// <param name="endPoint">The end point.</param>
     /// <returns>The updated cursor.</returns>
-
     public EditPoint InsertEndRegionTag(CodeItemRegion region, EditPoint endPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -244,7 +237,6 @@ internal sealed class GenerateRegionLogic
     /// <param name="codeItem">The code item.</param>
     /// <param name="region">The region.</param>
     /// <returns>True if the specified code item belongs in the specified region, otherwise false.</returns>
-
     private bool CodeItemBelongsInRegion(BaseCodeItem codeItem, CodeItemRegion region)
     {
         return codeItem is not null && _regionComparerByName.Equals(region, ComposeRegionForCodeItem(codeItem));
@@ -255,7 +247,6 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>An enumerable set of regions that should be present.</returns>
-
     private IEnumerable<CodeItemRegion> ComposeRegionsList(IEnumerable<BaseCodeItem> codeItems)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -269,7 +260,6 @@ internal sealed class GenerateRegionLogic
     /// Composes a list of all possible regions.
     /// </summary>
     /// <returns>An enumerable set of regions.</returns>
-
     private IEnumerable<CodeItemRegion> ComposeAllPossibleRegionsList()
     {
         var regions = new List<CodeItemRegion>();
@@ -295,7 +285,6 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>An enumerable set of regions.</returns>
-
     private IEnumerable<CodeItemRegion> ComposePresentTypesRegionsList(IEnumerable<BaseCodeItem> codeItems)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -331,7 +320,6 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A region.</returns>
-
     private CodeItemRegion ComposeRegionForCodeItem(BaseCodeItem codeItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

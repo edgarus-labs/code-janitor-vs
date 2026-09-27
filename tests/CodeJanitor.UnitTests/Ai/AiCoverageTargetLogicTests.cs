@@ -1,10 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Ai;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CodeJanitor.Logic.Ai;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Ai;
 
@@ -42,7 +41,7 @@ public sealed class AiCoverageTargetLogicTests
         public Task<string> GetChatCompletionContentAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default, int maxTokens = 2048)
         {
             CallCount++;
-            var response = ResponseProvider?.Invoke(systemPrompt, userPrompt)
+            string response = ResponseProvider?.Invoke(systemPrompt, userPrompt)
                 ?? "```csharp\npublic class Tests { [Fact] public void Test1() {} }\n```";
 
             return Task.FromResult(response);
@@ -53,8 +52,8 @@ public sealed class AiCoverageTargetLogicTests
     public void RoslynCodeBranchAnalyzer_DiscoversIfElseAndGuardClauses()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
-        var code = @"
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
+        string code = @"
 public string FormatName(string firstName, string lastName)
 {
     if (firstName == null) throw new ArgumentNullException(nameof(firstName));
@@ -63,20 +62,20 @@ public string FormatName(string firstName, string lastName)
 }";
 
         // Act
-        var branches = analyzer.AnalyzeBranches(code);
+        IReadOnlyList<CodeBranchDescriptor> branches = analyzer.AnalyzeBranches(code);
 
         // Assert
-        Assert.IsTrue(branches.Count >= 3, $"Expected at least 3 branches, found {branches.Count}");
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.GuardClause || b.BranchType == CodeBranchType.ThrowException), "Should detect guard/throw branch");
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.ElseBranch), "Should detect else branch");
+        Assert.IsGreaterThanOrEqualTo(3, branches.Count, $"Expected at least 3 branches, found {branches.Count}");
+        Assert.Contains(b => b.BranchType is CodeBranchType.GuardClause or CodeBranchType.ThrowException, branches, "Should detect guard/throw branch");
+        Assert.Contains(b => b.BranchType == CodeBranchType.ElseBranch, branches, "Should detect else branch");
     }
 
     [TestMethod]
     public void RoslynCodeBranchAnalyzer_DiscoversSwitchAndTernaryAndNullCoalesce()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
-        var code = @"
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
+        string code = @"
 public int Calculate(int? value, string mode)
 {
     var val = value ?? 0;
@@ -90,32 +89,28 @@ public int Calculate(int? value, string mode)
 }";
 
         // Act
-        var branches = analyzer.AnalyzeBranches(code);
+        IReadOnlyList<CodeBranchDescriptor> branches = analyzer.AnalyzeBranches(code);
 
         // Assert
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.NullCoalescing), "Should find null-coalescing ??");
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.Ternary), "Should find ternary ? :");
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.SwitchCase), "Should find switch cases");
+        Assert.Contains(b => b.BranchType == CodeBranchType.NullCoalescing, branches, "Should find null-coalescing ??");
+        Assert.Contains(b => b.BranchType == CodeBranchType.Ternary, branches, "Should find ternary ? :");
+        Assert.Contains(b => b.BranchType == CodeBranchType.SwitchCase, branches, "Should find switch cases");
     }
 
     [TestMethod]
     public void BranchCoverageEvaluator_EvaluatesCoveragePercentagesAccurately()
     {
         // Arrange
-        var evaluator = new BranchCoverageEvaluator();
-        var branches = new List<CodeBranchDescriptor>
-        {
-            new CodeBranchDescriptor { Id = "B1", BranchType = CodeBranchType.IfBranch, Description = "Happy path", ConditionSnippet = "valid" },
-            new CodeBranchDescriptor { Id = "B2", BranchType = CodeBranchType.GuardClause, Description = "Null check", ConditionSnippet = "arg is null" }
-        };
+        BranchCoverageEvaluator evaluator = new BranchCoverageEvaluator();
+        List<CodeBranchDescriptor> branches = [new CodeBranchDescriptor { Id = "B1", BranchType = CodeBranchType.IfBranch, Description = "Happy path", ConditionSnippet = "valid" }, new CodeBranchDescriptor { Id = "B2", BranchType = CodeBranchType.GuardClause, Description = "Null check", ConditionSnippet = "arg is null" }];
 
         // Act - Empty test code
-        var emptyResult = evaluator.Evaluate(branches, "");
+        CoverageEvaluationResult emptyResult = evaluator.Evaluate(branches, "");
         Assert.AreEqual(0, emptyResult.EstimatedCoveragePercentage);
-        Assert.AreEqual(2, emptyResult.UncoveredBranches.Count);
+        Assert.HasCount(2, emptyResult.UncoveredBranches);
 
         // Act - Tests covering null check and happy path
-        var testCode = @"
+        string testCode = @"
 public class SampleTests
 {
     [Fact]
@@ -124,21 +119,21 @@ public class SampleTests
     [Fact]
     public void Method_WhenNull_ThrowsArgumentNullException() { }
 }";
-        var coveredResult = evaluator.Evaluate(branches, testCode);
+        CoverageEvaluationResult coveredResult = evaluator.Evaluate(branches, testCode);
 
         // Assert
         Assert.AreEqual(100, coveredResult.EstimatedCoveragePercentage);
         Assert.AreEqual(2, coveredResult.CoveredBranchesCount);
-        Assert.AreEqual(0, coveredResult.UncoveredBranches.Count);
+        Assert.IsEmpty(coveredResult.UncoveredBranches);
     }
 
     [TestMethod]
     public async Task AiCoverageTargetLogic_IterativelyGeneratesUntilTargetCoverageIsReached()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
-        var evaluator = new BranchCoverageEvaluator();
-        var fakeClient = new FakeAiChatClient();
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
+        BranchCoverageEvaluator evaluator = new BranchCoverageEvaluator();
+        FakeAiChatClient fakeClient = new FakeAiChatClient();
 
         int callNum = 0;
         fakeClient.ResponseProvider = (sys, user) =>
@@ -160,11 +155,11 @@ public class Tests
 ```";
         };
 
-        var logic = new AiCoverageTargetLogic(fakeClient, analyzer, evaluator);
-        var reports = new List<AiCoverageProgressReport>();
-        var progress = new Progress<AiCoverageProgressReport>(r => reports.Add(r));
+        AiCoverageTargetLogic logic = new AiCoverageTargetLogic(fakeClient, analyzer, evaluator);
+        List<AiCoverageProgressReport> reports = [];
+        Progress<AiCoverageProgressReport> progress = new Progress<AiCoverageProgressReport>(reports.Add);
 
-        var methodCode = @"
+        string methodCode = @"
 public int Calculate(string input)
 {
     if (input == null) throw new ArgumentNullException(nameof(input));
@@ -172,7 +167,7 @@ public int Calculate(string input)
 }";
 
         // Act
-        var result = await logic.GenerateTestsToTargetCoverageAsync(
+        AiCoverageResult result = await logic.GenerateTestsToTargetCoverageAsync(
             targetName: "Calculate",
             codeSnippet: methodCode,
             targetCoveragePct: 90,
@@ -185,17 +180,17 @@ public int Calculate(string input)
         // Assert
         Assert.IsTrue(result.Success);
         Assert.IsTrue(result.TargetMet);
-        Assert.IsTrue(result.AchievedCoveragePercentage >= 90);
-        Assert.IsTrue(fakeClient.CallCount >= 2, $"Expected at least 2 AI iterations, took {fakeClient.CallCount}");
-        Assert.IsTrue(result.GeneratedTestCode.Contains("Calculate_WhenNull_ThrowsException"));
-        Assert.IsTrue(result.CoverageSummaryReport.Contains("Code Coverage Test Report"));
+        Assert.IsGreaterThanOrEqualTo(90, result.AchievedCoveragePercentage);
+        Assert.IsGreaterThanOrEqualTo(2, fakeClient.CallCount, $"Expected at least 2 AI iterations, took {fakeClient.CallCount}");
+        Assert.Contains("Calculate_WhenNull_ThrowsException", result.GeneratedTestCode);
+        Assert.Contains("Code Coverage Test Report", result.CoverageSummaryReport);
     }
 
     [TestMethod]
     public async Task AiCoverageTargetLogic_WhenCanceled_ThrowsOperationCanceledExceptionInstantly()
     {
         // Arrange
-        var fakeClient = new FakeAiChatClient
+        FakeAiChatClient fakeClient = new FakeAiChatClient
         {
             ResponseProvider = (sys, user) =>
             {
@@ -205,8 +200,8 @@ public int Calculate(string input)
             }
         };
 
-        var logic = new AiCoverageTargetLogic(fakeClient, new RoslynCodeBranchAnalyzer(), new BranchCoverageEvaluator());
-        using var cts = new CancellationTokenSource();
+        AiCoverageTargetLogic logic = new AiCoverageTargetLogic(fakeClient, new RoslynCodeBranchAnalyzer(), new BranchCoverageEvaluator());
+        using CancellationTokenSource cts = new CancellationTokenSource();
         cts.Cancel(); // Pre-cancel
 
         // Act & Assert
@@ -233,8 +228,8 @@ public int Calculate(string input)
     public void RoslynCodeBranchAnalyzer_SwitchExpressionAndCatchClauses_DiscoversAllBranches()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
-        var code = @"
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
+        string code = @"
 public string Process(int state)
 {
     try
@@ -253,26 +248,26 @@ public string Process(int state)
 }";
 
         // Act
-        var branches = analyzer.AnalyzeBranches(code);
+        IReadOnlyList<CodeBranchDescriptor> branches = analyzer.AnalyzeBranches(code);
 
         // Assert
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.SwitchCase), "Should find switch expression arms");
-        Assert.IsTrue(branches.Any(b => b.BranchType == CodeBranchType.CatchBlock), "Should find catch clause");
+        Assert.Contains(b => b.BranchType == CodeBranchType.SwitchCase, branches, "Should find switch expression arms");
+        Assert.Contains(b => b.BranchType == CodeBranchType.CatchBlock, branches, "Should find catch clause");
     }
 
     [TestMethod]
     public void RoslynCodeBranchAnalyzer_EmptyOrNoBranches_ReturnsSensibleDefaults()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
 
         // Act & Assert - Empty string
-        var emptyBranches = analyzer.AnalyzeBranches("");
-        Assert.AreEqual(0, emptyBranches.Count);
+        IReadOnlyList<CodeBranchDescriptor> emptyBranches = analyzer.AnalyzeBranches("");
+        Assert.IsEmpty(emptyBranches);
 
         // Act & Assert - Straight linear method
-        var linearBranches = analyzer.AnalyzeBranches("public void Log() { Console.WriteLine(\"hi\"); }");
-        Assert.AreEqual(1, linearBranches.Count);
+        IReadOnlyList<CodeBranchDescriptor> linearBranches = analyzer.AnalyzeBranches("public void Log() { Console.WriteLine(\"hi\"); }");
+        Assert.HasCount(1, linearBranches);
         Assert.AreEqual("B1", linearBranches[0].Id);
     }
 
@@ -280,21 +275,16 @@ public string Process(int state)
     public void BranchCoverageEvaluator_EdgeCases_HandlesVariousScenarios()
     {
         // Arrange
-        var evaluator = new BranchCoverageEvaluator();
+        BranchCoverageEvaluator evaluator = new BranchCoverageEvaluator();
 
         // Null branches
-        var nullResult = evaluator.Evaluate(null, "public void Test() {}");
+        CoverageEvaluationResult nullResult = evaluator.Evaluate(null, "public void Test() {}");
         Assert.AreEqual(100, nullResult.EstimatedCoveragePercentage);
 
         // Branches with Switch, Else, Catch
-        var branches = new List<CodeBranchDescriptor>
-        {
-            new CodeBranchDescriptor { Id = "B1", BranchType = CodeBranchType.SwitchCase, Description = "case \"Active\"", ConditionSnippet = "case \"Active\":" },
-            new CodeBranchDescriptor { Id = "B2", BranchType = CodeBranchType.ElseBranch, Description = "Else branch", ConditionSnippet = "!isActive" },
-            new CodeBranchDescriptor { Id = "B3", BranchType = CodeBranchType.CatchBlock, Description = "catch (IOException)", ConditionSnippet = "IOException" }
-        };
+        List<CodeBranchDescriptor> branches = [new CodeBranchDescriptor { Id = "B1", BranchType = CodeBranchType.SwitchCase, Description = "case \"Active\"", ConditionSnippet = "case \"Active\":" }, new CodeBranchDescriptor { Id = "B2", BranchType = CodeBranchType.ElseBranch, Description = "Else branch", ConditionSnippet = "!isActive" }, new CodeBranchDescriptor { Id = "B3", BranchType = CodeBranchType.CatchBlock, Description = "catch (IOException)", ConditionSnippet = "IOException" }];
 
-        var tests = @"
+        string tests = @"
 public class ServiceTests
 {
     [Fact]
@@ -308,7 +298,7 @@ public class ServiceTests
 }";
 
         // Act
-        var result = evaluator.Evaluate(branches, tests);
+        CoverageEvaluationResult result = evaluator.Evaluate(branches, tests);
 
         // Assert
         Assert.AreEqual(3, result.CoveredBranchesCount);
@@ -319,15 +309,15 @@ public class ServiceTests
     public async Task AiCoverageTargetLogic_WhenMaxIterationsReached_ReportsTargetNotMet()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
-        var evaluator = new BranchCoverageEvaluator();
-        var fakeClient = new FakeAiChatClient
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
+        BranchCoverageEvaluator evaluator = new BranchCoverageEvaluator();
+        FakeAiChatClient fakeClient = new FakeAiChatClient
         {
             ResponseProvider = (sys, user) => "```csharp\npublic class Tests { [Fact] public void TestOnlyOnePath() {} }\n```"
         };
 
-        var logic = new AiCoverageTargetLogic(fakeClient, analyzer, evaluator);
-        var code = @"
+        AiCoverageTargetLogic logic = new AiCoverageTargetLogic(fakeClient, analyzer, evaluator);
+        string code = @"
 public int Check(int a, int b)
 {
     if (a < 0) throw new ArgumentOutOfRangeException();
@@ -337,39 +327,41 @@ public int Check(int a, int b)
 }";
 
         // Act
-        var result = await logic.GenerateTestsToTargetCoverageAsync(
+        AiCoverageResult result = await logic.GenerateTestsToTargetCoverageAsync(
             "Check",
             code,
             targetCoveragePct: 100,
             maxIterations: 2,
             testFramework: "xUnit",
-            mockingLib: "Moq");
+            mockingLib: "Moq", cancellationToken: TestContext.CancellationToken);
 
         // Assert
         Assert.IsTrue(result.Success);
         Assert.IsFalse(result.TargetMet, "Should not meet 100% target coverage when test only covers one path");
         Assert.AreEqual(2, result.IterationsUsed);
-        Assert.IsTrue(result.CoverageSummaryReport.Contains("Max Iterations Reached"));
+        Assert.Contains("Max Iterations Reached", result.CoverageSummaryReport);
     }
 
     [TestMethod]
     public async Task AiCoverageTargetLogic_Validation_HandlesNullCodeAndUnconfiguredClient()
     {
         // Arrange
-        var analyzer = new RoslynCodeBranchAnalyzer();
-        var evaluator = new BranchCoverageEvaluator();
-        var fakeClient = new FakeAiChatClient();
-        var logic = new AiCoverageTargetLogic(fakeClient, analyzer, evaluator);
+        RoslynCodeBranchAnalyzer analyzer = new RoslynCodeBranchAnalyzer();
+        BranchCoverageEvaluator evaluator = new BranchCoverageEvaluator();
+        FakeAiChatClient fakeClient = new FakeAiChatClient();
+        AiCoverageTargetLogic logic = new AiCoverageTargetLogic(fakeClient, analyzer, evaluator);
 
         // Act - Null code
-        var nullCodeResult = await logic.GenerateTestsToTargetCoverageAsync("Test", null, 90, 3, "xUnit", "Moq");
+        AiCoverageResult nullCodeResult = await logic.GenerateTestsToTargetCoverageAsync("Test", null, 90, 3, "xUnit", "Moq", cancellationToken: TestContext.CancellationToken);
         Assert.IsFalse(nullCodeResult.Success);
-        Assert.IsTrue(nullCodeResult.ErrorMessage.Contains("No code provided"));
+        Assert.Contains("No code provided", nullCodeResult.ErrorMessage);
 
         // Act - Unconfigured client
-        var unconfiguredLogic = new AiCoverageTargetLogic(null, analyzer, evaluator);
-        var unconfiguredResult = await unconfiguredLogic.GenerateTestsToTargetCoverageAsync("Test", "public void Foo() {}", 90, 3, "xUnit", "Moq");
+        AiCoverageTargetLogic unconfiguredLogic = new AiCoverageTargetLogic(null, analyzer, evaluator);
+        AiCoverageResult unconfiguredResult = await unconfiguredLogic.GenerateTestsToTargetCoverageAsync("Test", "public void Foo() {}", 90, 3, "xUnit", "Moq", cancellationToken: TestContext.CancellationToken);
         Assert.IsFalse(unconfiguredResult.Success);
-        Assert.IsTrue(unconfiguredResult.ErrorMessage.Contains("not configured"));
+        Assert.Contains("not configured", unconfiguredResult.ErrorMessage);
     }
+
+    public TestContext TestContext { get; set; }
 }

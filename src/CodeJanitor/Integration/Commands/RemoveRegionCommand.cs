@@ -1,10 +1,9 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model;
 using CodeJanitor.Properties;
-using System.Threading.Tasks;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -12,7 +11,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for removing region(s).
 /// </summary>
-
 internal sealed class RemoveRegionCommand : BaseCommand
 {
     private readonly CodeModelHelper _codeModelHelper;
@@ -22,7 +20,6 @@ internal sealed class RemoveRegionCommand : BaseCommand
     /// Initializes a new instance of the <see cref="RemoveRegionCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal RemoveRegionCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorRemoveRegion)
     {
@@ -33,7 +30,6 @@ internal sealed class RemoveRegionCommand : BaseCommand
     /// <summary>
     /// An enumeration of region command scopes.
     /// </summary>
-
     private enum RegionCommandScope
     {
         None,
@@ -57,7 +53,6 @@ internal sealed class RemoveRegionCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new RemoveRegionCommand(package);
@@ -67,7 +62,6 @@ internal sealed class RemoveRegionCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -94,7 +88,6 @@ internal sealed class RemoveRegionCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -121,7 +114,6 @@ internal sealed class RemoveRegionCommand : BaseCommand
     /// Gets the region command scope based on the current document and selection conditions.
     /// </summary>
     /// <returns>The scope that should be used for the region command.</returns>
-
     private RegionCommandScope GetRegionCommandScope()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

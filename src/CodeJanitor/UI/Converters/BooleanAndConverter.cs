@@ -8,7 +8,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// A converter that performs a logical AND on all values.
 /// </summary>
-
 public sealed class BooleanAndConverter : IMultiValueConverter
 {
     /// <summary>
@@ -40,7 +39,6 @@ public sealed class BooleanAndConverter : IMultiValueConverter
     /// does not transfer the value or use the <see
     /// cref="P:System.Windows.Data.BindingBase.FallbackValue" /> or the default value.
     /// </returns>
-
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values is null || values.Length < 1) return null;
@@ -61,7 +59,6 @@ public sealed class BooleanAndConverter : IMultiValueConverter
     /// <returns>
     /// An array of values that have been converted from the target value back to the source values.
     /// </returns>
-
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

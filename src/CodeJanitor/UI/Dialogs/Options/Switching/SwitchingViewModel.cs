@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Switching;
 /// <summary>
 /// The view model for switching options.
 /// </summary>
-
 public sealed class SwitchingViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class SwitchingViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public SwitchingViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -31,7 +29,6 @@ public sealed class SwitchingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the expression for related file extensions.
     /// </summary>
-
     public string RelatedFileExtensionsExpression
     {
         get { return GetPropertyValue<string>(); }

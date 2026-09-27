@@ -1,5 +1,5 @@
-using EnvDTE;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE;
 using System;
 using System.Globalization;
 using System.Windows.Data;
@@ -10,7 +10,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// Converts a code item into an image.
 /// </summary>
-
 public sealed class CodeItemToImageConverter : IValueConverter
 {
     /// <summary>
@@ -36,7 +35,6 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var codeItem = value as BaseCodeItem;
@@ -63,7 +61,6 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
@@ -74,7 +71,6 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>The built URI, otherwise null.</returns>
-
     private string BuildImageURIString(BaseCodeItem codeItem)
     {
         string typeComponent = GetTypeComponentString(codeItem);
@@ -92,7 +88,6 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>The type component of the partial image name, otherwise null.</returns>
-
     private static string GetTypeComponentString(BaseCodeItem codeItem)
     {
         switch (codeItem.Kind)
@@ -124,7 +119,6 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>The access string, otherwise an empty string.</returns>
-
     private static string GetAccessString(BaseCodeItemElement codeItem)
     {
         if (codeItem is null) return string.Empty;

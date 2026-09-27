@@ -6,7 +6,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A helper for comparing code items by name.
 /// </summary>
-
 public sealed class CodeItemNameComparer : Comparer<BaseCodeItem>
 {
     /// <summary>
@@ -20,7 +19,6 @@ public sealed class CodeItemNameComparer : Comparer<BaseCodeItem>
     /// Zero: <paramref name="x" /> equals <paramref name="y" />.
     /// Greater than zero: <paramref name="x" /> is greater than <paramref name="y" />.
     /// </returns>
-
     public override int Compare(BaseCodeItem x, BaseCodeItem y)
     {
         int nameComparison = x.Name.CompareTo(y.Name);

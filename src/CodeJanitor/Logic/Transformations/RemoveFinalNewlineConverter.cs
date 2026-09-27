@@ -9,14 +9,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// any blank (empty or whitespace-only) lines after it. Whitespace at the end of the last line with content is kept;
 /// removing it is the job of <see cref="RemoveTrailingWhitespaceConverter" />.
 /// </remarks>
-
 public sealed class RemoveFinalNewlineConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Remove final newline";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Convert(source);
@@ -25,7 +23,6 @@ public sealed class RemoveFinalNewlineConverter : ISourceTransformation
     /// <summary>
     /// Removes the line breaks, and the blank lines between them, at the end of the given source.
     /// </summary>
-
     public string Convert(string source)
     {
         if (string.IsNullOrEmpty(source))

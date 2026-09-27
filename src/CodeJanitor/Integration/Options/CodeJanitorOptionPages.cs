@@ -1,13 +1,6 @@
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
-using CodeJanitor.UI.Dialogs.Options.Cleaning;
-using CodeJanitor.UI.Dialogs.Options.Digging;
-using CodeJanitor.UI.Dialogs.Options.Formatting;
 using CodeJanitor.UI.Dialogs.Options.General;
-using CodeJanitor.UI.Dialogs.Options.Navigation;
-using CodeJanitor.UI.Dialogs.Options.Progressing;
-using CodeJanitor.UI.Dialogs.Options.Reorganizing;
-using CodeJanitor.UI.Dialogs.Options.ThirdParty;
 using System.Runtime.InteropServices;
 
 // Each class in this file is a concrete VS Options page for one Code Janitor settings section.
@@ -29,7 +22,6 @@ public sealed class CodeJanitorGeneralPage : CodeJanitorSectionDialogPage
     /// <param name="package">The package.</param>
     /// <param name="settings">The settings.</param>
     /// <returns>A OptionsPageViewModel value produced by this method.</returns>
-
     protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
             new GeneralParentViewModel(package, settings);
 }

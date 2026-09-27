@@ -1,6 +1,6 @@
-using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE;
 using System.Threading;
 
 namespace CodeJanitor.Model;
@@ -9,7 +9,6 @@ namespace CodeJanitor.Model;
 /// This class encapsulates the representation of a document, including its code items and
 /// current state.
 /// </summary>
-
 internal sealed class CodeModel
 {
     private bool _isBuilding;
@@ -19,7 +18,6 @@ internal sealed class CodeModel
     /// Initializes a new instance of the <see cref="CodeModel" /> class.
     /// </summary>
     /// <param name="document">The document.</param>
-
     internal CodeModel(Document document)
     {
         CodeItems = new SetCodeItems();
@@ -40,7 +38,6 @@ internal sealed class CodeModel
     /// <summary>
     /// Gets or sets a flag indicating if this model is currently being built.
     /// </summary>
-
     internal bool IsBuilding
     {
         get
@@ -74,7 +71,6 @@ internal sealed class CodeModel
     /// <summary>
     /// Gets or sets a flag indicating if this model is stale.
     /// </summary>
-
     internal bool IsStale
     {
         get

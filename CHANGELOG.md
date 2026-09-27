@@ -42,6 +42,10 @@ This file records changes made in Code Janitor after the project became an indep
 - Options notes for settings overridden by `.editorconfig`: under each affected Cleaning option, a note
 	names the `.editorconfig` key and file that decide it for the open solution (evaluated for a C# file in
 	the solution directory). No note is shown when no solution is open or the key is ignored.
+- Options controls whose setting the open solution's `.editorconfig` overrides are disabled (the same
+	controls that show the override note).
+- Blank lines between a documentation comment (`///` in C#, `'''` in VB) and the declaration it documents
+	are always removed.
 
 ### Changed
 
@@ -56,6 +60,14 @@ This file records changes made in Code Janitor after the project became an indep
 	closed files, with incorrect section matching and file precedence. Closed-file cleanup applies the resolved
 	settings to each kind of explicit access modifier, blank-line padding and single-line method/accessor update,
 	not only to the decision whether the step runs, so it gives the same result as editor cleanup.
+- Closed C# files are no longer opened in an invisible editor for "Remove and Sort Usings" and "Format
+	Document": their Roslyn equivalents run on the closed file with the same settings (including the
+	auto-save skip and the using statements to reinsert). A closed file whose cleanup changes only that
+	file is written straight to disk; a file opened meanwhile, read-only or under source control checkout
+	goes through Visual Studio as before. Such changes are logged in the output pane and are not counted
+	as diagnostic fixes in the cleanup summary.
+- Splitting top-level types into their own files now also moves structs (and record structs); classes,
+	interfaces, records, enums and delegates were already split. Partial types stay in place.
 
 ### Removed
 
@@ -67,6 +79,9 @@ This file records changes made in Code Janitor after the project became an indep
 
 ### Fixed
 
+- Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
+	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
+- Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.
 - Fixed "Seal Classes" cleanup breaking compilation on classes declaring `virtual` members (`CS0549`), classes used as generic type constraints (`where T : ThatType`, `CS0701`), or classes with subclasses across the solution (`CS0509`). Added solution-wide disqualified type discovery before applying class sealing.
 - Fixed "Make Fields Readonly" cleanup adding `readonly` to private fields mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)` and `Interlocked.Decrement(ref field)`) or writes inside nested types, or fields whose address is taken directly (`&field`, `CS0192`).
 - Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.

@@ -3,7 +3,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// <summary>
 /// Applies C# field mutability rules to source text (see ADR-0007).
 /// </summary>
-
 public interface IFieldMutabilityConverter
 {
     /// <summary>
@@ -14,6 +13,5 @@ public interface IFieldMutabilityConverter
     /// </summary>
     /// <param name="source">The full C# source text.</param>
     /// <returns>The transformed source, or the original when nothing applies.</returns>
-
     string AddReadonlyWhenSafe(string source);
 }

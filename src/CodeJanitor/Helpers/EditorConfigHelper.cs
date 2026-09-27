@@ -35,7 +35,6 @@ internal static class EditorConfigHelper
     /// </summary>
     /// <param name="filePath">The source file path.</param>
     /// <returns>The applicable options, or an empty dictionary when no .editorconfig applies.</returns>
-
     internal static IReadOnlyDictionary<string, string> LoadOptions(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -64,7 +63,6 @@ internal static class EditorConfigHelper
     /// <param name="filePath">The source file path.</param>
     /// <param name="key">The lower-cased option name.</param>
     /// <returns>The full path of the defining .editorconfig, or null when no applicable .editorconfig defines the option.</returns>
-
     internal static string FindDefiningConfigPath(string filePath, string key)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -98,7 +96,6 @@ internal static class EditorConfigHelper
     /// <param name="configs">The parsed configs.</param>
     /// <param name="fullPath">The full source file path.</param>
     /// <returns>The applicable options, or an empty dictionary when there are no configs.</returns>
-
     private static IReadOnlyDictionary<string, string> MergeOptions(IReadOnlyCollection<AnalyzerConfig> configs, string fullPath)
     {
         return configs.Count == 0
@@ -113,7 +110,6 @@ internal static class EditorConfigHelper
     /// </summary>
     /// <param name="fullPath">The full source file path.</param>
     /// <returns>The config paths and parsed configs, nearest first.</returns>
-
     private static List<(string Path, AnalyzerConfig Config)> LoadChain(string fullPath)
     {
         var chain = new List<(string Path, AnalyzerConfig Config)>();
@@ -137,7 +133,6 @@ internal static class EditorConfigHelper
     /// </summary>
     /// <param name="configPath">The full .editorconfig path.</param>
     /// <returns>The parsed config, or null when the file does not exist or cannot be read.</returns>
-
     private static AnalyzerConfig TryLoadConfig(string configPath)
     {
         try
@@ -157,6 +152,7 @@ internal static class EditorConfigHelper
 
             var config = AnalyzerConfig.Parse(File.ReadAllText(configPath), configPath);
             ParsedConfigs[configPath] = (file.LastWriteTimeUtc, file.Length, config);
+
             return config;
         }
         catch (IOException)

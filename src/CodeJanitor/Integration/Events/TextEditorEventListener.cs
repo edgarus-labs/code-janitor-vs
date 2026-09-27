@@ -1,6 +1,6 @@
+using CodeJanitor.Helpers;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
 using System;
 using Task = System.Threading.Tasks.Task;
 
@@ -9,14 +9,12 @@ namespace CodeJanitor.Integration.Events;
 /// <summary>
 /// A class that encapsulates listening for text editor events.
 /// </summary>
-
 internal sealed class TextEditorEventListener : BaseEventListener
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TextEditorEventListener" /> class.
     /// </summary>
     /// <param name="package">The package hosting the event listener.</param>
-
     private TextEditorEventListener(CodeJanitorPackage package)
         : base(package)
     {
@@ -28,7 +26,6 @@ internal sealed class TextEditorEventListener : BaseEventListener
     /// <summary>
     /// An event raised when a line has been changed.
     /// </summary>
-
     internal event Action<Document> OnLineChanged;
 
     /// <summary>
@@ -46,7 +43,6 @@ internal sealed class TextEditorEventListener : BaseEventListener
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new TextEditorEventListener(package);
@@ -56,7 +52,6 @@ internal sealed class TextEditorEventListener : BaseEventListener
     /// <summary>
     /// Registers event handlers with the IDE.
     /// </summary>
-
     protected override void RegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -66,7 +61,6 @@ internal sealed class TextEditorEventListener : BaseEventListener
     /// <summary>
     /// Unregisters event handlers with the IDE.
     /// </summary>
-
     protected override void UnRegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -79,7 +73,6 @@ internal sealed class TextEditorEventListener : BaseEventListener
     /// <param name="startPoint">The starting point of the change.</param>
     /// <param name="endPoint">The ending point of the change.</param>
     /// <param name="hint">A hint as to the type of change that has occurred.</param>
-
     private void TextEditorEvents_LineChanged(TextPoint startPoint, TextPoint endPoint, int hint)
     {
         var textDocument = startPoint?.Parent;

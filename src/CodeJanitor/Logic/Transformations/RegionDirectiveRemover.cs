@@ -5,7 +5,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// <summary>
 /// Removes C# #region and #endregion directive lines while preserving other preprocessor directives.
 /// </summary>
-
 public sealed class RegionDirectiveRemover : ISourceTransformation
 {
     private static readonly Regex RegionDirectiveRegex = new Regex(
@@ -22,7 +21,6 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))

@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -47,9 +47,7 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
         /// <summary>
         /// Overrides the visitor for object creation expressions to replace string literal arguments that match valid identifiers with `nameof()` expressions when the created type is in a configured set of exception types, returning the modified node if any substitutions were made.
         /// </summary>
-
         /// <param name="node">The node.</param>
-
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitObjectCreationExpression(ObjectCreationExpressionSyntax node)
         {
@@ -111,7 +109,6 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
         }
 
         /// <summary>
-
         /// Walks up the syntax tree from the given node and collects parameter identifier names from each enclosing method, constructor, local function, or lambda into a case-sensitive HashSet, stopping when the root is reached.
         /// </summary>
         /// <param name="node">The node.</param>

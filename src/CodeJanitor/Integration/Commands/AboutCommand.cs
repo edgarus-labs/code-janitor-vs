@@ -6,14 +6,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for launching the CodeJanitor about window.
 /// </summary>
-
 internal sealed class AboutCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private AboutCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorAbout)
     {
@@ -29,7 +27,6 @@ internal sealed class AboutCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new AboutCommand(package);
@@ -39,7 +36,6 @@ internal sealed class AboutCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         base.OnExecute();

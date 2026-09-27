@@ -1,3 +1,5 @@
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
 using EnvDTE;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
@@ -5,8 +7,6 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Outlining;
 using Microsoft.VisualStudio.TextManager.Interop;
-using CodeJanitor.Helpers;
-using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +17,6 @@ namespace CodeJanitor.Logic.Digging;
 /// A manager class for controlling the synchronization of outlining states between the code
 /// document and Spade.
 /// </summary>
-
 internal sealed class OutliningSynchronizationManager : IDisposable
 {
     private readonly CodeJanitorPackage _package;
@@ -34,7 +33,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// Initializes a new instance of the <see cref="OutliningSynchronizationManager" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     public OutliningSynchronizationManager(CodeJanitorPackage package)
     {
         _package = package;
@@ -47,7 +45,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// <summary>
     /// Gets or sets the document.
     /// </summary>
-
     public Document Document
     {
         get
@@ -83,7 +80,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// Updates the code items whose outlining is being synchronized by this manager.
     /// </summary>
     /// <param name="codeItems">The code items.</param>
-
     public void UpdateCodeItems(SetCodeItems codeItems)
     {
         TearDownCodeItemParents();
@@ -99,7 +95,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="eventArgs">The event arguments.</param>
-
     private void OnCodeItemParentIsExpandedChanged(object sender, EventArgs eventArgs)
     {
         if (sender is ICodeItemParent codeItemParent)
@@ -124,7 +119,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnCodeRegionsCollapsed(object sender, RegionsCollapsedEventArgs e)
     {
         foreach (var collapsedRegion in e.CollapsedRegions)
@@ -142,7 +136,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnCodeRegionsExpanded(object sender, RegionsExpandedEventArgs e)
     {
         foreach (var expandedRegion in e.ExpandedRegions)
@@ -163,7 +156,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// <returns>
     /// The <see cref="ICodeItemParent" /> on the same starting line, otherwise null.
     /// </returns>
-
     private ICodeItemParent FindCodeItemParentFromCollapsible(ICollapsible collapsible)
     {
         var startLine = GetStartLineForCollapsible(collapsible);
@@ -177,7 +169,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="parent">The code item parent.</param>
     /// <returns>The <see cref="ICollapsible" /> on the same starting line, otherwise null.</returns>
-
     private ICollapsible FindCollapsibleFromCodeItemParent(ICodeItemParent parent)
     {
         if (_outliningManager is null || _wpfTextView is null)
@@ -211,7 +202,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </remarks>
     /// <param name="collapsible">The collapsible region.</param>
     /// <returns>The starting line.</returns>
-
     private static int GetStartLineForCollapsible(ICollapsible collapsible)
     {
         var startPoint = collapsible.Extent.GetStartPoint(collapsible.Extent.TextBuffer.CurrentSnapshot);
@@ -225,7 +215,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>The associated outlining manager, otherwise null.</returns>
-
     private IOutliningManager GetOutliningManager(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -250,7 +239,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>The associated WPF text view, otherwise null.</returns>
-
     private IWpfTextView GetWpfTextView(Document document)
     {
         var textView = GetTextView(document);
@@ -267,7 +255,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>The associated text view, otherwise null.</returns>
-
     private IVsTextView GetTextView(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -289,7 +276,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>The code item parents.</returns>
-
     private static IEnumerable<ICodeItemParent> RecursivelyGetAllCodeItemParents(SetCodeItems codeItems)
     {
         if (codeItems is null)
@@ -306,7 +292,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// Initializes the code item parents by synchronizing their current state and registering
     /// for events.
     /// </summary>
-
     private void InitializeCodeItemParents()
     {
         foreach (var codeItemParent in _codeItemParents ?? Enumerable.Empty<ICodeItemParent>())
@@ -325,7 +310,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// <summary>
     /// Tears down the code item parents by unregistering from events.
     /// </summary>
-
     private void TearDownCodeItemParents()
     {
         foreach (var codeItemParent in _codeItemParents ?? Enumerable.Empty<ICodeItemParent>())
@@ -340,7 +324,6 @@ internal sealed class OutliningSynchronizationManager : IDisposable
     /// Performs application-defined tasks associated with freeing, releasing, or resetting
     /// unmanaged resources.
     /// </summary>
-
     public void Dispose()
     {
         TearDownCodeItemParents();

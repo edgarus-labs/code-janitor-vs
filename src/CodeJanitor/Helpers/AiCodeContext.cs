@@ -1,11 +1,4 @@
-using EnvDTE;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Model.CodeItems;
 using System;
-using System.IO;
-using System.Linq;
 
 namespace CodeJanitor.Helpers;
 

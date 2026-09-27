@@ -1,12 +1,11 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
 /// <summary>
 /// Unit tests for <see cref="CollectionExpressionConverter" />.
 /// </summary>
-
 [TestClass]
 public sealed class CollectionExpressionConverterTests
 {
@@ -22,8 +21,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsEmptyListFieldInitialization()
     {
-        var input = "class C { private readonly List<string> _items = new List<string>(); }";
-        var expected = "class C { private readonly List<string> _items = []; }";
+        string input = "class C { private readonly List<string> _items = new List<string>(); }";
+        string expected = "class C { private readonly List<string> _items = []; }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -32,8 +31,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsListWithInitializerElements()
     {
-        var input = "class C { void M() { List<string> items = new List<string>() { \"a\", \"b\" }; } }";
-        var expected = "class C { void M() { List<string> items = [\"a\", \"b\"]; } }";
+        string input = "class C { void M() { List<string> items = new List<string>() { \"a\", \"b\" }; } }";
+        string expected = "class C { void M() { List<string> items = [\"a\", \"b\"]; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -42,8 +41,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsLocalListDeclaration()
     {
-        var input = "class C { void M() { List<int> x = new List<int>(); } }";
-        var expected = "class C { void M() { List<int> x = []; } }";
+        string input = "class C { void M() { List<int> x = new List<int>(); } }";
+        string expected = "class C { void M() { List<int> x = []; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -52,8 +51,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsArrayWithInitializerElements()
     {
-        var input = "class C { void M() { int[] a = new int[] { 1, 2, 3 }; } }";
-        var expected = "class C { void M() { int[] a = [1, 2, 3]; } }";
+        string input = "class C { void M() { int[] a = new int[] { 1, 2, 3 }; } }";
+        string expected = "class C { void M() { int[] a = [1, 2, 3]; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -62,8 +61,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsExplicitlyEmptyArray()
     {
-        var input = "class C { void M() { int[] a = new int[0]; } }";
-        var expected = "class C { void M() { int[] a = []; } }";
+        string input = "class C { void M() { int[] a = new int[0]; } }";
+        string expected = "class C { void M() { int[] a = []; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -72,8 +71,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsImplicitArrayCreation()
     {
-        var input = "class C { void M() { int[] a = new[] { 1, 2, 3 }; } }";
-        var expected = "class C { void M() { int[] a = [1, 2, 3]; } }";
+        string input = "class C { void M() { int[] a = new[] { 1, 2, 3 }; } }";
+        string expected = "class C { void M() { int[] a = [1, 2, 3]; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -82,8 +81,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsAutoPropertyInitializer()
     {
-        var input = "class C { public List<string> Items { get; } = new List<string>(); }";
-        var expected = "class C { public List<string> Items { get; } = []; }";
+        string input = "class C { public List<string> Items { get; } = new List<string>(); }";
+        string expected = "class C { public List<string> Items { get; } = []; }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -92,7 +91,7 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsListWithConstructorArguments()
     {
-        var input = "class C { void M() { List<string> x = new List<string>(10); } }";
+        string input = "class C { void M() { List<string> x = new List<string>(10); } }";
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
@@ -101,7 +100,7 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsWhenDeclaredTypeDiffersFromCreatedType()
     {
-        var input = "class C { void M() { IList<string> x = new List<string>(); } }";
+        string input = "class C { void M() { IList<string> x = new List<string>(); } }";
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
@@ -110,7 +109,7 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsSizedArrayWithoutInitializer()
     {
-        var input = "class C { void M() { int[] a = new int[5]; } }";
+        string input = "class C { void M() { int[] a = new int[5]; } }";
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
@@ -119,7 +118,7 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsNonListGenericType()
     {
-        var input = "class C { void M() { HashSet<string> x = new HashSet<string>(); } }";
+        string input = "class C { void M() { HashSet<string> x = new HashSet<string>(); } }";
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
@@ -137,8 +136,8 @@ public sealed class CollectionExpressionConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsArrayPropertyInitializer()
     {
-        var input = "class C { public int[] Items { get; } = new int[] { 1, 2 }; }";
-        var expected = "class C { public int[] Items { get; } = [1, 2]; }";
+        string input = "class C { public int[] Items { get; } = new int[] { 1, 2 }; }";
+        string expected = "class C { public int[] Items { get; } = [1, 2]; }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }

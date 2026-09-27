@@ -1,6 +1,6 @@
+using CodeJanitor.Helpers;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
 using System;
 using Task = System.Threading.Tasks.Task;
 
@@ -9,14 +9,12 @@ namespace CodeJanitor.Integration.Events;
 /// <summary>
 /// A class that encapsulates listening for window events.
 /// </summary>
-
 internal sealed class WindowEventListener : BaseEventListener
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WindowEventListener" /> class.
     /// </summary>
     /// <param name="package">The package hosting the event listener.</param>
-
     private WindowEventListener(CodeJanitorPackage package)
         : base(package)
     {
@@ -27,7 +25,6 @@ internal sealed class WindowEventListener : BaseEventListener
     /// <summary>
     /// An event raised when a window change has occurred.
     /// </summary>
-
     internal event Action<Document> OnWindowChange;
 
     /// <summary>
@@ -45,7 +42,6 @@ internal sealed class WindowEventListener : BaseEventListener
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new WindowEventListener(package);
@@ -55,7 +51,6 @@ internal sealed class WindowEventListener : BaseEventListener
     /// <summary>
     /// Registers event handlers with the IDE.
     /// </summary>
-
     protected override void RegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -65,7 +60,6 @@ internal sealed class WindowEventListener : BaseEventListener
     /// <summary>
     /// Unregisters event handlers with the IDE.
     /// </summary>
-
     protected override void UnRegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -76,7 +70,6 @@ internal sealed class WindowEventListener : BaseEventListener
     /// Raises the window change event.
     /// </summary>
     /// <param name="document">The document that got focus, may be null.</param>
-
     private void RaiseWindowChange(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -94,7 +87,6 @@ internal sealed class WindowEventListener : BaseEventListener
     /// </summary>
     /// <param name="gotFocus">The window that got focus.</param>
     /// <param name="lostFocus">The window that lost focus.</param>
-
     private void WindowEvents_WindowActivated(Window gotFocus, Window lostFocus)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

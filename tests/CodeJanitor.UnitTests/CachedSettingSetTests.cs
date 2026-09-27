@@ -1,9 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests;
 
@@ -46,7 +46,7 @@ public sealed class CachedSettingSetTests
     [TestMethod]
     public void CachedSettingSetCanLookupAndParse()
     {
-        var cleanupExclusions = _cachedSettingSet.Value;
+        IEnumerable<string> cleanupExclusions = _cachedSettingSet.Value;
 
         Assert.IsNotNull(cleanupExclusions);
         Assert.AreEqual(1, _lookupCount);
@@ -56,13 +56,13 @@ public sealed class CachedSettingSetTests
     [TestMethod]
     public void CachedSettingSetUsesCacheOnSecondLookup()
     {
-        var cleanupExclusions = _cachedSettingSet.Value;
+        IEnumerable<string> cleanupExclusions = _cachedSettingSet.Value;
 
         Assert.IsNotNull(cleanupExclusions);
         Assert.AreEqual(1, _lookupCount);
         Assert.AreEqual(1, _parseCount);
 
-        var cleanupExclusions2 = _cachedSettingSet.Value;
+        IEnumerable<string> cleanupExclusions2 = _cachedSettingSet.Value;
 
         Assert.IsNotNull(cleanupExclusions2);
         Assert.AreEqual(2, _lookupCount);
@@ -72,18 +72,18 @@ public sealed class CachedSettingSetTests
     [TestMethod]
     public void CachedSettingSetReParsesOnChange()
     {
-        var cleanupExclusions = _cachedSettingSet.Value;
+        IEnumerable<string> cleanupExclusions = _cachedSettingSet.Value;
 
         Assert.IsNotNull(cleanupExclusions);
         Assert.AreEqual(1, _lookupCount);
         Assert.AreEqual(1, _parseCount);
 
-        var cleanupExclusion2 = new List<string>(cleanupExclusions) { ".*Test.*" };
-        var serializedCleanupExclusions = string.Join("||", cleanupExclusion2);
+        List<string> cleanupExclusion2 = new List<string>(cleanupExclusions) { ".*Test.*" };
+        string serializedCleanupExclusions = string.Join("||", cleanupExclusion2);
 
         Settings.Default.Cleaning_ExclusionExpression = serializedCleanupExclusions;
 
-        var memberTypeSetting2 = _cachedSettingSet.Value;
+        IEnumerable<string> memberTypeSetting2 = _cachedSettingSet.Value;
 
         Assert.IsNotNull(memberTypeSetting2);
         Assert.AreEqual(2, _lookupCount);

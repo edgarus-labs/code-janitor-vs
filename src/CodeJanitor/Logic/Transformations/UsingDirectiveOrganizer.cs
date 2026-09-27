@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -21,21 +21,18 @@ namespace CodeJanitor.Logic.Transformations;
 /// trivia or conditional structure is ever lost. Removing unused usings is a semantic operation
 /// and is intentionally out of scope.
 /// </remarks>
-
 public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Sort using directives";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Organize(source);
     }
 
     /// <inheritdoc />
-
     public string Organize(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -59,7 +56,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     /// Reorders a block of using directives, or returns the original block unchanged when it is
     /// already sorted or is not safe to reorder.
     /// </summary>
-
     private static SyntaxList<UsingDirectiveSyntax> Sort(SyntaxList<UsingDirectiveSyntax> usings, out bool changed)
     {
         changed = false;
@@ -108,7 +104,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     /// </summary>
     /// <param name="u">The u.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool IsUnsafeToReorder(UsingDirectiveSyntax u)
     {
         if (u.GlobalKeyword.IsKind(SyntaxKind.GlobalKeyword))
@@ -136,7 +131,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     /// </summary>
     /// <param name="u">The u.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int GroupRank(UsingDirectiveSyntax u)
     {
         if (u.Alias is not null)
@@ -152,7 +146,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     /// </summary>
     /// <param name="u">The u.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int SystemRank(UsingDirectiveSyntax u)
     {
         // Alias usings are grouped separately and sorted purely by alias name.
@@ -171,7 +164,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     /// </summary>
     /// <param name="u">The u.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string SortName(UsingDirectiveSyntax u)
     {
         if (u.Alias is not null)
@@ -186,7 +178,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     /// Visits every using-directive container (compilation unit and namespaces, including
     /// file-scoped and nested) and sorts its directives.
     /// </summary>
-
     private sealed class UsingSortingRewriter : CSharpSyntaxRewriter
     {
         /// <summary>
@@ -199,7 +190,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax node)
         {
             node = (CompilationUnitSyntax)base.VisitCompilationUnit(node);
@@ -220,7 +210,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
         {
             node = (NamespaceDeclarationSyntax)base.VisitNamespaceDeclaration(node);
@@ -241,7 +230,6 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitFileScopedNamespaceDeclaration(FileScopedNamespaceDeclarationSyntax node)
         {
             node = (FileScopedNamespaceDeclarationSyntax)base.VisitFileScopedNamespaceDeclaration(node);

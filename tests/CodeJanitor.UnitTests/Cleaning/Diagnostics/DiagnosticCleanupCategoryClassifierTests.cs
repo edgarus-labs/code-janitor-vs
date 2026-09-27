@@ -21,7 +21,7 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
     [DataRow("IDE0008", DiagnosticCleanupCategory.CodeStyle)]
     public void Classify_BuiltInIdeAnalyzer_UsesAnalyzerFamily(string diagnosticId, DiagnosticCleanupCategory expected)
     {
-        var (analyzer, descriptor) = FindHostAnalyzer(diagnosticId);
+        (DiagnosticAnalyzer analyzer, DiagnosticDescriptor descriptor) = FindHostAnalyzer(diagnosticId);
 
         Assert.AreEqual(expected, DiagnosticCleanupCategoryClassifier.Classify(analyzer, descriptor));
     }
@@ -30,7 +30,7 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
     [TestCategory("Cleaning UnitTests")]
     public void Classify_BuiltInAnalyzerMirroringCompilerErrors_IsNeverActionable()
     {
-        var (analyzer, descriptor) = FindHostAnalyzer("IDE1007");
+        (DiagnosticAnalyzer analyzer, DiagnosticDescriptor descriptor) = FindHostAnalyzer("IDE1007");
 
         Assert.IsNull(DiagnosticCleanupCategoryClassifier.Classify(analyzer, descriptor));
     }
@@ -41,7 +41,7 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
     [DataRow("compiler")]
     public void Classify_CompilerCategoryDescriptor_IsNeverActionable(string category)
     {
-        var descriptor = new DiagnosticDescriptor("CJT0102", "Title", "Message", category, DiagnosticSeverity.Error, isEnabledByDefault: true);
+        DiagnosticDescriptor descriptor = new DiagnosticDescriptor("CJT0102", "Title", "Message", category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
         Assert.IsNull(DiagnosticCleanupCategoryClassifier.Classify(new LegacyFieldAnalyzer(), descriptor));
     }
@@ -57,7 +57,7 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
     [DataRow("Performance", DiagnosticCleanupCategory.AnalyzerFixes)]
     public void Classify_CustomAnalyzer_UsesDescriptorCategory(string category, DiagnosticCleanupCategory expected)
     {
-        var descriptor = new DiagnosticDescriptor("CJT0100", "Title", "Message", category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
+        DiagnosticDescriptor descriptor = new DiagnosticDescriptor("CJT0100", "Title", "Message", category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
         Assert.AreEqual(expected, DiagnosticCleanupCategoryClassifier.Classify(new LegacyFieldAnalyzer(), descriptor));
     }
@@ -66,7 +66,7 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
     [TestCategory("Cleaning UnitTests")]
     public void Classify_CompilerTaggedDescriptor_IsNeverActionableWhateverItsCategory()
     {
-        var descriptor = new DiagnosticDescriptor(
+        DiagnosticDescriptor descriptor = new DiagnosticDescriptor(
             "CJT0101",
             "Title",
             "Message",
@@ -80,7 +80,7 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
 
     private static (DiagnosticAnalyzer Analyzer, DiagnosticDescriptor Descriptor) FindHostAnalyzer(string diagnosticId)
     {
-        var analyzer = DiagnosticCleanupTestWorkspace.HostAnalyzers.First(candidate => candidate.SupportedDiagnostics.Any(d => d.Id == diagnosticId));
+        DiagnosticAnalyzer analyzer = DiagnosticCleanupTestWorkspace.HostAnalyzers.First(candidate => candidate.SupportedDiagnostics.Any(d => d.Id == diagnosticId));
 
         return (analyzer, analyzer.SupportedDiagnostics.First(d => d.Id == diagnosticId));
     }

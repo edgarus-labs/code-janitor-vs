@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -9,7 +9,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// (object creation, cast, array creation) and the declared type textually matches; method
 /// invocations and literals keep the explicit type.
 /// </summary>
-
 [TestClass]
 public sealed class VarWhenApparentConverterTests
 {
@@ -25,8 +24,8 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsObjectCreationWithMatchingType()
     {
-        var input = "class C { void M() { Foo x = new Foo(); } }";
-        var expected = "class C { void M() { var x = new Foo(); } }";
+        string input = "class C { void M() { Foo x = new Foo(); } }";
+        string expected = "class C { void M() { var x = new Foo(); } }";
 
         Assert.AreEqual(expected, _converter.UseVarWhenApparent(input));
     }
@@ -35,7 +34,7 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsMethodInvocation()
     {
-        var input = "class C { void M() { Foo x = GetFoo(); } }";
+        string input = "class C { void M() { Foo x = GetFoo(); } }";
 
         Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
     }
@@ -44,7 +43,7 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsLiteral()
     {
-        var input = "class C { void M() { int x = 5; } }";
+        string input = "class C { void M() { int x = 5; } }";
 
         Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
     }
@@ -53,7 +52,7 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsWhenDeclaredTypeDiffersFromCreatedType()
     {
-        var input = "class C { void M() { IFoo x = new Foo(); } }";
+        string input = "class C { void M() { IFoo x = new Foo(); } }";
 
         Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
     }
@@ -62,8 +61,8 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsCastWithMatchingType()
     {
-        var input = "class C { void M(object o) { Foo x = (Foo)o; } }";
-        var expected = "class C { void M(object o) { var x = (Foo)o; } }";
+        string input = "class C { void M(object o) { Foo x = (Foo)o; } }";
+        string expected = "class C { void M(object o) { var x = (Foo)o; } }";
 
         Assert.AreEqual(expected, _converter.UseVarWhenApparent(input));
     }
@@ -72,8 +71,8 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsArrayCreationWithMatchingElementType()
     {
-        var input = "class C { void M() { int[] a = new int[3]; } }";
-        var expected = "class C { void M() { var a = new int[3]; } }";
+        string input = "class C { void M() { int[] a = new int[3]; } }";
+        string expected = "class C { void M() { var a = new int[3]; } }";
 
         Assert.AreEqual(expected, _converter.UseVarWhenApparent(input));
     }
@@ -82,7 +81,7 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsAlreadyVar()
     {
-        var input = "class C { void M() { var x = new Foo(); } }";
+        string input = "class C { void M() { var x = new Foo(); } }";
 
         Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
     }
@@ -91,7 +90,7 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void SkipsFieldDeclaration()
     {
-        var input = "class C { private Foo _x = new Foo(); }";
+        string input = "class C { private Foo _x = new Foo(); }";
 
         Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
     }
@@ -100,8 +99,8 @@ public sealed class VarWhenApparentConverterTests
     [TestCategory("Transformations UnitTests")]
     public void PreservesUnrelatedCode()
     {
-        var input = "class C { void M() { Foo x = new Foo(); int y = 5; var z = GetFoo(); } }";
-        var expected = "class C { void M() { var x = new Foo(); int y = 5; var z = GetFoo(); } }";
+        string input = "class C { void M() { Foo x = new Foo(); int y = 5; var z = GetFoo(); } }";
+        string expected = "class C { void M() { var x = new Foo(); int y = 5; var z = GetFoo(); } }";
 
         Assert.AreEqual(expected, _converter.UseVarWhenApparent(input));
     }

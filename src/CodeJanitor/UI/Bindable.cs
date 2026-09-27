@@ -9,7 +9,6 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// The base class for bindable objects.
 /// </summary>
-
 public abstract class Bindable : INotifyPropertyChanged
 {
     /// <summary>
@@ -23,7 +22,6 @@ public abstract class Bindable : INotifyPropertyChanged
     /// <typeparam name="T"></typeparam>
     /// <param name="propertyName">The name of the property.</param>
     /// <returns>The property value if set, otherwise the default for its type.</returns>
-
     protected T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
     {
         if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
@@ -44,7 +42,6 @@ public abstract class Bindable : INotifyPropertyChanged
     /// <param name="newValue">The new property value.</param>
     /// <param name="propertyName">The property value.</param>
     /// <returns>True if the value was changed, otherwise false.</returns>
-
     protected bool SetPropertyValue<T>(T newValue, [CallerMemberName] string propertyName = null)
     {
         if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
@@ -63,7 +60,6 @@ public abstract class Bindable : INotifyPropertyChanged
     /// A lookup structure containing all independent/dependent property pairs based on <see
     /// cref="NotifiesOnAttribute"/> definitions.
     /// </summary>
-
     private ILookup<string, string> DependentLookup
     {
         get
@@ -78,14 +74,12 @@ public abstract class Bindable : INotifyPropertyChanged
     /// <summary>
     /// Occurs when a property value changes.
     /// </summary>
-
     public event PropertyChangedEventHandler PropertyChanged;
 
     /// <summary>
     /// Raises the <see cref="PropertyChanged" /> event.
     /// </summary>
     /// <param name="propertyName">The name of the property.</param>
-
     protected void RaisePropertyChanged([CallerMemberName] string propertyName = null)
     {
         if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));

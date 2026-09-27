@@ -6,7 +6,6 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// <summary>
 /// An interface describing a setting to option mapping.
 /// </summary>
-
 public interface ISettingToOptionMapping
 {
     /// <summary>
@@ -24,7 +23,6 @@ public interface ISettingToOptionMapping
     /// </summary>
     /// <param name="settingsClass">The class instance for the settings property.</param>
     /// <param name="optionClass">The class instance for the option property.</param>
-
     void CopySettingToOption(Settings settingsClass, object optionClass);
 
     /// <summary>
@@ -32,6 +30,5 @@ public interface ISettingToOptionMapping
     /// </summary>
     /// <param name="settingsClass">The class instance for the settings property.</param>
     /// <param name="optionClass">The class instance for the option property.</param>
-
     void CopyOptionToSetting(Settings settingsClass, object optionClass);
 }

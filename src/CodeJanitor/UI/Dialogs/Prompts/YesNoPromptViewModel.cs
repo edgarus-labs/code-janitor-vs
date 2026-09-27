@@ -8,13 +8,11 @@ namespace CodeJanitor.UI.Dialogs.Prompts;
 /// <summary>
 /// A view model for providing a yes no prompt.
 /// </summary>
-
 public sealed class YesNoPromptViewModel : Bindable
 {
     /// <summary>
     /// Gets or sets the title.
     /// </summary>
-
     public string Title
     {
         get { return GetPropertyValue<string>(); }
@@ -24,7 +22,6 @@ public sealed class YesNoPromptViewModel : Bindable
     /// <summary>
     /// Gets or sets the message.
     /// </summary>
-
     public string Message
     {
         get { return GetPropertyValue<string>(); }
@@ -41,7 +38,6 @@ public sealed class YesNoPromptViewModel : Bindable
     /// <summary>
     /// Gets or sets a flag indicating if the result can be remembered.
     /// </summary>
-
     public bool CanRemember
     {
         get
@@ -60,7 +56,6 @@ public sealed class YesNoPromptViewModel : Bindable
     /// <summary>
     /// Gets or sets a flag indicating if the result should be remembered.
     /// </summary>
-
     public bool Remember
     {
         get
@@ -79,7 +74,6 @@ public sealed class YesNoPromptViewModel : Bindable
     /// <summary>
     /// Gets or sets the dialog result.
     /// </summary>
-
     public bool? DialogResult
     {
         get { return GetPropertyValue<bool?>(); }
@@ -97,7 +91,6 @@ public sealed class YesNoPromptViewModel : Bindable
     /// Called when the <see cref="SetDialogResultCommand" /> is executed.
     /// </summary>
     /// <param name="parameter">The command parameter.</param>
-
     private void OnSetDialogResultCommandExecuted(object parameter)
     {
         if (bool.TryParse(parameter as string, out var result))

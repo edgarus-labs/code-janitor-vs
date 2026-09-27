@@ -5,7 +5,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// syntactic building block of the headless-Roslyn cleanup path (BL-018): it operates on raw
 /// source text without opening a document in the IDE and without EnvDTE.
 /// </summary>
-
 public interface IUsingDirectiveOrganizer
 {
     /// <summary>
@@ -21,6 +20,5 @@ public interface IUsingDirectiveOrganizer
     /// </remarks>
     /// <param name="source">The full C# source text.</param>
     /// <returns>The transformed source, or the original when nothing needs reordering.</returns>
-
     string Organize(string source);
 }

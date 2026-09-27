@@ -9,13 +9,11 @@ namespace CodeJanitor.UI.Dialogs.About;
 /// <summary>
 /// Interaction logic for AboutWindow.xaml
 /// </summary>
-
 public partial class AboutWindow
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AboutWindow" /> class.
     /// </summary>
-
     public AboutWindow()
     {
         Application.ResourceAssembly = Assembly.GetExecutingAssembly();
@@ -31,7 +29,6 @@ public partial class AboutWindow
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         DialogResult = false;
@@ -45,7 +42,6 @@ public partial class AboutWindow
     /// The <see cref="System.Windows.Input.MouseButtonEventArgs" /> instance containing the
     /// event data.
     /// </param>
-
     private void OnMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         DialogResult = false;
@@ -58,7 +54,6 @@ public partial class AboutWindow
     /// <param name="e">
     /// The <see cref="System.Windows.RoutedEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnGitHubLinkClick(object sender, RoutedEventArgs e)
     {
         LaunchLink(@"https://github.com/edgarus-labs/code-janitor-vs");
@@ -68,7 +63,6 @@ public partial class AboutWindow
     /// Attempts to launch the specified link.
     /// </summary>
     /// <param name="link">The link.</param>
-
     private static void LaunchLink(string link)
     {
         try

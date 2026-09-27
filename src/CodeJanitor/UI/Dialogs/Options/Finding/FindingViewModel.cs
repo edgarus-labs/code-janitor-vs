@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Finding;
 /// <summary>
 /// The view model for finding options.
 /// </summary>
-
 public sealed class FindingViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class FindingViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public FindingViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -32,7 +30,6 @@ public sealed class FindingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if Solution Explorer search should be cleared.
     /// </summary>
-
     public bool ClearSolutionExplorerSearch
     {
         get { return GetPropertyValue<bool>(); }
@@ -42,7 +39,6 @@ public sealed class FindingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if solution folders should be temporarily opened.
     /// </summary>
-
     public bool TemporarilyOpenSolutionFolders
     {
         get { return GetPropertyValue<bool>(); }

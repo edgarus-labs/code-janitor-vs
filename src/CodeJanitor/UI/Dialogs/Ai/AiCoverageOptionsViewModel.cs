@@ -1,5 +1,4 @@
 using CodeJanitor.Properties;
-using CodeJanitor.UI;
 using System;
 
 namespace CodeJanitor.UI.Dialogs.Ai;

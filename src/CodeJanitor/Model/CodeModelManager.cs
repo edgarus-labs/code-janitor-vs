@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using Task = System.Threading.Tasks.Task;
 
@@ -11,7 +11,6 @@ namespace CodeJanitor.Model;
 /// <summary>
 /// A manager class for centralizing code model creation and life cycles.
 /// </summary>
-
 internal sealed class CodeModelManager
 {
     private readonly CodeJanitorPackage _package;
@@ -28,7 +27,6 @@ internal sealed class CodeModelManager
     /// Initializes a new instance of the <see cref="CodeModelManager" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CodeModelManager(CodeJanitorPackage package)
     {
         _package = package;
@@ -42,7 +40,6 @@ internal sealed class CodeModelManager
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeModelManager" /> class.</returns>
-
     internal static CodeModelManager GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CodeModelManager(package));
@@ -51,14 +48,12 @@ internal sealed class CodeModelManager
     /// <summary>
     /// An event raised when a <see cref="CodeModel" /> has been built.
     /// </summary>
-
     internal event Action<CodeModel> CodeModelBuilt;
 
     /// <summary>
     /// An event callback that is raised when a document has changed.
     /// </summary>
     /// <param name="document">The document.</param>
-
     internal void OnDocumentChanged(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -73,7 +68,6 @@ internal sealed class CodeModelManager
     /// An event callback that is raised when a document is closing.
     /// </summary>
     /// <param name="document">The document.</param>
-
     internal void OnDocumentClosing(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -92,7 +86,6 @@ internal sealed class CodeModelManager
     /// A flag indicating if lazy initialized values should be immediately loaded.
     /// </param>
     /// <returns>The set of code items within the document.</returns>
-
     internal SetCodeItems RetrieveAllCodeItems(Document document, bool loadLazyInitializedValues = false)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -141,7 +134,6 @@ internal sealed class CodeModelManager
     /// <returns>
     /// The set of code items within the document if already available, otherwise null.
     /// </returns>
-
     internal SetCodeItems RetrieveAllCodeItemsAsync(Document document, bool loadLazyInitializedValues = false)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -194,7 +186,6 @@ internal sealed class CodeModelManager
     /// itself to start over in order to guarantee a valid code model is returned.
     /// </summary>
     /// <param name="codeModel">The code model.</param>
-
     private void BuildCodeItems(CodeModel codeModel)
     {
         try
@@ -234,7 +225,6 @@ internal sealed class CodeModelManager
     /// Loads all lazy initialized values for items within the code model.
     /// </summary>
     /// <param name="codeModel">The code model.</param>
-
     private void LoadLazyInitializedValues(CodeModel codeModel)
     {
         try
@@ -258,7 +248,6 @@ internal sealed class CodeModelManager
     /// Raises the <see cref="CodeModelBuilt" /> event.
     /// </summary>
     /// <param name="codeModel">The code model.</param>
-
     private void RaiseCodeModelBuilt(CodeModel codeModel)
     {
         var codeModelBuilt = CodeModelBuilt;

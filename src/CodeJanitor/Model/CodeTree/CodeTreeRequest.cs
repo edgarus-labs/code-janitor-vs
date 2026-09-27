@@ -1,12 +1,11 @@
-using EnvDTE;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE;
 
 namespace CodeJanitor.Model.CodeTree;
 
 /// <summary>
 /// A simple class for containing a request to build a code tree.
 /// </summary>
-
 internal sealed class CodeTreeRequest
 {
     /// <summary>
@@ -16,7 +15,6 @@ internal sealed class CodeTreeRequest
     /// <param name="rawCodeItems">The raw code items.</param>
     /// <param name="sortOrder">The sort order.</param>
     /// <param name="nameFilter">The name filter.</param>
-
     internal CodeTreeRequest(Document document, SetCodeItems rawCodeItems, CodeSortOrder sortOrder, string nameFilter = null)
     {
         Document = document;

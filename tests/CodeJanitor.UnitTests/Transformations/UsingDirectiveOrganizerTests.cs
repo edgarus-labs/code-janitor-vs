@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -10,7 +10,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// block containing comments, preprocessor directives or <c>global using</c> directives is left
 /// untouched (conservative, headless-Roslyn building block for BL-018, C#-only per scope).
 /// </summary>
-
 [TestClass]
 public sealed class UsingDirectiveOrganizerTests
 {
@@ -26,8 +25,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void UnsortedUsings_GetSortedAlphabetically()
     {
-        var input = "using B;\nusing A;\n";
-        var expected = "using A;\nusing B;\n";
+        string input = "using B;\nusing A;\n";
+        string expected = "using A;\nusing B;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -36,7 +35,7 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void AlreadySortedUsings_Unchanged()
     {
-        var input = "using A;\nusing B;\nusing C;\n";
+        string input = "using A;\nusing B;\nusing C;\n";
 
         Assert.AreEqual(input, _organizer.Organize(input));
     }
@@ -45,8 +44,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void SystemNamespaces_SortedFirst()
     {
-        var input = "using MyLib;\nusing System;\n";
-        var expected = "using System;\nusing MyLib;\n";
+        string input = "using MyLib;\nusing System;\n";
+        string expected = "using System;\nusing MyLib;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -55,8 +54,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void SystemSubNamespaces_GroupedBeforeOthers()
     {
-        var input = "using System.Text;\nusing Abc;\nusing System;\n";
-        var expected = "using System;\nusing System.Text;\nusing Abc;\n";
+        string input = "using System.Text;\nusing Abc;\nusing System;\n";
+        string expected = "using System;\nusing System.Text;\nusing Abc;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -65,8 +64,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void StaticUsings_SortedAfterRegularUsings()
     {
-        var input = "using static System.Math;\nusing System;\n";
-        var expected = "using System;\nusing static System.Math;\n";
+        string input = "using static System.Math;\nusing System;\n";
+        string expected = "using System;\nusing static System.Math;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -75,8 +74,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void AliasUsings_SortedLast()
     {
-        var input = "using Foo = System.Int32;\nusing System;\n";
-        var expected = "using System;\nusing Foo = System.Int32;\n";
+        string input = "using Foo = System.Int32;\nusing System;\n";
+        string expected = "using System;\nusing Foo = System.Int32;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -85,8 +84,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void NamespaceScopedUsings_SortedWithIndentationPreserved()
     {
-        var input = "namespace N\n{\n    using B;\n    using A;\n}\n";
-        var expected = "namespace N\n{\n    using A;\n    using B;\n}\n";
+        string input = "namespace N\n{\n    using B;\n    using A;\n}\n";
+        string expected = "namespace N\n{\n    using A;\n    using B;\n}\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -95,8 +94,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void FileScopedNamespaceUsings_Sorted()
     {
-        var input = "namespace N;\n\nusing B;\nusing A;\n";
-        var expected = "namespace N;\n\nusing A;\nusing B;\n";
+        string input = "namespace N;\n\nusing B;\nusing A;\n";
+        string expected = "namespace N;\n\nusing A;\nusing B;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -105,7 +104,7 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void UsingsWithComment_LeftUntouched()
     {
-        var input = "using B; // keep near B\nusing A;\n";
+        string input = "using B; // keep near B\nusing A;\n";
 
         Assert.AreEqual(input, _organizer.Organize(input));
     }
@@ -114,7 +113,7 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void UsingsWithPreprocessorDirective_LeftUntouched()
     {
-        var input = "#if DEBUG\nusing B;\n#endif\nusing A;\n";
+        string input = "#if DEBUG\nusing B;\n#endif\nusing A;\n";
 
         Assert.AreEqual(input, _organizer.Organize(input));
     }
@@ -123,7 +122,7 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void GlobalUsings_LeftUntouched()
     {
-        var input = "global using B;\nglobal using A;\n";
+        string input = "global using B;\nglobal using A;\n";
 
         Assert.AreEqual(input, _organizer.Organize(input));
     }
@@ -132,7 +131,7 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void SingleUsing_Unchanged()
     {
-        var input = "using A;\n";
+        string input = "using A;\n";
 
         Assert.AreEqual(input, _organizer.Organize(input));
     }
@@ -141,7 +140,7 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void NoUsings_Unchanged()
     {
-        var input = "namespace N\n{\n}\n";
+        string input = "namespace N\n{\n}\n";
 
         Assert.AreEqual(input, _organizer.Organize(input));
     }
@@ -164,8 +163,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void BlankLineBeforeNamespace_Preserved()
     {
-        var input = "using B;\nusing A;\n\nnamespace N\n{\n}\n";
-        var expected = "using A;\nusing B;\n\nnamespace N\n{\n}\n";
+        string input = "using B;\nusing A;\n\nnamespace N\n{\n}\n";
+        string expected = "using A;\nusing B;\n\nnamespace N\n{\n}\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }
@@ -174,11 +173,11 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void NameAndApply_WorkCorrectly()
     {
-        var transformation = new UsingDirectiveOrganizer();
+        UsingDirectiveOrganizer transformation = new UsingDirectiveOrganizer();
         Assert.AreEqual("Sort using directives", transformation.Name);
 
-        var input = "using B;\nusing A;\n";
-        var expected = "using A;\nusing B;\n";
+        string input = "using B;\nusing A;\n";
+        string expected = "using A;\nusing B;\n";
         Assert.AreEqual(expected, transformation.Apply(input));
     }
 
@@ -186,8 +185,8 @@ public sealed class UsingDirectiveOrganizerTests
     [TestCategory("Transformations UnitTests")]
     public void MultipleAliasesAndStaticUsings_SortedProperly()
     {
-        var input = "using Z = System.Int32;\nusing A = System.String;\nusing static System.Math;\nusing static System.Console;\n";
-        var expected = "using static System.Console;\nusing static System.Math;\nusing A = System.String;\nusing Z = System.Int32;\n";
+        string input = "using Z = System.Int32;\nusing A = System.String;\nusing static System.Math;\nusing static System.Console;\n";
+        string expected = "using static System.Console;\nusing static System.Math;\nusing A = System.String;\nusing Z = System.Int32;\n";
 
         Assert.AreEqual(expected, _organizer.Organize(input));
     }

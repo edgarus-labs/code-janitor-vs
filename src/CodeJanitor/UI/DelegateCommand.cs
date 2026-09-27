@@ -6,7 +6,6 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// A basic ICommand implementation based on http://www.wpftutorial.net/delegatecommand.html.
 /// </summary>
-
 public sealed class DelegateCommand : ICommand
 {
     private readonly Predicate<object> _canExecute;
@@ -17,7 +16,6 @@ public sealed class DelegateCommand : ICommand
     /// </summary>
     /// <param name="execute">The execute handler.</param>
     /// <param name="canExecute">The can execute handler.</param>
-
     public DelegateCommand(Action<object> execute, Predicate<object> canExecute = null)
     {
         _execute = execute;
@@ -27,7 +25,6 @@ public sealed class DelegateCommand : ICommand
     /// <summary>
     /// Occurs when changes occur that affect whether or not the command should execute.
     /// </summary>
-
     public event EventHandler CanExecuteChanged;
 
     /// <summary>
@@ -38,7 +35,6 @@ public sealed class DelegateCommand : ICommand
     /// can be set to null.
     /// </param>
     /// <returns>True if this command can be executed; otherwise, false.</returns>
-
     public bool CanExecute(object parameter)
     {
         if (_canExecute is null)
@@ -56,7 +52,6 @@ public sealed class DelegateCommand : ICommand
     /// Data used by the command. If the command does not require data to be passed, this object
     /// can be set to null.
     /// </param>
-
     public void Execute(object parameter)
     {
         _execute(parameter);
@@ -65,7 +60,6 @@ public sealed class DelegateCommand : ICommand
     /// <summary>
     /// Raises the can execute changed.
     /// </summary>
-
     public void RaiseCanExecuteChanged()
     {
         if (CanExecuteChanged is not null)

@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +12,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating insertion of explicit access modifier logic.
 /// </summary>
-
 internal sealed class InsertExplicitAccessModifierLogic
 {
     /// <summary>
@@ -29,7 +28,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Gets an instance of the <see cref="InsertExplicitAccessModifierLogic" /> class.
     /// </summary>
     /// <returns>An instance of the <see cref="InsertExplicitAccessModifierLogic" /> class.</returns>
-
     internal static InsertExplicitAccessModifierLogic GetInstance()
     {
         return _instance ?? (_instance = new InsertExplicitAccessModifierLogic());
@@ -38,7 +36,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// <summary>
     /// Initializes a new instance of the <see cref="InsertExplicitAccessModifierLogic" /> class.
     /// </summary>
-
     private InsertExplicitAccessModifierLogic()
     {
     }
@@ -48,7 +45,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="classes">The classes.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the classes.</param>
-
     public void InsertExplicitAccessModifiersOnClasses(IEnumerable<CodeItemClass> classes, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -78,7 +74,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="delegates">The delegates.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the delegates.</param>
-
     public void InsertExplicitAccessModifiersOnDelegates(IEnumerable<CodeItemDelegate> delegates, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -102,7 +97,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="enumerations">The enumerations.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the enumerations.</param>
-
     public void InsertExplicitAccessModifiersOnEnumerations(IEnumerable<CodeItemEnum> enumerations, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -126,7 +120,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="events">The events.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the events.</param>
-
     public void InsertExplicitAccessModifiersOnEvents(IEnumerable<CodeItemEvent> events, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -170,7 +163,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="fields">The fields.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the fields.</param>
-
     public void InsertExplicitAccessModifiersOnFields(IEnumerable<CodeItemField> fields, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -215,7 +207,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="interfaces">The interfaces.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the interfaces.</param>
-
     public void InsertExplicitAccessModifiersOnInterfaces(IEnumerable<CodeItemInterface> interfaces, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -239,7 +230,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="methods">The methods.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the methods.</param>
-
     public void InsertExplicitAccessModifiersOnMethods(IEnumerable<CodeItemMethod> methods, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -313,7 +303,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="properties">The properties.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the properties.</param>
-
     public void InsertExplicitAccessModifiersOnProperties(IEnumerable<CodeItemProperty> properties, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -357,7 +346,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="structs">The structs.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the structs.</param>
-
     public void InsertExplicitAccessModifiersOnStructs(IEnumerable<CodeItemStruct> structs, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -382,7 +370,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// <param name="codeElementDeclaration">The code element declaration.</param>
     /// <param name="accessModifier">The access modifier.</param>
     /// <returns>True if access modifier is explicitly specified, otherwise false.</returns>
-
     private static bool IsAccessModifierExplicitlySpecifiedOnCodeElement(string codeElementDeclaration, vsCMAccess accessModifier)
     {
         string keyword = CodeElementHelper.GetAccessModifierKeyword(accessModifier);
@@ -395,7 +382,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="fieldDeclaration">The field declaration text.</param>
     /// <returns>True if the declaration contains the <c>fixed</c> keyword, otherwise false.</returns>
-
     internal static bool IsFixedFieldDeclaration(string fieldDeclaration)
     {
         return IsKeywordSpecified(fieldDeclaration, "fixed");
@@ -416,7 +402,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </remarks>
     /// <param name="methodDeclaration">The method declaration text.</param>
     /// <returns>True if the declaration is for a generic method, otherwise false.</returns>
-
     internal static bool IsGenericMethodDeclaration(string methodDeclaration)
     {
         var trimmed = methodDeclaration?.TrimEnd();
@@ -430,7 +415,6 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// <param name="codeElementDeclaration">The code element declaration.</param>
     /// <param name="keyword">The keyword.</param>
     /// <returns>True if the keyword is present, otherwise false.</returns>
-
     private static bool IsKeywordSpecified(string codeElementDeclaration, string keyword)
     {
         string matchString = @"(^|\s)" + keyword + @"\s";

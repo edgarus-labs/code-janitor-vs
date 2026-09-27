@@ -8,14 +8,12 @@ namespace CodeJanitor.Helpers;
 /// A class that handles tracking the cursor position and restoring it, typically in a using
 /// statement context.
 /// </summary>
-
 internal sealed class CursorPositionRestorer : IDisposable
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CursorPositionRestorer" /> class.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
-
     internal CursorPositionRestorer(TextDocument textDocument)
     {
         TextDocument = textDocument;
@@ -26,7 +24,6 @@ internal sealed class CursorPositionRestorer : IDisposable
     /// <summary>
     /// Captures the current cursor position.
     /// </summary>
-
     internal void CaptureCursorPosition()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -39,7 +36,6 @@ internal sealed class CursorPositionRestorer : IDisposable
     /// <summary>
     /// Restores the cursor position.
     /// </summary>
-
     internal void RestoreCursorPosition()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -61,7 +57,6 @@ internal sealed class CursorPositionRestorer : IDisposable
     /// document calls in CSS files.
     /// </remarks>
     /// <returns>True if the cursor position was reset, otherwise false.</returns>
-
     private bool IsCursorPositionReset()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -74,7 +69,6 @@ internal sealed class CursorPositionRestorer : IDisposable
     /// Performs application-defined tasks associated with freeing, releasing, or resetting
     /// unmanaged resources.
     /// </summary>
-
     public void Dispose()
     {
         RestoreCursorPosition();
@@ -93,14 +87,12 @@ internal sealed class CursorPositionRestorer : IDisposable
     /// <summary>
     /// A structure for capturing cursor position.
     /// </summary>
-
     private struct CursorPosition
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CursorPosition" /> struct.
         /// </summary>
         /// <param name="textSelection">The text selection.</param>
-
         public CursorPosition(TextSelection textSelection)
         {
             Line = textSelection.CurrentLine;

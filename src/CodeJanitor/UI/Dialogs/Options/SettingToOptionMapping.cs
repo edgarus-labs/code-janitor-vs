@@ -11,7 +11,6 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// A model class for mapping a setting and an option together, with optional overrides for how
 /// the cast between the two occurs.
 /// </summary>
-
 public sealed class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
 {
     /// <summary>
@@ -19,7 +18,6 @@ public sealed class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
     /// </summary>
     /// <param name="settingExpression">The expression describing the setting property.</param>
     /// <param name="optionExpression">The expression describing the option property.</param>
-
     public SettingToOptionMapping(Expression<Func<object, TS>> settingExpression, Expression<Func<object, TO>> optionExpression)
     {
         SettingProperty = GetPropertyInfo(settingExpression);
@@ -41,7 +39,6 @@ public sealed class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
     /// </summary>
     /// <param name="settingsClass">The class instance for the settings property.</param>
     /// <param name="optionClass">The class instance for the option property.</param>
-
     public void CopySettingToOption(Settings settingsClass, object optionClass)
     {
         var settingValue = SettingProperty.GetValue(settingsClass);
@@ -68,7 +65,6 @@ public sealed class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
     /// </summary>
     /// <param name="settingsClass">The class instance for the settings property.</param>
     /// <param name="optionClass">The class instance for the option property.</param>
-
     public void CopyOptionToSetting(Settings settingsClass, object optionClass)
     {
         // Special case handling for MemberTypeSetting as operator casts for generics don't work as expected.
@@ -101,7 +97,6 @@ public sealed class SettingToOptionMapping<TS, TO> : ISettingToOptionMapping
     /// <typeparam name="TR">The type of the source property.</typeparam>
     /// <param name="expression">The expression.</param>
     /// <returns>A <see cref="PropertyInfo"/> described by the expression.</returns>
-
     private static PropertyInfo GetPropertyInfo<TA, TR>(Expression<Func<TA, TR>> expression)
     {
         var body = (MemberExpression)expression.Body;

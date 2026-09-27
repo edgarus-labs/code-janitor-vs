@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Progressing;
 /// <summary>
 /// The view model for progressing options.
 /// </summary>
-
 public sealed class ProgressingViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class ProgressingViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public ProgressingViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -33,7 +31,6 @@ public sealed class ProgressingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if build progress should be hidden when a build stops.
     /// </summary>
-
     public bool HideBuildProgressOnBuildStop
     {
         get { return GetPropertyValue<bool>(); }
@@ -43,7 +40,6 @@ public sealed class ProgressingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if build progress should be shown when a build starts.
     /// </summary>
-
     public bool ShowBuildProgressOnBuildStart
     {
         get { return GetPropertyValue<bool>(); }
@@ -53,7 +49,6 @@ public sealed class ProgressingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if build progress should be shown on the windows taskbar.
     /// </summary>
-
     public bool ShowProgressOnWindowsTaskbar
     {
         get { return GetPropertyValue<bool>(); }

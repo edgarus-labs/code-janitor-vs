@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -258,6 +259,46 @@ internal sealed class VisualStudioRoslynWorkspace
         {
             return reader.ReadToEnd();
         }
+    }
+
+    /// <summary>
+    /// Writes the new text of a closed file to disk, keeping its encoding and byte order mark, when the file still
+    /// holds <paramref name="expectedText" /> and can be written directly.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="expectedText">The text the new text was computed from.</param>
+    /// <param name="newText">The new text.</param>
+    /// <returns>Whether the file was written, changed on disk in the meantime, or cannot be written directly.</returns>
+    internal static ClosedFileWriteResult TryWriteClosedFileText(string filePath, string expectedText, string newText)
+    {
+        if ((File.GetAttributes(filePath) & FileAttributes.ReadOnly) != 0)
+        {
+            return ClosedFileWriteResult.NotWritable;
+        }
+
+        string diskText;
+        Encoding encoding;
+        using (StreamReader reader = new StreamReader(filePath, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), detectEncodingFromByteOrderMarks: true))
+        {
+            diskText = reader.ReadToEnd();
+            encoding = reader.CurrentEncoding;
+        }
+
+        if (!string.Equals(diskText, expectedText, StringComparison.Ordinal))
+        {
+            return ClosedFileWriteResult.ChangedOnDisk;
+        }
+
+        try
+        {
+            File.WriteAllText(filePath, newText, encoding);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return ClosedFileWriteResult.NotWritable;
+        }
+
+        return ClosedFileWriteResult.Written;
     }
 
     /// <summary>

@@ -1,8 +1,7 @@
+using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using CodeJanitor.Properties;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -10,14 +9,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for launching the build progress tool window.
 /// </summary>
-
 internal sealed class BuildProgressToolWindowCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BuildProgressToolWindowCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal BuildProgressToolWindowCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorBuildProgressToolWindow)
     {
@@ -31,7 +28,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <summary>
     /// Gets the build progress window frame.
     /// </summary>
-
     private IVsWindowFrame BuildProgressWindowFrame
     {
         get
@@ -51,7 +47,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new BuildProgressToolWindowCommand(package);
@@ -63,7 +58,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// </summary>
     /// <param name="on">The on.</param>
     /// <returns>A Task value produced by this method.</returns>
-
     public override async Task SwitchAsync(bool on)
     {
         await base.SwitchAsync(on);
@@ -79,7 +73,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <param name="action">The action.</param>
-
     internal void OnBuildBegin(vsBuildScope scope, vsBuildAction action)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -100,7 +93,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <param name="action">The action.</param>
-
     internal void OnBuildDone(vsBuildScope scope, vsBuildAction action)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -123,7 +115,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <param name="projectConfig">The project config.</param>
     /// <param name="platform">The platform.</param>
     /// <param name="solutionConfig">The solution config.</param>
-
     internal void OnBuildProjConfigBegin(string project, string projectConfig, string platform, string solutionConfig)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -142,7 +133,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <param name="platform">The platform.</param>
     /// <param name="solutionConfig">The solution config.</param>
     /// <param name="success">True if project build was successful, otherwise false.</param>
-
     internal void OnBuildProjConfigDone(string project, string projectConfig, string platform, string solutionConfig, bool success)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -156,7 +146,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -170,7 +159,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// </summary>
     /// <remarks>Works in VS2010, does not appear to work in VS2008.</remarks>
     /// <param name="frame">The frame.</param>
-
     private static void DockWindowIfFloating(IVsWindowFrame frame)
     {
         // Get the current tool window frame mode.
@@ -186,7 +174,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <summary>
     /// Hides the build progress tool window.
     /// </summary>
-
     private void HideBuildProgressToolWindow()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -200,7 +187,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <summary>
     /// Shows the build progress tool window.
     /// </summary>
-
     private void ShowBuildProgressToolWindow()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -215,7 +201,6 @@ internal sealed class BuildProgressToolWindowCommand : BaseCommand
     /// <summary>
     /// Shows the build progress tool window without activation.
     /// </summary>
-
     private void ShowBuildProgressToolWindowWithoutActivation()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

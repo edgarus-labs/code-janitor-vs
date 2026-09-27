@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CodeJanitor.Logic.Cleaning.Diagnostics;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -16,27 +18,27 @@ public sealed class CodeFixProviderCatalogTests
     [TestCategory("Cleaning UnitTests")]
     public void GetProviders_ScansSolutionAnalyzerReferences_InDeterministicOrderWithoutDuplicates()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
-        var project = workspace.CreateSolution().Projects.Single();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        Project project = workspace.CreateSolution().Projects.Single();
 
-        var providers = new CodeFixProviderCatalog().GetProviders(project);
+        System.Collections.Immutable.ImmutableArray<CodeFixProvider> providers = new CodeFixProviderCatalog().GetProviders(project);
 
         Assert.IsTrue(providers.Any(provider => provider.FixableDiagnosticIds.Contains("IDE1006")), "The naming fixer of the host analyzer reference must be discovered.");
-        var typeNames = providers.Select(provider => provider.GetType().AssemblyQualifiedName).ToList();
-        CollectionAssert.AreEqual(typeNames.OrderBy(name => name, StringComparer.Ordinal).ToList(), typeNames);
-        Assert.AreEqual(typeNames.Count, providers.Select(provider => provider.GetType().FullName).Distinct().Count());
+        List<string> typeNames = providers.Select(provider => provider.GetType().AssemblyQualifiedName).ToList();
+        Assert.AreSequenceEqual(typeNames.OrderBy(name => name, StringComparer.Ordinal).ToList(), typeNames);
+        Assert.HasCount(typeNames.Count, providers.Select(provider => provider.GetType().FullName).Distinct());
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void GetProviders_HostSuppliedProvider_ReplacesScannedProviderOfTheSameType()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
-        var project = workspace.CreateSolution().Projects.Single();
-        var scannedType = new CodeFixProviderCatalog().GetProviders(project).Single(provider => provider.FixableDiagnosticIds.Contains("IDE1006")).GetType();
-        var hostInstance = (CodeFixProvider)Activator.CreateInstance(scannedType, nonPublic: true);
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        Project project = workspace.CreateSolution().Projects.Single();
+        Type scannedType = new CodeFixProviderCatalog().GetProviders(project).Single(provider => provider.FixableDiagnosticIds.Contains("IDE1006")).GetType();
+        CodeFixProvider hostInstance = (CodeFixProvider)Activator.CreateInstance(scannedType, nonPublic: true);
 
-        var providers = new CodeFixProviderCatalog(new[] { hostInstance }).GetProviders(project);
+        System.Collections.Immutable.ImmutableArray<CodeFixProvider> providers = new CodeFixProviderCatalog(new[] { hostInstance }).GetProviders(project);
 
         Assert.AreSame(hostInstance, providers.Single(provider => provider.GetType().FullName == scannedType.FullName));
     }

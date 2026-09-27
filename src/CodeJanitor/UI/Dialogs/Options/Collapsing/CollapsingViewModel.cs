@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Collapsing;
 /// <summary>
 /// The view model for collapsing options.
 /// </summary>
-
 public sealed class CollapsingViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class CollapsingViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CollapsingViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -32,7 +30,6 @@ public sealed class CollapsingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if the solution should be collapsed when it is opened.
     /// </summary>
-
     public bool CollapseSolutionWhenOpened
     {
         get { return GetPropertyValue<bool>(); }
@@ -42,7 +39,6 @@ public sealed class CollapsingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if a solo project should be kept expanded.
     /// </summary>
-
     public bool KeepSoloProjectExpanded
     {
         get { return GetPropertyValue<bool>(); }

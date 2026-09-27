@@ -14,7 +14,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// Converts a code item into a single TextBlock object containing its name and optionally its parameters.
 /// </summary>
-
 public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
 {
     /// <summary>
@@ -25,7 +24,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// <summary>
     /// An instance of the <see cref="NameParametersToTextBlockConverter" /> for parent items.
     /// </summary>
-
     public static NameParametersToTextBlockConverter Parent = new NameParametersToTextBlockConverter
     {
         FontSize = 14,
@@ -51,7 +49,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// <summary>
     /// Initializes a new instance of the <see cref="NameParametersToTextBlockConverter"/> class.
     /// </summary>
-
     public NameParametersToTextBlockConverter()
     {
         FontSize = 12;
@@ -67,7 +64,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (!(values[0] is ICodeItem codeItem))
@@ -107,7 +103,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
@@ -119,7 +114,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// <param name="text">The text for the name.</param>
     /// <param name="textToHighlight">The text to highlight, may be null.</param>
     /// <returns>The inlines representing the name.</returns>
-
     private IEnumerable<Inline> CreateInlinesForName(string text, string textToHighlight)
     {
         var inlines = new List<Inline>();
@@ -161,7 +155,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>The inlines representing the parameters.</returns>
-
     private IEnumerable<Inline> CreateInlinesForParameters(ICodeItemParameters codeItem)
     {
         var inlines = new List<Inline>();
@@ -217,7 +210,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="codeItemElement">The code item element.</param>
     /// <returns>The inlines representing the type.</returns>
-
     private IEnumerable<Inline> CreateInlinesForType(BaseCodeItemElement codeItemElement)
     {
         var inlines = new List<Inline>();
@@ -237,7 +229,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>The created run.</returns>
-
     private Run CreateRun(string text)
     {
         var run = new Run(text)
@@ -256,7 +247,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>Highlighted inline run.</returns>
-
     private Run CreateHighlightedRun(string text)
     {
         var run = CreateRun(text);
@@ -272,7 +262,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>Italic run.</returns>
-
     private Run CreateItalicRun(string text)
     {
         var run = CreateRun(text);
@@ -287,7 +276,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>The created run.</returns>
-
     private Run CreateTypeRun(string text)
     {
         var run = CreateItalicRun(text);
@@ -302,7 +290,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>The opening string, otherwise null.</returns>
-
     private static string GetOpeningString(ICodeItemParameters codeItem)
     {
         if (codeItem is CodeItemProperty property)
@@ -318,7 +305,6 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>The closing string, otherwise null.</returns>
-
     private static string GetClosingString(ICodeItemParameters codeItem)
     {
         if (codeItem is CodeItemProperty property)

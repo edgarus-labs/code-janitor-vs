@@ -9,7 +9,6 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// A user control for transitioning from a <see cref="TextBlock"/> to a <see cref="TextBox"/>.
 /// </summary>
-
 public partial class EditableTextBlock
 {
     private string _originalValue;
@@ -17,7 +16,6 @@ public partial class EditableTextBlock
     /// <summary>
     /// Initializes a new instance of the <see cref="EditableTextBlock"/> class.
     /// </summary>
-
     public EditableTextBlock()
     {
         Application.ResourceAssembly = Assembly.GetExecutingAssembly();
@@ -28,7 +26,6 @@ public partial class EditableTextBlock
     /// <summary>
     /// The dependency property definition for the IsEditing property.
     /// </summary>
-
     public static readonly DependencyProperty IsEditingProperty = DependencyProperty.Register(
         "IsEditing", typeof(bool), typeof(EditableTextBlock),
         new UIPropertyMetadata(false, OnIsEditingChanged));
@@ -36,7 +33,6 @@ public partial class EditableTextBlock
     /// <summary>
     /// Gets or sets the flag indicating if the control is in edit mode.
     /// </summary>
-
     public bool IsEditing
     {
         get { return (bool)GetValue(IsEditingProperty); }
@@ -48,7 +44,6 @@ public partial class EditableTextBlock
     /// </summary>
     /// <param name="obj">The dependency object where the value has changed.</param>
     /// <param name="e">The <see cref="System.Windows.DependencyPropertyChangedEventArgs"/> instance containing the event data.</param>
-
     private static void OnIsEditingChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
     {
         if (!(obj is EditableTextBlock editableTextBlock))
@@ -73,7 +68,6 @@ public partial class EditableTextBlock
     /// <summary>
     /// The dependency property definition for the Text property.
     /// </summary>
-
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
         "Text", typeof(string), typeof(EditableTextBlock),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
@@ -81,7 +75,6 @@ public partial class EditableTextBlock
     /// <summary>
     /// Gets or sets the text.
     /// </summary>
-
     public string Text
     {
         get { return (string)GetValue(TextProperty); }
@@ -93,7 +86,6 @@ public partial class EditableTextBlock
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         IsEditing = !IsEditing;
@@ -104,7 +96,6 @@ public partial class EditableTextBlock
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         switch (e.Key)
@@ -127,7 +118,6 @@ public partial class EditableTextBlock
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-
     private void OnLostFocus(object sender, RoutedEventArgs e)
     {
         IsEditing = false;

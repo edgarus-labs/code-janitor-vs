@@ -1,10 +1,9 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Reorganizing;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System.Linq;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -12,7 +11,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for inserting a region within Spade.
 /// </summary>
-
 internal sealed class SpadeContextInsertRegionCommand : BaseCommand
 {
     private readonly GenerateRegionLogic _generateRegionLogic;
@@ -22,7 +20,6 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
     /// Initializes a new instance of the <see cref="SpadeContextInsertRegionCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SpadeContextInsertRegionCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextInsertRegion)
     {
@@ -40,7 +37,6 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SpadeContextInsertRegionCommand(package);
@@ -50,7 +46,6 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -70,7 +65,6 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

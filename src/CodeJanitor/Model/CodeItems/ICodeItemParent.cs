@@ -6,13 +6,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// An interface for code items that support having children.
 /// </summary>
-
 public interface ICodeItemParent : ICodeItem
 {
     /// <summary>
     /// An event raised when the IsExpanded state has changed.
     /// </summary>
-
     event EventHandler IsExpandedChanged;
 
     /// <summary>

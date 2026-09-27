@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// <summary>
 /// The view model for cleaning remove options.
 /// </summary>
-
 public sealed class CleaningRemoveViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CleaningRemoveViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -42,7 +40,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed after attributes.
     /// </summary>
-
     public bool RemoveBlankLinesAfterAttributes
     {
         get { return GetPropertyValue<bool>(); }
@@ -52,7 +49,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed after an opening brace.
     /// </summary>
-
     public bool RemoveBlankLinesAfterOpeningBraces
     {
         get { return GetPropertyValue<bool>(); }
@@ -62,7 +58,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed at the bottom of the file.
     /// </summary>
-
     public bool RemoveBlankLinesAtBottom
     {
         get { return GetPropertyValue<bool>(); }
@@ -72,7 +67,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed at the top of the file.
     /// </summary>
-
     public bool RemoveBlankLinesAtTop
     {
         get { return GetPropertyValue<bool>(); }
@@ -82,7 +76,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed before a closing brace.
     /// </summary>
-
     public bool RemoveBlankLinesBeforeClosingBraces
     {
         get { return GetPropertyValue<bool>(); }
@@ -92,7 +85,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed before a closing tag.
     /// </summary>
-
     public bool RemoveBlankLinesBeforeClosingTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -102,7 +94,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if blank lines should be removed between chained statements.
     /// </summary>
-
     public bool RemoveBlankLinesBetweenChainedStatements
     {
         get { return GetPropertyValue<bool>(); }
@@ -113,7 +104,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if blank spaces should be removed before a closing
     /// angle bracket.
     /// </summary>
-
     public bool RemoveBlankSpacesBeforeClosingAngleBrackets
     {
         get { return GetPropertyValue<bool>(); }
@@ -123,7 +113,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if end of line whitespace should be removed.
     /// </summary>
-
     public bool RemoveEndOfLineWhitespace
     {
         get { return GetPropertyValue<bool>(); }
@@ -133,7 +122,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if multiple consecutive blank lines should be removed.
     /// </summary>
-
     public bool RemoveMultipleConsecutiveBlankLines
     {
         get { return GetPropertyValue<bool>(); }
@@ -152,7 +140,6 @@ public sealed class CleaningRemoveViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if regions should always be removed.
     /// </summary>
-
     public bool RemoveRegions
     {
         get { return GetPropertyValue<bool>(); }

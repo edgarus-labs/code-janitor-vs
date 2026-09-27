@@ -5,7 +5,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A set of extension methods for <see cref="ICodeItemParent" />.
 /// </summary>
-
 public static class CodeItemParentExtensions
 {
     /// <summary>
@@ -14,7 +13,6 @@ public static class CodeItemParentExtensions
     /// </summary>
     /// <param name="parent">The parent.</param>
     /// <returns>The recursive set of children.</returns>
-
     public static SetCodeItems GetChildrenRecursive(this ICodeItemParent parent)
     {
         var children = new SetCodeItems();

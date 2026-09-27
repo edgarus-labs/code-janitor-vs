@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Ai;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -208,7 +208,6 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The e.</param>
-
     private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
     {
         CountProgress = e.ProgressPercentage;
@@ -261,10 +260,8 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
     }
 
     /// <summary>
-
     /// ExecutionSummary` and `ElapsedSummary` strings with formatted counts of changed, unchanged, failed, and processed items along with the elapsed batch time in mm:ss format.
     /// </summary>
-
     private void UpdateExecutionSummary()
     {
         ExecutionSummary = $"Changed: {ChangedCount} | Unchanged: {UnchangedCount} | Failed: {FailedCount}";

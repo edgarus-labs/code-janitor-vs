@@ -6,7 +6,6 @@ namespace CodeJanitor.UI.Dialogs.Options.ThirdParty;
 /// <summary>
 /// The view model for third party options.
 /// </summary>
-
 public sealed class ThirdPartyViewModel : OptionsPageViewModel
 {
     private readonly CommandHelper _commandHelper;
@@ -16,7 +15,6 @@ public sealed class ThirdPartyViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public ThirdPartyViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -39,7 +37,6 @@ public sealed class ThirdPartyViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if JetBrains ReSharper cleanup should be utilized during cleanup.
     /// </summary>
-
     public bool UseJetBrainsReSharperCleanup
     {
         get { return GetPropertyValue<bool>(); }
@@ -49,7 +46,6 @@ public sealed class ThirdPartyViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if Telerik JustCode cleanup should be utilized during cleanup.
     /// </summary>
-
     public bool UseTelerikJustCodeCleanup
     {
         get { return GetPropertyValue<bool>(); }
@@ -59,7 +55,6 @@ public sealed class ThirdPartyViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if XAML Styler cleanup should be utilized during cleanup.
     /// </summary>
-
     public bool UseXAMLStylerCleanup
     {
         get { return GetPropertyValue<bool>(); }
@@ -69,7 +64,6 @@ public sealed class ThirdPartyViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the expression for other cleaning commands to be utilized during cleanup.
     /// </summary>
-
     public string OtherCleaningCommandsExpression
     {
         get { return GetPropertyValue<string>(); }

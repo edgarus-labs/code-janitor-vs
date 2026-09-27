@@ -62,7 +62,7 @@ internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
             {
                 if (symbolContext.Symbol.Name.StartsWith("legacy", System.StringComparison.Ordinal))
                 {
-                    foreach (var descriptor in _descriptors)
+                    foreach (DiagnosticDescriptor descriptor in _descriptors)
                     {
                         symbolContext.ReportDiagnostic(Diagnostic.Create(descriptor, symbolContext.Symbol.Locations[0], symbolContext.Symbol.Name));
                     }
@@ -78,7 +78,7 @@ internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 internal sealed class AnalysisProbeAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor s_descriptor = new DiagnosticDescriptor(
+    private static readonly DiagnosticDescriptor Descriptor = new DiagnosticDescriptor(
         "CJT0099",
         "Analysis probe",
         "Never reported",
@@ -90,7 +90,7 @@ internal sealed class AnalysisProbeAnalyzer : DiagnosticAnalyzer
 
     public int AnalyzedTreeCount => Volatile.Read(ref _analyzedTreeCount);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(s_descriptor);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Descriptor);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -118,8 +118,8 @@ internal abstract class LegacyFieldCodeFixProviderBase : CodeFixProvider
 
     protected static async Task<Document> RenameDeclaratorAsync(Document document, TextSpan span, string newName, CancellationToken cancellationToken)
     {
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var declarator = root.FindToken(span.Start).Parent.AncestorsAndSelf().OfType<VariableDeclaratorSyntax>().First();
+        SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        VariableDeclaratorSyntax declarator = root.FindToken(span.Start).Parent.AncestorsAndSelf().OfType<VariableDeclaratorSyntax>().First();
 
         return document.WithSyntaxRoot(root.ReplaceToken(declarator.Identifier, SyntaxFactory.Identifier(newName).WithTriviaFrom(declarator.Identifier)));
     }
@@ -128,7 +128,7 @@ internal abstract class LegacyFieldCodeFixProviderBase : CodeFixProvider
 
     protected static async Task<string> GetFieldNameAsync(Document document, TextSpan span, CancellationToken cancellationToken)
     {
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
         return root.FindToken(span.Start).ValueText;
     }
@@ -146,8 +146,8 @@ internal sealed class RenameLegacyFieldCodeFixProvider : LegacyFieldCodeFixProvi
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
-        var nested = CodeAction.Create(
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+        CodeAction nested = CodeAction.Create(
             "Rename (nested choice)",
             ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "nested"), ct),
             "RenameLegacyField.Nested");
@@ -174,7 +174,7 @@ internal sealed class NestedOnlyLegacyFieldCodeFixProvider : LegacyFieldCodeFixP
 
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var nested = CodeAction.Create(
+        CodeAction nested = CodeAction.Create(
             "Rename (nested choice)",
             ct => RenameDeclaratorAsync(context.Document, context.Span, "nestedChoice", ct),
             "NestedOnlyLegacyField.Nested");
@@ -224,8 +224,8 @@ internal sealed class BreakingLegacyFieldCodeFixProvider : LegacyFieldCodeFixPro
 
     private static async Task<Document> UseMissingTypeAsync(Document document, TextSpan span, CancellationToken cancellationToken)
     {
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var declaration = root.FindToken(span.Start).Parent.AncestorsAndSelf().OfType<VariableDeclarationSyntax>().First();
+        SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        VariableDeclarationSyntax declaration = root.FindToken(span.Start).Parent.AncestorsAndSelf().OfType<VariableDeclarationSyntax>().First();
 
         return document.WithSyntaxRoot(root.ReplaceNode(declaration.Type, SyntaxFactory.IdentifierName("MissingType").WithTriviaFrom(declaration.Type)));
     }
@@ -271,12 +271,12 @@ internal sealed class CustomOperationsLegacyFieldCodeFixProvider : LegacyFieldCo
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
 
         context.RegisterCodeFix(
             new CustomOperationsCodeAction(async ct =>
             {
-                var renamed = await RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct).ConfigureAwait(false);
+                Document renamed = await RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct).ConfigureAwait(false);
 
                 return _createOperations(name, context.Document.Project.Solution, renamed.Project.Solution);
             }),
@@ -296,8 +296,8 @@ internal sealed class CustomOperationsLegacyFieldCodeFixProvider : LegacyFieldCo
 
         public override string EquivalenceKey => "CustomOperationsLegacyField";
 
-        protected override Task<IEnumerable<CodeActionOperation>> ComputeOperationsAsync(CancellationToken cancellationToken) =>
-            _computeOperations(cancellationToken);
+        protected override Task<IEnumerable<CodeActionOperation>> ComputeOperationsAsync(CancellationToken cancellationToken)
+            => _computeOperations(cancellationToken);
     }
 }
 
@@ -316,8 +316,8 @@ internal sealed class HostNotificationOperation : CodeActionOperation
 
     public override string Title => "Notify host: " + _subject;
 
-    public override void Apply(Workspace workspace, CancellationToken cancellationToken) =>
-        throw new InvalidOperationException("The engine must hand host notifications to the host instead of executing them.");
+    public override void Apply(Workspace workspace, CancellationToken cancellationToken)
+        => throw new InvalidOperationException("The engine must hand host notifications to the host instead of executing them.");
 }
 
 /// <summary>
@@ -339,7 +339,7 @@ internal sealed class AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvide
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
 
         context.RegisterCodeFix(
             CodeAction.Create("Rename field", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "first"), ct)),
@@ -351,8 +351,8 @@ internal sealed class AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvide
 
     private static async Task<Document> RenameClassAsync(Document document, CancellationToken cancellationToken)
     {
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var type = root.DescendantNodes().OfType<ClassDeclarationSyntax>().First();
+        SyntaxNode root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        ClassDeclarationSyntax type = root.DescendantNodes().OfType<ClassDeclarationSyntax>().First();
 
         return document.WithSyntaxRoot(root.ReplaceToken(type.Identifier, SyntaxFactory.Identifier("Alternative").WithTriviaFrom(type.Identifier)));
     }
@@ -376,11 +376,11 @@ internal sealed class BatchRenameLegacyFieldCodeFixProvider : LegacyFieldCodeFix
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
 
         if (_withNestedChoice)
         {
-            var nested = CodeAction.Create("Rename (nested choice)", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "nested"), ct), "BatchRename.Nested");
+            CodeAction nested = CodeAction.Create("Rename (nested choice)", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "nested"), ct), "BatchRename.Nested");
             context.RegisterCodeFix(CodeAction.Create("Choose a name", ImmutableArray.Create(nested), isInlinable: false), context.Diagnostics);
         }
 

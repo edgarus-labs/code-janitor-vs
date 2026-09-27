@@ -8,7 +8,6 @@ namespace CodeJanitor.Logic.SourceControl;
 /// <c>git status --porcelain</c>. The process execution is injected for testability.
 /// </summary>
 /// <remarks>See ADR-0005 / ADR-0007 (dependency injection, unit-testability).</remarks>
-
 public sealed class GitChangedFilesProvider : IChangedFilesProvider
 {
     private readonly IProcessRunner _processRunner;
@@ -19,7 +18,6 @@ public sealed class GitChangedFilesProvider : IChangedFilesProvider
     /// </summary>
     /// <param name="processRunner">The process runner used to execute git.</param>
     /// <param name="parser">The parser for git status output.</param>
-
     public GitChangedFilesProvider(IProcessRunner processRunner, IGitStatusParser parser)
     {
         _processRunner = processRunner;
@@ -27,7 +25,6 @@ public sealed class GitChangedFilesProvider : IChangedFilesProvider
     }
 
     /// <inheritdoc />
-
     public IReadOnlyList<string> GetChangedFiles(string workingDirectory)
     {
         var topLevel = _processRunner.Run("git", "rev-parse --show-toplevel", workingDirectory);

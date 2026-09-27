@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// <summary>
 /// The view model for cleaning options - hosts the more specific cleaning view models as tabs.
 /// </summary>
-
 public sealed class CleaningParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class CleaningParentViewModel : CompositeOptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CleaningParentViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings, new OptionsPageViewModel[]
         {

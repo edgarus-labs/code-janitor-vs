@@ -229,8 +229,10 @@ affected option (Cleaning > Remove, Update and Insert), a note names the key and
 file that sets it, for example *Overridden by .editorconfig: csharp_style_var_when_type_is_apparent
 in C:\repo\.editorconfig*. Visual Studio options are global, so the note describes a C# file in the
 solution's directory: `.editorconfig` files nested below it are not considered, and a key ignored with
-`:none` or an unrecognized value shows no note. The option stays editable and applies wherever
-`.editorconfig` does not set the key. No note is shown when no solution is open.
+`:none` or an unrecognized value shows no note. An option with a note is disabled, because its
+Visual Studio setting has no effect for the open solution; it still applies to files outside that
+`.editorconfig`'s scope, but cannot be edited while the note is shown. No note is shown, and every
+option is editable, when no solution is open.
 
 ## Repository-level settings (.codejanitor)
 

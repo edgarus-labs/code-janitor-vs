@@ -1,16 +1,16 @@
-﻿using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
-using System.Collections.Concurrent;
+using Microsoft.VisualStudio.Shell;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System;
 
 namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 
@@ -139,9 +139,12 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 return projectItems.Select(CreateWorkItem).ToList();
             });
 
-            // Open documents, and files whose effective settings need editor-backed steps (Format Document, Remove and
-            // Sort Usings, third-party cleanup), are cleaned one at a time in the editor.
-            var editorItems = new HashSet<WorkItem>(workItems.Where(workItem => workItem.IsOpen || CodeCleanupManager.RequiresEditorCleanupForCSharp(workItem.FilePath)));
+            // Open documents, files in other languages than C#, and C# files that need editor-backed steps
+            // (reorganizing, third-party cleanup) are cleaned one at a time in the editor.
+            var editorItems = new HashSet<WorkItem>(workItems.Where(workItem =>
+                workItem.IsOpen ||
+                !string.Equals(Path.GetExtension(workItem.FilePath), ".cs", StringComparison.OrdinalIgnoreCase) ||
+                CodeCleanupManager.RequiresEditorCleanupForCSharp()));
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
@@ -234,8 +237,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
 
-                    var currentCompleted = Interlocked.Increment(ref completedCount);
-                    bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = currentCompleted, Total = totalCount });
+                    // The file is counted as completed after its diagnostic cleanup below.
+                    bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
                 });
             }
             catch (OperationCanceledException)
@@ -261,6 +264,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     return;
                 }
 
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+
                 ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -273,6 +278,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
                 });
+
+                completedCount++;
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
             }
 
             foreach (var workItem in sequentialItems)
@@ -434,7 +442,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         // (not canceled, no worker error, no per-file failures) and Visual Studio's
         // build context is available.
         if (!e.Cancelled && e.Error is null && stats.FailedItems == 0 &&
-            _package?.IDE?.Solution?.SolutionBuild != null &&
+            _package?.IDE?.Solution?.SolutionBuild is not null &&
             (stats.HeadlessChangedItems > 0 || stats.DiagnosticChangedItems > 0))
         {
             try

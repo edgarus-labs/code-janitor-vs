@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -9,7 +9,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// A class for encapsulating conservative CA1869-related cleanup for
 /// <c>JsonSerializerOptions</c> allocations.
 /// </summary>
-
 internal sealed class JsonSerializerOptionsReuseLogic
 {
     private readonly ISourceTransformation _converter;
@@ -24,7 +23,6 @@ internal sealed class JsonSerializerOptionsReuseLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="JsonSerializerOptionsReuseLogic" /> class.</returns>
-
     internal static JsonSerializerOptionsReuseLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new JsonSerializerOptionsReuseLogic(package));
@@ -34,7 +32,6 @@ internal sealed class JsonSerializerOptionsReuseLogic
     /// Initializes a new instance of the <see cref="JsonSerializerOptionsReuseLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private JsonSerializerOptionsReuseLogic(CodeJanitorPackage package)
     {
         _converter = new JsonSerializerOptionsReuseConverter();
@@ -46,7 +43,6 @@ internal sealed class JsonSerializerOptionsReuseLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void ReuseJsonSerializerOptionsForCA1869(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

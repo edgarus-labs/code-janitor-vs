@@ -1,6 +1,6 @@
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -14,14 +14,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// multi-line string literal, text disabled by <c>#if</c> or a multi-line comment are left untouched (see
 /// <see cref="IndentationGuard" />), as are blank lines; line breaks are preserved.
 /// </remarks>
-
 public sealed class SpaceToTabConverter : ISourceTransformation
 {
     /// <summary>
     /// Initializes a converter that turns every <paramref name="tabSize" /> columns of indentation into a tab.
     /// </summary>
     /// <param name="tabSize">The number of columns a tab stands for.</param>
-
     public SpaceToTabConverter(int tabSize)
     {
         if (tabSize < 1)
@@ -41,7 +39,6 @@ public sealed class SpaceToTabConverter : ISourceTransformation
     public string Name => "Convert spaces to tabs";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Convert(source);
@@ -50,7 +47,6 @@ public sealed class SpaceToTabConverter : ISourceTransformation
     /// <summary>
     /// Converts the leading indentation spaces of the given C# source to tabs.
     /// </summary>
-
     public string Convert(string source)
     {
         if (string.IsNullOrEmpty(source) || source.IndexOf(' ') < 0)
@@ -99,7 +95,7 @@ public sealed class SpaceToTabConverter : ISourceTransformation
             copied = contentStart;
         }
 
-        if (builder == null)
+        if (builder is null)
         {
             return source;
         }

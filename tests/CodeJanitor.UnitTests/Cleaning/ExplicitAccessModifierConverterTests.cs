@@ -44,41 +44,41 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void TopLevelClass_WithoutModifier_GetsInternal()
     {
-        var source = "namespace N { class Foo { } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "internal class Foo");
+        string source = "namespace N { class Foo { } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("internal class Foo", result);
     }
 
     [TestMethod]
     public void TopLevelInterface_WithoutModifier_GetsInternal()
     {
-        var source = "namespace N { interface IFoo { } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "internal interface IFoo");
+        string source = "namespace N { interface IFoo { } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("internal interface IFoo", result);
     }
 
     [TestMethod]
     public void TopLevelEnum_WithoutModifier_GetsInternal()
     {
-        var source = "namespace N { enum Color { Red } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "internal enum Color");
+        string source = "namespace N { enum Color { Red } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("internal enum Color", result);
     }
 
     [TestMethod]
     public void TopLevelStruct_WithoutModifier_GetsInternal()
     {
-        var source = "namespace N { struct Point { } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "internal struct Point");
+        string source = "namespace N { struct Point { } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("internal struct Point", result);
     }
 
     [TestMethod]
     public void TopLevelDelegate_WithoutModifier_GetsInternal()
     {
-        var source = "namespace N { delegate void Work(); }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "internal delegate void Work");
+        string source = "namespace N { delegate void Work(); }";
+        string result = _converter.Apply(source);
+        Assert.Contains("internal delegate void Work", result);
     }
 
     // ── Nested types get 'private' ─────────────────────────────────────────────
@@ -86,17 +86,17 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void NestedClass_WithoutModifier_GetsPrivate()
     {
-        var source = "class Outer { class Inner { } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private class Inner");
+        string source = "class Outer { class Inner { } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private class Inner", result);
     }
 
     [TestMethod]
     public void NestedEnum_WithoutModifier_GetsPrivate()
     {
-        var source = "class Outer { enum State { On } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private enum State");
+        string source = "class Outer { enum State { On } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private enum State", result);
     }
 
     // ── Members get 'private' ──────────────────────────────────────────────────
@@ -104,41 +104,41 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void Field_WithoutModifier_GetsPrivate()
     {
-        var source = "class Foo { int _x; }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private int _x");
+        string source = "class Foo { int _x; }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private int _x", result);
     }
 
     [TestMethod]
     public void Method_WithoutModifier_GetsPrivate()
     {
-        var source = "class Foo { void Bar() { } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private void Bar");
+        string source = "class Foo { void Bar() { } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private void Bar", result);
     }
 
     [TestMethod]
     public void Property_WithoutModifier_GetsPrivate()
     {
-        var source = "class Foo { int Value { get; set; } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private int Value");
+        string source = "class Foo { int Value { get; set; } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private int Value", result);
     }
 
     [TestMethod]
     public void EventField_WithoutModifier_GetsPrivate()
     {
-        var source = "class Foo { event System.Action Done; }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private event System.Action Done");
+        string source = "class Foo { event System.Action Done; }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private event System.Action Done", result);
     }
 
     [TestMethod]
     public void Constructor_WithoutModifier_GetsPrivate()
     {
-        var source = "class Foo { Foo() { } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private Foo()");
+        string source = "class Foo { Foo() { } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private Foo()", result);
     }
 
     // ── Already-specified modifiers are left alone ─────────────────────────────
@@ -146,19 +146,19 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void PublicClass_IsNotModified()
     {
-        var source = "public class Foo { }";
-        var result = _converter.Apply(source);
+        string source = "public class Foo { }";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
     [TestMethod]
     public void PublicField_IsNotModified()
     {
-        var source = "class Foo { public int X; }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "public int X");
-        Assert.IsFalse(result.Contains("private int X"));
-        Assert.IsFalse(result.Contains("internal int X"));
+        string source = "class Foo { public int X; }";
+        string result = _converter.Apply(source);
+        Assert.Contains("public int X", result);
+        Assert.DoesNotContain("private int X", result);
+        Assert.DoesNotContain("internal int X", result);
     }
 
     // ── Skipped cases ──────────────────────────────────────────────────────────
@@ -166,80 +166,80 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void PartialClass_IsNotModified()
     {
-        var source = "partial class Foo { }";
-        var result = _converter.Apply(source);
+        string source = "partial class Foo { }";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
     [TestMethod]
     public void PartialMethod_IsNotModified()
     {
-        var source = "partial class Foo { partial void Bar(); }";
-        var result = _converter.Apply(source);
+        string source = "partial class Foo { partial void Bar(); }";
+        string result = _converter.Apply(source);
         // partial method should remain unmodified
-        Assert.IsFalse(result.Contains("private partial void Bar"));
+        Assert.DoesNotContain("private partial void Bar", result);
     }
 
     [TestMethod]
     public void StaticConstructor_IsNotModified()
     {
-        var source = "class Foo { static Foo() { } }";
-        var result = _converter.Apply(source);
+        string source = "class Foo { static Foo() { } }";
+        string result = _converter.Apply(source);
         // The class itself gets 'internal'; the static ctor must remain modifier-free.
-        Assert.IsFalse(result.Contains("private Foo()"));
-        Assert.IsFalse(result.Contains("public Foo()"));
-        Assert.IsFalse(result.Contains("internal Foo()"));
+        Assert.DoesNotContain("private Foo()", result);
+        Assert.DoesNotContain("public Foo()", result);
+        Assert.DoesNotContain("internal Foo()", result);
     }
 
     [TestMethod]
     public void Destructor_IsNotModified()
     {
-        var source = "class Foo { ~Foo() { } }";
-        var result = _converter.Apply(source);
+        string source = "class Foo { ~Foo() { } }";
+        string result = _converter.Apply(source);
         // The class itself gets 'internal'; the destructor must remain modifier-free.
-        Assert.IsFalse(result.Contains("private ~Foo"));
-        Assert.IsFalse(result.Contains("public ~Foo"));
-        Assert.IsFalse(result.Contains("internal ~Foo"));
+        Assert.DoesNotContain("private ~Foo", result);
+        Assert.DoesNotContain("public ~Foo", result);
+        Assert.DoesNotContain("internal ~Foo", result);
     }
 
     [TestMethod]
     public void InterfaceMember_Method_IsNotModified()
     {
-        var source = "interface IFoo { void Bar(); }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("private void Bar"));
+        string source = "interface IFoo { void Bar(); }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("private void Bar", result);
     }
 
     [TestMethod]
     public void InterfaceMember_Property_IsNotModified()
     {
-        var source = "interface IFoo { int Value { get; } }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("private int Value"));
+        string source = "interface IFoo { int Value { get; } }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("private int Value", result);
     }
 
     [TestMethod]
     public void ExplicitInterfaceImpl_Method_IsNotModified()
     {
-        var source = "class Foo : IFoo { void IFoo.Bar() { } }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("private void IFoo.Bar"));
+        string source = "class Foo : IFoo { void IFoo.Bar() { } }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("private void IFoo.Bar", result);
     }
 
     [TestMethod]
     public void ExplicitInterfaceImpl_Property_IsNotModified()
     {
-        var source = "class Foo : IFoo { int IFoo.Value { get; } }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("private int IFoo.Value"));
+        string source = "class Foo : IFoo { int IFoo.Value { get; } }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("private int IFoo.Value", result);
     }
 
     [TestMethod]
     public void FixedField_IsNotModified()
     {
-        var source = "unsafe class Foo { fixed int buf[8]; }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("private fixed int buf"));
+        string source = "unsafe class Foo { fixed int buf[8]; }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("private fixed int buf", result);
     }
 
     // ── Setting disabled ──────────────────────────────────────────────────────
@@ -248,19 +248,19 @@ public sealed class ExplicitAccessModifierConverterTests
     public void WhenSettingDisabled_FieldIsNotModified()
     {
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields = false;
-        var source = "class Foo { int _x; }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("private int _x"));
-        Assert.IsFalse(result.Contains("public int _x"));
-        StringAssert.Contains(result, "int _x");
+        string source = "class Foo { int _x; }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("private int _x", result);
+        Assert.DoesNotContain("public int _x", result);
+        Assert.Contains("int _x", result);
     }
 
     [TestMethod]
     public void WhenSettingDisabled_ClassIsNotModified()
     {
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnClasses = false;
-        var source = "class Foo { }";
-        var result = _converter.Apply(source);
+        string source = "class Foo { }";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
@@ -269,17 +269,17 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void IndentationOfClass_IsPreserved()
     {
-        var source = "namespace N\r\n{\r\n    class Foo { }\r\n}";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("    internal class Foo"), result);
+        string source = "namespace N\r\n{\r\n    class Foo { }\r\n}";
+        string result = _converter.Apply(source);
+        Assert.Contains("    internal class Foo", result, result);
     }
 
     [TestMethod]
     public void IndentationOfField_IsPreserved()
     {
-        var source = "class Foo\r\n{\r\n    int _x;\r\n}";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("    private int _x"), result);
+        string source = "class Foo\r\n{\r\n    int _x;\r\n}";
+        string result = _converter.Apply(source);
+        Assert.Contains("    private int _x", result, result);
     }
 
     // ── Record support ─────────────────────────────────────────────────────────
@@ -287,25 +287,25 @@ public sealed class ExplicitAccessModifierConverterTests
     [TestMethod]
     public void TopLevelRecord_WithoutModifier_GetsInternal()
     {
-        var source = "namespace N { record Point(int X, int Y); }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "internal record Point");
+        string source = "namespace N { record Point(int X, int Y); }";
+        string result = _converter.Apply(source);
+        Assert.Contains("internal record Point", result);
     }
 
     [TestMethod]
     public void NestedRecord_WithoutModifier_GetsPrivate()
     {
-        var source = "class Outer { record Point(int X, int Y); }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private record Point");
+        string source = "class Outer { record Point(int X, int Y); }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private record Point", result);
     }
 
     [TestMethod]
     public void CustomEvent_WithoutModifier_GetsPrivate()
     {
-        var source = "class Foo { event System.Action Done { add { } remove { } } }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private event System.Action Done");
+        string source = "class Foo { event System.Action Done { add { } remove { } } }";
+        string result = _converter.Apply(source);
+        Assert.Contains("private event System.Action Done", result);
     }
 
     [TestMethod]
@@ -327,15 +327,15 @@ public sealed class ExplicitAccessModifierConverterTests
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnProperties = false;
         Settings.Default.Cleaning_InsertExplicitAccessModifiersOnEvents = false;
 
-        var source = "struct S { } enum E { } interface I { } delegate void D(); class C { void M() { } int P { get; } event System.Action Ev; }";
-        var result = _converter.Apply(source);
-        Assert.IsFalse(result.Contains("internal struct"));
-        Assert.IsFalse(result.Contains("internal enum"));
-        Assert.IsFalse(result.Contains("internal interface"));
-        Assert.IsFalse(result.Contains("internal delegate"));
-        Assert.IsFalse(result.Contains("private void M"));
-        Assert.IsFalse(result.Contains("private int P"));
-        Assert.IsFalse(result.Contains("private event"));
+        string source = "struct S { } enum E { } interface I { } delegate void D(); class C { void M() { } int P { get; } event System.Action Ev; }";
+        string result = _converter.Apply(source);
+        Assert.DoesNotContain("internal struct", result);
+        Assert.DoesNotContain("internal enum", result);
+        Assert.DoesNotContain("internal interface", result);
+        Assert.DoesNotContain("internal delegate", result);
+        Assert.DoesNotContain("private void M", result);
+        Assert.DoesNotContain("private int P", result);
+        Assert.DoesNotContain("private event", result);
     }
 
     [TestMethod]
@@ -348,7 +348,7 @@ public sealed class ExplicitAccessModifierConverterTests
         // new modifier list from the parsed syntax tree and is structurally immune to Bug 2,
         // but must still insert correctly around generic type parameters, attributes on type
         // parameters, where-clauses, and typeof(T) member access without corruption.
-        var source = @"public class Service
+        string source = @"public class Service
 {
     static T? Find<[SomeAttribute] T>(System.Guid id)
         where T : SomeBaseType =>
@@ -359,13 +359,13 @@ public sealed class ExplicitAccessModifierConverterTests
         var fields = typeof(T).GetFields();
     }
 }";
-        var result = _converter.Apply(source);
-        StringAssert.Contains(result, "private static T? Find<[SomeAttribute] T>");
-        StringAssert.Contains(result, "private void Inspect<T>");
-        StringAssert.Contains(result, "where T : SomeBaseType");
-        StringAssert.Contains(result, "typeof(T).GetFields()");
-        Assert.IsFalse(result.Contains("private readonly ("));
-        Assert.IsFalse(result.Contains("private SomeBaseType"));
-        Assert.IsFalse(result.Contains("private GetFields"));
+        string result = _converter.Apply(source);
+        Assert.Contains("private static T? Find<[SomeAttribute] T>", result);
+        Assert.Contains("private void Inspect<T>", result);
+        Assert.Contains("where T : SomeBaseType", result);
+        Assert.Contains("typeof(T).GetFields()", result);
+        Assert.DoesNotContain("private readonly (", result);
+        Assert.DoesNotContain("private SomeBaseType", result);
+        Assert.DoesNotContain("private GetFields", result);
     }
 }

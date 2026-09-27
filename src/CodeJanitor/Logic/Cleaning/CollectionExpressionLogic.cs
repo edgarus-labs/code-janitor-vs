@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -14,7 +14,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// This is a thin integration layer over the pure, unit-tested
 /// <see cref="CollectionExpressionConverter" /> (see ADR-0005 / ADR-0006).
 /// </remarks>
-
 internal sealed class CollectionExpressionLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -30,7 +29,6 @@ internal sealed class CollectionExpressionLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CollectionExpressionLogic" /> class.</returns>
-
     internal static CollectionExpressionLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CollectionExpressionLogic(package));
@@ -40,7 +38,6 @@ internal sealed class CollectionExpressionLogic
     /// Initializes a new instance of the <see cref="CollectionExpressionLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CollectionExpressionLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -53,7 +50,6 @@ internal sealed class CollectionExpressionLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void ConvertToCollectionExpressions(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -84,7 +80,6 @@ internal sealed class CollectionExpressionLogic
     /// <param name="text">The C# source text.</param>
     /// <param name="filePath">The file path, used for the language version check and in log messages.</param>
     /// <returns>The converted text, or the original text when the conversion does not apply.</returns>
-
     internal string ConvertToCollectionExpressions(string text, string filePath)
     {
         var convertedText = _converter.Apply(text);

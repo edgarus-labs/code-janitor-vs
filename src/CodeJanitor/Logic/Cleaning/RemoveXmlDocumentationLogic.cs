@@ -1,8 +1,8 @@
-﻿using EnvDTE;
+using CodeJanitor.Helpers;
+using EnvDTE;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;

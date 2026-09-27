@@ -8,14 +8,12 @@ namespace CodeJanitor.Helpers;
 /// A class that handles tracking a document and switching back to it, typically in a using
 /// statement context.
 /// </summary>
-
 internal sealed class ActiveDocumentRestorer : IDisposable
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ActiveDocumentRestorer" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal ActiveDocumentRestorer(CodeJanitorPackage package)
     {
         Package = package;
@@ -26,7 +24,6 @@ internal sealed class ActiveDocumentRestorer : IDisposable
     /// <summary>
     /// Starts tracking the active document.
     /// </summary>
-
     internal void StartTracking()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -37,7 +34,6 @@ internal sealed class ActiveDocumentRestorer : IDisposable
     /// <summary>
     /// Restores the tracked document if not already active.
     /// </summary>
-
     internal void RestoreTrackedDocument()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -51,7 +47,6 @@ internal sealed class ActiveDocumentRestorer : IDisposable
     /// Performs application-defined tasks associated with freeing, releasing, or resetting
     /// unmanaged resources.
     /// </summary>
-
     public void Dispose()
     {
         RestoreTrackedDocument();

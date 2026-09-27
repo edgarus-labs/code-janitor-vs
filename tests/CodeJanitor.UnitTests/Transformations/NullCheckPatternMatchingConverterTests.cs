@@ -1,9 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -33,7 +34,7 @@ public sealed class NullCheckPatternMatchingConverterTests
     public async Task Apply_CompilesWhereLambdasMayBecomeExpressionTrees_AndConvertsElsewhere()
     {
         // An 'is' pattern is not allowed in an expression tree (CS8122); only syntax that can never become one is converted.
-        var input =
+        string input =
             "using System;\r\nusing System.Linq;\r\nusing System.Linq.Expressions;\r\n\r\n" +
             "class Item { public string Name; }\r\n\r\n" +
             "class C\r\n{\r\n" +
@@ -44,28 +45,28 @@ public sealed class NullCheckPatternMatchingConverterTests
             "    Func<Item, bool> Block => item => { return item.Name != null; };\r\n" +
             "    bool Method(Item item) => item.Name == null;\r\n" +
             "}\r\n";
-        var document = CompilingTestProject.CreateDocument(
+        Document document = CompilingTestProject.CreateDocument(
             input,
             LanguageVersion.CSharp9,
             new[] { MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location) });
 
-        var output = _converter.Apply(input);
+        string output = _converter.Apply(input);
 
-        var errors = await CompilingTestProject.GetCompileErrorsAsync(document, output);
-        Assert.AreEqual(0, errors.Count, output + "\r\n" + string.Join("\r\n", errors));
-        StringAssert.Contains(output, "item => item.Name != null;");
-        StringAssert.Contains(output, "Missing = item.Name == null");
-        StringAssert.Contains(output, "items.Where(item => item.Name != null)");
-        StringAssert.Contains(output, "where item.Name == null");
-        StringAssert.Contains(output, "{ return item.Name is not null; }");
-        StringAssert.Contains(output, "bool Method(Item item) => item.Name is null;");
+        IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(document, output);
+        Assert.IsEmpty(errors, output + "\r\n" + string.Join("\r\n", errors));
+        Assert.Contains("item => item.Name != null;", output);
+        Assert.Contains("Missing = item.Name == null", output);
+        Assert.Contains("items.Where(item => item.Name != null)", output);
+        Assert.Contains("where item.Name == null", output);
+        Assert.Contains("{ return item.Name is not null; }", output);
+        Assert.Contains("bool Method(Item item) => item.Name is null;", output);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void Apply_NotEqualsNull_ConvertsToIsNotNull()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(object x)
@@ -76,7 +77,7 @@ public class C
         }
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public void M(object x)
@@ -88,7 +89,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -97,7 +98,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_EqualsEqualsNull_ConvertsToIsNull()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(object x)
@@ -108,7 +109,7 @@ public class C
         }
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public void M(object x)
@@ -120,7 +121,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -129,7 +130,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_ReversedNullChecks_ConvertsProperly()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(object a, object b)
@@ -140,7 +141,7 @@ public class C
         }
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public void M(object a, object b)
@@ -152,7 +153,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -161,7 +162,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_TernaryAndReturnExpressions_ConvertsProperly()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public bool Check(object x, object y)
@@ -170,7 +171,7 @@ public class C
         return y == null;
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public bool Check(object x, object y)
@@ -180,7 +181,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -197,7 +198,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_EqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
     {
-        var input = @"
+        string input = @"
 using System.Collections.Generic;
 using System.Linq;
 
@@ -209,20 +210,20 @@ class C
     }
 }";
 
-        var actual = _converter.Apply(input);
+        string actual = _converter.Apply(input);
 
         // Deliberately conservative: this lambda has no semantic model to confirm its delegate type,
         // so it could still be bound to Expression<Func<T, bool>> (e.g. IQueryable .Where/.Any), which
         // would fail to compile with CS8122 if rewritten to `is null`.
-        StringAssert.Contains(actual, "x == null");
-        Assert.IsFalse(actual.Contains("x is null"));
+        Assert.Contains("x == null", actual);
+        Assert.DoesNotContain("x is null", actual);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void Apply_NotEqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
     {
-        var input = @"
+        string input = @"
 using System.Collections.Generic;
 using System.Linq;
 
@@ -234,17 +235,17 @@ class C
     }
 }";
 
-        var actual = _converter.Apply(input);
+        string actual = _converter.Apply(input);
 
-        StringAssert.Contains(actual, "x != null");
-        Assert.IsFalse(actual.Contains("is not null"));
+        Assert.Contains("x != null", actual);
+        Assert.DoesNotContain("is not null", actual);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void Apply_EqualsNullInsideBlockBodiedLambda_ConvertsToIsNull()
     {
-        var input = @"
+        string input = @"
 using System.Collections.Generic;
 using System.Linq;
 
@@ -259,19 +260,19 @@ class C
     }
 }";
 
-        var actual = _converter.Apply(input);
+        string actual = _converter.Apply(input);
 
         // A block-bodied lambda can never be compiled to an expression tree (CS0834), so this is
         // always safe to convert.
-        StringAssert.Contains(actual, "x is null");
-        Assert.IsFalse(actual.Contains("== null"));
+        Assert.Contains("x is null", actual);
+        Assert.DoesNotContain("== null", actual);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void Apply_EqualsNullInsideAsyncLambda_ConvertsToIsNull()
     {
-        var input = @"
+        string input = @"
 using System;
 using System.Threading.Tasks;
 
@@ -283,18 +284,18 @@ class C
     }
 }";
 
-        var actual = _converter.Apply(input);
+        string actual = _converter.Apply(input);
 
         // An async lambda can never be compiled to an expression tree (CS1989), so this is always
         // safe to convert.
-        StringAssert.Contains(actual, "x is null");
+        Assert.Contains("x is null", actual);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void Apply_EqualsNullInsideAnonymousMethod_ConvertsToIsNull()
     {
-        var input = @"
+        string input = @"
 using System;
 
 class C
@@ -308,18 +309,18 @@ class C
     }
 }";
 
-        var actual = _converter.Apply(input);
+        string actual = _converter.Apply(input);
 
         // An anonymous method can never be compiled to an expression tree (CS1946), so this is
         // always safe to convert.
-        StringAssert.Contains(actual, "x is null");
+        Assert.Contains("x is null", actual);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void Apply_EqualsNullInQueryWhereClause_LeavesUnchanged()
     {
-        var input = @"
+        string input = @"
 using System.Collections.Generic;
 using System.Linq;
 
@@ -331,11 +332,11 @@ class C
     }
 }";
 
-        var actual = _converter.Apply(input);
+        string actual = _converter.Apply(input);
 
         // Deliberately conservative: a query clause's condition cannot rule out an IQueryable
         // source being translated to an expression tree, so it is never rewritten.
-        StringAssert.Contains(actual, "x == null");
-        Assert.IsFalse(actual.Contains("x is null"));
+        Assert.Contains("x == null", actual);
+        Assert.DoesNotContain("x is null", actual);
     }
 }

@@ -8,7 +8,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A helper class for accessing commands.
 /// </summary>
-
 public sealed class CommandHelper
 {
     private readonly CodeJanitorPackage _package;
@@ -23,7 +22,6 @@ public sealed class CommandHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CommandHelper" /> class.</returns>
-
     internal static CommandHelper GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CommandHelper(package));
@@ -33,7 +31,6 @@ public sealed class CommandHelper
     /// Initializes a new instance of the <see cref="CommandHelper" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CommandHelper(CodeJanitorPackage package)
     {
         _package = package;
@@ -44,7 +41,6 @@ public sealed class CommandHelper
     /// </summary>
     /// <param name="commandNames">The command names.</param>
     /// <returns>The found command, otherwise null.</returns>
-
     public Command FindCommand(params string[] commandNames)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -59,7 +55,6 @@ public sealed class CommandHelper
     /// <param name="guid">The command guid.</param>
     /// <param name="id">The command id.</param>
     /// <returns>The found command, otherwise null.</returns>
-
     public Command FindCommand(string guid, int id)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -72,7 +67,6 @@ public sealed class CommandHelper
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="commandNames">The cleanup command name(s).</param>
-
     public void ExecuteCommand(TextDocument textDocument, params string[] commandNames)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

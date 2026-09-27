@@ -1,9 +1,8 @@
-﻿using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Ai;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.UI.Dialogs.Ai;
-using System.Threading.Tasks;
+using Microsoft.VisualStudio.Shell;
 using System.Windows;
 using Task = System.Threading.Tasks.Task;
 

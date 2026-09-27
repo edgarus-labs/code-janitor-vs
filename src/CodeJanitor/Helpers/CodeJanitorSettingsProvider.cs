@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// This class handles customizing the settings persistance.
 /// </summary>
-
 public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
 {
     /// <summary>
@@ -26,7 +25,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// A <see cref="T:System.Configuration.SettingsPropertyValueCollection"/> containing the
     /// values for the specified settings property group.
     /// </returns>
-
     public override SettingsPropertyValueCollection GetPropertyValues(SettingsContext context, SettingsPropertyCollection properties)
     {
         try
@@ -61,7 +59,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// A <see cref="T:System.Configuration.SettingsPropertyValueCollection"/> representing the
     /// group of property settings to set.
     /// </param>
-
     public override void SetPropertyValues(SettingsContext context, SettingsPropertyValueCollection values)
     {
         try
@@ -85,7 +82,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// </summary>
     /// <param name="settings">The settings instance to export.</param>
     /// <param name="filePath">The destination file path.</param>
-
     public static void ExportSettingsToFile(ApplicationSettingsBase settings, string filePath)
     {
         var sectionName = GetSectionName(settings.Context);
@@ -106,7 +102,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// </summary>
     /// <param name="settings">The settings instance to update.</param>
     /// <param name="filePath">The source file path.</param>
-
     public static void ImportSettingsFromFile(ApplicationSettingsBase settings, string filePath)
     {
         var sectionName = GetSectionName(settings.Context);
@@ -136,7 +131,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// application usage.
     /// </param>
     /// <returns>The section name, otherwise null.</returns>
-
     private static string GetSectionName(SettingsContext context)
     {
         if (context is null) throw new ArgumentNullException(nameof(context));
@@ -149,7 +143,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// </summary>
     /// <param name="path">The path to the settings file.</param>
     /// <returns>The <see cref="Configuration"/> object.</returns>
-
     private static Configuration GetConfiguration(string path)
     {
         if (path is null) throw new ArgumentNullException(nameof(path));
@@ -169,7 +162,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// <returns>
     /// A <see cref="SettingElementCollection"/> for the section, or an empty section if not found.
     /// </returns>
-
     private static SettingElementCollection GetSettingElementCollection(Configuration config, string sectionName)
     {
         var userSettings = config.GetSectionGroup("userSettings");
@@ -194,7 +186,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// <param name="path">The settings file path.</param>
     /// <param name="sectionName">The name of the settings section.</param>
     /// <returns>A collection representing the settings, otherwise an empty collection.</returns>
-
     private static SettingElementCollection ReadSettingsFromFile(string path, string sectionName)
     {
         try
@@ -222,7 +213,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// <param name="solutionSettings">The solution settings.</param>
     /// <param name="properties">The setting properties collection.</param>
     /// <returns>A merged <see cref="SettingsPropertyValueCollection"/>.</returns>
-
     private static SettingsPropertyValueCollection MergeSettingsIntoPropertyValues(SettingElementCollection userSettings, SettingElementCollection solutionSettings, SettingsPropertyCollection properties)
     {
         var values = new SettingsPropertyValueCollection();
@@ -248,7 +238,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// </summary>
     /// <param name="value">An individual settings property value.</param>
     /// <param name="settings">A collection representing the settings.</param>
-
     private static void ApplySettingToValue(SettingsPropertyValue value, SettingElementCollection settings)
     {
         var setting = settings.Get(value.Name);
@@ -270,7 +259,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// A <see cref="T:System.Configuration.SettingsPropertyValueCollection"/> representing the
     /// group of property settings to set.
     /// </param>
-
     private static void WriteSettingsToFile(string path, string sectionName, SettingsPropertyValueCollection values)
     {
         try
@@ -299,7 +287,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// A <see cref="T:System.Configuration.SettingsPropertyValueCollection"/> representing the
     /// group of property settings to set.
     /// </param>
-
     private static void UpdateSettingsFromPropertyValues(SettingElementCollection settings, SettingsPropertyValueCollection values)
     {
         foreach (SettingsPropertyValue value in values)
@@ -325,7 +312,6 @@ public sealed class CodeJanitorSettingsProvider : LocalFileSettingsProvider
     /// </summary>
     /// <param name="serializedValue">The serialized value.</param>
     /// <returns>The <see cref="XmlNode"/>.</returns>
-
     private static XmlNode CreateXmlValue(object serializedValue)
     {
         var node = new XmlDocument().CreateElement("value");

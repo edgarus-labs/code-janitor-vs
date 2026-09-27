@@ -7,7 +7,6 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// <summary>
 /// A template selector for code items.
 /// </summary>
-
 public sealed class CodeItemTemplateSelector : DataTemplateSelector
 {
     /// <summary>
@@ -49,7 +48,6 @@ public sealed class CodeItemTemplateSelector : DataTemplateSelector
     /// <returns>
     /// Returns a <see cref="T:System.Windows.DataTemplate" /> or null. The default value is null.
     /// </returns>
-
     public override DataTemplate SelectTemplate(object item, DependencyObject container)
     {
         var codeItem = item as BaseCodeItem;

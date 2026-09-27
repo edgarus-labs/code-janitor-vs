@@ -50,6 +50,11 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
 - supplies the C# `CodeFixProvider` MEF exports, cached per package;
 - builds the input as `CurrentSolution.WithDocumentText(...)` from the cleaned editor
   buffer or the file written by headless cleanup;
+- for a closed file, first runs `RoslynDocumentCleanup`, the Roslyn equivalents of the Visual
+  Studio "Remove and Sort Usings" (removes `CS8019` usings line by line, skips files with `#if`,
+  keeps the configured reinsert list, then `Formatter.OrganizeImportsAsync`) and "Format
+  Document" (`Formatter.FormatAsync`) commands, gated by the same settings as the editor
+  commands, so closed files are never opened in an editor;
 - runs the engine off the UI thread; the engine's gate rejects a fix that adds any compiler
   error to a project it changed, even one that removed another error (`CompilerErrors`
   compares the errors as a multiset by id and file, matching an error either by message
@@ -59,14 +64,20 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
 - before applying, checks every other project flavor of each changed file (linked files,
   shared projects, multi-targeting) with the new text and fails the cleanup, naming the
   project and the first new error, when any flavor gets a compiler error it did not have;
-- applies the result with `Workspace.TryApplyChanges` on the UI thread, recomputing once
-  when the workspace changed and then failing explicitly.
+- for a closed file whose change touches only that file and needs no host operation, writes
+  the new text straight to disk (`VisualStudioRoslynWorkspace.TryWriteClosedFileText`, which
+  refuses the write when the file on disk no longer matches the cleaned input; the cleanup is
+  then recomputed); a file opened meanwhile or one that cannot be written directly (read-only,
+  source control checkout) goes through the workspace;
+- otherwise applies the result with `Workspace.TryApplyChanges` on the UI thread, recomputing
+  once when the workspace changed and then failing explicitly.
 
 `CodeCleanupManager` calls the adapter after the existing C# cleanup, both in the headless
 path (`RunDiagnosticCleanupAsync`) and in the editor path. `CleanupProgressViewModel` calls
 it one file at a time after the parallel pass. Outcomes are recorded as
-`DiagnosticChangedItems`, `DiagnosticUnresolvedItems` and failed items in
-`CleanupExecutionStats`.
+`DiagnosticChangedItems` (diagnostic fixes only; changes made only by the Remove and Sort
+Usings / Format Document equivalents are logged but not counted), `DiagnosticUnresolvedItems`
+and failed items in `CleanupExecutionStats`.
 
 ### Cleanup settings precedence
 

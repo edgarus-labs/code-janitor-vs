@@ -7,7 +7,6 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// Base class for an option page that hosts a set of child option pages as tabs, instead of
 /// each child being its own separate node in the Tools&gt;Options tree.
 /// </summary>
-
 public abstract class CompositeOptionsPageViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -16,7 +15,6 @@ public abstract class CompositeOptionsPageViewModel : OptionsPageViewModel
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
     /// <param name="children">The child pages to show as tabs.</param>
-
     protected CompositeOptionsPageViewModel(CodeJanitorPackage package, Settings activeSettings, IEnumerable<OptionsPageViewModel> children)
         : base(package, activeSettings)
     {
@@ -24,7 +22,6 @@ public abstract class CompositeOptionsPageViewModel : OptionsPageViewModel
     }
 
     /// <inheritdoc />
-
     public override void LoadSettings()
     {
         base.LoadSettings();
@@ -36,7 +33,6 @@ public abstract class CompositeOptionsPageViewModel : OptionsPageViewModel
     }
 
     /// <inheritdoc />
-
     public override void SaveSettings()
     {
         base.SaveSettings();

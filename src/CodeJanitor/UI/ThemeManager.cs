@@ -1,7 +1,7 @@
-using EnvDTE80;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE80;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +13,6 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// A helper class for managing the active theme.
 /// </summary>
-
 public sealed class ThemeManager : Bindable
 {
     private static Dictionary<ThemeMode, Uri> _themeUris;
@@ -30,7 +29,6 @@ public sealed class ThemeManager : Bindable
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="ThemeManager" /> class.</returns>
-
     internal static ThemeManager GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new ThemeManager(package));
@@ -40,7 +38,6 @@ public sealed class ThemeManager : Bindable
     /// Initializes a new instance of the <see cref="ThemeManager" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private ThemeManager(CodeJanitorPackage package)
     {
         _package = package;
@@ -49,7 +46,6 @@ public sealed class ThemeManager : Bindable
     /// <summary>
     /// Gets the active theme.
     /// </summary>
-
     public ThemeMode ActiveTheme
     {
         get { return GetPropertyValue<ThemeMode>(); }
@@ -59,7 +55,6 @@ public sealed class ThemeManager : Bindable
     /// <summary>
     /// Gets the dictionary of Uris corresponding to <see cref="ThemeMode" /> values.
     /// </summary>
-
     private static Dictionary<ThemeMode, Uri> ThemeUris
     {
         get
@@ -89,7 +84,6 @@ public sealed class ThemeManager : Bindable
     /// <summary>
     /// Applies the appropriate theme based on current settings.
     /// </summary>
-
     public void ApplyTheme()
     {
         ActiveTheme = ResolveActiveTheme();
@@ -102,7 +96,6 @@ public sealed class ThemeManager : Bindable
     /// current IDE theme - manual theme selection was removed as redundant/confusing.
     /// </summary>
     /// <returns>The resolved theme.</returns>
-
     private ThemeMode ResolveActiveTheme()
     {
         return AutoDetectTheme();
@@ -111,7 +104,6 @@ public sealed class ThemeManager : Bindable
     /// <summary>
     /// Auto-detects which theme should be active based on the current IDE settings.
     /// </summary>
-
     private ThemeMode AutoDetectTheme()
     {
         const int medianColor = 128 * 3;
@@ -125,7 +117,6 @@ public sealed class ThemeManager : Bindable
     /// </summary>
     /// <param name="number">The number to convert.</param>
     /// <returns>The color.</returns>
-
     private static Color GetColorFromUInt(uint number)
     {
         return Color.FromRgb((byte)(number >> 16),
@@ -138,7 +129,6 @@ public sealed class ThemeManager : Bindable
     /// </summary>
     /// <param name="element">The element to theme.</param>
     /// <param name="theme">The theme to apply.</param>
-
     private void ApplyThemeToElement(FrameworkElement element, ThemeMode theme)
     {
         if (element is null) return;
@@ -177,7 +167,6 @@ public sealed class ThemeManager : Bindable
     /// </summary>
     /// <param name="themeUri">The theme URI.</param>
     /// <returns>The loaded resource dictionary, otherwise null.</returns>
-
     private ResourceDictionary LoadResourceDictionary(Uri themeUri)
     {
         try

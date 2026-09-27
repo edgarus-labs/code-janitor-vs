@@ -1,8 +1,8 @@
-using EnvDTE;
 using CodeJanitor.Logic.Digging;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Model.CodeTree;
 using CodeJanitor.Properties;
+using EnvDTE;
 using System;
 using System.Collections.Generic;
 using System.Windows.Threading;
@@ -12,7 +12,6 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// <summary>
 /// The view model representing the state and commands available to Spade.
 /// </summary>
-
 public sealed class SpadeViewModel : Bindable
 {
     private readonly CodeTreeBuilderAsync _codeTreeBuilderAsync;
@@ -24,7 +23,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeViewModel" /> class.
     /// </summary>
-
     public SpadeViewModel()
     {
         _codeTreeBuilderAsync = new CodeTreeBuilderAsync(UpdateOrganizedCodeItems);
@@ -34,7 +32,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// An event that is raised when a refresh is requested.
     /// </summary>
-
     public event EventHandler RequestingRefresh;
 
     /// <summary>
@@ -45,7 +42,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets or sets the document.
     /// </summary>
-
     public Document Document
     {
         get { return GetPropertyValue<Document>(); }
@@ -55,7 +51,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets or sets a flag indicating if code items are loading.
     /// </summary>
-
     public bool IsLoading
     {
         get { return GetPropertyValue<bool>(); }
@@ -65,7 +60,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets or sets a flag indicating if code items are refreshing.
     /// </summary>
-
     public bool IsRefreshing
     {
         get { return GetPropertyValue<bool>(); }
@@ -75,7 +69,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets or sets the name filter.
     /// </summary>
-
     public string NameFilter
     {
         get
@@ -94,7 +87,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets the organized code items.
     /// </summary>
-
     public SetCodeItems OrganizedCodeItems
     {
         get
@@ -122,7 +114,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets or sets the raw code items.
     /// </summary>
-
     public SetCodeItems RawCodeItems
     {
         get
@@ -152,7 +143,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets the selected items.
     /// </summary>
-
     public IList<BaseCodeItem> SelectedItems
     {
         get { return GetPropertyValue<IList<BaseCodeItem>>(); }
@@ -162,7 +152,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Gets or sets the current sort order.
     /// </summary>
-
     public CodeSortOrder SortOrder
     {
         get { return GetPropertyValue<CodeSortOrder>(); }
@@ -172,7 +161,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Requests a refresh.
     /// </summary>
-
     public void RequestRefresh()
     {
         RequestingRefresh?.Invoke(this, EventArgs.Empty);
@@ -181,7 +169,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Requests an asynchronous update of the organized code items.
     /// </summary>
-
     private void RequestUpdatedOrganizedCodeItems()
     {
         _codeTreeBuilderAsync.RetrieveCodeTreeAsync(new CodeTreeRequest(Document, RawCodeItems, SortOrder, NameFilter));
@@ -191,7 +178,6 @@ public sealed class SpadeViewModel : Bindable
     /// Attempts to update the organized code items collection based on the specified snapshot.
     /// </summary>
     /// <param name="snapshot">The code items snapshot.</param>
-
     private void UpdateOrganizedCodeItems(SnapshotCodeItems snapshot)
     {
         if (Document == snapshot.Document)
@@ -203,7 +189,6 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Updates the outlining synchronization.
     /// </summary>
-
     private void UpdateOutliningSynchronization()
     {
         if (Settings.Default.Digging_SynchronizeOutlining)

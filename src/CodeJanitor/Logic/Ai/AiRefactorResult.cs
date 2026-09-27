@@ -1,9 +1,3 @@
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace CodeJanitor.Logic.Ai;
 
 /// <summary>

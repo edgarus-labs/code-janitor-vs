@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests;
 
@@ -9,23 +9,23 @@ public sealed class MemberTypeSettingTests
     [TestMethod]
     public void CanSerializeMemberTypeSetting()
     {
-        var memberTypeSetting = new MemberTypeSetting("Fields", "Member Variables", 1);
+        MemberTypeSetting memberTypeSetting = new MemberTypeSetting("Fields", "Member Variables", 1);
         Assert.IsNotNull(memberTypeSetting);
 
-        var serializedString = (string)memberTypeSetting;
+        string serializedString = (string)memberTypeSetting;
         Assert.IsFalse(string.IsNullOrWhiteSpace(serializedString));
     }
 
     [TestMethod]
     public void CanDeserializeMemberTypeSetting()
     {
-        const string serializedString = @"Fields||1||Member Variables";
+        const string SerializedString = @"Fields||1||Member Variables";
 
-        var memberTypeSetting = (MemberTypeSetting)serializedString;
+        MemberTypeSetting memberTypeSetting = (MemberTypeSetting)SerializedString;
 
         Assert.IsNotNull(memberTypeSetting);
-        Assert.AreEqual(memberTypeSetting.DefaultName, "Fields");
-        Assert.AreEqual(memberTypeSetting.EffectiveName, "Member Variables");
-        Assert.AreEqual(memberTypeSetting.Order, 1);
+        Assert.AreEqual("Fields", memberTypeSetting.DefaultName);
+        Assert.AreEqual("Member Variables", memberTypeSetting.EffectiveName);
+        Assert.AreEqual(1, memberTypeSetting.Order);
     }
 }

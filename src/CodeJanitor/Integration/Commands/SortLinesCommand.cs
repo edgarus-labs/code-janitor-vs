@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Linq;
 using System.Text;
@@ -13,7 +13,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for sorting lines.
 /// </summary>
-
 internal sealed class SortLinesCommand : BaseCommand
 {
     private readonly UndoTransactionHelper _undoTransactionHelper;
@@ -22,7 +21,6 @@ internal sealed class SortLinesCommand : BaseCommand
     /// Initializes a new instance of the <see cref="SortLinesCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SortLinesCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSortLines)
     {
@@ -37,7 +35,6 @@ internal sealed class SortLinesCommand : BaseCommand
     /// <summary>
     /// Gets the active text document, otherwise null.
     /// </summary>
-
     private TextDocument ActiveTextDocument
     {
         get
@@ -53,7 +50,6 @@ internal sealed class SortLinesCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SortLinesCommand(package);
@@ -63,7 +59,6 @@ internal sealed class SortLinesCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -74,7 +69,6 @@ internal sealed class SortLinesCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -96,7 +90,6 @@ internal sealed class SortLinesCommand : BaseCommand
     /// Sorts the text within the specified text selection.
     /// </summary>
     /// <param name="textSelection">The text selection.</param>
-
     private void SortText(TextSelection textSelection)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

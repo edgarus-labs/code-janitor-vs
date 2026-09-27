@@ -21,22 +21,22 @@ namespace CodeJanitor.UnitTests.Cleaning.Diagnostics;
 /// </summary>
 internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
 {
-    private static readonly Lazy<ImmutableArray<Assembly>> s_featuresAssemblies = new Lazy<ImmutableArray<Assembly>>(
+    private static readonly Lazy<ImmutableArray<Assembly>> FeaturesAssemblies = new Lazy<ImmutableArray<Assembly>>(
         () => ImmutableArray.Create(
             Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.Features")),
             Assembly.Load(new AssemblyName("Microsoft.CodeAnalysis.CSharp.Features"))));
 
-    private static readonly Lazy<MefHostServices> s_hostServices = new Lazy<MefHostServices>(
-        () => MefHostServices.Create(MefHostServices.DefaultAssemblies.Concat(s_featuresAssemblies.Value).Distinct()));
+    private static readonly Lazy<MefHostServices> HostServices = new Lazy<MefHostServices>(
+        () => MefHostServices.Create(MefHostServices.DefaultAssemblies.Concat(FeaturesAssemblies.Value).Distinct()));
 
-    private static readonly Lazy<ImmutableArray<AnalyzerReference>> s_hostAnalyzerReferences = new Lazy<ImmutableArray<AnalyzerReference>>(
-        () => s_featuresAssemblies.Value
+    private static readonly Lazy<ImmutableArray<AnalyzerReference>> HostAnalyzerReferences = new Lazy<ImmutableArray<AnalyzerReference>>(
+        () => FeaturesAssemblies.Value
             .Select(assembly => (AnalyzerReference)new AnalyzerFileReference(assembly.Location, LoadedAssemblyLoader.Instance))
             .ToImmutableArray());
 
     private readonly ProjectId _projectId = ProjectId.CreateNewId("TestProject");
-    private readonly List<DocumentInfo> _documents = new List<DocumentInfo>();
-    private readonly List<DocumentInfo> _editorConfigs = new List<DocumentInfo>();
+    private readonly List<DocumentInfo> _documents = [];
+    private readonly List<DocumentInfo> _editorConfigs = [];
     private readonly ImmutableArray<DiagnosticAnalyzer> _projectAnalyzers;
     private AdhocWorkspace _workspace;
 
@@ -52,8 +52,8 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     /// <summary>
     /// Gets the host (Features) analyzers exactly as the solution-level analyzer references expose them.
     /// </summary>
-    public static ImmutableArray<DiagnosticAnalyzer> HostAnalyzers =>
-        s_hostAnalyzerReferences.Value.SelectMany(reference => reference.GetAnalyzers(LanguageNames.CSharp)).ToImmutableArray();
+    public static ImmutableArray<DiagnosticAnalyzer> HostAnalyzers
+        => HostAnalyzerReferences.Value.SelectMany(reference => reference.GetAnalyzers(LanguageNames.CSharp)).ToImmutableArray();
 
     /// <summary>
     /// Gets the absolute directory all test documents and .editorconfig files live in.
@@ -68,8 +68,8 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     /// <summary>
     /// Builds an absolute path below <see cref="RootDirectory" />.
     /// </summary>
-    public static string GetPath(string relativePath) =>
-        string.IsNullOrEmpty(relativePath)
+    public static string GetPath(string relativePath)
+        => string.IsNullOrEmpty(relativePath)
             ? RootDirectory
             : Path.Combine(RootDirectory, relativePath.Replace('/', Path.DirectorySeparatorChar));
 
@@ -78,10 +78,10 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     /// </summary>
     public DocumentId AddDocument(string relativePath, string text)
     {
-        var filePath = GetPath(relativePath);
-        var documentId = DocumentId.CreateNewId(_projectId, relativePath);
-        var segments = relativePath.Split('/');
-        var folders = segments.Take(segments.Length - 1).ToArray();
+        string filePath = GetPath(relativePath);
+        DocumentId documentId = DocumentId.CreateNewId(_projectId, relativePath);
+        string[] segments = relativePath.Split('/');
+        string[] folders = segments.Take(segments.Length - 1).ToArray();
 
         _documents.Add(DocumentInfo.Create(documentId, Path.GetFileName(filePath), folders, SourceCodeKind.Regular, CreateLoader(text, filePath), filePath));
 
@@ -93,15 +93,15 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     /// </summary>
     public void AddEditorConfig(string relativeDirectory, string text)
     {
-        var filePath = Path.Combine(GetPath(relativeDirectory), ".editorconfig");
+        string filePath = Path.Combine(GetPath(relativeDirectory), ".editorconfig");
 
         _editorConfigs.Add(DocumentInfo.Create(DocumentId.CreateNewId(_projectId, filePath), ".editorconfig", loader: CreateLoader(text, filePath), filePath: filePath));
     }
 
     public void ConfigureRuleSeverity(string diagnosticId, string severity)
     {
-        var filePath = GetPath($"{diagnosticId}.globalconfig");
-        var text = $"is_global = true\ndotnet_diagnostic.{diagnosticId}.severity = {severity}\n";
+        string filePath = GetPath($"{diagnosticId}.globalconfig");
+        string text = $"is_global = true\ndotnet_diagnostic.{diagnosticId}.severity = {severity}\n";
 
         _editorConfigs.Add(DocumentInfo.Create(DocumentId.CreateNewId(_projectId, filePath), $"{diagnosticId}.globalconfig", loader: CreateLoader(text, filePath), filePath: filePath));
     }
@@ -111,9 +111,9 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     /// </summary>
     public Solution CreateSolution()
     {
-        if (_workspace == null)
+        if (_workspace is null)
         {
-            var projectInfo = ProjectInfo.Create(
+            ProjectInfo projectInfo = ProjectInfo.Create(
                     _projectId,
                     VersionStamp.Default,
                     "TestProject",
@@ -126,12 +126,12 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
                     analyzerReferences: _projectAnalyzers.IsEmpty ? null : new[] { new AnalyzerImageReference(_projectAnalyzers) })
                 .WithAnalyzerConfigDocuments(_editorConfigs);
 
-            _workspace = new AdhocWorkspace(s_hostServices.Value);
+            _workspace = new AdhocWorkspace(HostServices.Value);
             _workspace.AddSolution(SolutionInfo.Create(
                 SolutionId.CreateNewId(),
                 VersionStamp.Default,
                 projects: new[] { projectInfo },
-                analyzerReferences: s_hostAnalyzerReferences.Value));
+                analyzerReferences: HostAnalyzerReferences.Value));
         }
 
         return _workspace.CurrentSolution;
@@ -142,7 +142,7 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     /// </summary>
     public static async Task<string> GetTextAsync(Solution solution, DocumentId documentId)
     {
-        var text = await solution.GetDocument(documentId).GetTextAsync().ConfigureAwait(false);
+        SourceText text = await solution.GetDocument(documentId).GetTextAsync().ConfigureAwait(false);
 
         return text.ToString();
     }
@@ -153,8 +153,8 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
         _workspace?.Dispose();
     }
 
-    private static TextLoader CreateLoader(string text, string filePath) =>
-        TextLoader.From(TextAndVersion.Create(SourceText.From(text), VersionStamp.Default, filePath));
+    private static TextLoader CreateLoader(string text, string filePath)
+        => TextLoader.From(TextAndVersion.Create(SourceText.From(text), VersionStamp.Default, filePath));
 
     /// <summary>
     /// Resolves analyzer assemblies through the default load context so analyzer, fixer and MEF types are the

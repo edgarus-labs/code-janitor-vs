@@ -1,8 +1,7 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model.CodeItems;
+using Microsoft.VisualStudio.Shell;
 using System.Linq;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -10,7 +9,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for removing a region within Spade.
 /// </summary>
-
 internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
 {
     private readonly RemoveRegionLogic _removeRegionLogic;
@@ -19,7 +17,6 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
     /// Initializes a new instance of the <see cref="SpadeContextRemoveRegionCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SpadeContextRemoveRegionCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextRemoveRegion)
     {
@@ -36,7 +33,6 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SpadeContextRemoveRegionCommand(package);
@@ -46,7 +42,6 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -64,7 +59,6 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -85,7 +79,6 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
     /// </summary>
     /// <param name="region">The region.</param>
     /// <returns>True if the region can be removed, otherwise false.</returns>
-
     private static bool IsRemoveableRegion(CodeItemRegion region)
     {
         return !region.IsPseudoGroup && region.StartLine > 0 && region.EndLine > 0;

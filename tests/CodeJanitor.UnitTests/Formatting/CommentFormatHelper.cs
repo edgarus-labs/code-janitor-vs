@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using CodeJanitor.Model.Comments;
 using CodeJanitor.Model.Comments.Options;
-using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Formatting;
 
@@ -16,7 +16,6 @@ internal sealed class CommentFormatHelper
     /// <param name="text">The text.</param>
     /// <param name="options">The options.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public static string AssertEqualAfterFormat(
              string text,
              Action<FormatterOptions> options = null)
@@ -31,7 +30,6 @@ internal sealed class CommentFormatHelper
     /// <param name="expected">The expected.</param>
     /// <param name="options">The options.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public static string AssertEqualAfterFormat(
                   string text,
             string expected,
@@ -48,15 +46,14 @@ internal sealed class CommentFormatHelper
     /// <param name="prefix">The prefix.</param>
     /// <param name="options">The options.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public static string AssertEqualAfterFormat(
             string text,
             string expected,
             string prefix,
             Action<FormatterOptions> options = null)
     {
-        var result = CodeComment.Format(text, prefix, options);
-        var fOptions = FormatterOptions.FromSettings(Properties.Settings.Default);
+        string result = CodeComment.Format(text, prefix, options);
+        FormatterOptions fOptions = FormatterOptions.FromSettings(Properties.Settings.Default);
         options?.Invoke(fOptions);
         Assert.AreEqual(expected ?? text, result);
 

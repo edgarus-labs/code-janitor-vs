@@ -1,8 +1,8 @@
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Properties;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// Spreads single-line method declarations onto multiple lines by placing the opening brace
 /// on a new line, method body content on separate lines, and closing brace on its own line.
 /// </summary>
-
 public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
 {
     private readonly EffectiveCleanupSettings _settings;
@@ -19,7 +18,6 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
     /// Initializes a new instance of the <see cref="UpdateSingleLineMethodsConverter" /> class.
     /// </summary>
     /// <param name="settings">The effective cleanup settings of the file, which decide whether single-line methods are updated.</param>
-
     internal UpdateSingleLineMethodsConverter(EffectiveCleanupSettings settings)
     {
         _settings = settings;
@@ -35,7 +33,6 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !_settings.GetBoolean(nameof(Settings.Cleaning_UpdateSingleLineMethods)))
@@ -61,7 +58,6 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             // First visit children
@@ -89,7 +85,6 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
         /// </summary>
         /// <param name="body">The body.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private bool IsSingleLineMethodBody(BlockSyntax body)
         {
             if (body is null || body.Statements.Count == 0)
@@ -111,7 +106,6 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
         /// </summary>
         /// <param name="method">The method.</param>
         /// <returns>A MethodDeclarationSyntax value produced by this method.</returns>
-
         private MethodDeclarationSyntax SpreadMethodOntoMultipleLines(MethodDeclarationSyntax method)
         {
             if (method.Body is null)

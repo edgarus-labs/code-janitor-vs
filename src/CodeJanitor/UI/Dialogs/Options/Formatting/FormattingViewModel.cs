@@ -8,7 +8,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Formatting;
 /// <summary>
 /// The view model for comment formatting options.
 /// </summary>
-
 public sealed class FormattingViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -29,7 +28,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public FormattingViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -64,7 +62,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Loads the settings.
     /// </summary>
-
     public override void LoadSettings()
     {
         base.LoadSettings();
@@ -75,7 +72,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if comment formatting will run during cleanup.
     /// </summary>
-
     public bool CommentRunDuringCleanup
     {
         get { return GetPropertyValue<bool>(); }
@@ -85,7 +81,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if comment formatting should skip wrapping the last word.
     /// </summary>
-
     public bool CommentSkipWrapOnLastWord
     {
         get { return GetPropertyValue<bool>(); }
@@ -95,7 +90,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the column where comments will attempt to wrap.
     /// </summary>
-
     public int CommentWrapColumn
     {
         get
@@ -114,7 +108,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if the content of param tags should be aligned.
     /// </summary>
-
     public bool CommentXmlAlignParamTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -142,7 +135,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if an extra space should be added inside XML tags.
     /// </summary>
-
     public bool CommentXmlSpaceTags
     {
         get { return GetPropertyValue<bool>(); }
@@ -161,7 +153,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if summary tags should always be split to multiple lines.
     /// </summary>
-
     public bool CommentXmlSplitSummaryTagToMultipleLines
     {
         get { return GetPropertyValue<bool>(); }
@@ -180,7 +171,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the amount of extra spacing to add before XML values.
     /// </summary>
-
     public int CommentXmlValueIndent
     {
         get
@@ -239,7 +229,6 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Formats `UnformattedPreviewText` using `CodeComment.Format` with configurable wrapping and XML comment options, then assigns the result to the `CommentPreviewText` property as its only side effect.
     /// </summary>
-
     private void UpdatePreviewText()
     {
         CommentPreviewText = CodeComment.Format(UnformattedPreviewText, null, o =>

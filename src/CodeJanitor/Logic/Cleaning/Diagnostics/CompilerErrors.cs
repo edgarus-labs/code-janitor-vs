@@ -173,6 +173,7 @@ internal static class CompilerErrors
 
         var start = span.Start + startDelta;
         var end = span.End + endDelta;
+
         return (newSpan.Start == start || newSpan.Start == start + optionalStartDelta)
             && (newSpan.End == end || newSpan.End == end + optionalEndDelta);
     }

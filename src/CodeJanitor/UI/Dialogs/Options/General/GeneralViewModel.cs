@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.General;
 /// <summary>
 /// The view model for general options.
 /// </summary>
-
 public sealed class GeneralViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public GeneralViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -36,7 +34,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if files should be cached.
     /// </summary>
-
     public bool CacheFiles
     {
         get { return GetPropertyValue<bool>(); }
@@ -46,7 +43,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if diagnostics mode should be enabled.
     /// </summary>
-
     public bool DiagnosticsMode
     {
         get { return GetPropertyValue<bool>(); }
@@ -56,7 +52,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if models can be loaded asynchronously.
     /// </summary>
-
     public bool LoadModelsAsynchronously
     {
         get { return GetPropertyValue<bool>(); }
@@ -66,7 +61,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if the start page should be shown when the solution is closed.
     /// </summary>
-
     public bool ShowStartPageOnSolutionClose
     {
         get { return GetPropertyValue<bool>(); }
@@ -77,7 +71,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if undo transactions should not be used during auto
     /// cleanup on save.
     /// </summary>
-
     public bool SkipUndoTransactionsDuringAutoCleanupOnSave
     {
         get { return GetPropertyValue<bool>(); }
@@ -87,7 +80,6 @@ public sealed class GeneralViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets a flag indicating if undo transactions should be utilized.
     /// </summary>
-
     public bool UseUndoTransactions
     {
         get { return GetPropertyValue<bool>(); }

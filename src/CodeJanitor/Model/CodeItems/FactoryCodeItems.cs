@@ -6,7 +6,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// A static factory class for generating code items.
 /// </summary>
-
 public static class FactoryCodeItems
 {
     /// <summary>
@@ -14,7 +13,6 @@ public static class FactoryCodeItems
     /// </summary>
     /// <param name="codeElement">The code element.</param>
     /// <returns>A generated code item element, otherwise null.</returns>
-
     public static BaseCodeItemElement CreateCodeItemElement(CodeElement codeElement)
     {
         if (codeElement is null) return null;

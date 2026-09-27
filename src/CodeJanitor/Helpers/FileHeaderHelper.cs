@@ -19,7 +19,6 @@ internal static class FileHeaderHelper
     /// <param name="language">The code language of the document.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
     /// <returns>The configured file header, or null for a language without a file header setting.</returns>
-
     internal static string GetFileHeaderFromSettings(CodeLanguage language, EffectiveCleanupSettings settings)
     {
         switch (language)
@@ -51,7 +50,6 @@ internal static class FileHeaderHelper
     /// <param name="language">The code language of the document.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
     /// <returns>The header position.</returns>
-
     internal static HeaderPosition GetFileHeaderPositionFromSettings(CodeLanguage language, EffectiveCleanupSettings settings)
     {
         switch (language)
@@ -71,7 +69,6 @@ internal static class FileHeaderHelper
     /// <param name="text">The text.</param>
     /// <param name="skipUsings">The skip usings.</param>
     /// <returns>A int value produced by this method.</returns>
-
     internal static int GetHeaderLength(CodeLanguage language, string text, bool skipUsings = false)
     {
         switch (language)
@@ -129,7 +126,6 @@ internal static class FileHeaderHelper
     /// <param name="commentSyntax">The comment syntax.</param>
     /// <param name="skipUsings">The skip usings.</param>
     /// <returns>A int value produced by this method.</returns>
-
     internal static int GetHeaderLength(string text, string commentSyntax, bool skipUsings)
     {
         if (skipUsings)
@@ -148,7 +144,6 @@ internal static class FileHeaderHelper
     /// <param name="commentSyntaxEnd">The comment syntax end.</param>
     /// <param name="skipUsings">The skip usings.</param>
     /// <returns>A int value produced by this method.</returns>
-
     internal static int GetHeaderLength(string text, string commentSyntaxStart, string commentSyntaxEnd, bool skipUsings)
     {
         if (skipUsings)
@@ -166,7 +161,6 @@ internal static class FileHeaderHelper
     /// <param name="text">The document to search</param>
     /// <param name="limits">The limits not to pass. <paramref name="startOfLine"/> beyond those limits are ignored</param>
     /// <returns>The number of lines to skip</returns>
-
     internal static int GetNbLinesToSkip(string startOfLine, string text, IEnumerable<string> limits)
     {
         var max = GetLowestIndex(text, limits);
@@ -189,7 +183,6 @@ internal static class FileHeaderHelper
     /// <param name="lines">The lines.</param>
     /// <param name="nbLinesToSkip">The nb lines to skip.</param>
     /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
-
     private static IEnumerable<string> GetEmptyLines(IEnumerable<string> lines, int nbLinesToSkip)
     {
         var result = new List<string>();
@@ -214,7 +207,6 @@ internal static class FileHeaderHelper
     /// <param name="commentSyntax">The syntax of the comment tag in the processed language</param>
     /// <returns>The header length</returns>
     /// <remarks>EnvDTE API only counts 1 character per end of line (\r\n counts for 1)</remarks>
-
     private static int GetHeaderLength(string text, string commentSyntax)
     {
         if (!text.TrimStart().StartsWith(commentSyntax))
@@ -248,7 +240,6 @@ internal static class FileHeaderHelper
     /// <param name="commentSyntaxEnd">The syntax of the comment tag end in the processed language</param>
     /// <returns>The header length</returns>
     /// <remarks>EnvDTE API only counts 1 character per end of line (\r\n counts for 1)</remarks>
-
     private static int GetHeaderLength(string text, string commentSyntaxStart, string commentSyntaxEnd)
     {
         if (!text.TrimStart().StartsWith(commentSyntaxStart) || text.IndexOf(commentSyntaxEnd) == -1)
@@ -289,7 +280,6 @@ internal static class FileHeaderHelper
     /// <param name="text">The text.</param>
     /// <param name="commentSyntax">The comment syntax.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int GetHeaderLengthSkipUsings(string text, string commentSyntax)
     {
         text = SkipUsings(text);
@@ -311,7 +301,6 @@ internal static class FileHeaderHelper
     /// <param name="commentSyntaxStart">The comment syntax start.</param>
     /// <param name="commentSyntaxEnd">The comment syntax end.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int GetHeaderLengthSkipUsings(string text, string commentSyntaxStart, string commentSyntaxEnd)
     {
         text = SkipUsings(text);
@@ -342,7 +331,6 @@ internal static class FileHeaderHelper
     /// <param name="lines">The lines.</param>
     /// <param name="nbLinesToSkip">The nb lines to skip.</param>
     /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
-
     private static IEnumerable<string> GetLinesStartingWith(string pattern, IEnumerable<string> lines, int nbLinesToSkip = 0)
     {
         var result = new List<string>();
@@ -366,7 +354,6 @@ internal static class FileHeaderHelper
     /// <param name="text">The text to search in</param>
     /// <param name="limits">The limits to search for</param>
     /// <returns>Lowest index of all the limits found</returns>
-
     private static int GetLowestIndex(string text, IEnumerable<string> limits)
     {
         var indexes = new List<int>();
@@ -394,7 +381,6 @@ internal static class FileHeaderHelper
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string SkipUsings(string document)
     {
         // we cannot simply look for the last using since it can be used inside the code
@@ -429,7 +415,6 @@ internal static class FileHeaderHelper
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
-
     private static IEnumerable<string> SplitLines(string text)
     {
         var separator = new string[] { Environment.NewLine };

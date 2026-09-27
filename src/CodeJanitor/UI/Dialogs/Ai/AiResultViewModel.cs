@@ -1,4 +1,3 @@
-using CodeJanitor.UI;
 using System;
 using System.Windows;
 

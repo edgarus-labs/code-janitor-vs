@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System;
 
 namespace CodeJanitor.Helpers;

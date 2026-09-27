@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -23,7 +23,7 @@ public sealed class InsertBlankLinePaddingLogicTests
         DisableAllSettings();
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(KindCodeItem.Class, "Cleaning_InsertBlankLinePaddingBeforeClasses")]
     [DataRow(KindCodeItem.Delegate, "Cleaning_InsertBlankLinePaddingBeforeDelegates")]
     [DataRow(KindCodeItem.Enum, "Cleaning_InsertBlankLinePaddingBeforeEnumerations")]
@@ -46,7 +46,7 @@ public sealed class InsertBlankLinePaddingLogicTests
         Assert.IsTrue(_logic.ShouldBePrecededByBlankLine(new TestCodeItem(kind)));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(KindCodeItem.Class, "Cleaning_InsertBlankLinePaddingAfterClasses")]
     [DataRow(KindCodeItem.Delegate, "Cleaning_InsertBlankLinePaddingAfterDelegates")]
     [DataRow(KindCodeItem.Enum, "Cleaning_InsertBlankLinePaddingAfterEnumerations")]

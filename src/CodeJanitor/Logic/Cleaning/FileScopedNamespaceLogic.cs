@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -14,7 +14,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// This is a thin integration layer over the pure, unit-tested
 /// <see cref="FileScopedNamespaceConverter" /> (see ADR-0005 / ADR-0006).
 /// </remarks>
-
 internal sealed class FileScopedNamespaceLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -29,7 +28,6 @@ internal sealed class FileScopedNamespaceLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="FileScopedNamespaceLogic" /> class.</returns>
-
     internal static FileScopedNamespaceLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new FileScopedNamespaceLogic(package));
@@ -39,7 +37,6 @@ internal sealed class FileScopedNamespaceLogic
     /// Initializes a new instance of the <see cref="FileScopedNamespaceLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private FileScopedNamespaceLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -51,7 +48,6 @@ internal sealed class FileScopedNamespaceLogic
     /// </summary>
     /// <param name="settings">The effective cleanup settings of the file.</param>
     /// <returns>The converter.</returns>
-
     internal static FileScopedNamespaceConverter CreateConverter(EffectiveCleanupSettings settings)
     {
         bool? indentWithTabs;
@@ -79,7 +75,6 @@ internal sealed class FileScopedNamespaceLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void ApplyNamespaceDeclarationStyle(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -117,7 +112,6 @@ internal sealed class FileScopedNamespaceLogic
     /// <param name="filePath">The file path, used for the language version check and in log messages.</param>
     /// <param name="settings">The effective cleanup settings of the file.</param>
     /// <returns>The converted text, or the original text when the conversion does not apply.</returns>
-
     internal string ConvertNamespaceDeclarations(string text, string filePath, EffectiveCleanupSettings settings)
     {
         var converter = CreateConverter(settings);
@@ -148,7 +142,6 @@ internal sealed class FileScopedNamespaceLogic
     /// <param name="text">The C# source text.</param>
     /// <param name="filePath">The file path.</param>
     /// <returns>The converted text, or the original text when the conversion does not apply.</returns>
-
     private static string ConvertToFileScopedNamespace(INamespaceScopeConverter converter, string text, string filePath)
     {
         if (converter.HasMultipleNamespaces(text))

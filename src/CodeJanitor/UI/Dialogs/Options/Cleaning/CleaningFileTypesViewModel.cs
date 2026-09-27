@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// <summary>
 /// The view model for cleaning file types options.
 /// </summary>
-
 public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CleaningFileTypesViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -50,7 +48,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if T4 generated code files should be excluded.
     /// </summary>
-
     public bool ExcludeT4GeneratedCode
     {
         get { return GetPropertyValue<bool>(); }
@@ -60,7 +57,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the expression for files to exclude.
     /// </summary>
-
     public string ExclusionExpression
     {
         get { return GetPropertyValue<string>(); }
@@ -70,7 +66,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if C++ files should be included.
     /// </summary>
-
     public bool IncludeCPlusPlus
     {
         get { return GetPropertyValue<bool>(); }
@@ -80,7 +75,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if C# files should be included.
     /// </summary>
-
     public bool IncludeCSharp
     {
         get { return GetPropertyValue<bool>(); }
@@ -90,7 +84,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if CSS files should be included.
     /// </summary>
-
     public bool IncludeCSS
     {
         get { return GetPropertyValue<bool>(); }
@@ -100,7 +93,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if everything else (ex: .txt, README) should be included.
     /// </summary>
-
     public bool IncludeEverythingElse
     {
         get { return GetPropertyValue<bool>(); }
@@ -110,7 +102,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if F# files should be included.
     /// </summary>
-
     public bool IncludeFSharp
     {
         get { return GetPropertyValue<bool>(); }
@@ -120,7 +111,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if HTML files should be included.
     /// </summary>
-
     public bool IncludeHTML
     {
         get { return GetPropertyValue<bool>(); }
@@ -130,7 +120,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if JavaScript files should be included.
     /// </summary>
-
     public bool IncludeJavaScript
     {
         get { return GetPropertyValue<bool>(); }
@@ -140,7 +129,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if JSON files should be included.
     /// </summary>
-
     public bool IncludeJSON
     {
         get { return GetPropertyValue<bool>(); }
@@ -150,7 +138,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if LESS files should be included.
     /// </summary>
-
     public bool IncludeLESS
     {
         get { return GetPropertyValue<bool>(); }
@@ -160,7 +147,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if PHP files should be included.
     /// </summary>
-
     public bool IncludePHP
     {
         get { return GetPropertyValue<bool>(); }
@@ -170,7 +156,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if PowerShell files should be included.
     /// </summary>
-
     public bool IncludePowerShell
     {
         get { return GetPropertyValue<bool>(); }
@@ -180,7 +165,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if R files should be included.
     /// </summary>
-
     public bool IncludeR
     {
         get { return GetPropertyValue<bool>(); }
@@ -190,7 +174,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if SCSS files should be included.
     /// </summary>
-
     public bool IncludeSCSS
     {
         get { return GetPropertyValue<bool>(); }
@@ -200,7 +183,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if TypeScript files should be included.
     /// </summary>
-
     public bool IncludeTypeScript
     {
         get { return GetPropertyValue<bool>(); }
@@ -210,7 +192,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if Visual Basic files should be included.
     /// </summary>
-
     public bool IncludeVisualBasic
     {
         get { return GetPropertyValue<bool>(); }
@@ -220,7 +201,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if XAML files should be included.
     /// </summary>
-
     public bool IncludeXAML
     {
         get { return GetPropertyValue<bool>(); }
@@ -230,7 +210,6 @@ public sealed class CleaningFileTypesViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if XML files should be included.
     /// </summary>
-
     public bool IncludeXML
     {
         get { return GetPropertyValue<bool>(); }

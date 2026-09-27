@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -13,13 +14,12 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="FileScopedNamespaceConverter" />.
 /// Pure transformation tests (no Visual Studio / EnvDTE required).
 /// </summary>
-
 [TestClass]
 public sealed class FileScopedNamespaceConverterTests
 {
     private const string Library = "namespace Company.App.Services { public class Svc { } }\r\n";
 
-    private static readonly SyntaxKind[] s_stringContentTokenKinds =
+    private static readonly SyntaxKind[] StringContentTokenKinds =
     {
         SyntaxKind.StringLiteralToken,
         SyntaxKind.MultiLineRawStringLiteralToken,
@@ -40,8 +40,8 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertsSingleBlockNamespaceToFileScoped()
     {
-        var input = "namespace A\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
-        var expected = "namespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
+        string expected = "namespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.ConvertToFileScoped(input));
     }
@@ -50,36 +50,36 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task KeepsNamespaceUsingsInsideFileScopedNamespace_SoRelativeUsingsStillCompile()
     {
-        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n";
-        var expected = "namespace Company.App;\r\n\r\nusing Services;\r\n\r\nclass C { Svc s; }\r\n";
+        string input = "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n";
+        string expected = "namespace Company.App;\r\n\r\nusing Services;\r\n\r\nclass C { Svc s; }\r\n";
 
-        var result = _converter.ConvertToFileScoped(input);
+        string result = _converter.ConvertToFileScoped(input);
 
         Assert.AreEqual(expected, result);
-        var errors = await CompilingTestProject.GetCompileErrorsAsync(CompilingTestProject.CreateDocument(input, Library), result);
-        Assert.AreEqual(0, errors.Count, string.Join(Environment.NewLine, errors));
+        IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(CompilingTestProject.CreateDocument(input, Library), result);
+        Assert.IsEmpty(errors, string.Join(Environment.NewLine, errors));
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertingAfterSemanticUsingMove_YieldsCompilingFileScopedCode()
     {
-        var input = "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, Library);
+        string input = "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, Library);
 
-        var moved = await new UsingDirectivePlacementConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
-        var result = _converter.ConvertToFileScoped(moved.Text);
+        UsingDirectivePlacementResult moved = await new UsingDirectivePlacementConverter().MoveUsingsOutsideAsync(document, CancellationToken.None);
+        string result = _converter.ConvertToFileScoped(moved.Text);
 
         Assert.AreEqual("using Company.App.Services;\r\n\r\nnamespace Company.App;\r\n\r\nclass C { Svc s; }\r\n", result);
-        var errors = await CompilingTestProject.GetCompileErrorsAsync(document, result);
-        Assert.AreEqual(0, errors.Count, string.Join(Environment.NewLine, errors));
+        IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(document, result);
+        Assert.IsEmpty(errors, string.Join(Environment.NewLine, errors));
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public void AlreadyFileScoped_ReturnsUnchanged()
     {
-        var input = "namespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string input = "namespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
     }
@@ -88,7 +88,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void MultipleNamespaces_ReturnsUnchanged()
     {
-        var input = "namespace A\r\n{\r\n}\r\nnamespace B\r\n{\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n}\r\nnamespace B\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
     }
@@ -97,7 +97,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NoNamespace_ReturnsUnchanged()
     {
-        var input = "class C\r\n{\r\n}\r\n";
+        string input = "class C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
     }
@@ -106,7 +106,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NestedNamespace_ReturnsUnchanged()
     {
-        var input = "namespace A\r\n{\r\n    namespace B\r\n    {\r\n    }\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n    namespace B\r\n    {\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
     }
@@ -115,8 +115,8 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void PreservesFileHeaderAndOuterUsings()
     {
-        var input = "// file header\r\nusing System;\r\n\r\nnamespace A\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
-        var expected = "// file header\r\nusing System;\r\n\r\nnamespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string input = "// file header\r\nusing System;\r\n\r\nnamespace A\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
+        string expected = "// file header\r\nusing System;\r\n\r\nnamespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.ConvertToFileScoped(input));
     }
@@ -125,7 +125,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void HasMultipleNamespaces_MultipleTopLevelNamespaces_ReturnsTrue()
     {
-        var input = "namespace A\r\n{\r\n}\r\nnamespace B\r\n{\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n}\r\nnamespace B\r\n{\r\n}\r\n";
 
         Assert.IsTrue(_converter.HasMultipleNamespaces(input));
     }
@@ -134,7 +134,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void HasMultipleNamespaces_NestedNamespace_ReturnsTrue()
     {
-        var input = "namespace A\r\n{\r\n    namespace B\r\n    {\r\n    }\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n    namespace B\r\n    {\r\n    }\r\n}\r\n";
 
         Assert.IsTrue(_converter.HasMultipleNamespaces(input));
     }
@@ -143,7 +143,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void HasMultipleNamespaces_SingleBlockNamespace_ReturnsFalse()
     {
-        var input = "namespace A\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
 
         Assert.IsFalse(_converter.HasMultipleNamespaces(input));
     }
@@ -152,7 +152,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void HasMultipleNamespaces_SingleFileScopedNamespace_ReturnsFalse()
     {
-        var input = "namespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string input = "namespace A;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.IsFalse(_converter.HasMultipleNamespaces(input));
     }
@@ -161,11 +161,11 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NameAndApply_WorkCorrectly()
     {
-        var converter = new FileScopedNamespaceConverter();
+        FileScopedNamespaceConverter converter = new FileScopedNamespaceConverter();
         Assert.AreEqual("File-Scoped Namespace", converter.Name);
 
-        var input = "namespace A\r\n{\r\n    class C { }\r\n}\r\n";
-        var expected = "namespace A;\r\n\r\nclass C { }\r\n";
+        string input = "namespace A\r\n{\r\n    class C { }\r\n}\r\n";
+        string expected = "namespace A;\r\n\r\nclass C { }\r\n";
         Assert.AreEqual(expected, converter.Apply(input));
 
         Assert.IsNull(converter.Apply(null));
@@ -178,12 +178,12 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Dedent_HandlesTabsAndEmptyBody()
     {
-        var tabInput = "namespace A\n{\n\tclass C\n\t{\n\t}\n}\n";
-        var expectedTab = "namespace A;\n\nclass C\n{\n}\n";
+        string tabInput = "namespace A\n{\n\tclass C\n\t{\n\t}\n}\n";
+        string expectedTab = "namespace A;\n\nclass C\n{\n}\n";
         Assert.AreEqual(expectedTab, _converter.ConvertToFileScoped(tabInput));
 
-        var emptyInput = "namespace A\n{\n}\n";
-        var expectedEmpty = "namespace A;\n";
+        string emptyInput = "namespace A\n{\n}\n";
+        string expectedEmpty = "namespace A;\n";
         Assert.AreEqual(expectedEmpty, _converter.ConvertToFileScoped(emptyInput));
     }
 
@@ -191,7 +191,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToFileScoped_MultiLineStringLiteralsAndDisabledText_StayByteIdentical()
     {
-        var input =
+        string input =
             "namespace A\r\n" +
             "{\r\n" +
             "    class C\r\n" +
@@ -213,7 +213,7 @@ public sealed class FileScopedNamespaceConverterTests
             "#endif\r\n" +
             "    }\r\n" +
             "}\r\n";
-        var expected =
+        string expected =
             "namespace A;\r\n" +
             "\r\n" +
             "class C\r\n" +
@@ -235,10 +235,10 @@ public sealed class FileScopedNamespaceConverterTests
             "#endif\r\n" +
             "}\r\n";
 
-        var result = _converter.ConvertToFileScoped(input);
+        string result = _converter.ConvertToFileScoped(input);
 
         Assert.AreEqual(expected, result);
-        CollectionAssert.AreEqual(GetStringContentTokens(input), GetStringContentTokens(result));
+        Assert.AreSequenceEqual(GetStringContentTokens(input), GetStringContentTokens(result));
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input), result);
     }
 
@@ -246,7 +246,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void MissingBraceOrMalformed_ReturnsUnchanged()
     {
-        var input = "namespace A";
+        string input = "namespace A";
         Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
     }
 
@@ -254,7 +254,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void HasMultipleNamespaces_NoNamespace_ReturnsFalse()
     {
-        var input = "class C\r\n{\r\n}\r\n";
+        string input = "class C\r\n{\r\n}\r\n";
 
         Assert.IsFalse(_converter.HasMultipleNamespaces(input));
     }
@@ -268,7 +268,7 @@ public sealed class FileScopedNamespaceConverterTests
         // Cleanup pass had already reorganized it: a single block-scoped namespace
         // containing two classes, with fields, properties, and methods (including a
         // private helper and local variable declarations).
-        var input =
+        string input =
             "namespace CodeJanitor.Scratch.Bug001\r\n" +
             "{\r\n" +
             "    /// <summary>\r\n" +
@@ -306,16 +306,16 @@ public sealed class FileScopedNamespaceConverterTests
 
         Assert.IsFalse(_converter.HasMultipleNamespaces(input), "Repro file has exactly one namespace and should not be flagged as multiple.");
 
-        var converted = _converter.ConvertToFileScoped(input);
+        string converted = _converter.ConvertToFileScoped(input);
 
         Assert.AreNotEqual(input, converted, "Expected the converter to change the block-scoped namespace to file-scoped.");
-        StringAssert.Contains(converted, "namespace CodeJanitor.Scratch.Bug001;");
-        StringAssert.Contains(converted, "public class FileScopedNamespaceSample");
-        StringAssert.Contains(converted, "public class SecondClassInSameNamespace");
-        StringAssert.Contains(converted, "public int Value { get; set; }");
+        Assert.Contains("namespace CodeJanitor.Scratch.Bug001;", converted);
+        Assert.Contains("public class FileScopedNamespaceSample", converted);
+        Assert.Contains("public class SecondClassInSameNamespace", converted);
+        Assert.Contains("public int Value { get; set; }", converted);
 
         // The dedented body should no longer contain the original 4-space class indentation.
-        Assert.IsFalse(converted.Contains("\r\n    public class FileScopedNamespaceSample"),
+        Assert.DoesNotContain("\r\n    public class FileScopedNamespaceSample", converted,
             "Expected class declarations to be dedented by one level after file-scoped conversion.");
     }
 
@@ -323,8 +323,8 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertToBlockScoped_WrapsTheBodyInBracesAndIndentsItOneLevel()
     {
-        var input = "namespace A;\r\n\r\nclass C\r\n{\r\n    void M() { }\r\n}\r\n";
-        var expected = "namespace A\r\n{\r\n    class C\r\n    {\r\n        void M() { }\r\n    }\r\n}\r\n";
+        string input = "namespace A;\r\n\r\nclass C\r\n{\r\n    void M() { }\r\n}\r\n";
+        string expected = "namespace A\r\n{\r\n    class C\r\n    {\r\n        void M() { }\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
     }
@@ -333,8 +333,8 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertToBlockScoped_LineFeeds_ArePreserved()
     {
-        var input = "namespace A;\n\nclass C\n{\n    int x;\n}\n";
-        var expected = "namespace A\n{\n    class C\n    {\n        int x;\n    }\n}\n";
+        string input = "namespace A;\n\nclass C\n{\n    int x;\n}\n";
+        string expected = "namespace A\n{\n    class C\n    {\n        int x;\n    }\n}\n";
 
         Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
     }
@@ -343,14 +343,14 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToBlockScoped_KeepsFileHeaderAndTopLevelUsings_AndMovesUsingsAfterTheDeclarationIntoTheBlock()
     {
-        var input =
+        string input =
             "// <copyright>\r\n// ACME\r\n// </copyright>\r\n\r\nusing System;\r\n\r\nnamespace Company.App;\r\n\r\n" +
             "using Services;\r\n\r\nclass C\r\n{\r\n    Svc s;\r\n    Type t;\r\n}\r\n";
-        var expected =
+        string expected =
             "// <copyright>\r\n// ACME\r\n// </copyright>\r\n\r\nusing System;\r\n\r\nnamespace Company.App\r\n{\r\n" +
             "    using Services;\r\n\r\n    class C\r\n    {\r\n        Svc s;\r\n        Type t;\r\n    }\r\n}\r\n";
 
-        var result = _converter.ConvertToBlockScoped(input);
+        string result = _converter.ConvertToBlockScoped(input);
 
         Assert.AreEqual(expected, result);
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input, Library), result);
@@ -360,11 +360,11 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToBlockScoped_KeepsExternAliasesAndUsingsAboveTheNamespace()
     {
-        var input = "extern alias Lib;\n\nusing System;\n\nnamespace A;\n\nclass C\n{\n    Lib::L.X x;\n    Type t;\n}\n";
-        var expected = "extern alias Lib;\n\nusing System;\n\nnamespace A\n{\n    class C\n    {\n        Lib::L.X x;\n        Type t;\n    }\n}\n";
-        var reference = CompilingTestProject.CreateAliasedReference("AliasedLibrary", "namespace L { public class X { } }\r\n", "Lib");
+        string input = "extern alias Lib;\n\nusing System;\n\nnamespace A;\n\nclass C\n{\n    Lib::L.X x;\n    Type t;\n}\n";
+        string expected = "extern alias Lib;\n\nusing System;\n\nnamespace A\n{\n    class C\n    {\n        Lib::L.X x;\n        Type t;\n    }\n}\n";
+        MetadataReference reference = CompilingTestProject.CreateAliasedReference("AliasedLibrary", "namespace L { public class X { } }\r\n", "Lib");
 
-        var result = _converter.ConvertToBlockScoped(input);
+        string result = _converter.ConvertToBlockScoped(input);
 
         Assert.AreEqual(expected, result);
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { reference }), result);
@@ -374,7 +374,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToBlockScoped_MultiLineStringLiterals_StayByteIdentical()
     {
-        var input =
+        string input =
             "namespace A;\r\n" +
             "\r\n" +
             "class C\r\n" +
@@ -402,7 +402,7 @@ public sealed class FileScopedNamespaceConverterTests
             "        x\r\n" +
             "    }b\";\r\n" +
             "}\r\n";
-        var expected =
+        string expected =
             "namespace A\r\n" +
             "{\r\n" +
             "    class C\r\n" +
@@ -432,10 +432,10 @@ public sealed class FileScopedNamespaceConverterTests
             "    }\r\n" +
             "}\r\n";
 
-        var result = _converter.ConvertToBlockScoped(input);
+        string result = _converter.ConvertToBlockScoped(input);
 
         Assert.AreEqual(expected, result);
-        CollectionAssert.AreEqual(GetStringContentTokens(input), GetStringContentTokens(result));
+        Assert.AreSequenceEqual(GetStringContentTokens(input), GetStringContentTokens(result));
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input), result);
     }
 
@@ -443,10 +443,10 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToBlockScoped_IndentsActiveCode_KeepsDisabledTextAndColumnZeroDirectives_AndCompilesInEveryConfiguration()
     {
-        var input = "namespace A;\n\nclass C\n{\n#if DEBUG\n    void Debug() { }\n#else\n    void Release() { }\n#endif\n}\n";
-        var expected = "namespace A\n{\n    class C\n    {\n#if DEBUG\n    void Debug() { }\n#else\n        void Release() { }\n#endif\n    }\n}\n";
+        string input = "namespace A;\n\nclass C\n{\n#if DEBUG\n    void Debug() { }\n#else\n    void Release() { }\n#endif\n}\n";
+        string expected = "namespace A\n{\n    class C\n    {\n#if DEBUG\n    void Debug() { }\n#else\n        void Release() { }\n#endif\n    }\n}\n";
 
-        var result = _converter.ConvertToBlockScoped(input);
+        string result = _converter.ConvertToBlockScoped(input);
 
         Assert.AreEqual(expected, result);
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input), result);
@@ -457,10 +457,10 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToBlockScoped_DirectivesAndCommentsAfterTheLastMember_StayInsideTheBraces()
     {
-        var input = "namespace A;\n\nclass C { }\n\n#if DEBUG\nclass D { }\n#endif\n// trailing comment\n";
-        var expected = "namespace A\n{\n    class C { }\n\n#if DEBUG\nclass D { }\n#endif\n    // trailing comment\n}\n";
+        string input = "namespace A;\n\nclass C { }\n\n#if DEBUG\nclass D { }\n#endif\n// trailing comment\n";
+        string expected = "namespace A\n{\n    class C { }\n\n#if DEBUG\nclass D { }\n#endif\n    // trailing comment\n}\n";
 
-        var result = _converter.ConvertToBlockScoped(input);
+        string result = _converter.ConvertToBlockScoped(input);
 
         Assert.AreEqual(expected, result);
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input), result);
@@ -471,7 +471,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToBlockScoped_NestedTypesDocumentationCommentsAndDeclarationComment_CompileAfterConversion()
     {
-        var input =
+        string input =
             "namespace A.B; // the namespace\r\n" +
             "\r\n" +
             "/// <summary>\r\n" +
@@ -491,7 +491,7 @@ public sealed class FileScopedNamespaceConverterTests
             "}\r\n" +
             "\r\n" +
             "public interface IThing { Outer.Inner.Kind Kind { get; } }\r\n";
-        var expected =
+        string expected =
             "namespace A.B // the namespace\r\n" +
             "{\r\n" +
             "    /// <summary>\r\n" +
@@ -513,7 +513,7 @@ public sealed class FileScopedNamespaceConverterTests
             "    public interface IThing { Outer.Inner.Kind Kind { get; } }\r\n" +
             "}\r\n";
 
-        var result = _converter.ConvertToBlockScoped(input);
+        string result = _converter.ConvertToBlockScoped(input);
 
         Assert.AreEqual(expected, result);
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input), result);
@@ -523,8 +523,8 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertToBlockScoped_MultiLineCommentContinuationLines_KeepTheirText()
     {
-        var input = "namespace A;\n\n/*\n * Block comment\n */\nclass C { }\n";
-        var expected = "namespace A\n{\n    /*\n * Block comment\n */\n    class C { }\n}\n";
+        string input = "namespace A;\n\n/*\n * Block comment\n */\nclass C { }\n";
+        string expected = "namespace A\n{\n    /*\n * Block comment\n */\n    class C { }\n}\n";
 
         Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
     }
@@ -533,8 +533,8 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertToBlockScoped_TabIndentedBody_IsIndentedWithATab()
     {
-        var input = "namespace A;\n\nclass C\n{\n\tint x;\n}\n";
-        var expected = "namespace A\n{\n\tclass C\n\t{\n\t\tint x;\n\t}\n}\n";
+        string input = "namespace A;\n\nclass C\n{\n\tint x;\n}\n";
+        string expected = "namespace A\n{\n\tclass C\n\t{\n\t\tint x;\n\t}\n}\n";
 
         Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
     }
@@ -576,7 +576,7 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertToBlockScoped_ThenToFileScoped_RoundTrips()
     {
-        var input = "using System;\r\n\r\nnamespace A;\r\n\r\nclass C\r\n{\r\n    void M() { }\r\n}\r\n";
+        string input = "using System;\r\n\r\nnamespace A;\r\n\r\nclass C\r\n{\r\n    void M() { }\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.ConvertToFileScoped(_converter.ConvertToBlockScoped(input)));
     }
@@ -585,10 +585,10 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public async Task ConvertToFileScoped_KeepsTheDirectiveAndCommentAfterTheClosingBrace_AndCompilesInEveryConfiguration()
     {
-        var input = "#if !LEGACY\r\nnamespace A\r\n{\r\n    class C { }\r\n} // namespace A\r\n\r\n#endif\r\n";
-        var expected = "#if !LEGACY\r\nnamespace A;\r\n\r\nclass C { }\r\n// namespace A\r\n\r\n#endif\r\n";
+        string input = "#if !LEGACY\r\nnamespace A\r\n{\r\n    class C { }\r\n} // namespace A\r\n\r\n#endif\r\n";
+        string expected = "#if !LEGACY\r\nnamespace A;\r\n\r\nclass C { }\r\n// namespace A\r\n\r\n#endif\r\n";
 
-        var result = _converter.ConvertToFileScoped(input);
+        string result = _converter.ConvertToFileScoped(input);
 
         Assert.AreEqual(expected, result);
         await AssertCompilesAsync(CompilingTestProject.CreateDocument(input), result);
@@ -637,8 +637,8 @@ public sealed class FileScopedNamespaceConverterTests
     [DataRow(false, 2, "  ", DisplayName = "two spaces")]
     public void ConvertToBlockScoped_IndentsWithTheConfiguredIndentation(bool indentWithTabs, int indentSize, string level)
     {
-        var input = "namespace A;\n\nclass C\n{\n    int x;\n}\n";
-        var expected = $"namespace A\n{{\n{level}class C\n{level}{{\n{level}    int x;\n{level}}}\n}}\n";
+        string input = "namespace A;\n\nclass C\n{\n    int x;\n}\n";
+        string expected = $"namespace A\n{{\n{level}class C\n{level}{{\n{level}    int x;\n{level}}}\n}}\n";
 
         Assert.AreEqual(expected, new FileScopedNamespaceConverter(indentWithTabs, indentSize).ConvertToBlockScoped(input));
     }
@@ -647,23 +647,23 @@ public sealed class FileScopedNamespaceConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ConvertToFileScoped_RemovesOneConfiguredIndentationLevel()
     {
-        var input = "namespace A\n{\n  class C\n  {\n    int x;\n  }\n}\n";
+        string input = "namespace A\n{\n  class C\n  {\n    int x;\n  }\n}\n";
 
         Assert.AreEqual("namespace A;\n\nclass C\n{\n  int x;\n}\n", new FileScopedNamespaceConverter(false, 2).ConvertToFileScoped(input));
     }
 
-    private static Document CreateDebugDocument(string source) =>
-        CompilingTestProject.CreateDocument(source, new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: new[] { "DEBUG" }), new MetadataReference[0]);
+    private static Document CreateDebugDocument(string source)
+        => CompilingTestProject.CreateDocument(source, new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: new[] { "DEBUG" }), new MetadataReference[0]);
 
-    private static string[] GetStringContentTokens(string source) =>
-        CSharpSyntaxTree.ParseText(source).GetRoot().DescendantTokens()
-            .Where(token => s_stringContentTokenKinds.Contains(token.Kind()))
+    private static string[] GetStringContentTokens(string source)
+        => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantTokens()
+            .Where(token => StringContentTokenKinds.Contains(token.Kind()))
             .Select(token => token.Text)
             .ToArray();
 
     private static async Task AssertCompilesAsync(Document document, string text)
     {
-        var errors = await CompilingTestProject.GetCompileErrorsAsync(document, text);
-        Assert.AreEqual(0, errors.Count, string.Join(Environment.NewLine, errors));
+        IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(document, text);
+        Assert.IsEmpty(errors, string.Join(Environment.NewLine, errors));
     }
 }

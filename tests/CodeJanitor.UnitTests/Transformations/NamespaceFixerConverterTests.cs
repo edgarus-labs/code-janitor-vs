@@ -1,12 +1,11 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
 /// <summary>
 /// Unit tests for <see cref="NamespaceFixerConverter" />.
 /// </summary>
-
 [TestClass]
 public sealed class NamespaceFixerConverterTests
 {
@@ -22,8 +21,8 @@ public sealed class NamespaceFixerConverterTests
     [TestCategory("Transformations UnitTests")]
     public void FixNamespace_UpdatesBlockScopedNamespace()
     {
-        var input = "namespace Old.Namespace\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
-        var expected = "namespace New.Namespace\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
+        string input = "namespace Old.Namespace\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
+        string expected = "namespace New.Namespace\r\n{\r\n    class C\r\n    {\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.FixNamespace(input, "New.Namespace"));
     }
@@ -32,8 +31,8 @@ public sealed class NamespaceFixerConverterTests
     [TestCategory("Transformations UnitTests")]
     public void FixNamespace_UpdatesFileScopedNamespace()
     {
-        var input = "namespace Old.Namespace;\r\n\r\nclass C\r\n{\r\n}\r\n";
-        var expected = "namespace New.Namespace;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string input = "namespace Old.Namespace;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string expected = "namespace New.Namespace;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.FixNamespace(input, "New.Namespace"));
     }
@@ -42,7 +41,7 @@ public sealed class NamespaceFixerConverterTests
     [TestCategory("Transformations UnitTests")]
     public void FixNamespace_AlreadyMatching_ReturnsUnchanged()
     {
-        var input = "namespace New.Namespace;\r\n\r\nclass C\r\n{\r\n}\r\n";
+        string input = "namespace New.Namespace;\r\n\r\nclass C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.FixNamespace(input, "New.Namespace"));
     }
@@ -51,7 +50,7 @@ public sealed class NamespaceFixerConverterTests
     [TestCategory("Transformations UnitTests")]
     public void FixNamespace_MultipleNamespaces_ReturnsUnchanged()
     {
-        var input = "namespace A\r\n{\r\n}\r\nnamespace B\r\n{\r\n}\r\n";
+        string input = "namespace A\r\n{\r\n}\r\nnamespace B\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.FixNamespace(input, "New.Namespace"));
     }
@@ -60,7 +59,7 @@ public sealed class NamespaceFixerConverterTests
     [TestCategory("Transformations UnitTests")]
     public void FixNamespace_NoNamespace_ReturnsUnchanged()
     {
-        var input = "class C\r\n{\r\n}\r\n";
+        string input = "class C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.FixNamespace(input, "New.Namespace"));
     }

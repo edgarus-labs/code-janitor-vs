@@ -5,7 +5,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// A snapshot of a document and its associated code items at a point in time.
 /// </summary>
-
 internal sealed class SnapshotCodeItems
 {
     /// <summary>
@@ -13,7 +12,6 @@ internal sealed class SnapshotCodeItems
     /// </summary>
     /// <param name="document">The document.</param>
     /// <param name="codeItems">The code items.</param>
-
     internal SnapshotCodeItems(Document document, SetCodeItems codeItems)
     {
         Document = document;

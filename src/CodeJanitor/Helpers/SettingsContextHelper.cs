@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Configuration;
 using System.IO;
@@ -9,7 +9,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A singleton helper class for aiding in settings context operations (e.g. user or solution settings).
 /// </summary>
-
 internal sealed class SettingsContextHelper
 {
     /// <summary>
@@ -28,7 +27,6 @@ internal sealed class SettingsContextHelper
     /// Initializes a new instance of the <see cref="SettingsContextHelper" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private SettingsContextHelper(CodeJanitorPackage package)
     {
         _package = package;
@@ -39,7 +37,6 @@ internal sealed class SettingsContextHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SettingsContextHelper" /> class.</returns>
-
     internal static SettingsContextHelper GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new SettingsContextHelper(package));
@@ -53,7 +50,6 @@ internal sealed class SettingsContextHelper
     /// application usage.
     /// </param>
     /// <returns>The path to the solution settings, otherwise null.</returns>
-
     internal static string GetSolutionSettingsPath(SettingsContext context)
     {
         if (context is null) throw new ArgumentNullException(nameof(context));
@@ -66,7 +62,6 @@ internal sealed class SettingsContextHelper
     /// <summary>
     /// Gets the path to the user settings file.
     /// </summary>
-
     internal static string GetUserSettingsPath()
     {
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodeJanitor", SettingsFilename);
@@ -79,7 +74,6 @@ internal sealed class SettingsContextHelper
     /// <param name="settings">The settings to update.</param>
     /// <param name="canCreate">A flag indicating if solution-specific settings can be created.</param>
     /// <returns>True if solution-specific settings were loaded, otherwise false.</returns>
-
     internal bool LoadSolutionSpecificSettings(Settings settings, bool canCreate = false)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -115,7 +109,6 @@ internal sealed class SettingsContextHelper
     /// <summary>
     /// Called when a solution is closed.
     /// </summary>
-
     internal async void OnSolutionClosed()
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
@@ -130,7 +123,6 @@ internal sealed class SettingsContextHelper
     /// <summary>
     /// Called when a solution is opened.
     /// </summary>
-
     internal async void OnSolutionOpened()
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
@@ -145,7 +137,6 @@ internal sealed class SettingsContextHelper
     /// </summary>
     /// <param name="settings">The settings to update.</param>
     /// <returns>True if solution-specific settings were unloaded, otherwise false.</returns>
-
     internal bool UnloadSolutionSpecificSettings(Settings settings)
     {
         // Determine if there is a solution-specific settings file.

@@ -9,7 +9,7 @@ internal class CommentLine : ICommentLine
     {
         if (!string.IsNullOrWhiteSpace(content))
         {
-            this.Content = content;
+            Content = content;
         }
     }
 

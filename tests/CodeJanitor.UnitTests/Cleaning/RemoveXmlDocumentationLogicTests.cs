@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Cleaning;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -9,7 +9,7 @@ public sealed class RemoveXmlDocumentationLogicTests
     [TestMethod]
     public void TryRemoveXmlDocumentation_RemovesSingleLineDocCommentsFromClassAndMethod()
     {
-        var input = @"namespace Demo;
+        string input = @"namespace Demo;
 
 /// <summary>
 /// Sample class summary.
@@ -29,22 +29,22 @@ public class Sample
 }
 ";
 
-        var changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out var result);
+        bool changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out string result);
 
         Assert.IsTrue(changed);
-        Assert.IsFalse(result.Contains("/// <summary>"));
-        Assert.IsFalse(result.Contains("Sample class summary."));
-        Assert.IsFalse(result.Contains("Computes the sum of two integers."));
-        Assert.IsFalse(result.Contains("<param"));
-        Assert.IsFalse(result.Contains("<returns"));
-        Assert.IsTrue(result.Contains("public class Sample"));
-        Assert.IsTrue(result.Contains("    public int Add(int a, int b)"));
+        Assert.DoesNotContain("/// <summary>", result);
+        Assert.DoesNotContain("Sample class summary.", result);
+        Assert.DoesNotContain("Computes the sum of two integers.", result);
+        Assert.DoesNotContain("<param", result);
+        Assert.DoesNotContain("<returns", result);
+        Assert.Contains("public class Sample", result);
+        Assert.Contains("    public int Add(int a, int b)", result);
     }
 
     [TestMethod]
     public void TryRemoveXmlDocumentation_RemovesMultiLineDocComments()
     {
-        var input = @"namespace Demo;
+        string input = @"namespace Demo;
 
 /**
  * <summary>
@@ -57,17 +57,17 @@ public interface IService
 }
 ";
 
-        var changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out var result);
+        bool changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out string result);
 
         Assert.IsTrue(changed);
-        Assert.IsFalse(result.Contains("Multi-line documentation comment."));
-        Assert.IsTrue(result.Contains("public interface IService"));
+        Assert.DoesNotContain("Multi-line documentation comment.", result);
+        Assert.Contains("public interface IService", result);
     }
 
     [TestMethod]
     public void TryRemoveXmlDocumentation_PreservesRegularComments()
     {
-        var input = @"namespace Demo;
+        string input = @"namespace Demo;
 
 // Regular single line comment
 /* Regular block comment */
@@ -84,20 +84,20 @@ public class Sample
 }
 ";
 
-        var changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out var result);
+        bool changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out string result);
 
         Assert.IsTrue(changed);
-        Assert.IsFalse(result.Contains("Method summary to remove."));
-        Assert.IsTrue(result.Contains("// Regular single line comment"));
-        Assert.IsTrue(result.Contains("/* Regular block comment */"));
-        Assert.IsTrue(result.Contains("// Implementation note"));
-        Assert.IsTrue(result.Contains("// Inside method body"));
+        Assert.DoesNotContain("Method summary to remove.", result);
+        Assert.Contains("// Regular single line comment", result);
+        Assert.Contains("/* Regular block comment */", result);
+        Assert.Contains("// Implementation note", result);
+        Assert.Contains("// Inside method body", result);
     }
 
     [TestMethod]
     public void TryRemoveXmlDocumentation_ReturnsFalseWhenNoXmlDocPresent()
     {
-        var input = @"namespace Demo;
+        string input = @"namespace Demo;
 
 public class CleanClass
 {
@@ -108,7 +108,7 @@ public class CleanClass
 }
 ";
 
-        var changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out var result);
+        bool changed = RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(input, out string result);
 
         Assert.IsFalse(changed);
         Assert.AreEqual(input, result);
@@ -117,10 +117,10 @@ public class CleanClass
     [TestMethod]
     public void TryRemoveXmlDocumentation_HandlesNullOrWhitespace()
     {
-        Assert.IsFalse(RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(null, out var r1));
+        Assert.IsFalse(RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation(null, out string r1));
         Assert.IsNull(r1);
 
-        Assert.IsFalse(RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation("   ", out var r2));
+        Assert.IsFalse(RemoveXmlDocumentationLogic.TryRemoveXmlDocumentation("   ", out string r2));
         Assert.AreEqual("   ", r2);
     }
 }

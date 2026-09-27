@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System.IO;
 using System.Windows;
 using Task = System.Threading.Tasks.Task;
@@ -12,14 +12,12 @@ namespace CodeJanitor.Integration.Commands;
 /// A command that exports the current cleanup settings to a repository-level .codejanitor policy
 /// file shared with the VS Code extension.
 /// </summary>
-
 internal sealed class ExportRepositorySettingsCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ExportRepositorySettingsCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal ExportRepositorySettingsCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorExportRepositorySettings)
     {
@@ -35,7 +33,6 @@ internal sealed class ExportRepositorySettingsCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new ExportRepositorySettingsCommand(package);
@@ -45,7 +42,6 @@ internal sealed class ExportRepositorySettingsCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -55,6 +51,7 @@ internal sealed class ExportRepositorySettingsCommand : BaseCommand
         if (string.IsNullOrEmpty(solutionFile))
         {
             Package.IDE.StatusBar.Text = "CodeJanitor: open a solution to export repository settings.";
+
             return;
         }
 

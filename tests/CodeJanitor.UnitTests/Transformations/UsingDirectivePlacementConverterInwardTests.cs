@@ -50,9 +50,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task FileLevelUsings_AreMovedIntoTheBlockScopedNamespace()
     {
-        var input = "using System.Text;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; StringBuilder b; }\r\n}\r\n";
+        string input = "using System.Text;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; StringBuilder b; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    using System.Text;\r\n    using Company.App.Services;\r\n\r\n    class C { Svc s; StringBuilder b; }\r\n}\r\n",
@@ -64,9 +64,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     public async Task NameThatWouldResolveRelativeToTheNamespace_IsGlobalQualified()
     {
         // Inside Company.App, 'Shared' means Company.App.Shared; the file-level directive imports the global Shared.
-        var input = "using Shared;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Util u; }\r\n}\r\n";
+        string input = "using Shared;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Util u; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual("namespace Company.App\r\n{\r\n    using global::Shared;\r\n\r\n    class C { Util u; }\r\n}\r\n", result);
     }
@@ -76,11 +76,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     public async Task AliasAndUsingStaticTargets_AreGlobalQualifiedOnlyWhenTheyWouldRebind()
     {
         // Inside Company.App, 'Models' means Company.App.Models; System.String means the same everywhere.
-        var input =
+        string input =
             "using X = Models.Bar;\r\nusing static Models.Helpers;\r\nusing Str = System.String;\r\n\r\n" +
             "namespace Company.App\r\n{\r\n    class C { X x; Str s; int y = Thrice(1); }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    using X = global::Models.Bar;\r\n    using static global::Models.Helpers;\r\n    using Str = System.String;\r\n\r\n" +
@@ -94,11 +94,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // 'using System.Text;' is written the same inside; 'using Company.App.Services;' imports what 'using Services;'
         // already imports there.
-        var input =
+        string input =
             "using System;\r\nusing System.Text;\r\nusing Company.App.Services;\r\n\r\n" +
             "namespace Company.App\r\n{\r\n    using System.Text;\r\n    using Services;\r\n\r\n    class C { Svc s; StringBuilder b; Action a; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    using System;\r\n    using System.Text;\r\n    using Services;\r\n\r\n    class C { Svc s; StringBuilder b; Action a; }\r\n}\r\n",
@@ -109,9 +109,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task CommentOfADroppedDuplicate_GoesToTheDirectiveInTheNamespace()
     {
-        var input = "using System; // for Action\r\n\r\nnamespace Company.App\r\n{\r\n    using System;\r\n    class C { Action a; }\r\n}\r\n";
+        string input = "using System; // for Action\r\n\r\nnamespace Company.App\r\n{\r\n    using System;\r\n    class C { Action a; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual("namespace Company.App\r\n{\r\n    using System; // for Action\r\n    class C { Action a; }\r\n}\r\n", result);
     }
@@ -120,9 +120,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task FileHeaderAndCrLf_StayInPlace()
     {
-        var input = "// Copyright (c) 2026\r\n\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n";
+        string input = "// Copyright (c) 2026\r\n\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "// Copyright (c) 2026\r\n\r\nnamespace Company.App\r\n{\r\n    using Company.App.Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n",
@@ -133,9 +133,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task FileHeaderAndLf_StayInPlace()
     {
-        var input = "// header\n\nusing Company.App.Services;\n\nnamespace Company.App\n{\n    class C { Svc s; }\n}\n";
+        string input = "// header\n\nusing Company.App.Services;\n\nnamespace Company.App\n{\n    class C { Svc s; }\n}\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual("// header\n\nnamespace Company.App\n{\n    using Company.App.Services;\n\n    class C { Svc s; }\n}\n", result);
     }
@@ -144,9 +144,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task DocumentationCommentFileHeader_StaysAtTheTopOfTheFile()
     {
-        var input = "/// <copyright file=\"C.cs\">x</copyright>\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n";
+        string input = "/// <copyright file=\"C.cs\">x</copyright>\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "/// <copyright file=\"C.cs\">x</copyright>\r\nnamespace Company.App\r\n{\r\n    using Company.App.Services;\r\n\r\n    class C { Svc s; }\r\n}\r\n",
@@ -157,9 +157,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task DocumentationCommentInFrontOfTheNamespace_StaysInFrontOfIt()
     {
-        var input = "using System;\r\n\r\n/// <summary>App types</summary>\r\nnamespace Company.App\r\n{\r\n    class C { Action a; }\r\n}\r\n";
+        string input = "using System;\r\n\r\n/// <summary>App types</summary>\r\nnamespace Company.App\r\n{\r\n    class C { Action a; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual("/// <summary>App types</summary>\r\nnamespace Company.App\r\n{\r\n    using System;\r\n\r\n    class C { Action a; }\r\n}\r\n", result);
     }
@@ -168,11 +168,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task CommentsOfMovedUsings_AreKeptAndIndented()
     {
-        var input =
+        string input =
             "using System; // for Action\r\n// The services\r\nusing Company.App.Services;\r\n\r\n" +
             "namespace Company.App\r\n{\r\n    class C { Svc s; Action a; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    using System; // for Action\r\n    // The services\r\n    using Company.App.Services;\r\n\r\n    class C { Svc s; Action a; }\r\n}\r\n",
@@ -184,11 +184,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     public async Task CommentsOfAMovedUsingThatDuplicatesAnEarlierMovedUsing_GoToTheDirectiveThatStays()
     {
         // 'using global::Company.App.Services;' imports what 'using Company.App.Services;' already imports.
-        var input =
+        string input =
             "using System;\r\n// The services\r\nusing Company.App.Services;\r\n// The services again\r\nusing global::Company.App.Services; /* duplicate */\r\n\r\n" +
             "namespace Company.App\r\n{\r\n    class C { Svc s; Action a; }\r\n}\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    using System;\r\n    // The services\r\n    // The services again\r\n    using Company.App.Services; /* duplicate */\r\n\r\n" +
@@ -208,7 +208,7 @@ public sealed class UsingDirectivePlacementConverterInwardTests
         DisplayName = "two-space-indented using already in the namespace")]
     public async Task MovedUsings_TakeTheIndentationOfTheNamespaceBody(string input, string expected)
     {
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -217,9 +217,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task FileLevelUsings_AreMovedBelowTheFileScopedNamespace_WithoutIndentation()
     {
-        var input = "using Shared;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App;\r\n\r\nclass C { Svc s; Util u; }\r\n";
+        string input = "using Shared;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App;\r\n\r\nclass C { Svc s; Util u; }\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual("namespace Company.App;\r\n\r\nusing global::Shared;\r\nusing Company.App.Services;\r\n\r\nclass C { Svc s; Util u; }\r\n", result);
     }
@@ -228,9 +228,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task FileLevelUsings_JoinTheUsingsOfTheFileScopedNamespace()
     {
-        var input = "using System;\r\n\r\nnamespace Company.App;\r\n\r\nusing Services;\r\n\r\nclass C { Svc s; Action a; }\r\n";
+        string input = "using System;\r\n\r\nnamespace Company.App;\r\n\r\nusing Services;\r\n\r\nclass C { Svc s; Action a; }\r\n";
 
-        var result = await AssertMovedAndCompilesAsync(input);
+        string result = await AssertMovedAndCompilesAsync(input);
 
         Assert.AreEqual("namespace Company.App;\r\n\r\nusing System;\r\nusing Services;\r\n\r\nclass C { Svc s; Action a; }\r\n", result);
     }
@@ -239,11 +239,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task GlobalUsingsAndExternAliases_StayAtFileLevel()
     {
-        var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
-        var input = "extern alias V1;\r\nglobal using System;\r\nusing V1::Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Thing t; Action a; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library);
+        MetadataReference aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
+        string input = "extern alias V1;\r\nglobal using System;\r\nusing V1::Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Thing t; Action a; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library);
 
-        var result = await AssertMovedAndCompilesAsync(document);
+        string result = await AssertMovedAndCompilesAsync(document);
 
         Assert.AreEqual(
             "extern alias V1;\r\nglobal using System;\r\n\r\nnamespace Company.App\r\n{\r\n    using V1::Ext;\r\n\r\n    class C { Thing t; Action a; }\r\n}\r\n",
@@ -256,11 +256,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // V1::Ext (of the aliased assembly) and Ext (of the project) read the same but are different namespaces, so the
         // moved directive does not import what 'using Ext;' already imports.
-        var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
-        var input = "extern alias V1;\r\nusing V1::Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    using Ext;\r\n\r\n    class C { Thing t; Other o; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library, "namespace Ext { public class Other { } }\r\n");
+        MetadataReference aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
+        string input = "extern alias V1;\r\nusing V1::Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    using Ext;\r\n\r\n    class C { Thing t; Other o; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library, "namespace Ext { public class Other { } }\r\n");
 
-        var result = await AssertMovedAndCompilesAsync(document);
+        string result = await AssertMovedAndCompilesAsync(document);
 
         Assert.AreEqual(
             "extern alias V1;\r\n\r\nnamespace Company.App\r\n{\r\n    using V1::Ext;\r\n    using Ext;\r\n\r\n    class C { Thing t; Other o; }\r\n}\r\n",
@@ -271,11 +271,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task ExternAliasInsideTheNamespace_StaysInFrontOfTheMovedUsings()
     {
-        var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
-        var input = "using System;\r\n\r\nnamespace Company.App\r\n{\r\n    extern alias V1;\r\n    using V1::Ext;\r\n\r\n    class C { Thing t; Action a; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library);
+        MetadataReference aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
+        string input = "using System;\r\n\r\nnamespace Company.App\r\n{\r\n    extern alias V1;\r\n    using V1::Ext;\r\n\r\n    class C { Thing t; Action a; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library);
 
-        var result = await AssertMovedAndCompilesAsync(document);
+        string result = await AssertMovedAndCompilesAsync(document);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    extern alias V1;\r\n    using System;\r\n    using V1::Ext;\r\n\r\n    class C { Thing t; Action a; }\r\n}\r\n",
@@ -288,10 +288,10 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // Inside Company.App, 'Shared' means Company.App.Shared, so the target must be qualified; before C# 12 an alias
         // target cannot be written in tuple syntax.
-        var input = "using P = System.ValueTuple<Shared.Util, int>;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { P p; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.CSharp7_3, new MetadataReference[0], Library);
+        string input = "using P = System.ValueTuple<Shared.Util, int>;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { P p; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.CSharp7_3, new MetadataReference[0], Library);
 
-        var result = await AssertMovedAndCompilesAsync(document);
+        string result = await AssertMovedAndCompilesAsync(document);
 
         Assert.AreEqual(
             "namespace Company.App\r\n{\r\n    using P = global::System.ValueTuple<global::Shared.Util, global::System.Int32>;\r\n\r\n    class C { P p; }\r\n}\r\n",
@@ -302,9 +302,9 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [TestCategory("Transformations UnitTests")]
     public async Task OnlyGlobalUsingsAtFileLevel_ReportsNothingToMove()
     {
-        var input = "global using System;\r\n\r\n" + AppNamespace;
+        string input = "global using System;\r\n\r\n" + AppNamespace;
 
-        var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+        UsingDirectivePlacementResult result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
 
         Assert.AreEqual(UsingDirectivePlacementStatus.NothingToMove, result.Status);
         Assert.IsNull(result.Text);
@@ -316,27 +316,27 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [DataRow("using System;\r\n\r\nclass C { Action a; }\r\n", "no namespace", DisplayName = "no namespace")]
     public async Task FileWithoutASingleNamespace_IsSkippedWithReason(string input, string expectedReason)
     {
-        var document = CompilingTestProject.CreateDocument(input, Library);
+        Document document = CompilingTestProject.CreateDocument(input, Library);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, expectedReason);
+        Assert.Contains(expectedReason, result.Reason);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     public async Task UnresolvableUsing_IsSkippedWithReason()
     {
-        var input = "using Missing;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n";
+        string input = "using Missing;\r\nusing Company.App.Services;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; }\r\n}\r\n";
 
-        var result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+        UsingDirectivePlacementResult result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "'using Missing;' cannot be resolved");
+        Assert.Contains("'using Missing;' cannot be resolved", result.Reason);
     }
 
     [TestMethod]
@@ -345,15 +345,15 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // At file level, 'using Company.App.Models;' is searched after the enclosing namespace Company, so Foo means
         // Company.Foo. Inside Company.App it is searched first, so Foo would silently become Company.App.Models.Foo.
-        var input = "using Company.App.Models;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Foo f; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, Library, EnclosingFoo);
+        string input = "using Company.App.Models;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Foo f; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, Library, EnclosingFoo);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "Company.Foo -> Company.App.Models.Foo");
+        Assert.Contains("Company.Foo -> Company.App.Models.Foo", result.Reason);
     }
 
     [TestMethod]
@@ -363,16 +363,16 @@ public sealed class UsingDirectivePlacementConverterInwardTests
         // At file level, 'using V1::Ext;' is searched after the enclosing namespace Ext of the project, so Thing means the
         // project's Ext.Thing. Inside Ext.Inner it is searched first, so Thing would silently become the Ext.Thing of the
         // aliased assembly, which reads the same.
-        var aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
-        var input = "extern alias V1;\r\nusing V1::Ext;\r\n\r\nnamespace Ext.Inner\r\n{\r\n    class C { Thing t; }\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library, "namespace Ext { public class Thing { } }\r\n");
+        MetadataReference aliased = CompilingTestProject.CreateAliasedReference("Ext", "namespace Ext { public class Thing { } }", "V1");
+        string input = "extern alias V1;\r\nusing V1::Ext;\r\n\r\nnamespace Ext.Inner\r\n{\r\n    class C { Thing t; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, new[] { aliased }, Library, "namespace Ext { public class Thing { } }\r\n");
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "Ext.Thing from TestProject -> Ext.Thing from Ext");
+        Assert.Contains("Ext.Thing from TestProject -> Ext.Thing from Ext", result.Reason);
     }
 
     [TestMethod]
@@ -384,16 +384,16 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // At file level, 'using Ext;' is searched after the enclosing namespace Company; inside Company.App it is
         // searched before it, so the same-named extension member of Ext.E would silently win over that of Company.E2.
-        var input = "using Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { " + usage + " }\r\n}\r\n";
-        var document = CreateExtensionMemberDocument(input, extensionMember);
+        string input = "using Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { " + usage + " }\r\n}\r\n";
+        Document document = CreateExtensionMemberDocument(input, extensionMember);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "Company.E2." + memberName + "(");
-        StringAssert.Contains(result.Reason, " -> Ext.E." + memberName + "(");
+        Assert.Contains("Company.E2." + memberName + "(", result.Reason);
+        Assert.Contains(" -> Ext.E." + memberName + "(", result.Reason);
     }
 
     [TestMethod]
@@ -407,15 +407,15 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // The semantic model does not expose which extension member these implicit calls bind to, so a move that
         // changes where the member is looked up cannot be verified.
-        var input = "using Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { " + usage + " }\r\n}\r\n";
-        var document = CreateExtensionMemberDocument(input, extensionMember);
+        string input = "using Ext;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { " + usage + " }\r\n}\r\n";
+        Document document = CreateExtensionMemberDocument(input, extensionMember);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "'using Ext;' imports an extension method '" + memberName + "'");
+        Assert.Contains("'using Ext;' imports an extension method '" + memberName + "'", result.Reason);
     }
 
     [TestMethod]
@@ -423,15 +423,15 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     public async Task MoveThatIntroducesCompileErrors_IsSkippedWithReason()
     {
         // The type outside the namespace would lose the import.
-        var input = "using System;\r\n\r\nclass Top { Action a; }\r\n\r\n" + AppNamespace;
-        var document = CompilingTestProject.CreateDocument(input, Library);
+        string input = "using System;\r\n\r\nclass Top { Action a; }\r\n\r\n" + AppNamespace;
+        Document document = CompilingTestProject.CreateDocument(input, Library);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "CS0246");
+        Assert.Contains("CS0246", result.Reason);
     }
 
     [TestMethod]
@@ -440,16 +440,16 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // The active configuration (DEBUG undefined) is safe, but in a DEBUG build the move would silently rebind Foo in
         // class D from Company.Foo to Company.App.Models.Foo.
-        var input = "using Company.App.Models;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { }\r\n#if DEBUG\r\n    class D { Foo f; }\r\n#endif\r\n}\r\n";
-        var document = CompilingTestProject.CreateDocument(input, Library, EnclosingFoo);
+        string input = "using Company.App.Models;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { }\r\n#if DEBUG\r\n    class D { Foo f; }\r\n#endif\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, Library, EnclosingFoo);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.StartsWith(result.Reason, "with DEBUG defined: ");
-        StringAssert.Contains(result.Reason, "Company.Foo -> Company.App.Models.Foo");
+        Assert.StartsWith("with DEBUG defined: ", result.Reason);
+        Assert.Contains("Company.Foo -> Company.App.Models.Foo", result.Reason);
     }
 
     [TestMethod]
@@ -458,11 +458,11 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     {
         // With DEBUG undefined the #if block is part of the file header, which stays at the top of the file; with DEBUG
         // defined its using directive would be left behind outside the namespace.
-        var input = "#if DEBUG\r\nusing System.Diagnostics;\r\n#endif\r\nusing System;\r\n\r\n" + AppNamespace;
-        var document = CompilingTestProject.CreateDocument(input, Library);
+        string input = "#if DEBUG\r\nusing System.Diagnostics;\r\n#endif\r\nusing System;\r\n\r\n" + AppNamespace;
+        Document document = CompilingTestProject.CreateDocument(input, Library);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
@@ -477,15 +477,15 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [DataRow("global using System.Text;\r\n#nullable enable\r\nusing System;\r\n\r\n" + AppNamespace, null, DisplayName = "#nullable in front of a using that does not start the file")]
     public async Task MoveAcrossPreprocessorDirectives_IsSkippedWithReason(string input, string preprocessorSymbol)
     {
-        var parseOptions = new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: preprocessorSymbol == null ? null : new[] { preprocessorSymbol });
-        var document = CompilingTestProject.CreateDocument(input, parseOptions, new MetadataReference[0], Library);
+        CSharpParseOptions parseOptions = new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: preprocessorSymbol is null ? null : new[] { preprocessorSymbol });
+        Document document = CompilingTestProject.CreateDocument(input, parseOptions, new MetadataReference[0], Library);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
         Assert.IsNull(result.Text);
-        StringAssert.Contains(result.Reason, "interleaved with preprocessor directives");
+        Assert.Contains("interleaved with preprocessor directives", result.Reason);
     }
 
     [TestMethod]
@@ -508,18 +508,18 @@ public sealed class UsingDirectivePlacementConverterInwardTests
         Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsOutsideNamespace(source));
     }
 
-    private static Task<UsingDirectivePlacementResult> MoveAsync(Microsoft.CodeAnalysis.Document document) =>
-        new UsingDirectivePlacementConverter().MoveUsingsInsideAsync(document, CancellationToken.None);
+    private static Task<UsingDirectivePlacementResult> MoveAsync(Microsoft.CodeAnalysis.Document document)
+        => new UsingDirectivePlacementConverter().MoveUsingsInsideAsync(document, CancellationToken.None);
 
-    private static Task<string> AssertMovedAndCompilesAsync(string input) =>
-        AssertMovedAndCompilesAsync(CompilingTestProject.CreateDocument(input, Library));
+    private static Task<string> AssertMovedAndCompilesAsync(string input)
+        => AssertMovedAndCompilesAsync(CompilingTestProject.CreateDocument(input, Library));
 
     private static async Task<string> AssertMovedAndCompilesAsync(Microsoft.CodeAnalysis.Document document)
     {
-        var input = (await document.GetTextAsync()).ToString();
+        string input = (await document.GetTextAsync()).ToString();
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, input), "The input must compile.");
 
-        var result = await MoveAsync(document);
+        UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         AssertNoErrors(await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), "The moved output must compile:" + Environment.NewLine + result.Text);
@@ -531,14 +531,14 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     /// Creates <paramref name="input" /> in a project where <c>Ext.E</c> and <c>Company.E2</c> both declare
     /// <paramref name="extensionMember" />.
     /// </summary>
-    private static Microsoft.CodeAnalysis.Document CreateExtensionMemberDocument(string input, string extensionMember) =>
-        CompilingTestProject.CreateDocument(
+    private static Microsoft.CodeAnalysis.Document CreateExtensionMemberDocument(string input, string extensionMember)
+        => CompilingTestProject.CreateDocument(
             input,
             Library,
             ExtensionReceivers,
             "namespace Ext { using Company; public static class E { " + extensionMember + " } }\r\n",
             "namespace Company { public static class E2 { " + extensionMember + " } }\r\n");
 
-    private static void AssertNoErrors(IReadOnlyList<string> errors, string message) =>
-        Assert.AreEqual(0, errors.Count, message + Environment.NewLine + string.Join(Environment.NewLine, errors));
+    private static void AssertNoErrors(IReadOnlyList<string> errors, string message)
+        => Assert.IsEmpty(errors, message + Environment.NewLine + string.Join(Environment.NewLine, errors));
 }

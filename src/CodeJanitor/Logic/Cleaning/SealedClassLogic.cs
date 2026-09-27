@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -18,7 +18,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// safety is enforced for those batches. Outside a batch (e.g. cleanup-on-save of a single
 /// document), only in-file safety checks apply, to avoid a full-solution rescan on every save.
 /// </remarks>
-
 internal sealed class SealedClassLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -34,7 +33,6 @@ internal sealed class SealedClassLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SealedClassLogic" /> class.</returns>
-
     internal static SealedClassLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new SealedClassLogic(package));
@@ -44,7 +42,6 @@ internal sealed class SealedClassLogic
     /// Initializes a new instance of the <see cref="SealedClassLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private SealedClassLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -57,7 +54,6 @@ internal sealed class SealedClassLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void SealWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

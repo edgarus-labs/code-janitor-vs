@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Logic.Transformations;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -7,7 +7,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// Unit tests for <see cref="ReturnThrowBlankLinePaddingConverter" />.
 /// Pure transformation tests (no Visual Studio / EnvDTE required).
 /// </summary>
-
 [TestClass]
 public sealed class ReturnThrowBlankLinePaddingConverterTests
 {
@@ -23,9 +22,9 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [TestCategory("Transformations UnitTests")]
     public void InsertsBlankLineBeforeReturn_WhenPrecededByOtherStatements()
     {
-        var input =
+        string input =
             "class C\r\n{\r\n    int M()\r\n    {\r\n        int x = 1;\r\n        return x;\r\n    }\r\n}\r\n";
-        var expected =
+        string expected =
             "class C\r\n{\r\n    int M()\r\n    {\r\n        int x = 1;\r\n\r\n        return x;\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -35,9 +34,9 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [TestCategory("Transformations UnitTests")]
     public void InsertsBlankLineBeforeThrow_WhenPrecededByOtherStatements()
     {
-        var input =
+        string input =
             "class C\r\n{\r\n    void M()\r\n    {\r\n        int x = 1;\r\n        throw new System.Exception();\r\n    }\r\n}\r\n";
-        var expected =
+        string expected =
             "class C\r\n{\r\n    void M()\r\n    {\r\n        int x = 1;\r\n\r\n        throw new System.Exception();\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -47,7 +46,7 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [TestCategory("Transformations UnitTests")]
     public void DoesNotInsertBlankLine_WhenReturnIsTheOnlyStatement()
     {
-        var input = "class C\r\n{\r\n    int M()\r\n    {\r\n        return 1;\r\n    }\r\n}\r\n";
+        string input = "class C\r\n{\r\n    int M()\r\n    {\r\n        return 1;\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
@@ -58,7 +57,7 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     {
         // Unusual (and would normally trigger CS0162), but the return is still the first
         // statement in its block, so there is nothing preceding it to separate it from.
-        var input = "class C\r\n{\r\n    int M()\r\n    {\r\n        return 1;\r\n#pragma warning disable CS0162\r\n        int x = 2;\r\n#pragma warning restore CS0162\r\n    }\r\n}\r\n";
+        string input = "class C\r\n{\r\n    int M()\r\n    {\r\n        return 1;\r\n#pragma warning disable CS0162\r\n        int x = 2;\r\n#pragma warning restore CS0162\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
@@ -67,7 +66,7 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [TestCategory("Transformations UnitTests")]
     public void IsIdempotent_WhenBlankLineAlreadyPresent()
     {
-        var input =
+        string input =
             "class C\r\n{\r\n    int M()\r\n    {\r\n        int x = 1;\r\n\r\n        return x;\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.Apply(input));
@@ -77,9 +76,9 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [TestCategory("Transformations UnitTests")]
     public void InsertsBlankLineBeforeReturn_InsideIfBlock()
     {
-        var input =
+        string input =
             "class C\r\n{\r\n    int M(bool b)\r\n    {\r\n        if (b)\r\n        {\r\n            int y = 1;\r\n            return y;\r\n        }\r\n        return 0;\r\n    }\r\n}\r\n";
-        var expected =
+        string expected =
             "class C\r\n{\r\n    int M(bool b)\r\n    {\r\n        if (b)\r\n        {\r\n            int y = 1;\r\n\r\n            return y;\r\n        }\r\n\r\n        return 0;\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -89,9 +88,9 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [TestCategory("Transformations UnitTests")]
     public void HandlesMultipleCandidatesInTheSameFile()
     {
-        var input =
+        string input =
             "class C\r\n{\r\n    int M1()\r\n    {\r\n        int x = 1;\r\n        return x;\r\n    }\r\n\r\n    int M2()\r\n    {\r\n        int y = 2;\r\n        return y;\r\n    }\r\n}\r\n";
-        var expected =
+        string expected =
             "class C\r\n{\r\n    int M1()\r\n    {\r\n        int x = 1;\r\n\r\n        return x;\r\n    }\r\n\r\n    int M2()\r\n    {\r\n        int y = 2;\r\n\r\n        return y;\r\n    }\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -117,11 +116,11 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     {
         Assert.AreEqual("Blank Line Before Return/Throw", _converter.Name);
 
-        var input = "class C { void M(bool b) { if (b) return; } }";
+        string input = "class C { void M(bool b) { if (b) return; } }";
         Assert.AreEqual(input, _converter.Apply(input));
 
-        var unixInput = "class C\n{\n    int M()\n    {\n        int x = 1;\n        return x;\n    }\n}\n";
-        var expectedUnix = "class C\n{\n    int M()\n    {\n        int x = 1;\n\n        return x;\n    }\n}\n";
+        string unixInput = "class C\n{\n    int M()\n    {\n        int x = 1;\n        return x;\n    }\n}\n";
+        string expectedUnix = "class C\n{\n    int M()\n    {\n        int x = 1;\n\n        return x;\n    }\n}\n";
         Assert.AreEqual(expectedUnix, _converter.Apply(unixInput));
     }
 }

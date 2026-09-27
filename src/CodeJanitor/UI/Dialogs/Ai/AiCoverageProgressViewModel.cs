@@ -1,5 +1,4 @@
 using CodeJanitor.Logic.Ai;
-using CodeJanitor.UI;
 using System;
 using System.Threading;
 

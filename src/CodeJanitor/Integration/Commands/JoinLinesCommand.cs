@@ -1,8 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
-using System.Threading.Tasks;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -10,7 +9,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for joining lines together.
 /// </summary>
-
 internal sealed class JoinLinesCommand : BaseCommand
 {
     private readonly UndoTransactionHelper _undoTransactionHelper;
@@ -19,7 +17,6 @@ internal sealed class JoinLinesCommand : BaseCommand
     /// Initializes a new instance of the <see cref="JoinLinesCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal JoinLinesCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorJoinLines)
     {
@@ -41,7 +38,6 @@ internal sealed class JoinLinesCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new JoinLinesCommand(package);
@@ -51,7 +47,6 @@ internal sealed class JoinLinesCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -61,7 +56,6 @@ internal sealed class JoinLinesCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -82,7 +76,6 @@ internal sealed class JoinLinesCommand : BaseCommand
     /// Joins the text within the specified text selection.
     /// </summary>
     /// <param name="textSelection">The text selection.</param>
-
     private void JoinText(TextSelection textSelection)
     {
         // If the selection has no length, try to pick up the next line.

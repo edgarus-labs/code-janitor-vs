@@ -3,7 +3,6 @@ namespace CodeJanitor.UI.Enumerations;
 /// <summary>
 /// A user prompt enumeration.
 /// </summary>
-
 public enum AskYesNo
 {
     Ask = 0,

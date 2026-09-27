@@ -7,7 +7,6 @@ namespace CodeJanitor.Model.CodeTree;
 /// <summary>
 /// A helper class for performing code tree building in an asynchronous context.
 /// </summary>
-
 internal sealed class CodeTreeBuilderAsync
 {
     private readonly BackgroundWorker _bw;
@@ -18,7 +17,6 @@ internal sealed class CodeTreeBuilderAsync
     /// Initializes a new instance of the <see cref="CodeTreeBuilderAsync" /> class.
     /// </summary>
     /// <param name="callback">The callback for results.</param>
-
     internal CodeTreeBuilderAsync(Action<SnapshotCodeItems> callback)
     {
         _bw = new BackgroundWorker { WorkerSupportsCancellation = true };
@@ -32,7 +30,6 @@ internal sealed class CodeTreeBuilderAsync
     /// Builds a code tree asynchronously from the specified request.
     /// </summary>
     /// <param name="request">The request.</param>
-
     internal void RetrieveCodeTreeAsync(CodeTreeRequest request)
     {
         if (_bw.IsBusy)
@@ -54,7 +51,6 @@ internal sealed class CodeTreeBuilderAsync
     /// <param name="e">
     /// The <see cref="System.ComponentModel.DoWorkEventArgs" /> instance containing the event data.
     /// </param>
-
     private static void OnDoWork(object sender, DoWorkEventArgs e)
     {
         if (!(e.Argument is CodeTreeRequest request) || request.RawCodeItems is null)
@@ -78,7 +74,6 @@ internal sealed class CodeTreeBuilderAsync
     /// The <see cref="System.ComponentModel.RunWorkerCompletedEventArgs" /> instance containing
     /// the event data.
     /// </param>
-
     private void OnRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
         if (_pendingRequest is not null)

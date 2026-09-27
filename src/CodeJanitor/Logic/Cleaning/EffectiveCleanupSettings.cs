@@ -8,69 +8,6 @@ using System.Linq;
 namespace CodeJanitor.Logic.Cleaning;
 
 /// <summary>
-/// The namespace declaration style the cleanup enforces.
-/// </summary>
-internal enum NamespaceDeclarationPreference
-{
-    /// <summary>
-    /// Namespace declarations are left as they are.
-    /// </summary>
-    Unchanged,
-
-    /// <summary>
-    /// Block-scoped namespaces are converted to file-scoped namespaces.
-    /// </summary>
-    FileScoped,
-
-    /// <summary>
-    /// File-scoped namespaces are converted to block-scoped namespaces.
-    /// </summary>
-    BlockScoped,
-}
-
-/// <summary>
-/// The using directive placement the cleanup enforces.
-/// </summary>
-internal enum UsingDirectivePlacementPreference
-{
-    /// <summary>
-    /// Using directives are left where they are.
-    /// </summary>
-    Unchanged,
-
-    /// <summary>
-    /// Using directives are moved outside the namespace.
-    /// </summary>
-    OutsideNamespace,
-
-    /// <summary>
-    /// Using directives are moved inside the namespace.
-    /// </summary>
-    InsideNamespace,
-}
-
-/// <summary>
-/// The leading indentation style the cleanup enforces.
-/// </summary>
-internal enum IndentationPreference
-{
-    /// <summary>
-    /// Indentation is left as it is.
-    /// </summary>
-    Unchanged,
-
-    /// <summary>
-    /// Tab indentation is converted to spaces.
-    /// </summary>
-    Spaces,
-
-    /// <summary>
-    /// Space indentation is converted to tabs.
-    /// </summary>
-    Tabs,
-}
-
-/// <summary>
 /// Resolves the cleanup settings that apply to one file for both the editor and the closed-file cleanup:
 /// a setting defined by .editorconfig wins, otherwise the repository policy (.codejanitor) wins, otherwise the
 /// user's Visual Studio setting applies. An .editorconfig option whose severity suffix is <c>:none</c> is ignored,
@@ -112,7 +49,6 @@ internal sealed class EffectiveCleanupSettings
     /// <param name="filePath">The source file path, used for the <c>{fileName}</c> header placeholder.</param>
     /// <param name="editorConfigOptions">The .editorconfig options that apply to the file.</param>
     /// <param name="repositoryOverrides">The repository policy that applies to the file.</param>
-
     private EffectiveCleanupSettings(
         string filePath,
         IReadOnlyDictionary<string, string> editorConfigOptions,
@@ -200,7 +136,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="filePath">The source file path.</param>
     /// <returns>The effective settings for the file.</returns>
-
     internal static EffectiveCleanupSettings For(string filePath)
     {
         return new EffectiveCleanupSettings(
@@ -214,7 +149,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_RemoveEndOfLineWhitespace</c>.</param>
     /// <returns>The effective value.</returns>
-
     internal bool GetBoolean(string settingName)
     {
         return _editorConfigValues.TryGetValue(settingName, out var value) && value is bool boolean
@@ -227,7 +161,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_UpdateFileHeaderCSharp</c>.</param>
     /// <returns>The effective value.</returns>
-
     internal string GetString(string settingName)
     {
         return _editorConfigValues.TryGetValue(settingName, out var value) && value is string text
@@ -240,7 +173,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name.</param>
     /// <returns>The effective value.</returns>
-
     internal int GetInt32(string settingName)
     {
         return _repositoryOverrides.TryGetInt32(settingName, (int)Settings.Default[settingName]);
@@ -249,7 +181,6 @@ internal sealed class EffectiveCleanupSettings
     /// <summary>
     /// Records the boolean settings defined by .editorconfig options.
     /// </summary>
-
     private void ApplyEditorConfigBooleans()
     {
         ApplyBoolean("trim_trailing_whitespace", ParseBoolean, "Cleaning_RemoveEndOfLineWhitespace");
@@ -272,7 +203,6 @@ internal sealed class EffectiveCleanupSettings
     /// <param name="key">The .editorconfig option name.</param>
     /// <param name="parseValue">Maps the option value to a setting value, or null when the value is unrecognized.</param>
     /// <param name="settingNames">The controlled Visual Studio setting property names.</param>
-
     private void ApplyBoolean(string key, Func<string, bool?> parseValue, params string[] settingNames)
     {
         if (!TryReadOption(key, parseValue, out var value))
@@ -292,7 +222,6 @@ internal sealed class EffectiveCleanupSettings
     /// <param name="settingName">The Visual Studio setting property name.</param>
     /// <param name="key">The .editorconfig option name.</param>
     /// <param name="value">The setting value.</param>
-
     private void SetEditorConfigValue(string settingName, string key, object value)
     {
         _editorConfigValues[settingName] = value;
@@ -305,7 +234,6 @@ internal sealed class EffectiveCleanupSettings
     /// <c>unset</c> or an empty template defines an empty header. The option takes no severity suffix.
     /// </summary>
     /// <param name="filePath">The source file path.</param>
-
     private void ApplyEditorConfigFileHeader(string filePath)
     {
         if (!_editorConfigOptions.TryGetValue("file_header_template", out var template))
@@ -317,6 +245,7 @@ internal sealed class EffectiveCleanupSettings
         if (template.Length == 0 || string.Equals(template, "unset", StringComparison.OrdinalIgnoreCase))
         {
             SetEditorConfigValue(FileHeaderSetting, "file_header_template", string.Empty);
+
             return;
         }
 
@@ -333,12 +262,12 @@ internal sealed class EffectiveCleanupSettings
     /// conversion setting decides.
     /// </summary>
     /// <returns>The namespace declaration style.</returns>
-
     private NamespaceDeclarationPreference ResolveNamespaceDeclarations()
     {
         if (TryReadOption("csharp_style_namespace_declarations", ParseNamespaceDeclarations, out var preference))
         {
             SetEditorConfigValue(ConvertToFileScopedNamespaceSetting, "csharp_style_namespace_declarations", preference == NamespaceDeclarationPreference.FileScoped);
+
             return preference.Value;
         }
 
@@ -352,12 +281,12 @@ internal sealed class EffectiveCleanupSettings
     /// setting decides.
     /// </summary>
     /// <returns>The using directive placement.</returns>
-
     private UsingDirectivePlacementPreference ResolveUsingDirectivePlacement()
     {
         if (TryReadOption("csharp_using_directive_placement", ParseUsingDirectivePlacement, out var preference))
         {
             SetEditorConfigValue(MoveUsingsOutsideNamespaceSetting, "csharp_using_directive_placement", preference == UsingDirectivePlacementPreference.OutsideNamespace);
+
             return preference.Value;
         }
 
@@ -372,7 +301,6 @@ internal sealed class EffectiveCleanupSettings
     /// otherwise the repository policy decides.
     /// </summary>
     /// <returns>True when using directives are organized.</returns>
-
     private bool ResolveOrganizeUsings()
     {
         var sortDefined = TryReadOption("dotnet_sort_system_directives_first", ParseBoolean, out var sortSystemFirst);
@@ -391,7 +319,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="key">The .editorconfig option name.</param>
     /// <returns>The value, or null when the option is undefined, not a positive integer or ignored.</returns>
-
     private int? ReadPositiveInteger(string key)
     {
         return TryReadOption(key, ParsePositiveInteger, out var value) ? value : null;
@@ -408,7 +335,6 @@ internal sealed class EffectiveCleanupSettings
     /// True when the option is defined with a recognized value and a severity other than <c>none</c>; otherwise false,
     /// so the option is ignored.
     /// </returns>
-
     private bool TryReadOption<T>(string key, Func<string, T?> parseValue, out T? value)
         where T : struct
     {
@@ -438,6 +364,7 @@ internal sealed class EffectiveCleanupSettings
         }
 
         value = parsed;
+
         return true;
     }
 
@@ -447,7 +374,6 @@ internal sealed class EffectiveCleanupSettings
     /// <param name="severity">The severity text.</param>
     /// <param name="enforced">False for <c>none</c> (the option is ignored); true for every other recognized severity.</param>
     /// <returns>True when the severity is recognized.</returns>
-
     private static bool TryParseSeverity(string severity, out bool enforced)
     {
         enforced = true;
@@ -474,7 +400,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The parsed value, or null when unrecognized.</returns>
-
     private static bool? ParseBoolean(string value)
     {
         return bool.TryParse(value, out var parsed) ? parsed : null;
@@ -485,7 +410,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The parsed value, or null when not a positive integer.</returns>
-
     private static int? ParsePositiveInteger(string value)
     {
         return int.TryParse(value, out var parsed) && parsed > 0 ? parsed : null;
@@ -496,7 +420,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>True for <c>tab</c>, or null otherwise.</returns>
-
     private static bool? ParseTabKeyword(string value)
     {
         return string.Equals(value, "tab", StringComparison.OrdinalIgnoreCase) ? true : null;
@@ -507,7 +430,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>True when collection expressions are preferred, false when not, or null when unrecognized.</returns>
-
     private static bool? ParseCollectionExpressionPreference(string value)
     {
         switch (value.ToLowerInvariant())
@@ -531,7 +453,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>True when explicit modifiers are required, false when not, or null when unrecognized.</returns>
-
     private static bool? ParseAccessibilityModifiersPreference(string value)
     {
         switch (value.ToLowerInvariant())
@@ -554,7 +475,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The namespace declaration style, or null when unrecognized.</returns>
-
     private static NamespaceDeclarationPreference? ParseNamespaceDeclarations(string value)
     {
         switch (value.ToLowerInvariant())
@@ -575,7 +495,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The using directive placement, or null when unrecognized.</returns>
-
     private static UsingDirectivePlacementPreference? ParseUsingDirectivePlacement(string value)
     {
         switch (value.ToLowerInvariant())
@@ -596,7 +515,6 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The indentation style, or null when unrecognized.</returns>
-
     private static IndentationPreference? ParseIndentStyle(string value)
     {
         switch (value.ToLowerInvariant())

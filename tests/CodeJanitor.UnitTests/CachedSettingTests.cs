@@ -1,6 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests;
 
@@ -40,7 +40,7 @@ public sealed class CachedSettingTests
     [TestMethod]
     public void CachedSettingCanLookupAndParse()
     {
-        var memberTypeSetting = _cachedSetting.Value;
+        MemberTypeSetting memberTypeSetting = _cachedSetting.Value;
 
         Assert.IsNotNull(memberTypeSetting);
         Assert.AreEqual(1, _lookupCount);
@@ -50,13 +50,13 @@ public sealed class CachedSettingTests
     [TestMethod]
     public void CachedSettingUsesCacheOnSecondLookup()
     {
-        var memberTypeSetting = _cachedSetting.Value;
+        MemberTypeSetting memberTypeSetting = _cachedSetting.Value;
 
         Assert.IsNotNull(memberTypeSetting);
         Assert.AreEqual(1, _lookupCount);
         Assert.AreEqual(1, _parseCount);
 
-        var memberTypeSetting2 = _cachedSetting.Value;
+        MemberTypeSetting memberTypeSetting2 = _cachedSetting.Value;
 
         Assert.IsNotNull(memberTypeSetting2);
         Assert.AreEqual(2, _lookupCount);
@@ -66,7 +66,7 @@ public sealed class CachedSettingTests
     [TestMethod]
     public void CachedSettingReParsesOnChange()
     {
-        var memberTypeSetting = _cachedSetting.Value;
+        MemberTypeSetting memberTypeSetting = _cachedSetting.Value;
 
         Assert.IsNotNull(memberTypeSetting);
         Assert.AreEqual(1, _lookupCount);
@@ -75,7 +75,7 @@ public sealed class CachedSettingTests
         memberTypeSetting.EffectiveName = "Member Variables";
         Settings.Default.Reorganizing_MemberTypeFields = (string)memberTypeSetting;
 
-        var memberTypeSetting2 = _cachedSetting.Value;
+        MemberTypeSetting memberTypeSetting2 = _cachedSetting.Value;
 
         Assert.IsNotNull(memberTypeSetting2);
         Assert.AreEqual(2, _lookupCount);

@@ -1,8 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
-using System.Threading.Tasks;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;
@@ -10,7 +9,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for collapsing nodes in the solution explorer tool window.
 /// </summary>
-
 internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
 {
     /// <summary>
@@ -22,7 +20,6 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
     /// Initializes a new instance of the <see cref="CollapseAllSolutionExplorerCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CollapseAllSolutionExplorerCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCollapseAllSolutionExplorer)
     {
@@ -43,7 +40,6 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CollapseAllSolutionExplorerCommand(package);
@@ -53,7 +49,6 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
     /// <summary>
     /// Called when a solution is opened.
     /// </summary>
-
     internal void OnSolutionOpened()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -73,7 +68,6 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -88,7 +82,6 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

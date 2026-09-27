@@ -1,8 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -38,12 +37,9 @@ public sealed class OutVarInliningConverter : ISourceTransformation
     {
         /// <summary>
         /// Overrides `VisitBlock` to merge a preceding uninitialized local variable declaration with a subsequent matching `out` argument into a single inline `out var` declaration.
-
         /// </summary>
-
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitBlock(BlockSyntax node)
         {
             var visitedBlock = (BlockSyntax)base.VisitBlock(node);

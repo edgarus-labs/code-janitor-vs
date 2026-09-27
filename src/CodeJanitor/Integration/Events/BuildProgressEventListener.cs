@@ -1,6 +1,6 @@
+using CodeJanitor.Helpers;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
 using System;
 using System.Reflection;
 using Task = System.Threading.Tasks.Task;
@@ -10,14 +10,12 @@ namespace CodeJanitor.Integration.Events;
 /// <summary>
 /// A class that encapsulates listening for build progress events.
 /// </summary>
-
 internal sealed class BuildProgressEventListener : BaseEventListener
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BuildProgressEventListener" /> class.
     /// </summary>
     /// <param name="package">The package hosting the event listener.</param>
-
     private BuildProgressEventListener(CodeJanitorPackage package)
         : base(package)
     {
@@ -28,25 +26,21 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// <summary>
     /// An event raised when a build has begun.
     /// </summary>
-
     internal event Action<vsBuildScope, vsBuildAction> BuildBegin;
 
     /// <summary>
     /// An event raised when a build is done.
     /// </summary>
-
     internal event Action<vsBuildScope, vsBuildAction> BuildDone;
 
     /// <summary>
     /// An event raised when an individual project build has begun.
     /// </summary>
-
     internal event Action<string, string, string, string> BuildProjConfigBegin;
 
     /// <summary>
     /// An event raised when an individual project build is done.
     /// </summary>
-
     internal event Action<string, string, string, string, bool> BuildProjConfigDone;
 
     /// <summary>
@@ -74,7 +68,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new BuildProgressEventListener(package);
@@ -84,7 +77,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// <summary>
     /// Registers event handlers with the IDE.
     /// </summary>
-
     protected override void RegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -125,7 +117,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// <summary>
     /// Unregisters event handlers with the IDE.
     /// </summary>
-
     protected override void UnRegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -167,7 +158,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// <param name="eventInfo">The event info.</param>
     /// <param name="methodName">The method name.</param>
     /// <returns>A Delegate value produced by this method.</returns>
-
     private Delegate CreateHandler(EventInfo eventInfo, string methodName)
     {
         if (eventInfo?.EventHandlerType is null)
@@ -193,7 +183,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <param name="action">The action.</param>
-
     private void BuildEvents_OnBuildBegin(vsBuildScope scope, vsBuildAction action)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -211,7 +200,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <param name="action">The action.</param>
-
     private void BuildEvents_OnBuildDone(vsBuildScope scope, vsBuildAction action)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -231,7 +219,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// <param name="projectConfig">The project config.</param>
     /// <param name="platform">The platform.</param>
     /// <param name="solutionConfig">The solution config.</param>
-
     private void BuildEvents_OnBuildProjConfigBegin(string project, string projectConfig, string platform, string solutionConfig)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -252,7 +239,6 @@ internal sealed class BuildProgressEventListener : BaseEventListener
     /// <param name="platform">The platform.</param>
     /// <param name="solutionConfig">The solution config.</param>
     /// <param name="success">True if project build was successful, otherwise false.</param>
-
     private void BuildEvents_OnBuildProjConfigDone(string project, string projectConfig, string platform, string solutionConfig, bool success)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

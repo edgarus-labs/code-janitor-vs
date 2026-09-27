@@ -13,7 +13,6 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// A behavior for supporting list box drag and drop reordering, and optionally merging.
 /// </summary>
-
 public sealed class ListBoxReorderBehavior : Behavior<ListBox>
 {
     private ListBoxItem _dragCandidate;
@@ -22,7 +21,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <summary>
     /// Called after the behavior is attached to an AssociatedObject.
     /// </summary>
-
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -41,7 +39,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// Called when the behavior is being detached from its AssociatedObject, but before it has
     /// actually occurred.
     /// </summary>
-
     protected override void OnDetaching()
     {
         base.OnDetaching();
@@ -62,14 +59,12 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <summary>
     /// The dependency property definition for the CanMerge property.
     /// </summary>
-
     public static readonly DependencyProperty CanMergeProperty = DependencyProperty.Register(
         "CanMerge", typeof(bool), typeof(ListBoxReorderBehavior));
 
     /// <summary>
     /// Gets or sets the flag indicating if items can be merged.
     /// </summary>
-
     public bool CanMerge
     {
         get { return (bool)GetValue(CanMergeProperty); }
@@ -83,7 +78,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <param name="e">
     /// The <see cref="MouseButtonEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left)
@@ -98,7 +92,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The <see cref="MouseEventArgs" /> instance containing the event data.</param>
-
     private void OnPreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (_dragCandidate is null || !_dragStartPoint.HasValue) return;
@@ -127,7 +120,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <param name="e">
     /// The <see cref="MouseButtonEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnPreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
         _dragCandidate = null;
@@ -139,7 +131,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The <see cref="DragEventArgs" /> instance containing the event data.</param>
-
     private void OnDragEvent(object sender, DragEventArgs e)
     {
         var target = FindParentListBoxItem(e.OriginalSource);
@@ -188,7 +179,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The <see cref="DragEventArgs" /> instance containing the event data.</param>
-
     private void OnDragLeave(object sender, DragEventArgs e)
     {
         var target = FindParentListBoxItem(e.OriginalSource);
@@ -205,7 +195,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The <see cref="DragEventArgs" /> instance containing the event data.</param>
-
     private void OnDrop(object sender, DragEventArgs e)
     {
         if (!e.Data.GetDataPresent(typeof(object))) return;
@@ -256,7 +245,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// </summary>
     /// <param name="eventSource">The event source.</param>
     /// <returns>The parent ListBoxItem, otherwise null.</returns>
-
     private static ListBoxItem FindParentListBoxItem(object eventSource)
     {
         var source = eventSource as DependencyObject;
@@ -273,7 +261,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <param name="e">The <see cref="DragEventArgs" /> instance containing the event data.</param>
     /// <param name="target">The target.</param>
     /// <returns>The drop position.</returns>
-
     private DropPosition GetDropPostion(DragEventArgs e, ListBoxItem target)
     {
         var dropPoint = e.GetPosition(target);
@@ -299,7 +286,6 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <param name="sourceItem">The source item.</param>
     /// <param name="targetItem">The target item.</param>
     /// <param name="targetIndex">The target index.</param>
-
     private void MergeSourceIntoTarget(ObservableCollection<object> collection, object sourceItem, object targetItem, int targetIndex)
     {
         // Remove the source item from the collection.

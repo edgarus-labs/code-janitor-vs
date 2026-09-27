@@ -20,9 +20,9 @@ namespace CodeJanitor.UnitTests.Cleaning.Diagnostics;
 [TestClass]
 public sealed class DiagnosticCleanupEngineTests
 {
-    private static readonly CodeFixProviderCatalog s_catalog = new CodeFixProviderCatalog();
+    private static readonly CodeFixProviderCatalog Catalog = new CodeFixProviderCatalog();
 
-    private static readonly string[] s_useBraceOnSameLine =
+    private static readonly string[] UseBraceOnSameLine =
     {
         "end_of_line = lf",
         "csharp_new_line_before_open_brace = none",
@@ -33,9 +33,9 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_NamingRuleWithPrefix_RenamesPrivateFieldsAndTheirReferences()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
-        var documentId = workspace.AddDocument("Counter.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Counter.cs", Lines(
             "class Counter",
             "{",
             "    private int count;",
@@ -47,7 +47,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -64,8 +64,8 @@ public sealed class DiagnosticCleanupEngineTests
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.HasChanges);
         Assert.IsTrue(result.IsComplete);
-        Assert.AreEqual(0, result.Unresolved.Count);
-        var applied = result.AppliedFixes.Single();
+        Assert.IsEmpty(result.Unresolved);
+        AppliedDiagnosticFix applied = result.AppliedFixes.Single();
         Assert.AreEqual("IDE1006", applied.DiagnosticId);
         Assert.AreEqual(DiagnosticCleanupCategory.Naming, applied.Category);
         Assert.AreEqual(2, applied.Count);
@@ -75,7 +75,7 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_DifferentNamingStyle_UsesConfiguredPrefixCapitalizationAndModifiers()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(
             "dotnet_naming_rule.private_static_fields_rule.symbols = private_static_fields",
             "dotnet_naming_rule.private_static_fields_rule.style = s_prefix_camel",
@@ -85,7 +85,7 @@ public sealed class DiagnosticCleanupEngineTests
             "dotnet_naming_symbols.private_static_fields.required_modifiers = static",
             "dotnet_naming_style.s_prefix_camel.required_prefix = s_",
             "dotnet_naming_style.s_prefix_camel.capitalization = camel_case"));
-        var documentId = workspace.AddDocument("Registry.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Registry.cs", Lines(
             "class Registry",
             "{",
             "    private static int Instances;",
@@ -97,7 +97,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -119,9 +119,9 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_SymbolSpecificationAccessibility_LeavesUnmatchedPublicFieldUnchanged()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
-        var documentId = workspace.AddDocument("Account.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Account.cs", Lines(
             "class Account",
             "{",
             "    public int balance;",
@@ -133,7 +133,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -154,14 +154,14 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_RenameFix_UpdatesReferencesInOtherDocumentsButTargetsOnlyTheCleanedDocument()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
-        var cleanedId = workspace.AddDocument("Gauge.cs", Lines(
+        DocumentId cleanedId = workspace.AddDocument("Gauge.cs", Lines(
             "partial class Gauge",
             "{",
             "    private int level;",
             "}"));
-        var otherId = workspace.AddDocument("Gauge.Read.cs", Lines(
+        DocumentId otherId = workspace.AddDocument("Gauge.Read.cs", Lines(
             "partial class Gauge",
             "{",
             "    public int Read()",
@@ -180,7 +180,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), cleanedId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), cleanedId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -216,9 +216,9 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FormattingRuleEnabled_AppliesConfiguredBracePlacement()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
-        workspace.AddEditorConfig(string.Empty, EditorConfig(s_useBraceOnSameLine));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(UseBraceOnSameLine));
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    void Draw()",
@@ -226,7 +226,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
 
         Assert.AreEqual(
             Lines(
@@ -244,9 +244,9 @@ public sealed class DiagnosticCleanupEngineTests
     public async Task CleanupAsync_FixOnlyMovingCodeWithAnExistingCompilerError_IsApplied()
     {
         // The existing CS0246 moves to another line; the gate still matches it by its unchanged message.
-        using var workspace = new DiagnosticCleanupTestWorkspace();
-        workspace.AddEditorConfig(string.Empty, EditorConfig(s_useBraceOnSameLine));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(UseBraceOnSameLine));
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    void Draw()",
@@ -255,7 +255,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
 
         Assert.AreEqual(
             Lines(
@@ -272,9 +272,9 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ExplicitTypePreference_ReplacesVarWithExplicitTypes()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(VarPreference(false, "IDE0008", "warning")));
-        var documentId = workspace.AddDocument("Calculator.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Calculator.cs", Lines(
             "class Calculator",
             "{",
             "    int Compute()",
@@ -285,7 +285,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
 
         Assert.AreEqual(
             Lines(
@@ -306,9 +306,9 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_VarPreference_ReplacesExplicitTypesWithVar()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(VarPreference(true, "IDE0007", "warning")));
-        var documentId = workspace.AddDocument("Calculator.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Calculator.cs", Lines(
             "class Calculator",
             "{",
             "    int Compute()",
@@ -319,7 +319,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
 
         Assert.AreEqual(
             Lines(
@@ -342,8 +342,8 @@ public sealed class DiagnosticCleanupEngineTests
     [DataRow("suggestion", true)]
     [DataRow("warning", true)]
     [DataRow("error", true)]
-    public Task CleanupAsync_DotnetDiagnosticSeverity_DecidesWhetherCodeStyleRuleIsApplied(string severity, bool expectChange) =>
-        AssertExplicitTypeRuleOutcomeAsync(VarPreference(false, "IDE0008", severity), expectChange);
+    public Task CleanupAsync_DotnetDiagnosticSeverity_DecidesWhetherCodeStyleRuleIsApplied(string severity, bool expectChange)
+        => AssertExplicitTypeRuleOutcomeAsync(VarPreference(false, "IDE0008", severity), expectChange);
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -352,8 +352,8 @@ public sealed class DiagnosticCleanupEngineTests
     [DataRow("suggestion", true)]
     [DataRow("warning", true)]
     [DataRow("error", true)]
-    public Task CleanupAsync_OptionSeveritySuffix_DecidesWhetherCodeStyleRuleIsApplied(string severity, bool expectChange) =>
-        AssertExplicitTypeRuleOutcomeAsync(
+    public Task CleanupAsync_OptionSeveritySuffix_DecidesWhetherCodeStyleRuleIsApplied(string severity, bool expectChange)
+        => AssertExplicitTypeRuleOutcomeAsync(
             new[]
             {
                 "csharp_style_var_for_built_in_types = false:" + severity,
@@ -371,7 +371,7 @@ public sealed class DiagnosticCleanupEngineTests
     [DataRow("error", true)]
     public async Task CleanupAsync_NamingRuleSeverity_DecidesWhetherRenameIsApplied(string severity, bool expectChange)
     {
-        var input = Lines(
+        string input = Lines(
             "class Counter",
             "{",
             "    private int count;",
@@ -381,23 +381,23 @@ public sealed class DiagnosticCleanupEngineTests
             "        return count;",
             "    }",
             "}");
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case", severity)));
-        var documentId = workspace.AddDocument("Counter.cs", input);
+        DocumentId documentId = workspace.AddDocument("Counter.cs", input);
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
-        var expected = expectChange ? input.Replace("count", "m_Count") : input;
+        string expected = expectChange ? input.Replace("count", "m_Count") : input;
         Assert.AreEqual(expected, await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.AreEqual(expectChange, result.HasChanges);
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_NestedEditorConfig_OverridesInheritedRuleForFilesBelowIt()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
         workspace.AddEditorConfig("Legacy", Lines(
             "[*.cs]",
@@ -405,14 +405,14 @@ public sealed class DiagnosticCleanupEngineTests
         workspace.AddEditorConfig("Generated", Lines(
             "[*.cs]",
             "dotnet_naming_rule.private_fields_rule.severity = none"));
-        var rootId = workspace.AddDocument("Probe.cs", CounterClass("Probe"));
-        var legacyId = workspace.AddDocument("Legacy/Old.cs", CounterClass("Old"));
-        var generatedId = workspace.AddDocument("Generated/Gen.cs", CounterClass("Gen"));
-        var solution = workspace.CreateSolution();
+        DocumentId rootId = workspace.AddDocument("Probe.cs", CounterClass("Probe"));
+        DocumentId legacyId = workspace.AddDocument("Legacy/Old.cs", CounterClass("Old"));
+        DocumentId generatedId = workspace.AddDocument("Generated/Gen.cs", CounterClass("Gen"));
+        Solution solution = workspace.CreateSolution();
 
-        var rootResult = await CleanupAsync(solution, rootId, DiagnosticCleanupCategory.Naming);
-        var legacyResult = await CleanupAsync(solution, legacyId, DiagnosticCleanupCategory.Naming);
-        var generatedResult = await CleanupAsync(solution, generatedId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult rootResult = await CleanupAsync(solution, rootId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult legacyResult = await CleanupAsync(solution, legacyId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult generatedResult = await CleanupAsync(solution, generatedId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(CounterClass("Probe").Replace("count", "m_Count"), await DiagnosticCleanupTestWorkspace.GetTextAsync(rootResult.ChangedSolution, rootId));
         Assert.AreEqual(CounterClass("Old").Replace("count", "f_Count"), await DiagnosticCleanupTestWorkspace.GetTextAsync(legacyResult.ChangedSolution, legacyId));
@@ -424,10 +424,10 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_OnlyNamingEnabled_LeavesFormattingViolationsUntouched()
     {
-        var (workspace, documentId) = CreateNamingAndFormattingWorkspace();
+        (DiagnosticCleanupTestWorkspace workspace, DocumentId documentId) = CreateNamingAndFormattingWorkspace();
         using (workspace)
         {
-            var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+            DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
             Assert.AreEqual(
                 Lines(
@@ -442,7 +442,7 @@ public sealed class DiagnosticCleanupEngineTests
                     "}"),
                 await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
             Assert.IsTrue(result.AppliedFixes.All(fix => fix.Category == DiagnosticCleanupCategory.Naming));
-            Assert.AreEqual(0, result.Unresolved.Count, "Diagnostics of disabled categories are not actionable, hence never unresolved.");
+            Assert.IsEmpty(result.Unresolved, "Diagnostics of disabled categories are not actionable, hence never unresolved.");
         }
     }
 
@@ -450,10 +450,10 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_OnlyFormattingEnabled_LeavesNamingViolationsUntouched()
     {
-        var (workspace, documentId) = CreateNamingAndFormattingWorkspace();
+        (DiagnosticCleanupTestWorkspace workspace, DocumentId documentId) = CreateNamingAndFormattingWorkspace();
         using (workspace)
         {
-            var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
+            DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Formatting);
 
             Assert.AreEqual(
                 Lines(
@@ -466,7 +466,7 @@ public sealed class DiagnosticCleanupEngineTests
                     "}"),
                 await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
             Assert.IsTrue(result.AppliedFixes.All(fix => fix.Category == DiagnosticCleanupCategory.Formatting));
-            Assert.AreEqual(0, result.Unresolved.Count);
+            Assert.IsEmpty(result.Unresolved);
         }
     }
 
@@ -474,10 +474,10 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_NamingAndFormattingEnabled_AppliesBoth()
     {
-        var (workspace, documentId) = CreateNamingAndFormattingWorkspace();
+        (DiagnosticCleanupTestWorkspace workspace, DocumentId documentId) = CreateNamingAndFormattingWorkspace();
         using (workspace)
         {
-            var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming, DiagnosticCleanupCategory.Formatting);
+            DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming, DiagnosticCleanupCategory.Formatting);
 
             Assert.AreEqual(
                 Lines(
@@ -497,39 +497,39 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_NoCategoryEnabled_ReturnsInputWithoutRunningAnalysis()
     {
-        var probe = new AnalysisProbeAnalyzer();
-        using var workspace = new DiagnosticCleanupTestWorkspace(probe);
-        workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case").Concat(s_useBraceOnSameLine).ToArray()));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        AnalysisProbeAnalyzer probe = new AnalysisProbeAnalyzer();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(probe);
+        workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case").Concat(UseBraceOnSameLine).ToArray()));
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    private int size;",
             "}"));
-        var solution = workspace.CreateSolution();
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId);
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId);
 
         Assert.AreSame(solution, result.OriginalSolution);
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.IsFalse(result.HasChanges);
         Assert.IsTrue(result.IsComplete);
-        Assert.AreEqual(0, result.AppliedFixes.Count);
-        Assert.AreEqual(0, result.Unresolved.Count);
-        Assert.AreEqual(0, result.PostApplyOperations.Count);
+        Assert.IsEmpty(result.AppliedFixes);
+        Assert.IsEmpty(result.Unresolved);
+        Assert.IsEmpty(result.PostApplyOperations);
         Assert.AreEqual(0, probe.AnalyzedTreeCount, "No category enabled must not run any analyzer.");
 
         await CleanupAsync(solution, documentId, DiagnosticCleanupCategory.CodeStyle);
 
-        Assert.IsTrue(probe.AnalyzedTreeCount > 0, "Control: the probe runs as soon as a matching category is enabled.");
+        Assert.IsGreaterThan(0, probe.AnalyzedTreeCount, "Control: the probe runs as soon as a matching category is enabled.");
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixAllCapableRule_FixesEveryViolationInASinglePass()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(VarPreference(false, "IDE0008", "warning")));
-        var documentId = workspace.AddDocument("Calculator.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Calculator.cs", Lines(
             "class Calculator",
             "{",
             "    long Compute()",
@@ -543,7 +543,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, s_catalog, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, Catalog, DiagnosticCleanupCategory.CodeStyle);
 
         Assert.AreEqual(
             Lines(
@@ -561,7 +561,7 @@ public sealed class DiagnosticCleanupEngineTests
                 "}"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
-        var applied = result.AppliedFixes.Single();
+        AppliedDiagnosticFix applied = result.AppliedFixes.Single();
         Assert.AreEqual("IDE0008", applied.DiagnosticId);
         Assert.AreEqual(5, applied.Count);
     }
@@ -570,11 +570,11 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_RuleWithoutFixAllProvider_FixesEveryViolationAcrossPasses()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
-        var documentId = workspace.AddDocument("Triple.cs", TripleFieldClass());
+        DocumentId documentId = workspace.AddDocument("Triple.cs", TripleFieldClass());
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             TripleFieldClass().Replace("first", "m_First").Replace("second", "m_Second").Replace("third", "m_Third"),
@@ -587,18 +587,18 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_MaxPassesExhausted_ReportsRemainingDiagnosticsAsNotConverged()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
-        var documentId = workspace.AddDocument("Triple.cs", TripleFieldClass());
+        DocumentId documentId = workspace.AddDocument("Triple.cs", TripleFieldClass());
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, s_catalog, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, Catalog, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             TripleFieldClass().Replace("first", "m_First"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsFalse(result.IsComplete);
         Assert.AreEqual(1, result.AppliedFixes.Single().Count);
-        CollectionAssert.AreEqual(new[] { 4, 5 }, result.Unresolved.Select(unresolved => unresolved.Line).ToArray());
+        Assert.AreSequenceEqual(new[] { 4, 5 }, result.Unresolved.Select(unresolved => unresolved.Line).ToArray());
         Assert.IsTrue(result.Unresolved.All(unresolved =>
             unresolved.Reason == UnresolvedDiagnosticReason.NotConverged
             && unresolved.DiagnosticId == "IDE1006"
@@ -609,8 +609,8 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_IdeRuleActiveOnlyThroughItsDefaultOption_IsLeftAlone()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
-        var input = Lines(
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        string input = Lines(
             "class Point",
             "{",
             "    public int X;",
@@ -622,21 +622,21 @@ public sealed class DiagnosticCleanupEngineTests
             "        return point;",
             "    }",
             "}");
-        var documentId = workspace.AddDocument("Point.cs", input);
+        DocumentId documentId = workspace.AddDocument("Point.cs", input);
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
 
         Assert.AreEqual(input, await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_IdeRuleEnabledThroughAnOptionSeveritySuffix_IsFixed()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig("dotnet_style_object_initializer = true:warning"));
-        var documentId = workspace.AddDocument("Point.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Point.cs", Lines(
             "class Point",
             "{",
             "    public int X;",
@@ -649,35 +649,35 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
 
-        StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "X = 1");
-        Assert.IsFalse((await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId)).Contains("point.X = 1;"));
+        Assert.Contains("X = 1", await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.DoesNotContain("point.X = 1;", await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_RuleActiveOnlyByDefault_IsNotConfiguredByTheRepositoryAndIsLeftAlone()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0020", "Performance"));
-        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
-        var solution = workspace.CreateSolution();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0020", "Performance"));
+        DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, new RenameLegacyFieldCodeFixProvider("CJT0020"));
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new RenameLegacyFieldCodeFixProvider("CJT0020"));
 
         Assert.AreSame(solution, result.ChangedSolution);
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_RuleConfiguredAtItsDefaultSeverity_IsFixed()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0021", "Performance"));
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0021", "Performance"));
         workspace.ConfigureRuleSeverity("CJT0021", "warning");
-        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, new RenameLegacyFieldCodeFixProvider("CJT0021"));
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, new RenameLegacyFieldCodeFixProvider("CJT0021"));
 
         Assert.AreEqual(
             LegacySettingsClass().Replace("legacyValue", "renamedValue"),
@@ -694,34 +694,34 @@ public sealed class DiagnosticCleanupEngineTests
         DiagnosticAnalyzer analyzer = hiddenByDefault
             ? new HiddenLegacyFieldAnalyzer("CJT0030")
             : new LegacyFieldAnalyzer("CJT0030", "Performance");
-        using var workspace = new DiagnosticCleanupTestWorkspace(analyzer);
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(analyzer);
         workspace.AddEditorConfig(string.Empty, EditorConfig("dotnet_diagnostic.CJT0030.severity = silent"));
-        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
-        var solution = workspace.CreateSolution();
+        DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, new RenameLegacyFieldCodeFixProvider("CJT0030"));
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new RenameLegacyFieldCodeFixProvider("CJT0030"));
 
         Assert.AreSame(solution, result.ChangedSolution);
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ActionableDiagnosticWithoutCodeFixProvider_IsReportedAndNeverModified()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0001", "Style"));
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0001", "Style"));
         workspace.ConfigureRuleSeverity("CJT0001", "warning");
-        var input = LegacySettingsClass();
-        var documentId = workspace.AddDocument("Settings.cs", input);
-        var solution = workspace.CreateSolution();
+        string input = LegacySettingsClass();
+        DocumentId documentId = workspace.AddDocument("Settings.cs", input);
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, DiagnosticCleanupCategory.CodeStyle);
 
         Assert.AreEqual(input, await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.IsFalse(result.HasChanges);
         Assert.IsTrue(result.IsComplete, "An unsupported diagnostic is reported, it does not make the cleanup incomplete.");
-        var unresolved = result.Unresolved.Single();
+        UnresolvedDiagnostic unresolved = result.Unresolved.Single();
         Assert.AreEqual("CJT0001", unresolved.DiagnosticId);
         Assert.AreEqual(DiagnosticCleanupCategory.CodeStyle, unresolved.Category);
         Assert.AreEqual(DiagnosticSeverity.Warning, unresolved.Severity);
@@ -735,14 +735,14 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_AnalyzerReportingSeveralCategories_OnlyEnabledCategoryIsActionable()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(("CJT0007", "Style"), ("CJT0008", "Performance")));
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(("CJT0007", "Style"), ("CJT0008", "Performance")));
         workspace.ConfigureRuleSeverity("CJT0007", "warning");
         workspace.ConfigureRuleSeverity("CJT0008", "warning");
-        var documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.AnalyzerFixes);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.AnalyzerFixes);
 
-        var unresolved = result.Unresolved.Single();
+        UnresolvedDiagnostic unresolved = result.Unresolved.Single();
         Assert.AreEqual("CJT0008", unresolved.DiagnosticId);
         Assert.AreEqual(DiagnosticCleanupCategory.AnalyzerFixes, unresolved.Category);
     }
@@ -751,10 +751,10 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ProviderOffersOnlyNestedActions_ReportsNoApplicableCodeAction()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0003", out var documentId);
-        var solution = workspace.CreateSolution();
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0003", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, new NestedOnlyLegacyFieldCodeFixProvider("CJT0003"));
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new NestedOnlyLegacyFieldCodeFixProvider("CJT0003"));
 
         Assert.AreEqual(LegacySettingsClass(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.AreSame(solution, result.ChangedSolution);
@@ -766,13 +766,13 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixWithoutEffect_IsNotCountedAndReportsNoApplicableCodeAction()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0009", out var documentId);
-        var solution = workspace.CreateSolution();
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0009", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, new NoOpLegacyFieldCodeFixProvider("CJT0009"));
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new NoOpLegacyFieldCodeFixProvider("CJT0009"));
 
         Assert.AreSame(solution, result.ChangedSolution);
-        Assert.AreEqual(0, result.AppliedFixes.Count);
+        Assert.IsEmpty(result.AppliedFixes);
         Assert.IsTrue(result.IsComplete);
         Assert.AreEqual(UnresolvedDiagnosticReason.NoApplicableCodeAction, result.Unresolved.Single().Reason);
     }
@@ -781,16 +781,16 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_AlternativeActionsForMoreDiagnosticsThanThePassLimit_FixesAllOfThem()
     {
-        var fields = Enumerable.Range(0, 60).Select(index => $"    public int legacy{index};").ToArray();
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0023", "Performance"));
+        string[] fields = Enumerable.Range(0, 60).Select(index => $"    public int legacy{index};").ToArray();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0023", "Performance"));
         workspace.ConfigureRuleSeverity("CJT0023", "warning");
-        var documentId = workspace.AddDocument("Settings.cs", Lines(new[] { "class Settings", "{" }.Concat(fields).Concat(new[] { "}" }).ToArray()));
+        DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(new[] { "class Settings", "{" }.Concat(fields).Concat(new[] { "}" }).ToArray()));
 
-        var catalog = new CodeFixProviderCatalog(new[] { new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0023") });
+        CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new[] { new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0023") });
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
 
-        var expectedFields = Enumerable.Range(0, 60).Select(index => $"    public int first{index};").ToArray();
+        string[] expectedFields = Enumerable.Range(0, 60).Select(index => $"    public int first{index};").ToArray();
         Assert.AreEqual(
             Lines(new[] { "class Settings", "{" }.Concat(expectedFields).Concat(new[] { "}" }).ToArray()),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
@@ -804,16 +804,16 @@ public sealed class DiagnosticCleanupEngineTests
     [DataRow(false)]
     public async Task CleanupAsync_AlternativeActionsWithTheSameEquivalenceKey_AppliesOnlyTheChosenActionToEveryDiagnosticInOnePass(bool providerHasFixAll)
     {
-        using var workspace = CreateTwoLegacyFieldsWorkspace("CJT0020", out var documentId);
-        var catalog = new CodeFixProviderCatalog(new[] { new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0020", providerHasFixAll) });
+        using DiagnosticCleanupTestWorkspace workspace = CreateTwoLegacyFieldsWorkspace("CJT0020", out DocumentId documentId);
+        CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new[] { new AlternativesWithoutEquivalenceKeyLegacyFieldCodeFixProvider("CJT0020", providerHasFixAll) });
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
 
         Assert.AreEqual(
             TwoLegacyFieldsClass().Replace("legacy", "first"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
         Assert.AreEqual(2, result.AppliedFixes.Single().Count);
     }
 
@@ -823,10 +823,10 @@ public sealed class DiagnosticCleanupEngineTests
     [DataRow("CJT0022", true)]
     public async Task CleanupAsync_SingleActionWithoutEquivalenceKey_StillFixesAllDiagnosticsInOnePassThroughFixAll(string diagnosticId, bool withNestedChoice)
     {
-        using var workspace = CreateTwoLegacyFieldsWorkspace(diagnosticId, out var documentId);
-        var catalog = new CodeFixProviderCatalog(new[] { new BatchRenameLegacyFieldCodeFixProvider(diagnosticId, withNestedChoice) });
+        using DiagnosticCleanupTestWorkspace workspace = CreateTwoLegacyFieldsWorkspace(diagnosticId, out DocumentId documentId);
+        CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new[] { new BatchRenameLegacyFieldCodeFixProvider(diagnosticId, withNestedChoice) });
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 1, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
 
         Assert.AreEqual(TwoLegacyFieldsClass().Replace("legacy", "batch"), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
@@ -836,16 +836,16 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ProviderOffersNestedGroupThenPlainAction_AppliesThePlainAction()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0004", out var documentId);
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0004", out DocumentId documentId);
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, new RenameLegacyFieldCodeFixProvider("CJT0004"));
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, new RenameLegacyFieldCodeFixProvider("CJT0004"));
 
         Assert.AreEqual(
             LegacySettingsClass().Replace("legacyValue", "renamedValue"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
-        Assert.AreEqual(0, result.Unresolved.Count);
-        var applied = result.AppliedFixes.Single();
+        Assert.IsEmpty(result.Unresolved);
+        AppliedDiagnosticFix applied = result.AppliedFixes.Single();
         Assert.AreEqual("CJT0004", applied.DiagnosticId);
         Assert.AreEqual(DiagnosticCleanupCategory.AnalyzerFixes, applied.Category);
         Assert.AreEqual(1, applied.Count);
@@ -855,17 +855,17 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixIntroducingCompilerError_IsRejectedAndOriginalTextPreserved()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0005", out var documentId);
-        var solution = workspace.CreateSolution();
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0005", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, new BreakingLegacyFieldCodeFixProvider("CJT0005"));
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new BreakingLegacyFieldCodeFixProvider("CJT0005"));
 
         Assert.AreEqual(LegacySettingsClass(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.IsFalse(result.HasChanges);
         Assert.IsFalse(result.IsComplete);
-        Assert.AreEqual(0, result.AppliedFixes.Count);
-        var unresolved = result.Unresolved.Single();
+        Assert.IsEmpty(result.AppliedFixes);
+        UnresolvedDiagnostic unresolved = result.Unresolved.Single();
         Assert.AreEqual("CJT0005", unresolved.DiagnosticId);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, unresolved.Reason);
     }
@@ -874,10 +874,10 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixChangingSolutionStructure_IsRejectedAsUnsupported()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0006", out var documentId);
-        var solution = workspace.CreateSolution();
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0006", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
 
-        var result = await CleanupAsync(solution, documentId, new AddDocumentLegacyFieldCodeFixProvider("CJT0006"));
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new AddDocumentLegacyFieldCodeFixProvider("CJT0006"));
 
         Assert.AreSame(solution, result.ChangedSolution, "The added document must not leak into the result.");
         Assert.IsFalse(result.IsComplete);
@@ -889,19 +889,19 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixesWithHostNotifications_ApplyTheSolutionChangesAndHandTheNotificationsToTheHostInOrder()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0010", "Performance"));
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0010", "Performance"));
         workspace.ConfigureRuleSeverity("CJT0010", "warning");
-        var documentId = workspace.AddDocument("Settings.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(
             "class Settings",
             "{",
             "    public int legacyFirst;",
             "    public int legacySecond;",
             "}"));
-        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+        CustomOperationsLegacyFieldCodeFixProvider provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0010",
             (name, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new HostNotificationOperation(name) });
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, provider);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, provider);
 
         Assert.AreEqual(
             Lines(
@@ -913,19 +913,17 @@ public sealed class DiagnosticCleanupEngineTests
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.IsTrue(result.IsComplete);
         Assert.AreEqual(2, result.AppliedFixes.Single().Count);
-        CollectionAssert.AreEqual(
-            new[] { "Notify host: legacyFirst", "Notify host: legacySecond" },
-            result.PostApplyOperations.Select(operation => operation.Title).ToArray(),
-            "Each accepted fix's host operations are handed over exactly once, in the order the fixes were applied.");
+        Assert.AreSequenceEqual(
+            new[] { "Notify host: legacyFirst", "Notify host: legacySecond" }, result.PostApplyOperations.Select(operation => operation.Title).ToArray(), "Each accepted fix's host operations are handed over exactly once, in the order the fixes were applied.");
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_RejectedFixWithHostNotification_HandsNoOperationToTheHost()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0013", "Performance"));
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0013", "Performance"));
         workspace.ConfigureRuleSeverity("CJT0013", "warning");
-        var documentId = workspace.AddDocument("Settings.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(
             "class Settings",
             "{",
             "    public int legacyValue;",
@@ -935,16 +933,16 @@ public sealed class DiagnosticCleanupEngineTests
             "        return legacyValue;",
             "    }",
             "}"));
-        var solution = workspace.CreateSolution();
-        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+        Solution solution = workspace.CreateSolution();
+        CustomOperationsLegacyFieldCodeFixProvider provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0013",
             (name, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new HostNotificationOperation(name) });
 
-        var result = await CleanupAsync(solution, documentId, provider);
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, provider);
 
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, result.Unresolved.Single().Reason, "Renaming only the declaration breaks the reference.");
-        Assert.AreEqual(0, result.PostApplyOperations.Count);
+        Assert.IsEmpty(result.PostApplyOperations);
     }
 
     [TestMethod]
@@ -953,9 +951,9 @@ public sealed class DiagnosticCleanupEngineTests
     {
         // Renaming only the declaration resolves 'renamedValue' (one CS0103 fewer) but breaks 'legacyValue' (a new
         // CS0103): the error count is unchanged, yet the fix introduces an error.
-        using var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0014", "Performance"));
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer("CJT0014", "Performance"));
         workspace.ConfigureRuleSeverity("CJT0014", "warning");
-        var documentId = workspace.AddDocument("Settings.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(
             "class Settings",
             "{",
             "    public int legacyValue;",
@@ -970,12 +968,12 @@ public sealed class DiagnosticCleanupEngineTests
             "        return renamedValue;",
             "    }",
             "}"));
-        var solution = workspace.CreateSolution();
-        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+        Solution solution = workspace.CreateSolution();
+        CustomOperationsLegacyFieldCodeFixProvider provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0014",
             (_, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed) });
 
-        var result = await CleanupAsync(solution, documentId, provider);
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, provider);
 
         Assert.AreSame(solution, result.ChangedSolution, "The fix swaps one compiler error for another and must not be applied.");
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, result.Unresolved.Single().Reason);
@@ -987,7 +985,7 @@ public sealed class DiagnosticCleanupEngineTests
     {
         // The existing CS0161 names the renamed method, so its message changes ('Widget.doWork()' becomes
         // 'Widget.DoWork()'), but it stays at the same position once mapped through the rename: no error is added.
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(
             "dotnet_naming_rule.methods_rule.symbols = methods",
             "dotnet_naming_rule.methods_rule.style = pascal_style",
@@ -995,7 +993,7 @@ public sealed class DiagnosticCleanupEngineTests
             "dotnet_naming_symbols.methods.applicable_kinds = method",
             "dotnet_naming_symbols.methods.applicable_accessibilities = *",
             "dotnet_naming_style.pascal_style.capitalization = pascal_case"));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    int doWork()",
@@ -1003,7 +1001,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -1014,7 +1012,7 @@ public sealed class DiagnosticCleanupEngineTests
                 "    }",
                 "}"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
         Assert.AreEqual("IDE1006", result.AppliedFixes.Single().DiagnosticId);
     }
 
@@ -1024,7 +1022,7 @@ public sealed class DiagnosticCleanupEngineTests
     {
         // The rename is diffed as a pure insertion of 'Async' at the end of 'Get', so the existing CS0161 on the
         // identifier grows to cover the suffix: it must still match, not count as a new error.
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(
             "dotnet_naming_rule.methods_rule.symbols = methods",
             "dotnet_naming_rule.methods_rule.style = async_style",
@@ -1033,7 +1031,7 @@ public sealed class DiagnosticCleanupEngineTests
             "dotnet_naming_symbols.methods.applicable_accessibilities = *",
             "dotnet_naming_style.async_style.required_suffix = Async",
             "dotnet_naming_style.async_style.capitalization = pascal_case"));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    int Get()",
@@ -1041,7 +1039,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -1052,7 +1050,7 @@ public sealed class DiagnosticCleanupEngineTests
                 "    }",
                 "}"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
         Assert.AreEqual("IDE1006", result.AppliedFixes.Single().DiagnosticId);
     }
 
@@ -1062,7 +1060,7 @@ public sealed class DiagnosticCleanupEngineTests
     {
         // The rename is diffed as a pure insertion of 'Try' at the start of 'Get', so the existing CS0161 on the
         // identifier keeps its start and grows to cover the prefix: it must still match, not count as a new error.
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(
             "dotnet_naming_rule.methods_rule.symbols = methods",
             "dotnet_naming_rule.methods_rule.style = try_style",
@@ -1071,7 +1069,7 @@ public sealed class DiagnosticCleanupEngineTests
             "dotnet_naming_symbols.methods.applicable_accessibilities = *",
             "dotnet_naming_style.try_style.required_prefix = Try",
             "dotnet_naming_style.try_style.capitalization = pascal_case"));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    int Get()",
@@ -1079,7 +1077,7 @@ public sealed class DiagnosticCleanupEngineTests
             "    }",
             "}"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.AreEqual(
             Lines(
@@ -1090,7 +1088,7 @@ public sealed class DiagnosticCleanupEngineTests
                 "    }",
                 "}"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
         Assert.AreEqual("IDE1006", result.AppliedFixes.Single().DiagnosticId);
     }
 
@@ -1098,13 +1096,13 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixWithSeveralSolutionChanges_IsRejectedAsUnsupported()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0011", out var documentId);
-        var solution = workspace.CreateSolution();
-        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0011", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
+        CustomOperationsLegacyFieldCodeFixProvider provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0011",
             (_, _, renamed) => new CodeActionOperation[] { new ApplyChangesOperation(renamed), new ApplyChangesOperation(renamed) });
 
-        var result = await CleanupAsync(solution, documentId, provider);
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, provider);
 
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges, result.Unresolved.Single().Reason);
@@ -1114,13 +1112,13 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixWithOnlyHostOperations_IsRejectedAsUnsupported()
     {
-        using var workspace = CreateLegacySettingsWorkspace("CJT0012", out var documentId);
-        var solution = workspace.CreateSolution();
-        var provider = new CustomOperationsLegacyFieldCodeFixProvider(
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0012", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
+        CustomOperationsLegacyFieldCodeFixProvider provider = new CustomOperationsLegacyFieldCodeFixProvider(
             "CJT0012",
             (name, _, _) => new CodeActionOperation[] { new HostNotificationOperation(name) });
 
-        var result = await CleanupAsync(solution, documentId, provider);
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, provider);
 
         Assert.AreSame(solution, result.ChangedSolution);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges, result.Unresolved.Single().Reason);
@@ -1130,11 +1128,11 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ChangedSolution_CanBeAppliedToTheHostWorkspace()
     {
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case")));
-        var documentId = workspace.AddDocument("Probe.cs", CounterClass("Probe"));
+        DocumentId documentId = workspace.AddDocument("Probe.cs", CounterClass("Probe"));
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.Naming);
 
         Assert.IsTrue(workspace.Workspace.TryApplyChanges(result.ChangedSolution));
         Assert.AreEqual(
@@ -1144,7 +1142,7 @@ public sealed class DiagnosticCleanupEngineTests
 
     private static async Task AssertExplicitTypeRuleOutcomeAsync(string[] editorConfigProperties, bool expectChange)
     {
-        var input = Lines(
+        string input = Lines(
             "class Calculator",
             "{",
             "    int Compute()",
@@ -1153,34 +1151,34 @@ public sealed class DiagnosticCleanupEngineTests
             "        return count;",
             "    }",
             "}");
-        using var workspace = new DiagnosticCleanupTestWorkspace();
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         workspace.AddEditorConfig(string.Empty, EditorConfig(editorConfigProperties));
-        var documentId = workspace.AddDocument("Calculator.cs", input);
+        DocumentId documentId = workspace.AddDocument("Calculator.cs", input);
 
-        var result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, DiagnosticCleanupCategory.CodeStyle);
 
-        var expected = expectChange ? input.Replace("var count", "int count") : input;
+        string expected = expectChange ? input.Replace("var count", "int count") : input;
         Assert.AreEqual(expected, await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.AreEqual(expectChange, result.HasChanges);
-        Assert.AreEqual(0, result.Unresolved.Count);
+        Assert.IsEmpty(result.Unresolved);
     }
 
-    private static Task<DiagnosticCleanupResult> CleanupAsync(Solution solution, DocumentId documentId, params DiagnosticCleanupCategory[] categories) =>
-        CleanupAsync(solution, documentId, 50, s_catalog, categories);
+    private static Task<DiagnosticCleanupResult> CleanupAsync(Solution solution, DocumentId documentId, params DiagnosticCleanupCategory[] categories)
+        => CleanupAsync(solution, documentId, 50, Catalog, categories);
 
     private static Task<DiagnosticCleanupResult> CleanupAsync(Solution solution, DocumentId documentId, int maxPasses, CodeFixProviderCatalog catalog, params DiagnosticCleanupCategory[] categories)
     {
-        var engine = new DiagnosticCleanupEngine(catalog);
+        DiagnosticCleanupEngine engine = new DiagnosticCleanupEngine(catalog);
 
         return engine.CleanupAsync(solution.GetDocument(documentId), new DiagnosticCleanupOptions(categories, maxPasses), CancellationToken.None);
     }
 
-    private static Task<DiagnosticCleanupResult> CleanupAsync(Solution solution, DocumentId documentId, CodeFixProvider hostProvider) =>
-        CleanupAsync(solution, documentId, 50, new CodeFixProviderCatalog(new[] { hostProvider }), DiagnosticCleanupCategory.AnalyzerFixes);
+    private static Task<DiagnosticCleanupResult> CleanupAsync(Solution solution, DocumentId documentId, CodeFixProvider hostProvider)
+        => CleanupAsync(solution, documentId, 50, new CodeFixProviderCatalog(new[] { hostProvider }), DiagnosticCleanupCategory.AnalyzerFixes);
 
     private static DiagnosticCleanupTestWorkspace CreateLegacySettingsWorkspace(string diagnosticId, out DocumentId documentId)
     {
-        var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
         workspace.ConfigureRuleSeverity(diagnosticId, "warning");
         documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
 
@@ -1189,9 +1187,9 @@ public sealed class DiagnosticCleanupEngineTests
 
     private static (DiagnosticCleanupTestWorkspace Workspace, DocumentId DocumentId) CreateNamingAndFormattingWorkspace()
     {
-        var workspace = new DiagnosticCleanupTestWorkspace();
-        workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case").Concat(s_useBraceOnSameLine).ToArray()));
-        var documentId = workspace.AddDocument("Widget.cs", Lines(
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig(PrivateFieldsPrefixRule("m_", "pascal_case").Concat(UseBraceOnSameLine).ToArray()));
+        DocumentId documentId = workspace.AddDocument("Widget.cs", Lines(
             "class Widget",
             "{",
             "    private int size;",
@@ -1218,7 +1216,7 @@ public sealed class DiagnosticCleanupEngineTests
 
     private static string[] VarPreference(bool useVar, string diagnosticId, string severity)
     {
-        var value = useVar ? "true" : "false";
+        string value = useVar ? "true" : "false";
 
         return new[]
         {
@@ -1255,7 +1253,7 @@ public sealed class DiagnosticCleanupEngineTests
 
     private static DiagnosticCleanupTestWorkspace CreateTwoLegacyFieldsWorkspace(string diagnosticId, out DocumentId documentId)
     {
-        var workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(diagnosticId, "Performance"));
         workspace.ConfigureRuleSeverity(diagnosticId, "warning");
         documentId = workspace.AddDocument("Settings.cs", TwoLegacyFieldsClass());
 
@@ -1275,8 +1273,8 @@ public sealed class DiagnosticCleanupEngineTests
         "    public int legacyValue;",
         "}");
 
-    private static string EditorConfig(params string[] properties) =>
-        Lines(new[] { "root = true", string.Empty, "[*.cs]" }.Concat(properties).ToArray());
+    private static string EditorConfig(params string[] properties)
+        => Lines(new[] { "root = true", string.Empty, "[*.cs]" }.Concat(properties).ToArray());
 
     private static string Lines(params string[] lines) => string.Join("\n", lines) + "\n";
 

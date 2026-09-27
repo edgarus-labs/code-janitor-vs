@@ -9,7 +9,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A static helper class for common CodeElement requests.
 /// </summary>
-
 internal static class CodeElementHelper
 {
     /// <summary>
@@ -17,7 +16,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="element">The code element to examine.</param>
     /// <returns>The calculated complexity.</returns>
-
     internal static int CalculateComplexity(CodeElement element)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -63,7 +61,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="accessModifier">The access modifier.</param>
     /// <returns>The matching keyword, otherwise null.</returns>
-
     internal static string GetAccessModifierKeyword(vsCMAccess accessModifier)
     {
         switch (accessModifier)
@@ -82,7 +79,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeClass">The code class.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetClassDeclaration(CodeClass codeClass)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -98,7 +94,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeDelegate">The code delegate.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetDelegateDeclaration(CodeDelegate codeDelegate)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -117,7 +112,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeEnum">The code enum.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetEnumerationDeclaration(CodeEnum codeEnum)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -133,7 +127,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeEvent">The code event.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetEventDeclaration(CodeEvent codeEvent)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -152,7 +145,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeField">The code field.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetFieldDeclaration(CodeVariable codeField)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -171,7 +163,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeInterface">The code interface.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetInterfaceDeclaration(CodeInterface codeInterface)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -187,7 +178,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeFunction">The code method.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetMethodDeclaration(CodeFunction codeFunction)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -203,7 +193,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeProperty">The code property.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetPropertyDeclaration(CodeProperty codeProperty)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -222,7 +211,6 @@ internal static class CodeElementHelper
     /// </summary>
     /// <param name="codeStruct">The code struct.</param>
     /// <returns>The string declaration.</returns>
-
     internal static string GetStructDeclaration(CodeStruct codeStruct)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

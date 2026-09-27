@@ -1,9 +1,9 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments;
 using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System.Linq;
 
 namespace CodeJanitor.Logic.Formatting;
@@ -11,7 +11,6 @@ namespace CodeJanitor.Logic.Formatting;
 /// <summary>
 /// A class for encapsulating comment formatting logic.
 /// </summary>
-
 internal sealed class CommentFormatLogic
 {
     /// <summary>
@@ -25,7 +24,6 @@ internal sealed class CommentFormatLogic
     /// Initializes a new instance of the <see cref="CommentFormatLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CommentFormatLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -35,7 +33,6 @@ internal sealed class CommentFormatLogic
     /// Reformat all comments in the specified document.
     /// </summary>
     /// <param name="textDocument">The text document.</param>
-
     public void FormatComments(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -51,7 +48,6 @@ internal sealed class CommentFormatLogic
     /// <param name="textDocument">The text document.</param>
     /// <param name="start">The start point.</param>
     /// <param name="end">The end point.</param>
-
     public bool FormatComments(TextDocument textDocument, EditPoint start, EditPoint end)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -103,7 +99,6 @@ internal sealed class CommentFormatLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CommentFormatLogic"/> class.</returns>
-
     internal static CommentFormatLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CommentFormatLogic(package));

@@ -14,7 +14,7 @@ internal static class CleanupBatchPartitioner
         {
             var filePath = getFilePath(item);
 
-            return filePath == null ? null : Path.GetFullPath(filePath);
+            return filePath is null ? null : Path.GetFullPath(filePath);
         }
 
         var openPaths = new HashSet<string>(
@@ -27,7 +27,7 @@ internal static class CleanupBatchPartitioner
         foreach (var item in itemList)
         {
             var filePath = GetFullPath(item);
-            if (filePath == null)
+            if (filePath is null)
             {
                 sequential.Add(item);
             }

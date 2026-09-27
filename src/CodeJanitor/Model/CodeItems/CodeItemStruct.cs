@@ -7,13 +7,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code struct.
 /// </summary>
-
 public sealed class CodeItemStruct : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemStruct" /> class.
     /// </summary>
-
     public CodeItemStruct()
     {
         _Access = LazyTryDefault(
