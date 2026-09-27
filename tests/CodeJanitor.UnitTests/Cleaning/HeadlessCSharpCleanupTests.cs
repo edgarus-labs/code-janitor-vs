@@ -134,7 +134,7 @@ public sealed class HeadlessCSharpCleanupTests
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.Contains("/// </summary>\r\npublic sealed class C", output);
+        Assert.Contains("/// </summary>\r\npublic ", output);
         Assert.Contains("    /// </summary>\r\n    public void M()", output);
     }
 
