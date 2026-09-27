@@ -1,15 +1,15 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.CodeAnalysis.CSharp;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using CodeJanitor.UnitTests.Transformations;
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -446,27 +446,13 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void RequiresEditorCleanupForCSharp_FollowsTheRepositoryPolicyOfTheFile()
+    public void RequiresEditorCleanupForCSharp_IsFalse_WhenTheVisualStudioCommandsAreEnabled()
     {
-        // The Visual Studio settings enable neither Visual Studio command; one repository enables Format Document.
-        Settings.Default.Cleaning_RunVisualStudioFormatDocumentCommand = false;
-        Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements = false;
-        string repositoryDirectory = Path.Combine(_tempDirectory, "Repository");
-        Directory.CreateDirectory(repositoryDirectory);
-        File.WriteAllText(Path.Combine(repositoryDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
-            "{ \"cleanup\": { \"runVisualStudioFormatDocumentCommand\": true } }");
+        // Diagnostic cleanup runs the Roslyn equivalents of both commands on closed files.
+        Settings.Default.Cleaning_RunVisualStudioFormatDocumentCommand = true;
+        Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements = true;
 
-        Assert.IsTrue(CodeCleanupManager.RequiresEditorCleanupForCSharp(Path.Combine(repositoryDirectory, "Sample.cs")));
-        Assert.IsFalse(CodeCleanupManager.RequiresEditorCleanupForCSharp(Path.Combine(_tempDirectory, "Sample.cs")));
-    }
-
-    [TestMethod]
-    public void RequiresEditorCleanupForCSharp_IsFalse_WhenTheRepositoryPolicyDisablesTheVisualStudioCommands()
-    {
-        // Both Visual Studio commands are enabled by default in the Visual Studio settings.
-        WriteRepositoryPolicy("\"runVisualStudioFormatDocumentCommand\": false, \"runVisualStudioRemoveAndSortUsingStatements\": false");
-
-        Assert.IsFalse(CodeCleanupManager.RequiresEditorCleanupForCSharp(Path.Combine(_tempDirectory, "Sample.cs")));
+        Assert.IsFalse(CodeCleanupManager.RequiresEditorCleanupForCSharp());
     }
 
     [TestMethod]

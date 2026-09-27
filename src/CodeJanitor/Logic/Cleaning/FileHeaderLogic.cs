@@ -1,8 +1,8 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

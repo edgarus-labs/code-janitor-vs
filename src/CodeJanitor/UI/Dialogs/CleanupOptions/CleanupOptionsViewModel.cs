@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Configuration;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
 using CodeJanitor.UI.Dialogs.Options.Cleaning;
+using System.Configuration;
 
 namespace CodeJanitor.UI.Dialogs.CleanupOptions;
 

@@ -1,3 +1,7 @@
+using CodeJanitor.Model;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Model.CodeTree;
+using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.Internal.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio;
@@ -5,10 +9,6 @@ using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using CodeJanitor.Model;
-using CodeJanitor.Model.CodeItems;
-using CodeJanitor.Model.CodeTree;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;

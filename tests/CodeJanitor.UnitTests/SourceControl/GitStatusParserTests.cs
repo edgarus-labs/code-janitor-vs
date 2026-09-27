@@ -1,8 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.SourceControl;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CodeJanitor.Logic.SourceControl;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.SourceControl;
 

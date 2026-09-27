@@ -1,9 +1,9 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments;
 using CodeJanitor.Model.Comments.Options;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System.Linq;
 
 namespace CodeJanitor.Logic.Formatting;

@@ -1,6 +1,6 @@
+using CodeJanitor.Helpers;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Helpers;
 using System;
 using System.Threading;
 

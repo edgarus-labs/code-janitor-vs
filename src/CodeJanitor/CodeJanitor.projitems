@@ -169,6 +169,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\CompilerErrors.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\DiagnosticCleanupResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\RoslynDocumentCleanup.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\UnresolvedDiagnostic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Cleaning\Diagnostics\UnresolvedDiagnosticReason.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logic\Digging\OutliningSynchronizationManager.cs" />

@@ -1,11 +1,11 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Properties;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
-using System.Collections.Generic;
+using CodeJanitor.Properties;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 

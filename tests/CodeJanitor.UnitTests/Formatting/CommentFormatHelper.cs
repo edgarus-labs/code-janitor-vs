@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using CodeJanitor.Model.Comments;
 using CodeJanitor.Model.Comments.Options;
-using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Formatting;
 

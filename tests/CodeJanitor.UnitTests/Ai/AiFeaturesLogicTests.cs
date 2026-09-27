@@ -1,8 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Ai;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using CodeJanitor.Logic.Ai;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Ai;
 

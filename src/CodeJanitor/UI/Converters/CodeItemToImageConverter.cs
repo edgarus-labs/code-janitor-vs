@@ -1,5 +1,5 @@
-using EnvDTE;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE;
 using System;
 using System.Globalization;
 using System.Windows.Data;

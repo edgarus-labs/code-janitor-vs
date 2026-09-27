@@ -1,10 +1,10 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Package;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Prompts;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.VisualStudio.Package;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.IO;

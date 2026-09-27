@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.Comments.Options;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;

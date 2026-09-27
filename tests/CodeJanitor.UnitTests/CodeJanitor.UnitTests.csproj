@@ -90,6 +90,7 @@
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupEngineTests.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupTestAnalyzers.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupTestWorkspace.cs" />
+    <Compile Include="Cleaning\Diagnostics\RoslynDocumentCleanupTests.cs" />
     <Compile Include="Cleaning\TopLevelTypeToFileSplitFileProcessorTests.cs" />
     <Compile Include="Cleaning\BlankLinePaddingConverterTests.cs" />
     <Compile Include="Cleaning\ExplicitAccessModifierConverterTests.cs" />

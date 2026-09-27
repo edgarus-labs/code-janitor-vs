@@ -1,16 +1,16 @@
-using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
-using System.Collections.Concurrent;
+using Microsoft.VisualStudio.Shell;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System;
 
 namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 
@@ -139,9 +139,12 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 return projectItems.Select(CreateWorkItem).ToList();
             });
 
-            // Open documents, and files whose effective settings need editor-backed steps (Format Document, Remove and
-            // Sort Usings, third-party cleanup), are cleaned one at a time in the editor.
-            var editorItems = new HashSet<WorkItem>(workItems.Where(workItem => workItem.IsOpen || CodeCleanupManager.RequiresEditorCleanupForCSharp(workItem.FilePath)));
+            // Open documents, files in other languages than C#, and C# files that need editor-backed steps
+            // (reorganizing, third-party cleanup) are cleaned one at a time in the editor.
+            var editorItems = new HashSet<WorkItem>(workItems.Where(workItem =>
+                workItem.IsOpen ||
+                !string.Equals(Path.GetExtension(workItem.FilePath), ".cs", StringComparison.OrdinalIgnoreCase) ||
+                CodeCleanupManager.RequiresEditorCleanupForCSharp()));
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 

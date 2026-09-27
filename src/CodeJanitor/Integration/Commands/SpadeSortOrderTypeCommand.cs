@@ -1,6 +1,5 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Model.CodeTree;
-using System.Threading.Tasks;
+using Microsoft.VisualStudio.Shell;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;

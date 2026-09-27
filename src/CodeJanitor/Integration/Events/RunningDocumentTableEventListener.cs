@@ -1,9 +1,9 @@
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
 using System.Linq;
 using Task = System.Threading.Tasks.Task;
 

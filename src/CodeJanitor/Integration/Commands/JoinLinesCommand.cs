@@ -1,8 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
-using System.Threading.Tasks;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;

@@ -1,5 +1,5 @@
-using System;
 using Microsoft.CodeAnalysis;
+using System;
 
 namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 

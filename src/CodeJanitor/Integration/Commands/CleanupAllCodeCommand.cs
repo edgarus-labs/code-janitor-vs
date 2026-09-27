@@ -1,8 +1,8 @@
-using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.CleanupProgress;
+using EnvDTE;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;

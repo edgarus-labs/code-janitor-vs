@@ -1,7 +1,7 @@
-using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using CodeJanitor.Helpers;
 using Xunit;
 
 namespace CodeJanitor.UnitTests.Helpers;

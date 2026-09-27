@@ -1,11 +1,10 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.UI.Dialogs.CleanupProgress;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;

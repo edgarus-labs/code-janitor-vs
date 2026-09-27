@@ -1,6 +1,5 @@
-using System;
-using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
+using System;
 
 namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 

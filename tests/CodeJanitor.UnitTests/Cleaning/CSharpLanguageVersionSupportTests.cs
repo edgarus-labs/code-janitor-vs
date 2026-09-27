@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
+using CodeJanitor.UnitTests.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Properties;
-using CodeJanitor.UnitTests.Transformations;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 

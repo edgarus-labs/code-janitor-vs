@@ -1,7 +1,7 @@
+using CodeJanitor.Logic.Transformations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UI.Dialogs.CleanupOptions;
 

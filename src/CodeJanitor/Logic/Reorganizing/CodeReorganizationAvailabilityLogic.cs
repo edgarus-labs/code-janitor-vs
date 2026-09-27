@@ -1,9 +1,9 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Prompts;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 
 namespace CodeJanitor.Logic.Reorganizing;

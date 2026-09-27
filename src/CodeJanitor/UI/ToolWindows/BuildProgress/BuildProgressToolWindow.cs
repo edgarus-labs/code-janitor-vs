@@ -1,8 +1,8 @@
+using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

@@ -1,8 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Cleaning;
 using System;
 using System.IO;
 using System.Linq;
+using CodeJanitor.Logic.Cleaning;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -42,6 +42,21 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
         Assert.DoesNotContain("interface IBar", plan.UpdatedSource);
         Assert.DoesNotContain("enum Baz", plan.UpdatedSource);
         Assert.AreSequenceEqual(new[] { "IBar.cs", "Baz.cs" }, plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
+    }
+
+    [TestMethod]
+    public void CreatePlan_MovesEveryKindOfTopLevelType()
+    {
+        string source =
+            "namespace Demo;\r\n\r\nclass Foo { }\r\nstruct Point { }\r\nrecord struct Pair(int A, int B);\r\nrecord Person(string Name);\r\ninterface IBar { }\r\nenum Baz { A }\r\ndelegate void Work();\r\n";
+
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+
+        Assert.AreEqual("namespace Demo;\r\n\r\nclass Foo { }\r\n", plan.UpdatedSource);
+        Assert.AreSequenceEqual(
+            new[] { "Point.cs", "Pair.cs", "Person.cs", "IBar.cs", "Baz.cs", "Work.cs" },
+            plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray(),
+            Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]

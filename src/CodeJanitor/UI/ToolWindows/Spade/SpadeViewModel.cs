@@ -1,8 +1,8 @@
-using EnvDTE;
 using CodeJanitor.Logic.Digging;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Model.CodeTree;
 using CodeJanitor.Properties;
+using EnvDTE;
 using System;
 using System.Collections.Generic;
 using System.Windows.Threading;

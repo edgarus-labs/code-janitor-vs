@@ -1,6 +1,6 @@
-using EnvDTE;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE;
 using System.Linq;
 
 namespace CodeJanitor.Model;

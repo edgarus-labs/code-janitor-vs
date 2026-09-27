@@ -1,14 +1,14 @@
+using CodeJanitor.Properties;
 using EnvDTE;
-using TextDocument = EnvDTE.TextDocument;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using TextDocument = EnvDTE.TextDocument;
 
 namespace CodeJanitor.Logic.Cleaning;
 

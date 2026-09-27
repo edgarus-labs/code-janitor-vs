@@ -1,10 +1,5 @@
-using CodeJanitor.Properties;
-using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Web.Script.Serialization;
 
 namespace CodeJanitor.Logic.Cleaning;
 

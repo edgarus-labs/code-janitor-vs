@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using CodeJanitor.UI.Dialogs.About;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Diagnostics;
 
 namespace CodeJanitor.UnitTests.UI;
 

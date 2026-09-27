@@ -1,9 +1,3 @@
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace CodeJanitor.Logic.Cleaning;
 

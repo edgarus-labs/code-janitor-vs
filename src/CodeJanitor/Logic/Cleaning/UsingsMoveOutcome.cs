@@ -1,15 +1,3 @@
-using CodeJanitor.Helpers;
-using CodeJanitor.Logic.Transformations;
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Threading;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CodeJanitor.Logic.Cleaning;
 

@@ -213,33 +213,16 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     }
 
     /// <summary>
-    /// Returns true only for class, interface, record, enum, or delegate declarations, excluding partial classes, interfaces, records, and enums, with no side effects.
+    /// Returns true for every kind of top-level type that is not partial (class, struct, interface, record, record
+    /// struct, enum) and for delegates.
     /// </summary>
     /// <param name="member">The member.</param>
-    /// <returns>A bool value produced by this method.</returns>
+    /// <returns>True when the member can be moved into its own file.</returns>
     private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member)
     {
-        if (member is ClassDeclarationSyntax classDeclaration)
-        {
-            return !HasPartialModifier(classDeclaration.Modifiers);
-        }
-
-        if (member is InterfaceDeclarationSyntax interfaceDeclaration)
-        {
-            return !HasPartialModifier(interfaceDeclaration.Modifiers);
-        }
-
-        if (member is RecordDeclarationSyntax recordDeclaration)
-        {
-            return !HasPartialModifier(recordDeclaration.Modifiers);
-        }
-
-        if (member is EnumDeclarationSyntax enumDeclaration)
-        {
-            return !HasPartialModifier(enumDeclaration.Modifiers);
-        }
-
-        return member is DelegateDeclarationSyntax;
+        return member is BaseTypeDeclarationSyntax typeDeclaration
+            ? !HasPartialModifier(typeDeclaration.Modifiers)
+            : member is DelegateDeclarationSyntax;
     }
 
     /// <summary>

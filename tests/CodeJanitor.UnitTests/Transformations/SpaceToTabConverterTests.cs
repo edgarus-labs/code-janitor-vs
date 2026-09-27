@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
+using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Logic.Transformations;
 
 namespace CodeJanitor.UnitTests.Transformations;
 

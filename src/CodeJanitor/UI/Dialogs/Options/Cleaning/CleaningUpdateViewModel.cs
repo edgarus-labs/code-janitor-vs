@@ -1,5 +1,3 @@
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
 using System;

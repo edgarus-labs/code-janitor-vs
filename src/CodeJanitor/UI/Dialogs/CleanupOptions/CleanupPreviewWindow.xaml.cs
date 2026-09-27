@@ -1,12 +1,12 @@
-using System;
-using System.ComponentModel;
-using System.Reflection;
-using System.Windows;
 using CodeJanitor.Helpers;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Differencing;
+using System;
+using System.ComponentModel;
+using System.Reflection;
+using System.Windows;
 
 namespace CodeJanitor.UI.Dialogs.CleanupOptions;
 

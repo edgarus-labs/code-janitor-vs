@@ -1,7 +1,7 @@
-using EnvDTE80;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE80;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System.IO;
 using Task = System.Threading.Tasks.Task;
 

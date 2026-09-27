@@ -1,9 +1,9 @@
-using EnvDTE80;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
 using CodeJanitor.Helpers;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using EnvDTE80;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NSubstitute;
 
 namespace CodeJanitor.UnitTests.Helpers;
 

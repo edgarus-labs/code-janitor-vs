@@ -1,3 +1,10 @@
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,14 +15,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
-using EnvDTE;
 using TextDocument = EnvDTE.TextDocument;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Ai;
 

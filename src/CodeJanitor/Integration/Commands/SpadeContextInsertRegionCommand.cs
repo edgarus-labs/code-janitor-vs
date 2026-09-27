@@ -1,10 +1,9 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Reorganizing;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using Microsoft.VisualStudio.Shell;
 using System.Linq;
-using System.Threading.Tasks;
 using Task = System.Threading.Tasks.Task;
 
 namespace CodeJanitor.Integration.Commands;

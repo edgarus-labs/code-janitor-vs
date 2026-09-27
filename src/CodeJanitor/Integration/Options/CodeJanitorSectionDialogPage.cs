@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using System;
 using System.ComponentModel;
 using System.Windows;

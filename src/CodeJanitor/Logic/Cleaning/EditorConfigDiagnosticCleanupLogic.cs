@@ -1,5 +1,6 @@
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning.Diagnostics;
+using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Text;
@@ -85,7 +86,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
     /// <summary>
     /// Runs diagnostic cleanup for a C# project item, using the editor buffer when the item is open
-    /// and the file on disk otherwise (e.g. after the headless cleanup wrote it).
+    /// and the file on disk otherwise (e.g. after the headless cleanup wrote it). A closed file also gets the Roslyn
+    /// equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands, which the editor
+    /// cleanup runs for open documents.
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
@@ -99,7 +102,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         return document is not null
             ? await CleanupAsync(document)
-            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath));
+            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath), applyEditorCommandEquivalents: true);
     }
 
     /// <summary>
@@ -120,7 +123,8 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
                 var textDocument = document.GetTextDocument();
 
                 return textDocument.StartPoint.CreateEditPoint().GetText(textDocument.EndPoint);
-            });
+            },
+            applyEditorCommandEquivalents: false);
     }
 
     /// <summary>
@@ -129,8 +133,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
+    /// <param name="applyEditorCommandEquivalents">True to run the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands first.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-    private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText)
+    private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText, bool applyEditorCommandEquivalents)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -141,7 +146,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         try
         {
-            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText);
+            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText, applyEditorCommandEquivalents);
         }
         catch (Exception ex) when (VisualStudioRoslynWorkspace.IsRoslynBindingFailure(ex))
         {
@@ -175,12 +180,14 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
+    /// <param name="applyEditorCommandEquivalents">True to run the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands first.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<DiagnosticCleanupOutcome> RunInWorkspaceAsync(
         string filePath,
         string projectFilePath,
-        Func<string> readCurrentText)
+        Func<string> readCurrentText,
+        bool applyEditorCommandEquivalents)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -188,6 +195,17 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         var engine = _engine ?? (_engine = new DiagnosticCleanupEngine(new CodeFixProviderCatalog(GetMefCodeFixProviders())));
         var options = new DiagnosticCleanupOptions(AllCategories);
         var cancellationToken = _package.DisposalToken;
+
+        var settings = EffectiveCleanupSettings.For(filePath);
+        var removeAndSortUsings = applyEditorCommandEquivalents &&
+            settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)) &&
+            !(_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave)));
+        var format = applyEditorCommandEquivalents && settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand));
+        var usingsToKeep = (settings.GetString(nameof(Settings.Cleaning_UsingStatementsToReinsertWhenRemovedExpression)) ?? string.Empty)
+            .Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(usingStatement => usingStatement.Trim())
+            .Where(usingStatement => usingStatement.Length > 0)
+            .ToList();
 
         const int maxAttempts = 2;
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
@@ -197,7 +215,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
             // The engine is host-agnostic and CPU bound: run it off the UI thread.
             await TaskScheduler.Default;
-            var document = await VisualStudioRoslynWorkspace.GetDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
+            var originalDocument = await VisualStudioRoslynWorkspace.GetDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
+            var document = await RoslynDocumentCleanup.ApplyAsync(originalDocument, removeAndSortUsings, format, usingsToKeep, cancellationToken);
+            var editorCommandsChanged = !(await document.GetTextAsync(cancellationToken)).ContentEquals(await originalDocument.GetTextAsync(cancellationToken));
             var result = await engine.CleanupAsync(document, options, cancellationToken);
 
             // Headless cleanup writes closed files to disk, and the workspace may not have observed those
@@ -225,27 +245,29 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             }
 
             // The engine validated only the project flavors it changed; a linked, shared or multi-targeted file must
-            // not gain compiler errors in any other project that compiles it.
-            if (result.HasChanges)
+            // not gain compiler errors in any other project that compiles it. This covers the Roslyn "Remove and Sort
+            // Usings" and "Format Document" steps as well.
+            var changedSolution = result.HasChanges ? result.ChangedSolution : document.Project.Solution;
+            if (result.HasChanges || editorCommandsChanged)
             {
-                var otherFlavorError = await FindNewErrorInOtherFlavorsAsync(result.OriginalSolution, result.ChangedSolution, cancellationToken);
+                var otherFlavorError = await FindNewErrorInOtherFlavorsAsync(originalDocument.Project.Solution, changedSolution, cancellationToken);
                 if (otherFlavorError is not null)
                 {
                     throw new InvalidOperationException(
-                        $"Diagnostic fixes for '{filePath}' were computed in project '{document.Project.Name}', but {otherFlavorError}. No diagnostic fixes were applied.");
+                        $"Cleanup of '{filePath}' was computed in project '{document.Project.Name}', but {otherFlavorError}. No changes were applied.");
                 }
             }
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
-            if (!result.HasChanges)
+            if (!result.HasChanges && !editorCommandsChanged)
             {
                 LogResult(filePath, result, applied: false);
 
                 return CreateOutcome(result, changed: false);
             }
 
-            if (workspace.TryApplyChanges(result.ChangedSolution))
+            if (workspace.TryApplyChanges(changedSolution))
             {
                 LogResult(filePath, result, applied: true);
                 ApplyPostApplyOperations(workspace, filePath, result, cancellationToken);

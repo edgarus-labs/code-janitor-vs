@@ -1,8 +1,8 @@
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Properties;
 using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;

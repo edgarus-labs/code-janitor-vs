@@ -1,8 +1,8 @@
+using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using CodeJanitor.Properties;
 
 namespace CodeJanitor.Logic.Cleaning;
 

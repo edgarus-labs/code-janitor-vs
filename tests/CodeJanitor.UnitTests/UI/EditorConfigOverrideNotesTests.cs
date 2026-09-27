@@ -1,10 +1,10 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Properties;
-using CodeJanitor.UI.Dialogs.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.UI;
 

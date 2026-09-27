@@ -1,8 +1,8 @@
-using CodeJanitor;
 using System;
 using System.Reflection;
 using System.Resources;
 using System.Runtime.InteropServices;
+using CodeJanitor;
 
 [assembly: AssemblyCompany(Vsix.Author)]
 [assembly: AssemblyCopyright("Copyright 2007-2021 Steve Cadwallader (LGPL v3). Portions Copyright 2026 John Doe.")]

@@ -1,5 +1,5 @@
-using EnvDTE80;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE80;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

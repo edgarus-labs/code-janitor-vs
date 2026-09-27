@@ -1,3 +1,16 @@
+using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Formatting;
+using CodeJanitor.Logic.Reorganizing;
+using CodeJanitor.Logic.Transformations;
+using CodeJanitor.Model;
+using CodeJanitor.Model.CodeItems;
+using CodeJanitor.Properties;
+using CodeJanitor.UI.Enumerations;
+using EnvDTE;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,21 +21,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using CodeJanitor.Helpers;
-using CodeJanitor.Logic.Formatting;
-using CodeJanitor.Logic.Reorganizing;
-using CodeJanitor.Logic.Transformations;
-using CodeJanitor.Model;
-using CodeJanitor.Model.CodeItems;
-using CodeJanitor.Properties;
-using CodeJanitor.UI.Enumerations;
-using EnvDTE;
 using Document = EnvDTE.Document;
 using TextDocument = EnvDTE.TextDocument;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -279,7 +279,7 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp(projectItemFileName))
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
             if (headlessResult == HeadlessCleanupResult.Changed)
             {
@@ -392,7 +392,7 @@ internal sealed class CodeCleanupManager
             }
         }
 
-        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp(projectItemFileName))
+        if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
             if (headlessResult == HeadlessCleanupResult.Changed)
             {
@@ -1184,13 +1184,11 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Determines whether the C# cleanup of a file still requires the editor-backed DTE path. The Visual Studio
-    /// commands follow the effective settings of the file (.editorconfig, then the .codejanitor repository policy, then
-    /// the Visual Studio settings), like the editor steps that run them.
+    /// Determines whether the C# cleanup of a closed file still requires the editor-backed DTE path. "Remove and Sort
+    /// Usings" and "Format Document" do not: diagnostic cleanup runs their Roslyn equivalents on closed files.
     /// </summary>
-    /// <param name="filePath">The file path.</param>
     /// <returns>True if editor-backed cleanup must run, otherwise false.</returns>
-    internal static bool RequiresEditorCleanupForCSharp(string filePath)
+    internal static bool RequiresEditorCleanupForCSharp()
     {
         if (Settings.Default.Reorganizing_RunAtStartOfCleanup) return true;
 
@@ -1198,13 +1196,6 @@ internal sealed class CodeCleanupManager
             Settings.Default.ThirdParty_UseTelerikJustCodeCleanup ||
             Settings.Default.ThirdParty_UseXAMLStylerCleanup ||
             OtherCleaningCommands.Value.Any())
-        {
-            return true;
-        }
-
-        var settings = EffectiveCleanupSettings.For(filePath);
-        if (settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand)) ||
-            settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)))
         {
             return true;
         }

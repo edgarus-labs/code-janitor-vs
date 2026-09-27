@@ -1,5 +1,5 @@
-using EnvDTE;
 using CodeJanitor.Model.CodeItems;
+using EnvDTE;
 
 namespace CodeJanitor.Model.CodeTree;
 

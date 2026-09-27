@@ -1,3 +1,5 @@
+using CodeJanitor.Helpers;
+using CodeJanitor.Model.CodeItems;
 using EnvDTE;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
@@ -5,8 +7,6 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Outlining;
 using Microsoft.VisualStudio.TextManager.Interop;
-using CodeJanitor.Helpers;
-using CodeJanitor.Model.CodeItems;
 using System;
 using System.Collections.Generic;
 using System.Linq;

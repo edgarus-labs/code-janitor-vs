@@ -1,6 +1,6 @@
+using CodeJanitor.Properties;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using CodeJanitor.Properties;
 using System;
 
 namespace CodeJanitor.Helpers;

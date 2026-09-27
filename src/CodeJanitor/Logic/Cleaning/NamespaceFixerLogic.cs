@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.IO;
 using System.Text;

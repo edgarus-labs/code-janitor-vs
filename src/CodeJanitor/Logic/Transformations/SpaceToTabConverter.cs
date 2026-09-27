@@ -1,6 +1,6 @@
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace CodeJanitor.Logic.Transformations;
 

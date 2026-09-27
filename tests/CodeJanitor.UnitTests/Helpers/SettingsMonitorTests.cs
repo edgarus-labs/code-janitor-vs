@@ -1,8 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
 using System.Linq;
 using System.Threading.Tasks;
+using CodeJanitor.Helpers;
+using CodeJanitor.Properties;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Helpers;
 

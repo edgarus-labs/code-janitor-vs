@@ -1,9 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.CodeAnalysis.CSharp;
-using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Properties;
 using System;
 using System.IO;
+using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 

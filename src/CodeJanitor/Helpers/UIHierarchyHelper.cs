@@ -1,7 +1,7 @@
+using CodeJanitor.Properties;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
-using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Linq;

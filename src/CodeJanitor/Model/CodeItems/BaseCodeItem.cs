@@ -1,5 +1,5 @@
-using EnvDTE;
 using CodeJanitor.UI;
+using EnvDTE;
 using System.Diagnostics;
 
 namespace CodeJanitor.Model.CodeItems;

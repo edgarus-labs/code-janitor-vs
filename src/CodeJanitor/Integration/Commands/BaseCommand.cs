@@ -1,5 +1,5 @@
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.ComponentModel.Design;
 using Task = System.Threading.Tasks.Task;

@@ -1,7 +1,7 @@
-using EnvDTE;
-using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace CodeJanitor.Logic.Cleaning;
 

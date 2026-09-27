@@ -1,7 +1,7 @@
-using System;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 

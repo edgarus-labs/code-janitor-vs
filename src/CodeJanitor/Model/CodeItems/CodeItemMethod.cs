@@ -1,6 +1,6 @@
+using CodeJanitor.Helpers;
 using EnvDTE;
 using EnvDTE80;
-using CodeJanitor.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
