@@ -87,10 +87,11 @@ editor path (the EnvDTE `*Logic` classes, resolved once per document in
 
 1. `.editorconfig`, for the keys it maps (see `docs/features.md`), read with Roslyn's
    `AnalyzerConfigSet` (`EditorConfigHelper`, which also reports `dotnet_diagnostic.<id>.severity`),
-   so sections, globs, `root = true` and nearest-file-wins follow the EditorConfig rules. A value
-   with severity `:none` or `:silent` is ignored, so the next source decides; `suggestion` or
-   higher, or no suffix, enforces the value. For keys tied to Roslyn diagnostics
-   (`TryReadRule`), a `dotnet_diagnostic.<id>.severity` of one of them wins over the suffix;
+   so sections, globs, `root = true` and nearest-file-wins follow the EditorConfig rules. For keys
+   tied to Roslyn diagnostics (`TryReadRule`), each diagnostic's severity is resolved in Roslyn's
+   order (`dotnet_diagnostic.<id>.severity`, category, global, then the key's suffix; a `:none` suffix
+   disables the rule); the rule is enforced when any diagnostic is `suggestion` or higher. Other keys
+   use only their suffix. `none`, `silent` or `refactoring` is ignored, so the next source decides;
 2. the `.codejanitor` repository policy (`RepositoryCleanupSettings`);
 3. the user's Visual Studio settings.
 

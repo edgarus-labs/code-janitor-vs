@@ -75,6 +75,11 @@ public sealed class CodeStyleRuleOptionViewModel : Bindable, IDataErrorInfo
     internal bool HasValidValue => _rule.IsValidValue(Value?.Trim());
 
     /// <summary>
+    /// Gets or sets a value indicating whether the settings hold a saved value of the rule.
+    /// </summary>
+    internal bool HasSavedValue { get; set; }
+
+    /// <summary>
     /// Gets the value proposed when the rule is enabled.
     /// </summary>
     internal string DefaultValue => _rule.DefaultValue;
@@ -85,6 +90,14 @@ public sealed class CodeStyleRuleOptionViewModel : Bindable, IDataErrorInfo
     /// <inheritdoc />
     string IDataErrorInfo.this[string columnName] =>
         columnName == nameof(Value) && !HasValidValue
-            ? $"'{Value}' is not a valid value of {Key}; the previously saved value is kept."
+            ? HasSavedValue
+                ? $"'{Value}' is not a valid value of {Key}; the previously saved value is kept."
+                : $"'{Value}' is not a valid value of {Key}; the rule will not be saved until its value is valid."
             : null;
+
+    /// <summary>
+    /// Returns the value in its canonical form.
+    /// </summary>
+    /// <returns>The canonical value.</returns>
+    internal string Normalize() => _rule.Normalize(Value);
 }

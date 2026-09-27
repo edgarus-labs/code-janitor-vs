@@ -325,7 +325,7 @@ internal static class RepositoryCleanupSettings
             }
             else if (rule.Value is string value && codeStyleRule.IsValidValue(value.Trim()))
             {
-                codeStyle[rule.Key] = value.Trim();
+                codeStyle[rule.Key] = codeStyleRule.Normalize(value);
             }
         }
     }

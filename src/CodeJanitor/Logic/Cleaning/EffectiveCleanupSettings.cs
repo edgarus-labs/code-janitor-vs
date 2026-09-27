@@ -10,10 +10,11 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// Resolves the cleanup settings that apply to one file for both the editor and the closed-file cleanup:
 /// a setting defined by .editorconfig wins, otherwise the repository policy (.codejanitor) wins, otherwise the
-/// user's Visual Studio setting applies. An .editorconfig option whose severity suffix is <c>:none</c> or
-/// <c>:silent</c> is ignored, as are options with unrecognized values or severities, so the next source decides;
-/// <c>suggestion</c> or higher, or no suffix, enforces the value. The same order resolves the Code Janitor
-/// code-style rules (<see cref="CodeStyleRules" />).
+/// user's Visual Studio setting applies. A plain .editorconfig option (such as <c>indent_style</c>) whose severity
+/// suffix is <c>:none</c> or <c>:silent</c> is ignored, as are options with unrecognized values or severities, so
+/// the next source decides; <c>suggestion</c> or higher, or no suffix, enforces the value. A Roslyn rule is enforced
+/// as Roslyn reports it (see <see cref="TryReadRule" />), which also resolves the Code Janitor code-style rules
+/// (<see cref="CodeStyleRules" />).
 /// </summary>
 internal sealed class EffectiveCleanupSettings
 {
@@ -22,6 +23,25 @@ internal sealed class EffectiveCleanupSettings
     private const string FileHeaderSetting = "Cleaning_UpdateFileHeaderCSharp";
     private const int DefaultTabSize = 4;
     private const int DefaultIndentSize = 4;
+
+    /// <summary>
+    /// The analyzer categories of the non-IDE diagnostics the cleanup steps follow; every IDE diagnostic is "Style".
+    /// </summary>
+    private static readonly Dictionary<string, string> AnalyzerCategories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["CA1507"] = "Maintainability",
+        ["CA1852"] = "Performance",
+        ["CA1869"] = "Performance",
+    };
+
+    /// <summary>
+    /// The diagnostics the cleanup steps follow that are disabled by default. As in Roslyn, category and global
+    /// severities do not apply to them; only <c>dotnet_diagnostic.&lt;id&gt;.severity</c> enables them.
+    /// </summary>
+    private static readonly HashSet<string> DisabledByDefaultDiagnostics = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "CA1852",
+    };
 
     /// <summary>
     /// The settings controlled by <c>dotnet_style_require_accessibility_modifiers</c>.
@@ -206,40 +226,19 @@ internal sealed class EffectiveCleanupSettings
     }
 
     /// <summary>
-    /// Records the boolean settings defined by .editorconfig options.
+    /// Records the boolean settings defined by plain .editorconfig options, which have no Roslyn rule counterpart.
     /// </summary>
     private void ApplyEditorConfigBooleans()
     {
-        ApplyBoolean("trim_trailing_whitespace", ParseBoolean, "Cleaning_RemoveEndOfLineWhitespace");
-        ApplyBoolean("csharp_style_var_when_type_is_apparent", ParseBoolean, "Cleaning_ConvertToVarWhenApparent");
-        ApplyBoolean("csharp_style_inlined_variable_declaration", ParseBoolean, "Cleaning_InlineOutVariableDeclarations");
-        ApplyBoolean("dotnet_style_prefer_collection_expression", ParseCollectionExpressionPreference, "Cleaning_ConvertToCollectionExpressions");
-        ApplyBoolean("dotnet_style_readonly_field", ParseBoolean, "Cleaning_MakeFieldsReadonlyWhenSafe");
-        ApplyBoolean("dotnet_style_require_accessibility_modifiers", ParseAccessibilityModifiersPreference, ExplicitAccessModifierSettings);
+        if (TryReadOption("trim_trailing_whitespace", ParseBoolean, out var trimTrailingWhitespace))
+        {
+            SetEditorConfigValue("Cleaning_RemoveEndOfLineWhitespace", "trim_trailing_whitespace", trimTrailingWhitespace == true);
+        }
 
         if (TryReadOption("insert_final_newline", ParseBoolean, out var insertFinalNewline))
         {
             SetEditorConfigValue("Cleaning_InsertEndOfFileTrailingNewLine", "insert_final_newline", insertFinalNewline == true);
             SetEditorConfigValue("Cleaning_RemoveEndOfFileTrailingNewLine", "insert_final_newline", insertFinalNewline == false);
-        }
-    }
-
-    /// <summary>
-    /// Records the boolean settings controlled by one .editorconfig option when the option is defined.
-    /// </summary>
-    /// <param name="key">The .editorconfig option name.</param>
-    /// <param name="parseValue">Maps the option value to a setting value, or null when the value is unrecognized.</param>
-    /// <param name="settingNames">The controlled Visual Studio setting property names.</param>
-    private void ApplyBoolean(string key, Func<string, bool?> parseValue, params string[] settingNames)
-    {
-        if (!TryReadOption(key, parseValue, out var value))
-        {
-            return;
-        }
-
-        foreach (var settingName in settingNames)
-        {
-            SetEditorConfigValue(settingName, key, value == true);
         }
     }
 
@@ -257,11 +256,20 @@ internal sealed class EffectiveCleanupSettings
 
     /// <summary>
     /// Records the boolean settings whose cleanup step has a Roslyn rule counterpart, when .editorconfig enforces that
-    /// rule (see <see cref="TryReadRule" />). A rule enforced only through a diagnostic severity uses Roslyn's default
-    /// option value; a rule configured by severity only turns its step on.
+    /// rule (see <see cref="TryReadRule" />). A rule enforced only through a diagnostic, category or global severity
+    /// uses Roslyn's default option value; a rule configured by severity only turns its step on.
     /// </summary>
     private void ApplyEditorConfigRules()
     {
+        ApplyRule("Cleaning_ConvertToVarWhenApparent", "csharp_style_var_when_type_is_apparent", new[] { "IDE0007", "IDE0008" }, ParseBoolean, defaultValue: false);
+        ApplyRule("Cleaning_InlineOutVariableDeclarations", "csharp_style_inlined_variable_declaration", new[] { "IDE0018" }, ParseBoolean, defaultValue: true);
+        ApplyRule("Cleaning_ConvertToCollectionExpressions", "dotnet_style_prefer_collection_expression", new[] { "IDE0300", "IDE0301", "IDE0302", "IDE0303", "IDE0304", "IDE0305", "IDE0306" }, ParseCollectionExpressionPreference, defaultValue: true);
+        ApplyRule("Cleaning_MakeFieldsReadonlyWhenSafe", "dotnet_style_readonly_field", new[] { "IDE0044" }, ParseBoolean, defaultValue: true);
+        foreach (var settingName in ExplicitAccessModifierSettings)
+        {
+            ApplyRule(settingName, "dotnet_style_require_accessibility_modifiers", new[] { "IDE0040" }, ParseAccessibilityModifiersPreference, defaultValue: true);
+        }
+
         ApplyRule("Cleaning_SimplifySingleStatementLambdas", "csharp_style_expression_bodied_lambdas", new[] { "IDE0053" }, ParseExpressionBodyPreference, defaultValue: true);
         ApplyNullCheckRules();
         ApplyRule("Cleaning_SealClassesWhenSafe", null, new[] { "CA1852" }, null, defaultValue: true);
@@ -388,7 +396,7 @@ internal sealed class EffectiveCleanupSettings
             }
 
             var value = TryReadRawOption(rule.Key, out var configuredValue, out _) && rule.IsValidValue(configuredValue)
-                ? configuredValue
+                ? rule.Normalize(configuredValue)
                 : rule.DefaultValue;
             overrides[rule.Key] = value + ":none";
         }
@@ -426,17 +434,19 @@ internal sealed class EffectiveCleanupSettings
     }
 
     /// <summary>
-    /// Resolves the namespace declaration style: an enforced .editorconfig style wins, otherwise the file-scoped
-    /// conversion setting decides.
+    /// Resolves the namespace declaration style: .editorconfig wins when it enforces
+    /// <c>csharp_style_namespace_declarations</c> (IDE0160, IDE0161; see <see cref="TryReadRule" />), with Roslyn's
+    /// default <c>block_scoped</c> when enforced by severity only; otherwise the file-scoped conversion setting decides.
     /// </summary>
     /// <returns>The namespace declaration style.</returns>
     private NamespaceDeclarationPreference ResolveNamespaceDeclarations()
     {
-        if (TryReadOption("csharp_style_namespace_declarations", ParseNamespaceDeclarations, out var preference))
+        if (TryReadRule("csharp_style_namespace_declarations", new[] { "IDE0160", "IDE0161" }, value => ParseNamespaceDeclarations(value).HasValue, out var value, out var decidingKey))
         {
-            SetEditorConfigValue(ConvertToFileScopedNamespaceSetting, "csharp_style_namespace_declarations", preference == NamespaceDeclarationPreference.FileScoped);
+            var preference = value is null ? NamespaceDeclarationPreference.BlockScoped : ParseNamespaceDeclarations(value).Value;
+            SetEditorConfigValue(ConvertToFileScopedNamespaceSetting, decidingKey, preference == NamespaceDeclarationPreference.FileScoped);
 
-            return preference.Value;
+            return preference;
         }
 
         return GetBoolean(ConvertToFileScopedNamespaceSetting)
@@ -445,17 +455,19 @@ internal sealed class EffectiveCleanupSettings
     }
 
     /// <summary>
-    /// Resolves the using directive placement: an enforced .editorconfig placement wins, otherwise the move-outside
-    /// setting decides.
+    /// Resolves the using directive placement: .editorconfig wins when it enforces
+    /// <c>csharp_using_directive_placement</c> (IDE0065; see <see cref="TryReadRule" />), with Roslyn's default
+    /// <c>outside_namespace</c> when enforced by severity only; otherwise the move-outside setting decides.
     /// </summary>
     /// <returns>The using directive placement.</returns>
     private UsingDirectivePlacementPreference ResolveUsingDirectivePlacement()
     {
-        if (TryReadOption("csharp_using_directive_placement", ParseUsingDirectivePlacement, out var preference))
+        if (TryReadRule("csharp_using_directive_placement", new[] { "IDE0065" }, value => ParseUsingDirectivePlacement(value).HasValue, out var value, out var decidingKey))
         {
-            SetEditorConfigValue(MoveUsingsOutsideNamespaceSetting, "csharp_using_directive_placement", preference == UsingDirectivePlacementPreference.OutsideNamespace);
+            var preference = value is null ? UsingDirectivePlacementPreference.OutsideNamespace : ParseUsingDirectivePlacement(value).Value;
+            SetEditorConfigValue(MoveUsingsOutsideNamespaceSetting, decidingKey, preference == UsingDirectivePlacementPreference.OutsideNamespace);
 
-            return preference.Value;
+            return preference;
         }
 
         return GetBoolean(MoveUsingsOutsideNamespaceSetting)
@@ -493,7 +505,7 @@ internal sealed class EffectiveCleanupSettings
     }
 
     /// <summary>
-    /// Reads an .editorconfig option in the <c>value[:severity]</c> form.
+    /// Reads a plain .editorconfig option (one without a Roslyn rule) in the <c>value[:severity]</c> form.
     /// </summary>
     /// <typeparam name="T">The parsed value type.</typeparam>
     /// <param name="key">The .editorconfig option name.</param>
@@ -507,13 +519,13 @@ internal sealed class EffectiveCleanupSettings
         where T : struct
     {
         value = null;
-        if (!TryReadRawOption(key, out var rawValue, out var enforced))
+        if (!TryReadRawOption(key, out var rawValue, out var severity))
         {
             return false;
         }
 
         var parsed = parseValue(rawValue);
-        if (parsed is null || !enforced)
+        if (parsed is null || !IsEnforcing(severity))
         {
             return false;
         }
@@ -528,27 +540,27 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="key">The .editorconfig option name.</param>
     /// <param name="value">The trimmed value.</param>
-    /// <param name="enforced">False when the severity does not enforce the option; true without a severity.</param>
+    /// <param name="severity">The trimmed, lower-cased severity suffix, or null without one.</param>
     /// <returns>True when the option is defined with no severity or a recognized one.</returns>
-    private bool TryReadRawOption(string key, out string value, out bool enforced)
+    private bool TryReadRawOption(string key, out string value, out string severity)
     {
         value = null;
-        enforced = false;
+        severity = null;
         if (!_editorConfigOptions.TryGetValue(key, out var rawValue) || rawValue is null)
         {
             return false;
         }
 
-        enforced = true;
         var separatorIndex = rawValue.IndexOf(':');
         if (separatorIndex >= 0)
         {
-            if (separatorIndex != rawValue.LastIndexOf(':') ||
-                !TryParseSeverity(rawValue.Substring(separatorIndex + 1).Trim(), out enforced))
+            var suffix = rawValue.Substring(separatorIndex + 1).Trim().ToLowerInvariant();
+            if (separatorIndex != rawValue.LastIndexOf(':') || !TryParseSeverity(suffix, out _))
             {
                 return false;
             }
 
+            severity = suffix;
             rawValue = rawValue.Substring(0, separatorIndex);
         }
 
@@ -558,64 +570,127 @@ internal sealed class EffectiveCleanupSettings
     }
 
     /// <summary>
-    /// Reads a Roslyn rule configured by an option and the severities of its diagnostics. As in Roslyn, a
-    /// <c>dotnet_diagnostic.&lt;id&gt;.severity</c> of one of the diagnostics beats the option's own severity suffix:
-    /// the rule is enforced when one of them is <c>suggestion</c> or higher, and not enforced when all of them are
-    /// <c>none</c> or <c>silent</c>. Without such a severity, the option decides as in <see cref="TryReadOption{T}" />.
+    /// Reads a Roslyn rule configured by an option and the severities of its diagnostics, resolved as Roslyn reports
+    /// it. An option with the <c>:none</c> suffix stops the rule whatever else is configured. Otherwise the effective
+    /// severity of each diagnostic is the first one defined of <c>dotnet_diagnostic.&lt;id&gt;.severity</c>,
+    /// <c>dotnet_analyzer_diagnostic.category-&lt;category&gt;.severity</c>, <c>dotnet_analyzer_diagnostic.severity</c>
+    /// and the option's severity suffix; an option without a suffix enforces the diagnostics none of those configure.
+    /// The rule is enforced when one of its diagnostics is <c>suggestion</c> or higher, and not enforced when none is
+    /// (all <c>none</c> or <c>silent</c>, or nothing configured), so the next source decides.
     /// </summary>
     /// <param name="key">The .editorconfig option name, or null for a rule configured by severity only.</param>
     /// <param name="diagnosticIds">The IDs of the rule's diagnostics.</param>
-    /// <param name="isValidValue">Validates the option value.</param>
-    /// <param name="value">The enforced option value, or null when the rule is enforced with its default value.</param>
-    /// <param name="decidingKey">The .editorconfig option that enforces the rule.</param>
+    /// <param name="isValidValue">Validates the option value; an invalid option is treated as undefined.</param>
+    /// <param name="value">The enforced option value, or null when the rule is enforced with Roslyn's default value.</param>
+    /// <param name="decidingKey">
+    /// The option name when the option is defined, otherwise the severity entry that enforces the rule.
+    /// </param>
     /// <returns>True when .editorconfig enforces the rule.</returns>
     private bool TryReadRule(string key, IEnumerable<string> diagnosticIds, Func<string, bool> isValidValue, out string value, out string decidingKey)
     {
         value = null;
         decidingKey = null;
 
-        var optionEnforced = false;
-        var optionDefined = key is not null && TryReadRawOption(key, out value, out optionEnforced) && isValidValue(value);
+        string optionSeverity = null;
+        var optionDefined = key is not null && TryReadRawOption(key, out value, out optionSeverity) && isValidValue(value);
         if (!optionDefined)
         {
             value = null;
         }
-
-        var severityConfigured = false;
-        string enforcingKey = null;
-        foreach (var severityKey in diagnosticIds.Select(EditorConfigHelper.DiagnosticSeverityKey))
+        else if (optionSeverity == "none")
         {
-            if (_editorConfigOptions.TryGetValue(severityKey, out var severity) && TryParseSeverity(severity.Trim(), out var enforced))
+            // Roslyn does not run the rule's analysis at all, whatever severity its diagnostics get.
+            value = null;
+
+            return false;
+        }
+
+        string enforcingKey = null;
+        foreach (var diagnosticId in diagnosticIds)
+        {
+            if (TryReadDiagnosticSeverity(diagnosticId, out var severityKey, out var enforced))
             {
-                severityConfigured = true;
                 enforcingKey ??= enforced ? severityKey : null;
             }
-        }
-
-        if (severityConfigured)
-        {
-            if (enforcingKey is null)
+            else if (optionDefined && IsEnforcing(optionSeverity))
             {
-                value = null;
-
-                return false;
+                enforcingKey ??= key;
             }
-
-            decidingKey = optionDefined ? key : enforcingKey;
-
-            return true;
         }
 
-        if (!optionDefined || !optionEnforced)
+        if (enforcingKey is null)
         {
             value = null;
 
             return false;
         }
 
-        decidingKey = key;
+        decidingKey = optionDefined ? key : enforcingKey;
 
         return true;
+    }
+
+    /// <summary>
+    /// Reads the severity .editorconfig configures for a diagnostic, other than through an option suffix: the first
+    /// recognized one of <c>dotnet_diagnostic.&lt;id&gt;.severity</c>,
+    /// <c>dotnet_analyzer_diagnostic.category-&lt;category&gt;.severity</c> and <c>dotnet_analyzer_diagnostic.severity</c>.
+    /// Keys are compared ignoring case, as in Roslyn.
+    /// </summary>
+    /// <param name="diagnosticId">The diagnostic ID.</param>
+    /// <param name="severityKey">The lower-cased entry that configures the severity.</param>
+    /// <param name="enforced">True when the severity is <c>suggestion</c> or higher.</param>
+    /// <returns>True when one of the entries configures the severity.</returns>
+    private bool TryReadDiagnosticSeverity(string diagnosticId, out string severityKey, out bool enforced)
+    {
+        var bulkApplies = !DisabledByDefaultDiagnostics.Contains(diagnosticId);
+        var category = GetDiagnosticCategory(diagnosticId);
+        var candidates = new[]
+        {
+            EditorConfigHelper.DiagnosticSeverityKey(diagnosticId),
+            !bulkApplies || category is null ? null : "dotnet_analyzer_diagnostic.category-" + category.ToLowerInvariant() + ".severity",
+            bulkApplies ? "dotnet_analyzer_diagnostic.severity" : null,
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (candidate is not null
+                && _editorConfigOptions.TryGetValue(candidate, out var severity)
+                && severity is not null
+                && TryParseSeverity(severity.Trim(), out enforced))
+            {
+                severityKey = candidate;
+
+                return true;
+            }
+        }
+
+        severityKey = null;
+        enforced = false;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the analyzer category of a diagnostic handled by the cleanup, which
+    /// <c>dotnet_analyzer_diagnostic.category-&lt;category&gt;.severity</c> configures.
+    /// </summary>
+    /// <param name="diagnosticId">The diagnostic ID.</param>
+    /// <returns>The category, or null when unknown.</returns>
+    private static string GetDiagnosticCategory(string diagnosticId)
+    {
+        return diagnosticId.StartsWith("IDE", StringComparison.OrdinalIgnoreCase)
+            ? "Style"
+            : AnalyzerCategories.TryGetValue(diagnosticId, out var category) ? category : null;
+    }
+
+    /// <summary>
+    /// Tells whether an option severity suffix enforces the option.
+    /// </summary>
+    /// <param name="severity">The recognized severity suffix, or null without one.</param>
+    /// <returns>True without a suffix or for <c>suggestion</c> or higher.</returns>
+    private static bool IsEnforcing(string severity)
+    {
+        return severity is null || (TryParseSeverity(severity, out var enforced) && enforced);
     }
 
     /// <summary>

@@ -50,6 +50,7 @@ public sealed class CleaningCodeStyleViewModel : OptionsPageViewModel
         {
             rule.IsEnabled = enabled.TryGetValue(rule.Key, out var value);
             rule.Value = rule.IsEnabled ? value : rule.DefaultValue;
+            rule.HasSavedValue = rule.IsEnabled;
             rule.EditorConfigOverride = EditorConfigOverrides[rule.Key];
         }
     }
@@ -67,7 +68,7 @@ public sealed class CleaningCodeStyleViewModel : OptionsPageViewModel
         {
             if (rule.HasValidValue)
             {
-                values[rule.Key] = rule.Value.Trim();
+                values[rule.Key] = rule.Normalize();
             }
             else if (saved.TryGetValue(rule.Key, out var savedValue))
             {
@@ -76,5 +77,9 @@ public sealed class CleaningCodeStyleViewModel : OptionsPageViewModel
         }
 
         ActiveSettings.Cleaning_CodeStyleRules = CodeStyleRules.FormatSetting(values);
+        foreach (var rule in Rules)
+        {
+            rule.HasSavedValue = values.ContainsKey(rule.Key);
+        }
     }
 }

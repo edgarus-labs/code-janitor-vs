@@ -30,7 +30,7 @@ internal sealed class CodeStyleRule
         DiagnosticIds = diagnosticIds;
         Values = values;
         DefaultValue = defaultValue;
-        _isValidValue = isValidValue ?? (value => values.Contains(value, StringComparer.Ordinal));
+        _isValidValue = isValidValue ?? (value => values.Contains(value, StringComparer.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -69,4 +69,16 @@ internal sealed class CodeStyleRule
     /// <param name="value">The value.</param>
     /// <returns>True when the value is valid.</returns>
     internal bool IsValidValue(string value) => value is not null && _isValidValue(value);
+
+    /// <summary>
+    /// Returns the canonical form of a value: the matching entry of <see cref="Values" /> ignoring case, or the
+    /// trimmed value when the option is free text or no entry matches.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The canonical value.</returns>
+    internal string Normalize(string value)
+    {
+        var trimmed = value?.Trim();
+        return Values.FirstOrDefault(entry => string.Equals(entry, trimmed, StringComparison.OrdinalIgnoreCase)) ?? trimmed;
+    }
 }

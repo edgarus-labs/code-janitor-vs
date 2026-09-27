@@ -141,7 +141,7 @@ internal static class CodeStyleRules
             var value = entry.Substring(separatorIndex + 1).Trim();
             if (TryGet(key, out var rule) && rule.IsValidValue(value))
             {
-                values[key] = value;
+                values[key] = rule.Normalize(value);
             }
         }
 
@@ -156,7 +156,7 @@ internal static class CodeStyleRules
     internal static string FormatSetting(IReadOnlyDictionary<string, string> values) =>
         string.Join(";", All
             .Where(rule => values.TryGetValue(rule.Key, out var value) && rule.IsValidValue(value))
-            .Select(rule => rule.Key + "=" + values[rule.Key]));
+            .Select(rule => rule.Key + "=" + rule.Normalize(values[rule.Key])));
 
     /// <summary>
     /// Validates <c>csharp_preferred_modifier_order</c>: a comma-separated list of distinct known modifiers.

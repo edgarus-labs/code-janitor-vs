@@ -88,6 +88,7 @@
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
     <Compile Include="Cleaning\InsertBlankLinePaddingLogicTests.cs" />
     <Compile Include="Cleaning\Diagnostics\CodeFixProviderCatalogTests.cs" />
+    <Compile Include="Cleaning\Diagnostics\CodeStyleSeverityPrecedenceTests.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupCategoryClassifierTests.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupEngineTests.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupTestAnalyzers.cs" />

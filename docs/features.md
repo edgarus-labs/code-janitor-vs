@@ -225,34 +225,42 @@ Settings are provided by grouped WPF pages under **Tools > Options > Code Janito
 Each cleanup setting is resolved per file, in the editor and for closed files alike:
 
 1. `.editorconfig`, for the keys in the table below and the Code Style rules. `.editorconfig` is
-   then the source of truth in both directions. A value with the severity suffix `:none` or
-   `:silent` (for example `csharp_style_namespace_declarations = file_scoped:silent`) is ignored,
-   as if the key were not there, because Visual Studio does not act on it either: the
-   `.codejanitor` entry for that step decides, or else your Visual Studio setting. `suggestion`,
-   `warning`, `error` or no suffix enforces the value. For a key tied to Roslyn diagnostics (marked
-   with their IDs below, and every Code Style rule), `dotnet_diagnostic.<id>.severity` wins over the
-   suffix, as in Roslyn: `suggestion` or higher enforces the rule (with Roslyn's default value when
-   the key itself is not set), `none` or `silent` ignores it;
+   then the source of truth in both directions. For a key tied to Roslyn diagnostics (marked with
+   their IDs below, and every Code Style rule), Code Janitor resolves the severity of each diagnostic
+   as Roslyn does: `dotnet_diagnostic.<id>.severity`, then
+   `dotnet_analyzer_diagnostic.category-<category>.severity` (`Style` for IDE rules), then
+   `dotnet_analyzer_diagnostic.severity`, then the key's own suffix. A key without a suffix counts as
+   enforcing, and a `:none` suffix turns the rule off whatever else is set. The rule is enforced
+   when any of its diagnostics resolves to `suggestion`, `warning` or `error`. The key's value is used,
+   or Roslyn's default when only a severity is set. `none`, `silent` and `refactoring` do not enforce,
+   so, for example, `csharp_style_namespace_declarations = file_scoped:silent` alone is ignored as if the key
+   were not there, but together with `dotnet_diagnostic.IDE0161.severity = warning` it is enforced.
+   A key ignored this way, or with an unrecognized value, leaves the decision to the `.codejanitor`
+   entry for that step, or else to your Visual Studio setting. A bulk
+   `dotnet_analyzer_diagnostic.category-Style.severity = suggestion` or higher therefore enforces every
+   IDE-backed step and Code Style rule, and locks them in Options. Keys without diagnostics (`indent_*`,
+   `insert_final_newline`, `trim_trailing_whitespace`, the using order keys, `file_header_template`)
+   use only their own suffix;
 2. the `.codejanitor` repository policy;
 3. your Visual Studio settings.
 
 | `.editorconfig` key | Code Janitor step |
 |---|---|
-| `csharp_style_namespace_declarations` = `file_scoped` / `block_scoped` | convert to file-scoped (C# 10+) / convert to block-scoped; the body moves by one `indent_size` (`tab_width` when `indent_size = tab`, otherwise 4 spaces) |
-| `csharp_using_directive_placement` = `outside_namespace` / `inside_namespace` | move using directives outside / inside the namespace |
+| `csharp_style_namespace_declarations` (IDE0160, IDE0161) = `file_scoped` / `block_scoped` | convert to file-scoped (C# 10+) / convert to block-scoped; the body moves by one `indent_size` (`tab_width` when `indent_size = tab`, otherwise 4 spaces) |
+| `csharp_using_directive_placement` (IDE0065) = `outside_namespace` / `inside_namespace` | move using directives outside / inside the namespace |
 | `indent_style` = `space` / `tab` (`tab_width`, `indent_size`) | leading tabs to spaces / leading spaces to tabs (closed-file cleanup; the editor uses Visual Studio formatting) |
 | `insert_final_newline` = `true` / `false` | ensure / remove the final newline |
 | `trim_trailing_whitespace` | remove end-of-line whitespace |
 | `dotnet_sort_system_directives_first`, `dotnet_separate_import_directive_groups` | organize using directives (only when `System` directives go first and groups are not separated) |
-| `csharp_style_var_when_type_is_apparent` | convert to `var` when the type is apparent |
-| `dotnet_style_require_accessibility_modifiers` (`always`, `for_non_interface_members` / `never`, `omit_if_default`) | insert explicit access modifiers / do not insert them |
-| `csharp_style_inlined_variable_declaration` | inline `out` variable declarations |
-| `dotnet_style_prefer_collection_expression` | convert to collection expressions |
-| `dotnet_style_readonly_field` | make fields `readonly` when safe |
+| `csharp_style_var_when_type_is_apparent` (IDE0007, IDE0008) | convert to `var` when the type is apparent |
+| `dotnet_style_require_accessibility_modifiers` (IDE0040; `always`, `for_non_interface_members` / `never`, `omit_if_default`) | insert explicit access modifiers / do not insert them |
+| `csharp_style_inlined_variable_declaration` (IDE0018) | inline `out` variable declarations |
+| `dotnet_style_prefer_collection_expression` (IDE0300–IDE0306) | convert to collection expressions |
+| `dotnet_style_readonly_field` (IDE0044) | make fields `readonly` when safe |
 | `file_header_template` (`unset` = no header) | C# file header (each template line is written as a `//` comment) |
 | `csharp_style_expression_bodied_lambdas` (IDE0053) | simplify single-statement lambdas (`false` turns it off) |
 | `csharp_style_prefer_null_check_over_type_check` (IDE0150), `dotnet_style_prefer_is_null_check_over_reference_equality_method` (IDE0041) | convert to pattern-matching null checks (off when an enforced key is `false`) |
-| `dotnet_diagnostic.CA1852.severity` | seal classes when safe (on) |
+| `dotnet_diagnostic.CA1852.severity` | seal classes when safe (on; disabled by default in Roslyn, so category and global severities do not enable it) |
 | `dotnet_diagnostic.CA1507.severity` | convert strings to `nameof` (on) |
 | `dotnet_diagnostic.CA1869.severity` | reuse `JsonSerializerOptions` (on) |
 | `dotnet_style_allow_multiple_blank_lines_experimental` (IDE2000) | remove multiple consecutive blank lines (`false` turns it on) |
@@ -268,8 +276,8 @@ Options shows which of these settings the open solution's `.editorconfig` overri
 affected option (Cleaning > Visual Studio, Remove, Update, Insert and Code Style), a note names the key and the `.editorconfig`
 file that sets it, for example *Overridden by .editorconfig: csharp_style_var_when_type_is_apparent
 in C:\repo\.editorconfig*. Visual Studio options are global, so the note describes a C# file in the
-solution's directory: `.editorconfig` files nested below it are not considered, and a key ignored with
-`:none`, `:silent` or an unrecognized value shows no note. An option with a note is disabled, because its
+solution's directory: `.editorconfig` files nested below it are not considered, and a key that is not
+enforced (see above) or has an unrecognized value shows no note. An option with a note is disabled, because its
 Visual Studio setting has no effect for the open solution; it still applies to files outside that
 `.editorconfig`'s scope, but cannot be edited while the note is shown. No note is shown, and every
 option is editable, when no solution is open.
@@ -295,11 +303,11 @@ Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-j
 }
 ```
 
-The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group aliases `insertBlankLinePadding` and `insertExplicitAccessModifiers` (individual keys override the alias), and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization when `.editorconfig` does not configure the using order). `codeStyle` sets the [Code Style rules](#code-style-rules), keyed by `.editorconfig` option name: a string value enables the rule with that value and `null` disables it; a rule it does not list follows the Options switch. `.codejanitor` values apply in the editor as well as to closed files; keys that `.editorconfig` enforces take precedence over them.
+The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group aliases `insertBlankLinePadding` and `insertExplicitAccessModifiers` (individual keys override the alias), and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization when `.editorconfig` does not configure the using order). `codeStyle` sets the [Code Style rules](#code-style-rules), keyed by `.editorconfig` option name: a string value (matched ignoring case, so `"True"` works; JSON booleans are ignored) enables the rule with that value and `null` disables it; a rule it does not list follows the Options switch. `.codejanitor` values apply in the editor as well as to closed files; keys that `.editorconfig` enforces take precedence over them.
 
 Two commands manage the file from the Code Janitor menu:
 
-- **Export Settings to .codejanitor** writes the current user settings next to the solution file.
+- **Export Settings to .codejanitor** writes the current user settings next to the solution file. Its `codeStyle` section lists only the enabled rules, so disabled rules are not pinned and follow each user's Options switch; add `null` entries by hand to pin a rule off.
 - **Import Settings from .codejanitor** applies the repository file to the current user settings.
 
 ## Navigation and workflow

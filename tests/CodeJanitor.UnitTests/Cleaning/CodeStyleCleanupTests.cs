@@ -145,6 +145,23 @@ public sealed class CodeStyleCleanupTests
         }
     }
 
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ParseSetting_AcceptsValuesIgnoringCase_AndNormalizesThem()
+    {
+        IReadOnlyDictionary<string, string> values = CodeStyleRules.ParseSetting(
+            "csharp_prefer_braces=False;dotnet_style_null_propagation=sometimes;csharp_style_expression_bodied_methods=When_On_Single_Line");
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string>
+            {
+                ["csharp_prefer_braces"] = "false",
+                ["csharp_style_expression_bodied_methods"] = "when_on_single_line",
+            },
+            values.ToDictionary(entry => entry.Key, entry => entry.Value));
+        Assert.AreEqual("csharp_prefer_braces=false", CodeStyleRules.FormatSetting(new Dictionary<string, string> { ["csharp_prefer_braces"] = "FALSE" }));
+    }
+
     /// <summary>
     /// Cleans <paramref name="input" /> as <c>Probe.cs</c> in the test directory. The .editorconfig, when given, is
     /// written to disk (read by <see cref="EffectiveCleanupSettings" />) and added to the project (read by Roslyn).

@@ -241,6 +241,18 @@ public sealed class RepositoryCleanupSettingsTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public void Parse_CodeStyleValues_IgnoreCase_AndAreNormalized()
+    {
+        RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
+            "{ \"cleanup\": { \"codeStyle\": { \"csharp_prefer_braces\": \"True\", \"dotnet_style_null_propagation\": \"sometimes\" } } }");
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" },
+            overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformations_HonorsRepositoryOverride()
     {
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = false;
