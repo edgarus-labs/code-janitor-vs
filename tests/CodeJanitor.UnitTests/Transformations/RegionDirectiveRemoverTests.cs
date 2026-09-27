@@ -36,8 +36,11 @@ public sealed class RegionDirectiveRemoverTests
         string input = @"#region MyRegion
 public class C
 {
+    #region Methods
     public void M() { }
+    #endregion Methods
 }
+#endregion
 ";
         string expected = @"public class C
 {

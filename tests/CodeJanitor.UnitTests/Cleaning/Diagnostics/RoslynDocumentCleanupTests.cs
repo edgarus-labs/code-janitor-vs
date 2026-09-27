@@ -37,6 +37,50 @@ public sealed class RoslynDocumentCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_LeavesNoBlankLineAtTheTop_WhenEveryUsingIsRemoved()
+    {
+        string source = "using System.Text;\r\nusing System.Linq;\r\n\r\nnamespace Demo;\r\n\r\npublic enum E { A }\r\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual("namespace Demo;\r\n\r\npublic enum E { A }\r\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_RemovesTheFirstUsingAfterAFileHeader_AndKeepsTheHeader()
+    {
+        string source = "// Copyright (c) Demo.\r\n\r\nusing System.Text;\r\nusing System;\r\n\r\nnamespace Demo;\r\n\r\npublic class C { public Type T; }\r\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual("// Copyright (c) Demo.\r\n\r\nusing System;\r\n\r\nnamespace Demo;\r\n\r\npublic class C { public Type T; }\r\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_LeavesOneBlankLineAfterTheHeader_WhenEveryUsingIsRemoved()
+    {
+        string source = "// Copyright (c) Demo.\r\n#nullable enable\r\n\r\nusing System.Text;\r\nusing System.Linq;\r\n\r\nnamespace Demo;\r\n\r\npublic enum E { A }\r\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual("// Copyright (c) Demo.\r\n#nullable enable\r\n\r\nnamespace Demo;\r\n\r\npublic enum E { A }\r\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_KeepsAnUnusedUsingWithACommentOnItsLine()
+    {
+        string source = "using System.Text; // kept for the generator\r\nusing System;\r\n\r\nnamespace Demo;\r\n\r\npublic class C { public Type T; }\r\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.Contains("using System.Text; // kept for the generator", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task RemoveAndSortUsings_LeavesUsingsOfAFileWithConditionalCompilation()
     {
         string source = "using System.Text;\r\nusing System;\r\n\r\nnamespace Demo;\r\n\r\npublic class C\r\n{\r\n#if DEBUG\r\n    public StringBuilder Builder;\r\n#endif\r\n    public Type T;\r\n}\r\n";

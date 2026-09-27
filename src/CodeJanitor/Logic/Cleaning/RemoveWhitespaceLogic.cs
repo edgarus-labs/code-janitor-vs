@@ -88,19 +88,25 @@ internal sealed class RemoveWhitespaceLogic
     }
 
     /// <summary>
-    /// The pattern matching the last line of a documentation comment followed by one or more blank lines.
+    /// The pattern matching the last line of a C# documentation comment followed by one or more blank lines.
     /// </summary>
     internal const string BlankLinesAfterDocumentationCommentPattern = @"(^[ \t]*///(?!/)[^\r\n]*)\r?\n(?:[ \t]*\r?\n)+";
+
+    /// <summary>
+    /// The pattern matching the last line of a Visual Basic documentation comment followed by one or more blank lines.
+    /// </summary>
+    internal const string BlankLinesAfterVisualBasicDocumentationCommentPattern = @"(^[ \t]*'''(?!')[^\r\n]*)\r?\n(?:[ \t]*\r?\n)+";
 
     /// <summary>
     /// Removes the blank lines between a documentation comment and the declaration it documents.
     /// </summary>
     /// <param name="textDocument">The text document to cleanup.</param>
-    internal void RemoveBlankLinesAfterDocumentationComments(TextDocument textDocument)
+    /// <param name="pattern">The documentation comment pattern of the document's language: <see cref="BlankLinesAfterDocumentationCommentPattern" /> or <see cref="BlankLinesAfterVisualBasicDocumentationCommentPattern" />.</param>
+    internal void RemoveBlankLinesAfterDocumentationComments(TextDocument textDocument, string pattern)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        TextDocumentHelper.SubstituteAllStringMatches(textDocument, BlankLinesAfterDocumentationCommentPattern, @"$1" + Environment.NewLine);
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, @"$1" + Environment.NewLine);
     }
 
     /// <summary>

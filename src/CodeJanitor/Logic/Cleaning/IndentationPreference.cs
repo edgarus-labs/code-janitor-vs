@@ -1,4 +1,3 @@
-
 namespace CodeJanitor.Logic.Cleaning;
 
 /// <summary>

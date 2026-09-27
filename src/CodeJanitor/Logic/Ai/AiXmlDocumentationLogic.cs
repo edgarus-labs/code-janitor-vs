@@ -1589,10 +1589,6 @@ internal sealed class AiXmlDocumentationLogic
     }
 
     /// <summary>
-    /// The member's own line already carries its indentation, so the block is inserted at the
-    /// start of that line rather than at the declaration token.
-    /// </summary>
-    /// <summary>
     /// Finds the start index of the line containing the character at the specified index.
     /// </summary>
     private static int GetLineStart(string text, int index)

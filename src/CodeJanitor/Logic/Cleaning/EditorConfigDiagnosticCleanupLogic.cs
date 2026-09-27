@@ -17,28 +17,6 @@ using System.Threading.Tasks;
 namespace CodeJanitor.Logic.Cleaning;
 
 /// <summary>
-/// The outcome of running .editorconfig/Roslyn diagnostic cleanup on one C# file. The default value
-/// means nothing changed and nothing is unresolved (including when no category is enabled).
-/// </summary>
-internal struct DiagnosticCleanupOutcome
-{
-    /// <summary>
-    /// Gets or sets a value indicating whether fixes were applied to the Visual Studio workspace.
-    /// </summary>
-    internal bool Changed { get; set; }
-
-    /// <summary>
-    /// Gets or sets the number of actionable diagnostics that were left unresolved.
-    /// </summary>
-    internal int UnresolvedCount { get; set; }
-
-    /// <summary>
-    /// Gets or sets the failure that prevented diagnostic cleanup, otherwise null.
-    /// </summary>
-    internal Exception Failure { get; set; }
-}
-
-/// <summary>
 /// Hosts the host-agnostic <see cref="DiagnosticCleanupEngine" /> inside Visual Studio: resolves the
 /// C# document in the <c>VisualStudioWorkspace</c>, supplies the code fix providers exported through
 /// Visual Studio MEF, runs the engine off the UI thread and applies the result with
@@ -102,7 +80,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         return document is not null
             ? await CleanupAsync(document)
-            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath), applyEditorCommandEquivalents: true);
+            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath), isClosedFile: true);
     }
 
     /// <summary>
@@ -124,7 +102,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
                 return textDocument.StartPoint.CreateEditPoint().GetText(textDocument.EndPoint);
             },
-            applyEditorCommandEquivalents: false);
+            isClosedFile: false);
     }
 
     /// <summary>
@@ -133,9 +111,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
-    /// <param name="applyEditorCommandEquivalents">True to run the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands first.</param>
+    /// <param name="isClosedFile">True for a closed file: the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands run first, and a change limited to the file is written to disk in the background.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-    private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText, bool applyEditorCommandEquivalents)
+    private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText, bool isClosedFile)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -146,7 +124,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         try
         {
-            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText, applyEditorCommandEquivalents);
+            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText, isClosedFile);
         }
         catch (Exception ex) when (VisualStudioRoslynWorkspace.IsRoslynBindingFailure(ex))
         {
@@ -180,14 +158,14 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
-    /// <param name="applyEditorCommandEquivalents">True to run the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands first.</param>
+    /// <param name="isClosedFile">True for a closed file: the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands run first, and a change limited to the file is written to disk in the background.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<DiagnosticCleanupOutcome> RunInWorkspaceAsync(
         string filePath,
         string projectFilePath,
         Func<string> readCurrentText,
-        bool applyEditorCommandEquivalents)
+        bool isClosedFile)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -196,12 +174,12 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         var options = new DiagnosticCleanupOptions(AllCategories);
         var cancellationToken = _package.DisposalToken;
 
-        var settings = EffectiveCleanupSettings.For(filePath);
-        var removeAndSortUsings = applyEditorCommandEquivalents &&
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(filePath);
+        bool removeAndSortUsings = isClosedFile &&
             settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)) &&
             !(_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave)));
-        var format = applyEditorCommandEquivalents && settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand));
-        var usingsToKeep = (settings.GetString(nameof(Settings.Cleaning_UsingStatementsToReinsertWhenRemovedExpression)) ?? string.Empty)
+        bool format = isClosedFile && settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand));
+        List<string> usingsToKeep = (settings.GetString(nameof(Settings.Cleaning_UsingStatementsToReinsertWhenRemovedExpression)) ?? string.Empty)
             .Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
             .Select(usingStatement => usingStatement.Trim())
             .Where(usingStatement => usingStatement.Length > 0)
@@ -215,9 +193,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
             // The engine is host-agnostic and CPU bound: run it off the UI thread.
             await TaskScheduler.Default;
-            var originalDocument = await VisualStudioRoslynWorkspace.GetDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
-            var document = await RoslynDocumentCleanup.ApplyAsync(originalDocument, removeAndSortUsings, format, usingsToKeep, cancellationToken);
-            var editorCommandsChanged = !(await document.GetTextAsync(cancellationToken)).ContentEquals(await originalDocument.GetTextAsync(cancellationToken));
+            Document originalDocument = await VisualStudioRoslynWorkspace.GetDocumentAsync(solution, filePath, projectFilePath, currentText, cancellationToken);
+            Document document = await RoslynDocumentCleanup.ApplyAsync(originalDocument, removeAndSortUsings, format, usingsToKeep, cancellationToken);
+            bool editorCommandsChanged = !(await document.GetTextAsync(cancellationToken)).ContentEquals(await originalDocument.GetTextAsync(cancellationToken));
             var result = await engine.CleanupAsync(document, options, cancellationToken);
 
             // Headless cleanup writes closed files to disk, and the workspace may not have observed those
@@ -247,7 +225,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             // The engine validated only the project flavors it changed; a linked, shared or multi-targeted file must
             // not gain compiler errors in any other project that compiles it. This covers the Roslyn "Remove and Sort
             // Usings" and "Format Document" steps as well.
-            var changedSolution = result.HasChanges ? result.ChangedSolution : document.Project.Solution;
+            Solution changedSolution = result.HasChanges ? result.ChangedSolution : document.Project.Solution;
             if (result.HasChanges || editorCommandsChanged)
             {
                 var otherFlavorError = await FindNewErrorInOtherFlavorsAsync(originalDocument.Project.Solution, changedSolution, cancellationToken);
@@ -258,21 +236,53 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
                 }
             }
 
+            // A closed file whose only change is its own text is written straight to disk, so Visual Studio does not
+            // open it in an invisible editor and save it on the UI thread. The file is checked on the UI thread right
+            // before the write: a file the user opened meanwhile, or one that cannot be written directly (read-only,
+            // source control checkout), goes through the workspace like changes to several files and follow-up host
+            // operations do.
+            if (isClosedFile && (result.HasChanges || editorCommandsChanged) && result.PostApplyOperations.Count == 0)
+            {
+                string closedFileText = await GetTextWhenOnlyTheFileChangedAsync(originalDocument.Project.Solution, changedSolution, document.Id, filePath, cancellationToken);
+                if (closedFileText is not null)
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                    if (!VsShellUtilities.IsDocumentOpen(_package, filePath, Guid.Empty, out _, out _, out _))
+                    {
+                        ClosedFileWriteResult writeResult = VisualStudioRoslynWorkspace.TryWriteClosedFileText(filePath, currentText, closedFileText);
+                        if (writeResult == ClosedFileWriteResult.Written)
+                        {
+                            LogResult(filePath, result, applied: true, editorCommandsChanged);
+
+                            return CreateOutcome(result, changed: result.HasChanges);
+                        }
+
+                        if (writeResult == ClosedFileWriteResult.ChangedOnDisk)
+                        {
+                            OutputWindowHelper.DiagnosticWriteLine(
+                                $"Diagnostic cleanup for '{filePath}': the file changed on disk while it was being cleaned (attempt {attempt} of {maxAttempts}).");
+
+                            continue;
+                        }
+                    }
+                }
+            }
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             if (!result.HasChanges && !editorCommandsChanged)
             {
-                LogResult(filePath, result, applied: false);
+                LogResult(filePath, result, applied: false, editorCommandsChanged: false);
 
                 return CreateOutcome(result, changed: false);
             }
 
             if (workspace.TryApplyChanges(changedSolution))
             {
-                LogResult(filePath, result, applied: true);
+                LogResult(filePath, result, applied: true, editorCommandsChanged);
                 ApplyPostApplyOperations(workspace, filePath, result, cancellationToken);
 
-                return CreateOutcome(result, changed: true);
+                return CreateOutcome(result, changed: result.HasChanges);
             }
 
             OutputWindowHelper.DiagnosticWriteLine(
@@ -281,6 +291,47 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         throw new InvalidOperationException(
             $"Visual Studio rejected the diagnostic fixes for '{filePath}' twice because the solution kept changing during cleanup. No diagnostic fixes were applied.");
+    }
+
+    /// <summary>
+    /// Gets the new text of a file when <paramref name="changedSolution" /> changes nothing but the documents of that
+    /// file (one per project flavor): no added or removed documents and no other file.
+    /// </summary>
+    /// <param name="originalSolution">The solution the changes were computed from.</param>
+    /// <param name="changedSolution">The solution with the changes.</param>
+    /// <param name="documentId">The document of the file in <paramref name="changedSolution" />.</param>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The new text of the file, or null when other files or documents are affected.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static async Task<string> GetTextWhenOnlyTheFileChangedAsync(
+        Solution originalSolution,
+        Solution changedSolution,
+        DocumentId documentId,
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        SolutionChanges solutionChanges = changedSolution.GetChanges(originalSolution);
+        if (solutionChanges.GetAddedProjects().Any() || solutionChanges.GetRemovedProjects().Any())
+        {
+            return null;
+        }
+
+        foreach (ProjectChanges projectChanges in solutionChanges.GetProjectChanges())
+        {
+            if (projectChanges.GetAddedDocuments().Any() ||
+                projectChanges.GetRemovedDocuments().Any() ||
+                projectChanges.GetChangedAdditionalDocuments().Any() ||
+                projectChanges.GetChangedAnalyzerConfigDocuments().Any() ||
+                projectChanges.GetChangedDocuments().Any(id => !string.Equals(changedSolution.GetDocument(id)?.FilePath, filePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+        }
+
+        SourceText text = await changedSolution.GetDocument(documentId).GetTextAsync(cancellationToken);
+
+        return text.ToString();
     }
 
     /// <summary>
@@ -506,16 +557,24 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     }
 
     /// <summary>
-    /// Writes applied fixes and unresolved diagnostics to the CodeJanitor output pane.
+    /// Writes applied fixes, applied Roslyn editor command equivalents and unresolved diagnostics to the CodeJanitor
+    /// output pane.
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="result">The engine result.</param>
-    /// <param name="applied">Whether the fixes were applied to the workspace.</param>
+    /// <param name="applied">Whether the changes were applied.</param>
+    /// <param name="editorCommandsChanged">Whether the Roslyn "Remove and Sort Usings" / "Format Document" equivalents changed the file.</param>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void LogResult(string filePath, DiagnosticCleanupResult result, bool applied)
+    private static void LogResult(string filePath, DiagnosticCleanupResult result, bool applied, bool editorCommandsChanged)
     {
         if (applied)
         {
+            if (editorCommandsChanged)
+            {
+                OutputWindowHelper.InfoWriteLine(
+                    $"Diagnostic cleanup applied Remove and Sort Usings / Format Document in '{filePath}'.");
+            }
+
             foreach (var fix in result.AppliedFixes)
             {
                 OutputWindowHelper.InfoWriteLine(
@@ -540,7 +599,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// Creates the outcome for an engine result.
     /// </summary>
     /// <param name="result">The engine result.</param>
-    /// <param name="changed">Whether fixes were applied.</param>
+    /// <param name="changed">Whether diagnostic fixes were applied; changes made only by the editor command equivalents do not count.</param>
     /// <returns>The outcome.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static DiagnosticCleanupOutcome CreateOutcome(DiagnosticCleanupResult result, bool changed)

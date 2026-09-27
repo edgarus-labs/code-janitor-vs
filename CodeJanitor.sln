@@ -48,9 +48,6 @@ Global
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {54B15E96-7E75-4C46-858D-E5DAC0343C58}
 	EndGlobalSection
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		src\CodeJanitor\CodeJanitor.projitems*{6d3edf86-d2f8-4779-8a95-052227ed56a9}*SharedItemsImports = 5
-	EndGlobalSection
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = CodeJanitor.vsmdi
 	EndGlobalSection

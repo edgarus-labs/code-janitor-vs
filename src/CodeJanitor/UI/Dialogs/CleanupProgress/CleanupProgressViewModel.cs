@@ -237,8 +237,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
 
-                    var currentCompleted = Interlocked.Increment(ref completedCount);
-                    bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = currentCompleted, Total = totalCount });
+                    // The file is counted as completed after its diagnostic cleanup below.
+                    bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
                 });
             }
             catch (OperationCanceledException)
@@ -264,6 +264,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     return;
                 }
 
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+
                 ThreadHelper.JoinableTaskFactory.Run(async delegate
                 {
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -276,6 +278,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
                 });
+
+                completedCount++;
+                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
             }
 
             foreach (var workItem in sequentialItems)

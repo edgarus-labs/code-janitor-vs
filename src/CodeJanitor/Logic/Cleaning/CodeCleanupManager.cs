@@ -1863,7 +1863,8 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Adds the generated file to the source project item&apos;s collection if on the UI thread, the file exists, and it isn&apos;t already in the solution, logging a warning if the add fails.
+    /// Adds a file split out of a project item to the source item's collection of the project. Does nothing when the
+    /// file does not exist or is already part of the solution; a failure is logged as a warning.
     /// </summary>
     /// <param name="sourceProjectItem">The source project item.</param>
     /// <param name="filePath">The file path.</param>
@@ -1883,7 +1884,7 @@ internal sealed class CodeCleanupManager
 
         try
         {
-            var projectItems = sourceProjectItem.Collection ?? sourceProjectItem.ContainingProject?.ProjectItems;
+            ProjectItems projectItems = sourceProjectItem.Collection ?? sourceProjectItem.ContainingProject?.ProjectItems;
             projectItems?.AddFromFile(filePath);
         }
         catch (Exception ex)
@@ -2023,7 +2024,7 @@ internal sealed class CodeCleanupManager
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument, settings);
-        _removeWhitespaceLogic.RemoveBlankLinesAfterDocumentationComments(textDocument);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterDocumentationComments(textDocument, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern);
         _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
@@ -2151,7 +2152,7 @@ internal sealed class CodeCleanupManager
         _removeWhitespaceLogic.RemoveBlankLinesAtTop(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAtBottom(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesAfterAttributes(textDocument, settings);
-        _removeWhitespaceLogic.RemoveBlankLinesAfterDocumentationComments(textDocument);
+        _removeWhitespaceLogic.RemoveBlankLinesAfterDocumentationComments(textDocument, RemoveWhitespaceLogic.BlankLinesAfterVisualBasicDocumentationCommentPattern);
         _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
         _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
 
