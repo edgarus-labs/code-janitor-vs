@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.Options;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -240,6 +241,37 @@ public sealed class EditorConfigOverrideNotesTests
         var notes = EditorConfigOverrideNotes.ForSolution(solutionPath);
 
         Assert.IsNull(notes["Cleaning_ConvertToVarWhenApparent"]);
+    }
+
+    [TestMethod]
+    [TestCategory("UI UnitTests")]
+    public void ForSolution_KeyMappedToManySettings_ResolvesDefiningFileOncePerKey()
+    {
+        WriteEditorConfig(_solutionDirectory, isRoot: false,
+            "dotnet_style_require_accessibility_modifiers = always",
+            "insert_final_newline = true");
+        var lookups = new List<string>();
+
+        EditorConfigOverrideNotes.ForSolution(_solutionPath, (probePath, key) =>
+        {
+            lookups.Add(key);
+            return "defining.editorconfig";
+        });
+
+        CollectionAssert.AreEquivalent(
+            new[] { "dotnet_style_require_accessibility_modifiers", "insert_final_newline" },
+            lookups);
+    }
+
+    [TestMethod]
+    [TestCategory("UI UnitTests")]
+    public void Indexer_DefiningFileUnresolved_NamesOnlyKey()
+    {
+        WriteEditorConfig(_solutionDirectory, isRoot: false, "csharp_style_var_when_type_is_apparent = true");
+
+        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath, (probePath, key) => null);
+
+        Assert.AreEqual("Overridden by .editorconfig: csharp_style_var_when_type_is_apparent", notes["Cleaning_ConvertToVarWhenApparent"]);
     }
 
     /// <summary>

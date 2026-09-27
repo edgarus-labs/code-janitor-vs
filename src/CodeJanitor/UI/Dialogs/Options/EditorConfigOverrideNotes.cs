@@ -53,7 +53,10 @@ public sealed class EditorConfigOverrideNotes
     /// <param name="solutionFullName">The full path of the open solution file, or null when no solution is open.</param>
     /// <returns>The notes for the solution.</returns>
 
-    internal static EditorConfigOverrideNotes ForSolution(string solutionFullName)
+    internal static EditorConfigOverrideNotes ForSolution(string solutionFullName) =>
+        ForSolution(solutionFullName, EditorConfigHelper.FindDefiningConfigPath);
+
+    internal static EditorConfigOverrideNotes ForSolution(string solutionFullName, Func<string, string, string> findDefiningConfigPath)
     {
         if (string.IsNullOrWhiteSpace(solutionFullName))
         {
@@ -76,10 +79,14 @@ public sealed class EditorConfigOverrideNotes
             return None;
         }
 
-        var notes = EffectiveCleanupSettings.For(probePath).EditorConfigKeys.ToDictionary(
-            entry => entry.Key,
-            entry => $"Overridden by .editorconfig: {entry.Value} in {EditorConfigHelper.FindDefiningConfigPath(probePath, entry.Value)}",
+        var keys = EffectiveCleanupSettings.For(probePath).EditorConfigKeys;
+        var keyNotes = keys.Values.Distinct(StringComparer.Ordinal).ToDictionary(
+            key => key,
+            key => findDefiningConfigPath(probePath, key) is string definingPath
+                ? $"Overridden by .editorconfig: {key} in {definingPath}"
+                : $"Overridden by .editorconfig: {key}",
             StringComparer.Ordinal);
+        var notes = keys.ToDictionary(entry => entry.Key, entry => keyNotes[entry.Value], StringComparer.Ordinal);
 
         return new EditorConfigOverrideNotes(notes);
     }
