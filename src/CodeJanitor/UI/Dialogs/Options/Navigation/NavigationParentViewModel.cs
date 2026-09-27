@@ -10,7 +10,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Navigation;
 /// view models stacked on one panel. Digging (Spade) intentionally stays on its own page for
 /// now (undecided future).
 /// </summary>
-
 public sealed class NavigationParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
@@ -18,7 +17,6 @@ public sealed class NavigationParentViewModel : CompositeOptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public NavigationParentViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings, new OptionsPageViewModel[]
         {

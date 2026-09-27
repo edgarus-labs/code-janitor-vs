@@ -9,7 +9,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseRegionDirective_AllowsTabSeparator()
     {
-        var parsed = UpdateLogic.TryParseRegionDirective("region\tMy Region", out var name);
+        bool parsed = UpdateLogic.TryParseRegionDirective("region\tMy Region", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual("My Region", name);
@@ -18,7 +18,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseRegionDirective_AllowsMultipleSpacesAndTrimsName()
     {
-        var parsed = UpdateLogic.TryParseRegionDirective("region    My Region   ", out var name);
+        bool parsed = UpdateLogic.TryParseRegionDirective("region    My Region   ", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual("My Region", name);
@@ -27,19 +27,19 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseRegionDirective_RejectsMissingWhitespaceAfterKeyword()
     {
-        var parsed = UpdateLogic.TryParseRegionDirective("regionMyRegion", out _);
+        bool parsed = UpdateLogic.TryParseRegionDirective("regionMyRegion", out _);
 
         Assert.IsFalse(parsed);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null)]
     [DataRow("")]
     [DataRow("Region MyRegion")]
     [DataRow("endregion MyRegion")]
     public void TryParseRegionDirective_RejectsNonRegionDirective(string input)
     {
-        var parsed = UpdateLogic.TryParseRegionDirective(input, out var name);
+        bool parsed = UpdateLogic.TryParseRegionDirective(input, out string name);
 
         Assert.IsFalse(parsed);
         Assert.IsNull(name);
@@ -48,7 +48,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseRegionDirective_AllowsKeywordWithoutName()
     {
-        var parsed = UpdateLogic.TryParseRegionDirective("region", out var name);
+        bool parsed = UpdateLogic.TryParseRegionDirective("region", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual(string.Empty, name);
@@ -57,7 +57,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseRegionDirective_TreatsWhitespaceOnlyNameAsEmpty()
     {
-        var parsed = UpdateLogic.TryParseRegionDirective("region\t   ", out var name);
+        bool parsed = UpdateLogic.TryParseRegionDirective("region\t   ", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual(string.Empty, name);
@@ -66,7 +66,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseEndRegionDirective_ParsesNameWithOriginalWhitespace()
     {
-        var parsed = UpdateLogic.TryParseEndRegionDirective("endregion   My Region", out var name);
+        bool parsed = UpdateLogic.TryParseEndRegionDirective("endregion   My Region", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual("   My Region", name);
@@ -75,7 +75,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseEndRegionDirective_CanonicalSuffixMatchesNormalizedName()
     {
-        var parsed = UpdateLogic.TryParseEndRegionDirective("endregion MyRegion", out var name);
+        bool parsed = UpdateLogic.TryParseEndRegionDirective("endregion MyRegion", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual(UpdateLogic.BuildDirectiveNameSuffix("MyRegion"), name);
@@ -84,7 +84,7 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseEndRegionDirective_RejectsMissingWhitespaceAfterKeyword()
     {
-        var parsed = UpdateLogic.TryParseEndRegionDirective("endregionMyRegion", out _);
+        bool parsed = UpdateLogic.TryParseEndRegionDirective("endregionMyRegion", out _);
 
         Assert.IsFalse(parsed);
     }
@@ -92,20 +92,20 @@ public sealed class UpdateLogicDirectiveParsingTests
     [TestMethod]
     public void TryParseEndRegionDirective_AllowsKeywordWithoutName()
     {
-        var parsed = UpdateLogic.TryParseEndRegionDirective("endregion", out var name);
+        bool parsed = UpdateLogic.TryParseEndRegionDirective("endregion", out string name);
 
         Assert.IsTrue(parsed);
         Assert.AreEqual(string.Empty, name);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null)]
     [DataRow("")]
     [DataRow("EndRegion MyRegion")]
     [DataRow("region MyRegion")]
     public void TryParseEndRegionDirective_RejectsNonEndRegionDirective(string input)
     {
-        var parsed = UpdateLogic.TryParseEndRegionDirective(input, out var name);
+        bool parsed = UpdateLogic.TryParseEndRegionDirective(input, out string name);
 
         Assert.IsFalse(parsed);
         Assert.IsNull(name);

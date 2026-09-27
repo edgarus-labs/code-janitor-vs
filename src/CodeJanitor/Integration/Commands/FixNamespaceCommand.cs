@@ -15,7 +15,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that fixes the namespace of the active C# document.
 /// </summary>
-
 internal sealed class FixNamespaceCommand : BaseCommand
 {
     /// <summary>
@@ -48,7 +47,6 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A Task value produced by this method.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new FixNamespaceCommand(package);
@@ -58,7 +56,6 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// <summary>
     /// This method updates the command&apos;s Enabled state to true when the solution is open or the active document is C# code, and it enforces execution on the UI thread via ThreadHelper.ThrowIfNotOnUIThread().
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -68,7 +65,6 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// <summary>
     /// This method ensures it runs on the UI thread, validates that cleanup is available and that C# files exist in scope, prompts the user for confirmation, then iterates through project items fixing namespaces while updating the status bar, and finally shows a summary message with the count of changed files.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -132,7 +128,6 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// </summary>
     /// <param name="fileCount">The file count.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private bool ConfirmScope(int fileCount)
     {
         var message = fileCount > VeryLargeScopeWarningThreshold
@@ -155,7 +150,6 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// Returns distinct project items from selected UI hierarchy roots that pass namespace fixer logic, falling back to the active document&apos;s project item if selection empty, and otherwise returns an empty sequence while requiring the UI thread and accessing Package state.
     /// </summary>
     /// <returns>A IEnumerable&lt;ProjectItem&gt; value produced by this method.</returns>
-
     private IEnumerable<ProjectItem> GetScopeProjectItems()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -211,7 +205,6 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// </summary>
     /// <param name="projectItems">The project items.</param>
     /// <returns>A IEnumerable&lt;ProjectItem&gt; value produced by this method.</returns>
-
     private static IEnumerable<ProjectItem> DistinctByFilePath(IEnumerable<ProjectItem> projectItems)
     {
         var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -11,7 +11,6 @@ namespace CodeJanitor.Logic.Reorganizing;
 /// <summary>
 /// A class for determining if reorganization can/should occur on specified items.
 /// </summary>
-
 internal sealed class CodeReorganizationAvailabilityLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -26,7 +25,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeReorganizationAvailabilityLogic"/> class.</returns>
-
     internal static CodeReorganizationAvailabilityLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CodeReorganizationAvailabilityLogic(package));
@@ -36,7 +34,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// Initializes a new instance of the <see cref="CodeReorganizationAvailabilityLogic"/> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CodeReorganizationAvailabilityLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -48,7 +45,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// <param name="document">The document.</param>
     /// <param name="allowUserPrompts">A flag indicating if user prompts should be allowed.</param>
     /// <returns>True if item can be reorganized, otherwise false.</returns>
-
     internal bool CanReorganize(Document document, bool allowUserPrompts = false)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -94,7 +90,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// Determines whether the environment is in a valid state for reorganization.
     /// </summary>
     /// <returns>True if reorganization can occur, false otherwise.</returns>
-
     internal bool IsReorganizationEnvironmentAvailable()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -111,7 +106,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// <returns>
     /// True if document should be excluded because of preprocessor conditionals, otherwise false.
     /// </returns>
-
     private bool IsDocumentExcludedBecausePreprocessorConditionals(Document document, bool allowUserPrompts)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -143,7 +137,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>True if preprocessor conditional compilation directives are detected, otherwise false.</returns>
-
     private bool HasPreprocessorConditionalCompilationDirectives(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -167,7 +160,6 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>True if files with preprocessor conditionals should be reorganized, otherwise false.</returns>
-
     private static bool PromptUserAboutReorganizingPreprocessorConditionals(Document document)
     {
         try

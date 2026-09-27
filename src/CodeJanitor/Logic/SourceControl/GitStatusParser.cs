@@ -12,13 +12,11 @@ namespace CodeJanitor.Logic.SourceControl;
 /// Pure logic with no dependency on a git process or Visual Studio, unit-testable in isolation
 /// (see ADR-0005 / ADR-0007).
 /// </remarks>
-
 public sealed class GitStatusParser : IGitStatusParser
 {
     private static readonly string[] RenameSeparator = { " -> " };
 
     /// <inheritdoc />
-
     public IReadOnlyList<string> Parse(string porcelainOutput, string repositoryRoot)
     {
         var results = new List<string>();
@@ -85,7 +83,6 @@ public sealed class GitStatusParser : IGitStatusParser
     /// Removes surrounding quotes that git adds for paths with special characters and
     /// unescapes the common escape sequences.
     /// </summary>
-
     private static string Unquote(string path)
     {
         if (path.Length >= 2 && path[0] == '"' && path[path.Length - 1] == '"')

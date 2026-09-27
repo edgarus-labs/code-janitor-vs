@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.General;
 /// <summary>
 /// The view model for the General category - hosts the general and features view models as tabs.
 /// </summary>
-
 public sealed class GeneralParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class GeneralParentViewModel : CompositeOptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public GeneralParentViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings, new OptionsPageViewModel[]
         {

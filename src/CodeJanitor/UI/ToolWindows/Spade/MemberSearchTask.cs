@@ -8,7 +8,6 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// <summary>
 /// A class implementing <see cref="VsSearchTask"/> in order to search code members.
 /// </summary>
-
 internal sealed class MemberSearchTask : VsSearchTask
 {
     private readonly Action<string> _callback;
@@ -16,7 +15,6 @@ internal sealed class MemberSearchTask : VsSearchTask
     /// <summary>
     /// Initializes a new instance of the <see cref="MemberSearchTask" /> class.
     /// </summary>
-
     public MemberSearchTask(uint dwCookie, IVsSearchQuery pSearchQuery, IVsSearchCallback pSearchCallback, Action<string> callback)
         : base(dwCookie, pSearchQuery, pSearchCallback)
     {
@@ -26,7 +24,6 @@ internal sealed class MemberSearchTask : VsSearchTask
     /// <summary>
     /// Performs the search task.
     /// </summary>
-
     protected override void OnStartSearch()
     {
         ErrorCode = VSConstants.S_OK;

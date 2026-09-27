@@ -13,7 +13,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for deleting a member within Spade.
 /// </summary>
-
 internal sealed class SpadeContextDeleteCommand : BaseCommand
 {
     private readonly UndoTransactionHelper _undoTransactionHelper;
@@ -22,7 +21,6 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     /// Initializes a new instance of the <see cref="SpadeContextDeleteCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SpadeContextDeleteCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextDelete)
     {
@@ -39,7 +37,6 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SpadeContextDeleteCommand(package);
@@ -49,7 +46,6 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -67,7 +63,6 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -101,7 +96,6 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>True if the code item can be deleted, otherwise false.</returns>
-
     private static bool IsDeletable(BaseCodeItem codeItem)
     {
         return !(codeItem is CodeItemRegion) || !((CodeItemRegion)codeItem).IsPseudoGroup;

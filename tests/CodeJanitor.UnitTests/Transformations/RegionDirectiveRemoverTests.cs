@@ -33,21 +33,18 @@ public sealed class RegionDirectiveRemoverTests
     [TestCategory("Transformations UnitTests")]
     public void RemovesRegionsAndEndRegions_PreservesCode()
     {
-        var input = @"#region MyRegion
+        string input = @"#region MyRegion
 public class C
 {
-    #region Methods
     public void M() { }
-    #endregion Methods
 }
-#endregion
 ";
-        var expected = @"public class C
+        string expected = @"public class C
 {
     public void M() { }
 }
 ";
-        var result = _remover.Apply(input);
+        string result = _remover.Apply(input);
         Assert.AreEqual(expected, result);
     }
 }

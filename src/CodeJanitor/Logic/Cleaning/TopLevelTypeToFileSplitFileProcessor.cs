@@ -65,7 +65,6 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     /// <param name="transformSource">The transform source.</param>
     /// <param name="transformUpdatedSource">The transform updated source.</param>
     /// <returns>A ApplyResult value produced by this method.</returns>
-
     internal ApplyResult Apply(
         string source,
         string filePath,
@@ -105,7 +104,6 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     /// <param name="targetFilePath">The target file path.</param>
     /// <param name="content">The content.</param>
     /// <param name="encoding">The encoding.</param>
-
     private static void WriteAllTextAtomically(string targetFilePath, string content, Encoding encoding)
     {
         var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark

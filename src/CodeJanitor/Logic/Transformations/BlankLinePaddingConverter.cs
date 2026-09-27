@@ -15,7 +15,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// Uses Roslyn only for line-number discovery; actual insertion is done on the line list
 /// (same safe pattern as <see cref="ReturnThrowBlankLinePaddingConverter"/>).
 /// </summary>
-
 public sealed class BlankLinePaddingConverter : ISourceTransformation
 {
     private static readonly Regex CaseStatementPattern = new Regex(
@@ -32,7 +31,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// Initializes a new instance of the <see cref="BlankLinePaddingConverter" /> class.
     /// </summary>
     /// <param name="settings">The effective cleanup settings of the file, which decide per kind whether padding is inserted.</param>
-
     internal BlankLinePaddingConverter(EffectiveCleanupSettings settings)
     {
         _settings = settings;
@@ -48,7 +46,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !AnySettingEnabled())
@@ -98,7 +95,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// <param name="tree">The tree.</param>
     /// <param name="lines">The lines.</param>
     /// <param name="wantBlankBefore">The want blank before.</param>
-
     private void CollectDeclarationPadding(SyntaxNode root, SyntaxTree tree, List<string> lines, SortedSet<int> wantBlankBefore)
     {
         foreach (var node in root.DescendantNodes())
@@ -212,7 +208,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// <param name="root">The root.</param>
     /// <param name="tree">The tree.</param>
     /// <param name="wantBlankBefore">The want blank before.</param>
-
     private void CollectRegionDirectivePadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {
         bool beforeRegion = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags));
@@ -246,7 +241,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// <param name="root">The root.</param>
     /// <param name="tree">The tree.</param>
     /// <param name="wantBlankBefore">The want blank before.</param>
-
     private void CollectUsingBlockPadding(SyntaxNode root, SyntaxTree tree, SortedSet<int> wantBlankBefore)
     {
         bool padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks));
@@ -303,7 +297,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// <param name="lines">The lines.</param>
     /// <param name="idx">The idx.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool ShouldSkipInsertion(List<string> lines, int idx)
     {
         if (idx <= 0 || idx >= lines.Count) return true;
@@ -329,7 +322,6 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// Returns true if any of the listed blank-line padding settings is enabled in the effective settings, otherwise false, with no side effects.
     /// </summary>
     /// <returns>A bool value produced by this method.</returns>
-
     private bool AnySettingEnabled()
     {
         return _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||

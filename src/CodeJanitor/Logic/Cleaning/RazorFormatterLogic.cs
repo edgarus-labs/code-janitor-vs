@@ -16,7 +16,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// Applies safe formatting to Razor component files. Scope is limited to .razor files and to
 /// C# inside code and control blocks - markup tags and attributes are left exactly as authored.
 /// </summary>
-
 internal sealed class RazorFormatterLogic
 {
     /// <summary>
@@ -680,7 +679,6 @@ internal sealed class RazorFormatterLogic
     /// Skips a Razor transition so quotes belonging to C# code - such as the inner quotes in
     /// <c>href="@Assets["app.css"]"</c> - are not mistaken for HTML attribute delimiters.
     /// </summary>
-
     private static bool TrySkipRazorExpression(string text, int index, out int nextIndex)
     {
         nextIndex = index;

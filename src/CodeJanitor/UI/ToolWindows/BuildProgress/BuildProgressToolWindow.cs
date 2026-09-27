@@ -15,7 +15,6 @@ namespace CodeJanitor.UI.ToolWindows.BuildProgress;
 /// <summary>
 /// This class implements the build progress tool window and hosts a user control.
 /// </summary>
-
 [Guid(PackageGuids.GuidCodeJanitorToolWindowBuildProgressString)]
 public sealed class BuildProgressToolWindow : ToolWindowPane
 {
@@ -25,7 +24,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <summary>
     /// Initializes a new instance of the <see cref="BuildProgressToolWindow" /> class.
     /// </summary>
-
     public BuildProgressToolWindow()
         : base(null)
     {
@@ -79,7 +77,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <summary>
     /// Gets the progress percentage, otherwise zero if cannot be determined.
     /// </summary>
-
     private double ProgressPercentage
     {
         get
@@ -95,7 +92,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <summary>
     /// Closes the associated IVsWindowFrame without saving, discarding any pending changes via FRAMECLOSE_NoSave.
     /// </summary>
-
     public void Close()
     {
         (Frame as IVsWindowFrame).CloseFrame((uint)__FRAMECLOSE.FRAMECLOSE_NoSave);
@@ -107,7 +103,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// should make sure its command handler are set by the time they return from this method.
     /// This is called when someone set the Frame property.
     /// </summary>
-
     public override void OnToolWindowCreated()
     {
         base.OnToolWindowCreated();
@@ -121,7 +116,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <param name="action">The action.</param>
-
     internal void NotifyBuildBegin(vsBuildScope scope, vsBuildAction action)
     {
         BuildAction = action;
@@ -151,7 +145,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <param name="action">The action.</param>
-
     internal void NotifyBuildDone(vsBuildScope scope, vsBuildAction action)
     {
         Caption = DefaultCaption;
@@ -168,7 +161,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <param name="projectConfig">The project config.</param>
     /// <param name="platform">The platform.</param>
     /// <param name="solutionConfig">The solution config.</param>
-
     internal void NotifyBuildProjConfigBegin(string project, string projectConfig, string platform, string solutionConfig)
     {
         BuildingProjects.Add(project);
@@ -184,7 +176,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <param name="platform">The platform.</param>
     /// <param name="solutionConfig">The solution config.</param>
     /// <param name="success">True if project build was successful, otherwise false.</param>
-
     internal void NotifyBuildProjConfigDone(string project, string projectConfig, string platform, string solutionConfig, bool success)
     {
         if (!success)
@@ -203,7 +194,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// </summary>
     /// <param name="project">The raw project string to process.</param>
     /// <returns>The extracted project name.</returns>
-
     private static string ExtractProjectName(string project)
     {
         int lastBackslash = project.LastIndexOf('\\') + 1;
@@ -218,7 +208,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <param name="buildScope">The build scope.</param>
     /// <param name="buildAction">The build action.</param>
     /// <returns>The build type string.</returns>
-
     private static string GetBuildTypeString(vsBuildScope buildScope, vsBuildAction buildAction)
     {
         var stringBuilder = new StringBuilder();
@@ -255,7 +244,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <summary>
     /// Gets the number of projects to be built based on the active solution configuration.
     /// </summary>
-
     private int GetNumberOfProjectsToBeBuilt()
     {
         var solutionContexts = Package.IDE.Solution.SolutionBuild.ActiveConfiguration.SolutionContexts;
@@ -284,7 +272,6 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// Gets the build progress tool window caption to be displayed.
     /// </summary>
     /// <returns>The string to be displayed as the tool window caption.</returns>
-
     private string GetToolWindowCaption()
     {
         var projectNames = BuildingProjects.Select(x => $"\"{ExtractProjectName(x)}\"").ToList();

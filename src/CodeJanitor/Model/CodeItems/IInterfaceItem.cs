@@ -3,7 +3,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// Represents an item that can implement an interface member.
 /// </summary>
-
 public interface IInterfaceItem
 {
     /// <summary>

@@ -12,14 +12,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// For example: <c>() =&gt; { return Compute(); }</c> becomes <c>() =&gt; Compute()</c>, and
 /// <c>() =&gt; { DoWork(); }</c> becomes <c>() =&gt; DoWork()</c>.
 /// </remarks>
-
 public sealed class SingleStatementLambdaConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Single Statement Lambda";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -44,7 +42,6 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node)
         {
             node = (AnonymousMethodExpressionSyntax)base.VisitAnonymousMethodExpression(node);
@@ -86,7 +83,6 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
         {
             node = (SimpleLambdaExpressionSyntax)base.VisitSimpleLambdaExpression(node);
@@ -99,7 +95,6 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
         {
             node = (ParenthesizedLambdaExpressionSyntax)base.VisitParenthesizedLambdaExpression(node);
@@ -112,7 +107,6 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         private static SyntaxNode TrySimplifySimpleLambda(SimpleLambdaExpressionSyntax node)
         {
             var expression = TryExtractSingleExpression(node.Body as BlockSyntax);
@@ -125,7 +119,6 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         private static SyntaxNode TrySimplifyParenthesizedLambda(ParenthesizedLambdaExpressionSyntax node)
         {
             var expression = TryExtractSingleExpression(node.Body as BlockSyntax);
@@ -138,7 +131,6 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// </summary>
         /// <param name="block">The block.</param>
         /// <returns>A ExpressionSyntax value produced by this method.</returns>
-
         private static ExpressionSyntax TryExtractSingleExpression(BlockSyntax block)
         {
             if (block is null || block.Statements.Count != 1)

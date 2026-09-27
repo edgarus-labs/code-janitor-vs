@@ -10,7 +10,6 @@ namespace CodeJanitor.Model.Comments;
 /// <summary>
 /// Class to handle the actual wrapping and formatting of a comment.
 /// </summary>
-
 internal sealed class CommentFormatter : IEquatable<string>
 {
     private readonly StringBuilder _builder;
@@ -65,7 +64,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// </summary>
     /// <param name="other">The other.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     public bool Equals(string other)
     {
         return string.Equals(ToString(), other);
@@ -75,7 +73,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// Returns the string representation of the internal builder with trailing whitespace removed, with no side effects or exceptions.
     /// </summary>
     /// <returns>A string value produced by this method.</returns>
-
     public override string ToString()
     {
         return _builder.ToString().TrimEnd();
@@ -85,7 +82,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// Aligns param tag OpenTag strings by padding to the longest param tag length, but only when there are multiple param tags and the first is not split after opening, modifying the OpenTag values in place.
     /// </summary>
     /// <param name="xml">The xml.</param>
-
     private static void AlignParamTags(CommentLineXml xml)
     {
         var paramPhrases = xml.Lines.OfType<CommentLineXml>().Where(p => string.Equals(p.TagName, "param", StringComparison.OrdinalIgnoreCase));
@@ -108,7 +104,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// Appends the character&apos;s string representation by delegating to the Append(string) overload, modifying the underlying buffer or output state.
     /// </summary>
     /// <param name="value">The value.</param>
-
     private void Append(char value)
     {
         Append(value.ToString());
@@ -123,7 +118,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// <param name="noIdenting">
     /// <c>true</c> if value should not be indented, eg for literal content.
     /// </param>
-
     private void Append(string value, bool noIdenting = false)
     {
         if (!_isPrefixWritten)
@@ -179,7 +173,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// <returns>
     /// <c>true</c> if line fitted on single line, <c>false</c> if it wrapped on multiple lines.
     /// </returns>
-
     private bool Format(ICommentLine line, int xmlTagLength = 0, bool xmlSpaceParentTagContent = false)
     {
         if (line is CommentLineXml xml)
@@ -340,7 +333,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// Returns <c>true</c> if the line requests a break afterwards (did not fit on a single
     /// line), otherwise <c>false</c>.
     /// </returns>
-
     private bool FormatXml(CommentLineXml xml)
     {
         var isLiteralContent = !string.IsNullOrEmpty(xml.Content);
@@ -446,7 +438,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// <param name="force">
     /// If <c>true</c>, creates a new line even if the current line is empty.
     /// </param>
-
     private void NewLine(bool force = false)
     {
         if (_isFirstWord && force)
@@ -469,7 +460,6 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// </summary>
     /// <param name="word">The string to return the length of.</param>
     /// <returns>The length of the string.</returns>
-
     private int WordLength(string word)
     {
         return word is null ? 0 : word.Length + word.Count(c => c == '\t') * (_formatterOptions.TabSize - 1);

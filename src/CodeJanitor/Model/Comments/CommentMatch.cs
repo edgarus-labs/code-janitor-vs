@@ -96,7 +96,6 @@ internal sealed class CodeCommentMatch
     /// </summary>
     /// <param name="other">The match to append.</param>
     /// <returns><c>true</c> if the matches were combined, otherwise <c>false</c>.</returns>
-
     public bool TryAppend(CodeCommentMatch other)
     {
         if (other is null)

@@ -10,7 +10,6 @@ namespace CodeJanitor.UI.Dialogs.CleanupOptions;
 /// <summary>
 /// View model for selecting cleanup execution mode and optional temporary cleanup settings.
 /// </summary>
-
 internal sealed class CleanupOptionsViewModel : Bindable
 {
     private readonly Settings _temporarySettings;
@@ -18,7 +17,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Initializes a new instance of the <see cref="CleanupOptionsViewModel"/> class.
     /// </summary>
-
     internal CleanupOptionsViewModel(CodeJanitorPackage package, Settings activeSettings, int itemCount)
     {
         ItemCount = itemCount;
@@ -33,7 +31,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Gets item count in selected cleanup scope.
     /// </summary>
-
     public int ItemCount
     {
         get { return GetPropertyValue<int>(); }
@@ -43,7 +40,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Gets or sets whether to run cleanup using persisted settings.
     /// </summary>
-
     public bool UseConfiguredCleanupSettings
     {
         get
@@ -67,7 +63,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Gets the temporary cleaning settings view model hosted in the dialog.
     /// </summary>
-
     public OptionsPageViewModel TemporaryCleaningSettingsViewModel
     {
         get { return GetPropertyValue<OptionsPageViewModel>(); }
@@ -77,7 +72,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Gets or sets the dialog result.
     /// </summary>
-
     public bool? DialogResult
     {
         get { return GetPropertyValue<bool?>(); }
@@ -92,7 +86,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Persists temporary UI values into the temporary settings object.
     /// </summary>
-
     internal void SaveTemporarySettings()
     {
         TemporaryCleaningSettingsViewModel.SaveSettings();
@@ -103,7 +96,6 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A Settings value produced by this method.</returns>
-
     private static Settings CreateSettingsCopy(Settings source)
     {
         var copy = new Settings();

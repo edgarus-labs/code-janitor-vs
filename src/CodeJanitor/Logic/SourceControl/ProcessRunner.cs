@@ -5,11 +5,9 @@ namespace CodeJanitor.Logic.SourceControl;
 /// <summary>
 /// Runs an external process and captures its standard output.
 /// </summary>
-
 public sealed class ProcessRunner : IProcessRunner
 {
     /// <inheritdoc />
-
     public string Run(string fileName, string arguments, string workingDirectory)
     {
         var startInfo = new ProcessStartInfo(fileName, arguments)

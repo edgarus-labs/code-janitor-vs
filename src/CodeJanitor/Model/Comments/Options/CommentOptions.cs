@@ -5,7 +5,6 @@ namespace CodeJanitor.Model.Comments.Options;
 /// <summary>
 /// Comment specific options for the formatter.
 /// </summary>
-
 internal sealed class CommentOptions
 {
     /// <summary>

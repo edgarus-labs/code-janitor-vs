@@ -19,14 +19,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for cleaning up code in the selected documents.
 /// </summary>
-
 internal sealed class CleanupSelectedCodeCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleanupSelectedCodeCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CleanupSelectedCodeCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCleanupSelectedCode)
     {
@@ -46,7 +44,6 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
     /// <summary>
     /// Gets the list of selected project items.
     /// </summary>
-
     private IEnumerable<ProjectItem> SelectedProjectItems
         => SolutionHelper.GetSelectedProjectItemsRecursively(Package).Where(x => CodeCleanupAvailabilityLogic.CanCleanupProjectItem(x));
 
@@ -55,7 +52,6 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CleanupSelectedCodeCommand(package);
@@ -65,7 +61,6 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -75,7 +70,6 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -227,7 +221,6 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
     /// <summary>
     /// Temporarily applies cleanup settings for one cleanup run and restores original values afterwards.
     /// </summary>
-
     private sealed class TemporaryCleanupSettingsScope : IDisposable
     {
         private readonly Dictionary<string, object> _originalValues = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -254,7 +247,6 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
         /// <summary>
         /// Restores all original settings values from _originalValues into Settings.Default, thereby reverting any changes made during the object&apos;s lifetime.
         /// </summary>
-
         public void Dispose()
         {
             foreach (var item in _originalValues)

@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A class that encapsulates caching a setting expression that can be parsed into a set.
 /// </summary>
-
 public sealed class CachedSettingSet<T>
     where T : class
 {
@@ -36,7 +35,6 @@ public sealed class CachedSettingSet<T>
     /// </summary>
     /// <param name="lookupFunction">The function to be executed to lookup the setting expression.</param>
     /// <param name="parseFunction">The function to be executed to parse a setting expression.</param>
-
     public CachedSettingSet(Func<string> lookupFunction, Func<string, IEnumerable<T>> parseFunction)
     {
         _lookupFunction = lookupFunction;
@@ -46,7 +44,6 @@ public sealed class CachedSettingSet<T>
     /// <summary>
     /// Retrieves the value using the specified functions and considering the cached value.
     /// </summary>
-
     public IEnumerable<T> Value
     {
         get

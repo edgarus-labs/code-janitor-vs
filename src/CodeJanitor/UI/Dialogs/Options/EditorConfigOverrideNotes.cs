@@ -13,7 +13,6 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// .editorconfig chain decides, and nested .editorconfig files below the solution directory are not considered.
 /// The setting ↔ .editorconfig key mapping is the one the cleanup applies (<see cref="EffectiveCleanupSettings" />).
 /// </summary>
-
 public sealed class EditorConfigOverrideNotes
 {
     /// <summary>
@@ -32,7 +31,6 @@ public sealed class EditorConfigOverrideNotes
     /// Initializes a new instance of the <see cref="EditorConfigOverrideNotes" /> class.
     /// </summary>
     /// <param name="notes">The notes keyed by Visual Studio setting property name.</param>
-
     private EditorConfigOverrideNotes(IReadOnlyDictionary<string, string> notes)
     {
         _notes = notes;
@@ -52,7 +50,6 @@ public sealed class EditorConfigOverrideNotes
     /// </summary>
     /// <param name="solutionFullName">The full path of the open solution file, or null when no solution is open.</param>
     /// <returns>The notes for the solution.</returns>
-
     internal static EditorConfigOverrideNotes ForSolution(string solutionFullName) =>
         ForSolution(solutionFullName, EditorConfigHelper.FindDefiningConfigPath);
 

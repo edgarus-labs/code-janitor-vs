@@ -10,7 +10,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// A converter that finds the highest complexity item for a specified parent.
 /// </summary>
-
 public sealed class CodeItemParentHighestComplexityConverter : IValueConverter
 {
     /// <summary>
@@ -26,7 +25,6 @@ public sealed class CodeItemParentHighestComplexityConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var parent = value as ICodeItemParent;
@@ -49,7 +47,6 @@ public sealed class CodeItemParentHighestComplexityConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

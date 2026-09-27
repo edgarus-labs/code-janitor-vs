@@ -7,7 +7,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// A base class representation of all code items that have an underlying VSX CodeElement and
 /// contain children.
 /// </summary>
-
 public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItemParent
 {
     /// <summary>
@@ -20,7 +19,6 @@ public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItem
     /// <summary>
     /// Abstract initialization code for <see cref="BaseCodeItemElementParent" />.
     /// </summary>
-
     protected BaseCodeItemElementParent()
     {
         Children = new SetCodeItems();
@@ -31,7 +29,6 @@ public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItem
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         base.LoadLazyInitializedValues();
@@ -42,7 +39,6 @@ public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItem
     /// <summary>
     /// An event raised when the IsExpanded state has changed.
     /// </summary>
-
     public event EventHandler IsExpandedChanged;
 
     /// <summary>
@@ -58,7 +54,6 @@ public abstract class BaseCodeItemElementParent : BaseCodeItemElement, ICodeItem
     /// <summary>
     /// Gets or sets the flag indicating if this parent item is expanded.
     /// </summary>
-
     public bool IsExpanded
     {
         get

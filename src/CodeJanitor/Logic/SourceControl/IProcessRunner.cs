@@ -4,7 +4,6 @@ namespace CodeJanitor.Logic.SourceControl;
 /// Abstraction over running an external process and capturing its standard output.
 /// Enables unit testing of source-control logic without a real process.
 /// </summary>
-
 public interface IProcessRunner
 {
     /// <summary>
@@ -14,6 +13,5 @@ public interface IProcessRunner
     /// <param name="arguments">The command-line arguments.</param>
     /// <param name="workingDirectory">The working directory.</param>
     /// <returns>The captured standard output.</returns>
-
     string Run(string fileName, string arguments, string workingDirectory);
 }

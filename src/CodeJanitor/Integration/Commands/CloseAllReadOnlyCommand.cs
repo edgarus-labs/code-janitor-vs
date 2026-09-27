@@ -9,14 +9,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for closing all read-only files.
 /// </summary>
-
 internal sealed class CloseAllReadOnlyCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CloseAllReadOnlyCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CloseAllReadOnlyCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCloseAllReadOnly)
     {
@@ -32,7 +30,6 @@ internal sealed class CloseAllReadOnlyCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CloseAllReadOnlyCommand(package);
@@ -42,7 +39,6 @@ internal sealed class CloseAllReadOnlyCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -52,7 +48,6 @@ internal sealed class CloseAllReadOnlyCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

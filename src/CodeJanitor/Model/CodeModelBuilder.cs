@@ -8,7 +8,6 @@ namespace CodeJanitor.Model;
 /// <summary>
 /// A builder class for generating code models.
 /// </summary>
-
 internal sealed class CodeModelBuilder
 {
     private readonly CodeJanitorPackage _package;
@@ -23,7 +22,6 @@ internal sealed class CodeModelBuilder
     /// Initializes a new instance of the <see cref="CodeModelBuilder" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CodeModelBuilder(CodeJanitorPackage package)
     {
         _package = package;
@@ -36,7 +34,6 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeModelBuilder" /> class.</returns>
-
     internal static CodeModelBuilder GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CodeModelBuilder(package));
@@ -48,7 +45,6 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="document">The document to walk.</param>
     /// <returns>The set of code items within the document, including regions.</returns>
-
     internal SetCodeItems RetrieveAllCodeItems(Document document)
     {
         var codeItems = new SetCodeItems();
@@ -66,7 +62,6 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The associated FileCodeModel, otherwise null.</returns>
-
     private FileCodeModel RetrieveFileCodeModel(ProjectItem projectItem)
     {
         if (projectItem is null)
@@ -101,7 +96,6 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="codeItems">The code items set for accumulation.</param>
     /// <param name="fcm">The FileCodeModel to walk.</param>
-
     private static void RetrieveCodeItems(SetCodeItems codeItems, FileCodeModel fcm)
     {
         if (fcm is not null && fcm.CodeElements is not null)
@@ -115,7 +109,6 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="codeItems">The code items set for accumulation.</param>
     /// <param name="codeElements">The CodeElements to walk.</param>
-
     private static void RetrieveCodeItemsFromElements(SetCodeItems codeItems, CodeElements codeElements)
     {
         foreach (CodeElement child in codeElements)
@@ -130,7 +123,6 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="codeItems">The code items set for accumulation.</param>
     /// <param name="codeElement">The CodeElement to walk (add and recurse).</param>
-
     private static void RetrieveCodeItemsRecursively(SetCodeItems codeItems, CodeElement codeElement)
     {
         var parentCodeItem = FactoryCodeItems.CreateCodeItemElement(codeElement);

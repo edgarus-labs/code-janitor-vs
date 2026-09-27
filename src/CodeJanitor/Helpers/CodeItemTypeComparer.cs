@@ -8,7 +8,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A helper for comparing code items by type, access level, etc.
 /// </summary>
-
 public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
 {
     private readonly bool _sortByName;
@@ -17,7 +16,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// Initializes a new instance of the <see cref="CodeItemTypeComparer"/> class.
     /// </summary>
     /// <param name="sortByName">Determines whether a secondary sort by name is performed or not.</param>
-
     public CodeItemTypeComparer(bool sortByName)
     {
         _sortByName = sortByName;
@@ -34,7 +32,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// Zero: <paramref name="x" /> equals <paramref name="y" />.
     /// Greater than zero: <paramref name="x" /> is greater than <paramref name="y" />.
     /// </returns>
-
     public override int Compare(BaseCodeItem x, BaseCodeItem y)
     {
         int first = CalculateNumericRepresentation(x);
@@ -65,7 +62,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateNumericRepresentation(BaseCodeItem codeItem)
     {
         int typeOffset = CalculateTypeOffset(codeItem);
@@ -98,7 +94,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateTypeOffset(BaseCodeItem codeItem)
     {
         switch (codeItem.Kind)
@@ -124,7 +119,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateAccessOffset(BaseCodeItem codeItem)
     {
         var codeItemElement = codeItem as BaseCodeItemElement;
@@ -153,7 +147,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateExplicitInterfaceOffset(BaseCodeItem codeItem)
     {
         if (Settings.Default.Reorganizing_ExplicitMembersAtEnd)
@@ -173,7 +166,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateConstantOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
@@ -187,7 +179,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateStaticOffset(BaseCodeItem codeItem)
     {
         var codeItemElement = codeItem as BaseCodeItemElement;
@@ -201,7 +192,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int CalculateReadOnlyOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
@@ -215,7 +205,6 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string NormalizeName(BaseCodeItem codeItem)
     {
         string name = codeItem.Name;

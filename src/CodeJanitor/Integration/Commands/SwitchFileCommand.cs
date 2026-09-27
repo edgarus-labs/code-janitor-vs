@@ -14,13 +14,11 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for switching between files based on their filename.
 /// </summary>
-
 internal sealed class SwitchFileCommand : BaseCommand
 {
     /// <summary>
     /// A cached setting set container for accessing sets of related file extensions.
     /// </summary>
-
     private readonly CachedSettingSet<IList<string>> _relatedFileExtensions =
         new CachedSettingSet<IList<string>>(()
             => Settings.Default.Switching_RelatedFileExtensionsExpression,
@@ -37,7 +35,6 @@ internal sealed class SwitchFileCommand : BaseCommand
     /// Initializes a new instance of the <see cref="SwitchFileCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SwitchFileCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSwitchFile)
     {
@@ -53,7 +50,6 @@ internal sealed class SwitchFileCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SwitchFileCommand(package);
@@ -63,7 +59,6 @@ internal sealed class SwitchFileCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -84,7 +79,6 @@ internal sealed class SwitchFileCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -103,7 +97,6 @@ internal sealed class SwitchFileCommand : BaseCommand
     /// </summary>
     /// <param name="document">The document to analyze.</param>
     /// <returns>The path to an alternate document, otherwise null.</returns>
-
     private string GetAlternatePathIfExists(Document document)
     {
         var alternatePaths = GetAlternatePaths(document);
@@ -116,7 +109,6 @@ internal sealed class SwitchFileCommand : BaseCommand
     /// </summary>
     /// <param name="document">The document to analyze.</param>
     /// <returns>The alternate paths, otherwise null.</returns>
-
     private IEnumerable<string> GetAlternatePaths(Document document)
     {
         var results = new List<string>();

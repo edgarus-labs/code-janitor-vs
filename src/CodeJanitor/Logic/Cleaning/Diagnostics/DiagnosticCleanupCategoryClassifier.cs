@@ -45,12 +45,12 @@ public static class DiagnosticCleanupCategoryClassifier
     /// <returns>The category, or <c>null</c> for compiler diagnostics, which are never actionable.</returns>
     public static DiagnosticCleanupCategory? Classify(DiagnosticAnalyzer analyzer, DiagnosticDescriptor descriptor)
     {
-        if (analyzer == null)
+        if (analyzer is null)
         {
             throw new ArgumentNullException(nameof(analyzer));
         }
 
-        if (descriptor == null)
+        if (descriptor is null)
         {
             throw new ArgumentNullException(nameof(descriptor));
         }
@@ -83,7 +83,7 @@ public static class DiagnosticCleanupCategoryClassifier
 
     private static bool IsInFamily(DiagnosticAnalyzer analyzer, string familyTypeName)
     {
-        for (var type = analyzer.GetType(); type != null; type = type.BaseType)
+        for (var type = analyzer.GetType(); type is not null; type = type.BaseType)
         {
             if (string.Equals(WithoutGenericArity(type.Name), familyTypeName, StringComparison.OrdinalIgnoreCase))
             {

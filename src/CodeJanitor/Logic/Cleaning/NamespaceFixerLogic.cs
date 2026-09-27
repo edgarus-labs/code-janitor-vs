@@ -11,7 +11,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// Applies a namespace fix to the active C# document.
 /// </summary>
-
 internal sealed class NamespaceFixerLogic
 {
     private readonly NamespaceFixerConverter _converter;
@@ -23,7 +22,6 @@ internal sealed class NamespaceFixerLogic
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A NamespaceFixerLogic value produced by this method.</returns>
-
     internal static NamespaceFixerLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new NamespaceFixerLogic(package));
@@ -39,7 +37,6 @@ internal sealed class NamespaceFixerLogic
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     internal bool CanFixNamespaceProjectItem(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -73,7 +70,6 @@ internal sealed class NamespaceFixerLogic
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     internal bool FixNamespace(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -127,7 +123,6 @@ internal sealed class NamespaceFixerLogic
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     internal bool FixNamespace(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -141,7 +136,6 @@ internal sealed class NamespaceFixerLogic
     /// <param name="document">The document.</param>
     /// <param name="expectedNamespace">The expected namespace.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private bool FixNamespace(Document document, string expectedNamespace)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

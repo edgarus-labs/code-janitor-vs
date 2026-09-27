@@ -7,7 +7,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// A simple converter for determining if the specified value is null.
 /// </summary>
-
 public sealed class NullToBooleanConverter : IValueConverter
 {
     /// <summary>
@@ -35,7 +34,6 @@ public sealed class NullToBooleanConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         return ReturnTrueIfNull ? value is null : value is not null;
@@ -49,7 +47,6 @@ public sealed class NullToBooleanConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

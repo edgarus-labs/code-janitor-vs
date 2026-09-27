@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// Updates property and event accessors to either both be single-line or both be multi-line,
 /// ensuring consistency and readability.
 /// </summary>
-
 public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTransformation
 {
     private readonly EffectiveCleanupSettings _settings;
@@ -19,7 +18,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
     /// Initializes a new instance of the <see cref="UpdateAccessorsToBothBeSingleLineOrMultiLineConverter" /> class.
     /// </summary>
     /// <param name="settings">The effective cleanup settings of the file, which decide whether accessors are updated.</param>
-
     internal UpdateAccessorsToBothBeSingleLineOrMultiLineConverter(EffectiveCleanupSettings settings)
     {
         _settings = settings;
@@ -35,7 +33,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !_settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)))
@@ -61,7 +58,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             // First visit children
@@ -90,7 +86,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitEventDeclaration(EventDeclarationSyntax node)
         {
             // First visit children
@@ -121,7 +116,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         /// <param name="first">The first.</param>
         /// <param name="second">The second.</param>
         /// <returns>A PropertyDeclarationSyntax value produced by this method.</returns>
-
         private PropertyDeclarationSyntax UpdateAccessorConsistency(PropertyDeclarationSyntax prop, AccessorDeclarationSyntax first, AccessorDeclarationSyntax second)
         {
             bool isFirstSingleLine = IsSingleLine(first);
@@ -162,7 +156,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         /// <param name="first">The first.</param>
         /// <param name="second">The second.</param>
         /// <returns>A EventDeclarationSyntax value produced by this method.</returns>
-
         private EventDeclarationSyntax UpdateEventAccessorConsistency(EventDeclarationSyntax evt, AccessorDeclarationSyntax first, AccessorDeclarationSyntax second)
         {
             bool isFirstSingleLine = IsSingleLine(first);
@@ -200,7 +193,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         /// </summary>
         /// <param name="accessor">The accessor.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private bool IsSingleLine(AccessorDeclarationSyntax accessor)
         {
             if (accessor.Body is null)
@@ -219,7 +211,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         /// <param name="accessor">The accessor.</param>
         /// <param name="makeMultiLine">The make multi line.</param>
         /// <returns>A AccessorDeclarationSyntax value produced by this method.</returns>
-
         private AccessorDeclarationSyntax FormatAccessor(AccessorDeclarationSyntax accessor, bool makeMultiLine)
         {
             if (accessor.Body is null)

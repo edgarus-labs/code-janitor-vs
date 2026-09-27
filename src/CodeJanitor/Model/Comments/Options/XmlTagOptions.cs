@@ -62,7 +62,6 @@ public sealed class XmlTagOptions : IXmlTagOptions
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A XmlTagOptions value produced by this method.</returns>
-
     internal static XmlTagOptions FromSettings(Settings settings)
     {
         return new XmlTagOptions

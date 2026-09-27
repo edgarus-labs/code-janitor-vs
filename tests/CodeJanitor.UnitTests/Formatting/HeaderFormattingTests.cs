@@ -8,7 +8,6 @@ namespace CodeJanitor.UnitTests.Formatting;
 /// Class with simple unit tests for formatting header type comments. This calls the formatter
 /// directly, rather than invoking it through the UI as with the integration tests.
 /// </summary>
-
 [TestClass]
 public sealed class HeaderFormattingTests
 {
@@ -21,17 +20,16 @@ public sealed class HeaderFormattingTests
     /// <summary>
     /// Tests the forced indenting of the XML copyright file header.
     /// </summary>
-
     [TestMethod]
     [TestCategory("Formatting UnitTests")]
     public void HeaderFormattingTests_Copyright_Indenting()
     {
-        var input =
+        string input =
             @"<copyright file=""NameOfFile.cs"" company=""CompanyName"">" + Environment.NewLine +
             @"Company copyright tag." + Environment.NewLine +
             @"</copyright>";
 
-        var expected =
+        string expected =
             @"<copyright file=""NameOfFile.cs"" company=""CompanyName"">" + Environment.NewLine +
             @"    Company copyright tag." + Environment.NewLine +
             @"</copyright>";
@@ -43,7 +41,7 @@ public sealed class HeaderFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void HeaderFormattingTests_PreservesHyphenLinesWithoutXML()
     {
-        var input =
+        string input =
             @"--------------------------------------------------------------------------------------------------------------------" + Environment.NewLine +
             Environment.NewLine +
             @"Copyright (c) 2012 - 2013 . All rights reserved." + Environment.NewLine +
@@ -57,7 +55,7 @@ public sealed class HeaderFormattingTests
     [TestCategory("Formatting UnitTests")]
     public void HeaderFormattingTests_Copyright_PreservesHyphenLinesWithXML()
     {
-        var input =
+        string input =
             @"-----------------------------------------------------------------------" + Environment.NewLine +
             @"<copyright file=""NameOfFile.cs"" company=""CompanyName"">" + Environment.NewLine +
             @"    Company copyright tag." + Environment.NewLine +

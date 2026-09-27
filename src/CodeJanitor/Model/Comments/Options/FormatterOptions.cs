@@ -6,7 +6,6 @@ namespace CodeJanitor.Model.Comments.Options;
 /// <summary>
 /// Document wide options for the comment formatter.
 /// </summary>
-
 public sealed class FormatterOptions
 {
     /// <summary>
@@ -39,7 +38,6 @@ public sealed class FormatterOptions
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A FormatterOptions value produced by this method.</returns>
-
     internal static FormatterOptions FromSettings(Settings settings)
     {
         return new FormatterOptions
@@ -55,7 +53,6 @@ public sealed class FormatterOptions
     /// </summary>
     /// <param name="action">The action.</param>
     /// <returns>A FormatterOptions value produced by this method.</returns>
-
     internal FormatterOptions Set(Action<FormatterOptions> action)
     {
         action?.Invoke(this);

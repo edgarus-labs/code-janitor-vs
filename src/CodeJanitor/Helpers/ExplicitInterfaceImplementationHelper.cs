@@ -11,7 +11,6 @@ namespace CodeJanitor.Helpers;
 /// preferable to false negatives. A future implementation built against Roslyn will hopefully
 /// be more precise.
 /// </remarks>
-
 public static class ExplicitInterfaceImplementationHelper
 {
     /// <summary>
@@ -19,7 +18,6 @@ public static class ExplicitInterfaceImplementationHelper
     /// </summary>
     /// <param name="codeEvent">The code event.</param>
     /// <returns>True if an explicit interface implementation, otherwise false.</returns>
-
     public static bool IsExplicitInterfaceImplementation(CodeEvent codeEvent)
     {
         // In some VS editions, the name may be reported including the interface name.
@@ -40,7 +38,6 @@ public static class ExplicitInterfaceImplementationHelper
     /// </summary>
     /// <param name="codeFunction">The code function.</param>
     /// <returns>True if an explicit interface implementation, otherwise false.</returns>
-
     public static bool IsExplicitInterfaceImplementation(CodeFunction2 codeFunction)
     {
         // In some VS editions, the name may be reported including the interface name.
@@ -61,7 +58,6 @@ public static class ExplicitInterfaceImplementationHelper
     /// </summary>
     /// <param name="codeProperty">The code property.</param>
     /// <returns>True if an explicit interface implementation, otherwise false.</returns>
-
     public static bool IsExplicitInterfaceImplementation(CodeProperty codeProperty)
     {
         // In some VS editions, the name may be reported including the interface name.

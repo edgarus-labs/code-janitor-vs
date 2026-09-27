@@ -7,7 +7,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// without Visual Studio, so any subset of them can be composed in any order (see
 /// <see cref="SourceTransformationPipeline" />).
 /// </summary>
-
 public interface ISourceTransformation
 {
     /// <summary>
@@ -19,6 +18,5 @@ public interface ISourceTransformation
     /// Applies the transformation to <paramref name="source" /> and returns the result, or the
     /// original text unchanged when the transformation does not apply.
     /// </summary>
-
     string Apply(string source);
 }

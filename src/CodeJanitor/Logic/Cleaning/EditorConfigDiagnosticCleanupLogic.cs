@@ -19,7 +19,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// The outcome of running .editorconfig/Roslyn diagnostic cleanup on one C# file. The default value
 /// means nothing changed and nothing is unresolved (including when no category is enabled).
 /// </summary>
-
 internal struct DiagnosticCleanupOutcome
 {
     /// <summary>
@@ -50,7 +49,6 @@ internal struct DiagnosticCleanupOutcome
 /// Microsoft.CodeAnalysis 5.0 reference (type/file load failures) produces an explicit, logged failure
 /// instead of crashing cleanup or silently succeeding.
 /// </remarks>
-
 internal sealed class EditorConfigDiagnosticCleanupLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -67,7 +65,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="EditorConfigDiagnosticCleanupLogic" /> class.</returns>
-
     internal static EditorConfigDiagnosticCleanupLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new EditorConfigDiagnosticCleanupLogic(package));
@@ -77,7 +74,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// Initializes a new instance of the <see cref="EditorConfigDiagnosticCleanupLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private EditorConfigDiagnosticCleanupLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -93,7 +89,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-
     internal async Task<DiagnosticCleanupOutcome> CleanupAsync(EnvDTE.ProjectItem projectItem)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -112,7 +107,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// </summary>
     /// <param name="document">The open document.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-
     internal async Task<DiagnosticCleanupOutcome> CleanupAsync(EnvDTE.Document document)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -124,6 +118,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
                 var textDocument = document.GetTextDocument();
+
                 return textDocument.StartPoint.CreateEditPoint().GetText(textDocument.EndPoint);
             });
     }
@@ -135,7 +130,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-
     private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -182,7 +176,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<DiagnosticCleanupOutcome> RunInWorkspaceAsync(
         string filePath,
@@ -248,6 +241,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
             if (!result.HasChanges)
             {
                 LogResult(filePath, result, applied: false);
+
                 return CreateOutcome(result, changed: false);
             }
 
@@ -354,7 +348,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="result">The applied engine result.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ApplyPostApplyOperations(
         Workspace workspace,
@@ -391,7 +384,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="targetDocumentId">The target document id, whose text is already injected.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The stale documents mapped to their disk text.</returns>
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<Dictionary<DocumentId, SourceText>> FindStaleClosedDocumentsAsync(
         Workspace workspace,
@@ -435,7 +427,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// such as naming and formatting, plus fixers from installed extensions).
     /// </summary>
     /// <returns>The code fix providers.</returns>
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private List<CodeFixProvider> GetMefCodeFixProviders()
     {
@@ -472,7 +463,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// </summary>
     /// <param name="metadata">The export metadata.</param>
     /// <returns>True if the provider supports C#, otherwise false.</returns>
-
     private static bool SupportsCSharp(IDictionary<string, object> metadata)
     {
         if (metadata is null || !metadata.TryGetValue("Languages", out var languages))
@@ -499,7 +489,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="result">The engine result.</param>
     /// <param name="applied">Whether the fixes were applied to the workspace.</param>
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LogResult(string filePath, DiagnosticCleanupResult result, bool applied)
     {
@@ -531,7 +520,6 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="result">The engine result.</param>
     /// <param name="changed">Whether fixes were applied.</param>
     /// <returns>The outcome.</returns>
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static DiagnosticCleanupOutcome CreateOutcome(DiagnosticCleanupResult result, bool changed)
     {

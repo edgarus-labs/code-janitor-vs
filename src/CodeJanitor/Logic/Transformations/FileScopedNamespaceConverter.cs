@@ -20,7 +20,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// This is a pure text transformation with no dependency on Visual Studio / EnvDTE,
 /// which keeps it unit-testable in isolation (see ADR-0005 / ADR-0006).
 /// </remarks>
-
 public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISourceTransformation
 {
     private const int DefaultIndentSize = 4;
@@ -32,7 +31,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// Initializes a new instance of the <see cref="FileScopedNamespaceConverter" /> class that indents like the
     /// namespace body: with a tab when its first indented line starts with one, otherwise with four spaces.
     /// </summary>
-
     public FileScopedNamespaceConverter()
         : this(null, DefaultIndentSize)
     {
@@ -47,7 +45,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// namespace body.
     /// </param>
     /// <param name="indentSize">The number of spaces of one indentation level.</param>
-
     public FileScopedNamespaceConverter(bool? indentWithTabs, int indentSize)
     {
         if (indentSize <= 0)
@@ -63,11 +60,9 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     public string Name => "File-Scoped Namespace";
 
     /// <inheritdoc />
-
     public string Apply(string source) => ConvertToFileScoped(source);
 
     /// <inheritdoc />
-
     public string ConvertToFileScoped(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -171,7 +166,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     }
 
     /// <inheritdoc />
-
     public bool HasMultipleNamespaces(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -192,7 +186,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     }
 
     /// <inheritdoc />
-
     public string ConvertToBlockScoped(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -269,7 +262,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// lines. Lines starting inside a multi-line string literal, text disabled by <c>#if</c> or a multi-line comment
     /// keep their exact text (see <see cref="IndentationGuard" />).
     /// </summary>
-
     private string Dedent(string source, SyntaxNode root, int bodyStart, int bodyEnd, string newline)
     {
         while (bodyStart < bodyEnd && (source[bodyStart] == '\r' || source[bodyStart] == '\n'))
@@ -325,7 +317,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// <param name="firstOnNewLine">Whether the first comment starts a line.</param>
     /// <param name="comments">The rendered comments; empty when there are none.</param>
     /// <returns>False when the trivia contains something other than whitespace, line breaks and comments.</returns>
-
     private static bool TryRenderComments(IEnumerable<SyntaxTrivia> trivia, string newline, bool firstOnNewLine, out string comments)
     {
         var builder = new StringBuilder();
@@ -363,7 +354,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// Whether text disabled by <c>#if</c> before <paramref name="position" /> declares members (types or
     /// namespaces). Disabled using and extern alias directives and global attributes declare none.
     /// </summary>
-
     private static bool HasDisabledMembersBefore(CompilationUnitSyntax root, int position) =>
         root.DescendantTrivia(TextSpan.FromBounds(0, position))
             .Any(trivia => trivia.IsKind(SyntaxKind.DisabledTextTrivia)
@@ -375,11 +365,10 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// blocks: every <c>#if</c> there ends there, and no <c>#elif</c>, <c>#else</c> or <c>#endif</c> there continues a
     /// block opened before <paramref name="start" />.
     /// </summary>
-
     private static bool HasBalancedConditionalDirectives(CompilationUnitSyntax root, int start, int end)
     {
         var depth = 0;
-        for (var directive = root.GetFirstDirective(); directive != null && directive.SpanStart < end; directive = directive.GetNextDirective())
+        for (var directive = root.GetFirstDirective(); directive is not null && directive.SpanStart < end; directive = directive.GetNextDirective())
         {
             if (directive.SpanStart < start)
             {
@@ -419,11 +408,10 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// Whether <paramref name="position" /> lies between an <c>#if</c> and its <c>#endif</c>. A namespace declared
     /// there cannot get braces: the closing brace would have to follow the <c>#endif</c>.
     /// </summary>
-
     private static bool IsInsideConditionalDirective(CompilationUnitSyntax root, int position)
     {
         var depth = 0;
-        for (var directive = root.GetFirstDirective(); directive != null && directive.SpanStart < position; directive = directive.GetNextDirective())
+        for (var directive = root.GetFirstDirective(); directive is not null && directive.SpanStart < position; directive = directive.GetNextDirective())
         {
             if (directive.IsKind(SyntaxKind.IfDirectiveTrivia))
             {
@@ -443,7 +431,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// directives and comments after the last member stay inside the braces), without leading and trailing blank lines.
     /// The first line starts at <paramref name="bodyStart" /> even when that is not the start of a line.
     /// </summary>
-
     private static List<BodyLine> GetBodyLines(SourceText text, int bodyStart)
     {
         var lines = new List<BodyLine>();
@@ -486,7 +473,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// Whether one indentation level is inserted before <paramref name="line" />: not for blank lines, lines starting
     /// inside a string literal, disabled text or a multi-line comment, and preprocessor directives in column zero.
     /// </summary>
-
     private static bool ShouldIndent(string source, SyntaxNode root, BodyLine line)
     {
         var contentStart = line.Start;
@@ -507,7 +493,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// Gets one indentation level: the configured one, otherwise in the style of the body (a tab when its first
     /// indented line starts with a tab, otherwise the configured number of spaces).
     /// </summary>
-
     private string GetIndentationUnit(string source, SyntaxNode root, List<BodyLine> lines)
     {
         if (_indentWithTabs.HasValue)
@@ -531,7 +516,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// Gets the first line break of <paramref name="source" /> (<c>\r\n</c>, <c>\n</c> or <c>\r</c>), or null when
     /// it has none.
     /// </summary>
-
     private static string GetFirstLineBreak(string source)
     {
         var index = source.IndexOfAny(new[] { '\r', '\n' });
@@ -551,7 +535,6 @@ public sealed class FileScopedNamespaceConverter : INamespaceScopeConverter, ISo
     /// <summary>
     /// A line of the namespace body: its start, the end of its content and the end including its line break.
     /// </summary>
-
     private readonly struct BodyLine
     {
         public BodyLine(int start, int end, int endIncludingLineBreak)

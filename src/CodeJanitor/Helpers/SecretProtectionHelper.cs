@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// Provides per-user DPAPI protection for persisted secrets.
 /// </summary>
-
 internal static class SecretProtectionHelper
 {
     /// <summary>
@@ -20,7 +19,6 @@ internal static class SecretProtectionHelper
     /// </summary>
     /// <param name="plainText">The plain text.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string ProtectForCurrentUser(string plainText)
     {
         if (string.IsNullOrWhiteSpace(plainText))
@@ -39,7 +37,6 @@ internal static class SecretProtectionHelper
     /// </summary>
     /// <param name="protectedValue">The protected value.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string UnprotectForCurrentUser(string protectedValue)
     {
         if (string.IsNullOrWhiteSpace(protectedValue))

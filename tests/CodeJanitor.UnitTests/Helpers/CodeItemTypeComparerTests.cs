@@ -21,11 +21,11 @@ public sealed class CodeItemTypeComparerTests
     {
         BaseCodeItem itemB = Create<CodeItemField>("b", 1);
         BaseCodeItem itemA = Create<CodeItemField>("a", 2);
-        var comparer = new CodeItemTypeComparer(sortByName: true);
+        CodeItemTypeComparer comparer = new CodeItemTypeComparer(sortByName: true);
 
         int result = comparer.Compare(itemA, itemB);
 
-        Assert.IsTrue(result < 0);
+        Assert.IsLessThan(0, result);
     }
 
     [TestMethod]
@@ -33,11 +33,11 @@ public sealed class CodeItemTypeComparerTests
     {
         BaseCodeItem itemB = Create<CodeItemField>("b", 1);
         BaseCodeItem itemA = Create<CodeItemField>("a", 2);
-        var comparer = new CodeItemTypeComparer(sortByName: false);
+        CodeItemTypeComparer comparer = new CodeItemTypeComparer(sortByName: false);
 
         int result = comparer.Compare(itemA, itemB);
 
-        Assert.IsTrue(result > 0);
+        Assert.IsGreaterThan(0, result);
     }
 
     [TestMethod]
@@ -45,11 +45,11 @@ public sealed class CodeItemTypeComparerTests
     {
         BaseCodeItem method = Create<CodeItemMethod>("a", 1);
         BaseCodeItem field = Create<CodeItemField>("z", 2);
-        var comparer = new CodeItemTypeComparer(sortByName: true);
+        CodeItemTypeComparer comparer = new CodeItemTypeComparer(sortByName: true);
 
         int result = comparer.Compare(field, method);
 
-        Assert.IsTrue(result < 0);
+        Assert.IsLessThan(0, result);
     }
 
     [TestMethod]
@@ -57,12 +57,12 @@ public sealed class CodeItemTypeComparerTests
     {
         CodeItemMethod methodZ = CreateExplicitMethod("Interface", "Z", 1);
         BaseCodeItem methodX = Create<CodeItemMethod>("X", 2);
-        var comparer = new CodeItemTypeComparer(sortByName: true);
+        CodeItemTypeComparer comparer = new CodeItemTypeComparer(sortByName: true);
 
         Settings.Default.Reorganizing_ExplicitMembersAtEnd = false;
         int result = comparer.Compare(methodX, methodZ);
 
-        Assert.IsTrue(result < 0);
+        Assert.IsLessThan(0, result);
     }
 
     [TestMethod]
@@ -70,12 +70,12 @@ public sealed class CodeItemTypeComparerTests
     {
         CodeItemMethod methodA = CreateExplicitMethod("Interface", "A", 1);
         BaseCodeItem methodB = Create<CodeItemMethod>("B", 2);
-        var comparer = new CodeItemTypeComparer(sortByName: true);
+        CodeItemTypeComparer comparer = new CodeItemTypeComparer(sortByName: true);
 
         Settings.Default.Reorganizing_ExplicitMembersAtEnd = true;
         int result = comparer.Compare(methodB, methodA);
 
-        Assert.IsTrue(result < 0);
+        Assert.IsLessThan(0, result);
     }
 
     private static T Create<T>(string name, int offset) where T : BaseCodeItem, new()

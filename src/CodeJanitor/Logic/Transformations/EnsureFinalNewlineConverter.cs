@@ -8,14 +8,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// <remarks>
 /// The line-break style (<c>\r\n</c> vs <c>\n</c>) matches the style already used in the file.
 /// </remarks>
-
 public sealed class EnsureFinalNewlineConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Ensure final newline";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Convert(source);
@@ -24,7 +22,6 @@ public sealed class EnsureFinalNewlineConverter : ISourceTransformation
     /// <summary>
     /// Appends a final line break to the given source when it does not already end with one.
     /// </summary>
-
     public string Convert(string source)
     {
         if (string.IsNullOrEmpty(source))

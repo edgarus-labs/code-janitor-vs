@@ -3,7 +3,6 @@ namespace CodeJanitor.Model.CodeTree;
 /// <summary>
 /// An enumeration of code sort orders.
 /// </summary>
-
 public enum CodeSortOrder
 {
     /// <summary>

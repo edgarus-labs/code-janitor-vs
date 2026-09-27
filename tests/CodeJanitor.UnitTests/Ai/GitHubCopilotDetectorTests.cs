@@ -28,89 +28,90 @@ public sealed class GitHubCopilotDetectorTests
 
     private static string ExchangeResponseExpiringIn(TimeSpan lifetime)
     {
-        var expiresAt = DateTimeOffset.UtcNow.Add(lifetime).ToUnixTimeSeconds();
+        long expiresAt = DateTimeOffset.UtcNow.Add(lifetime).ToUnixTimeSeconds();
+
         return "{\"token\":\"tid=abc;exp=" + expiresAt + "\",\"expires_at\":" + expiresAt + ",\"endpoints\":{\"api\":\"https://api.business.githubcopilot.com\"}}";
     }
 
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_ReusesUnexpiredSessionAcrossCalls()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)));
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)));
 
-        var first = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_cached", handler);
-        var second = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_cached", handler);
+        GitHubCopilotDetector.CopilotSession first = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_cached", handler);
+        GitHubCopilotDetector.CopilotSession second = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_cached", handler);
 
         Assert.IsNull(second.ErrorMessage);
         Assert.AreEqual(first.Token, second.Token);
-        Assert.AreEqual(1, handler.Requests.Count);
+        Assert.HasCount(1, handler.Requests);
     }
 
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_ExchangesAgainWhenSessionIsAboutToExpire()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromSeconds(30)));
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromSeconds(30)));
 
         await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_expiring", handler);
         await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_expiring", handler);
 
-        Assert.AreEqual(2, handler.Requests.Count);
+        Assert.HasCount(2, handler.Requests);
     }
 
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_DoesNotReuseFailedExchange()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.ServiceUnavailable, "upstream down");
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.ServiceUnavailable, "upstream down");
 
         await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_transient", handler);
         await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_transient", handler);
 
-        Assert.AreEqual(2, handler.Requests.Count);
+        Assert.HasCount(2, handler.Requests);
     }
 
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_BlamesTokenOnlyForAuthorizationFailures()
     {
-        var unauthorized = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_a", new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}"));
-        var unavailable = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_b", new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.ServiceUnavailable, new string('x', 2000)));
+        GitHubCopilotDetector.CopilotSession unauthorized = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_a", new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}"));
+        GitHubCopilotDetector.CopilotSession unavailable = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("ghu_b", new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.ServiceUnavailable, new string('x', 2000)));
 
-        StringAssert.Contains(unauthorized.ErrorMessage, "not authorized");
-        StringAssert.Contains(unavailable.ErrorMessage, "503");
-        Assert.IsFalse(unavailable.ErrorMessage.Contains("not authorized"));
-        Assert.IsTrue(unavailable.ErrorMessage.Length < 1000);
+        Assert.Contains("not authorized", unauthorized.ErrorMessage);
+        Assert.Contains("503", unavailable.ErrorMessage);
+        Assert.DoesNotContain("not authorized", unavailable.ErrorMessage);
+        Assert.IsLessThan(1000, unavailable.ErrorMessage.Length);
     }
 
     [TestMethod]
     public async Task FetchCopilotModelsAsync_ReportsWhyFallbackModelsAreShown()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}");
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}");
 
-        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_bad", handler);
+        GitHubCopilotDetector.CopilotModelsResult result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_bad", handler);
 
-        CollectionAssert.AreEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
-        StringAssert.Contains(result.ErrorMessage, "token exchange failed");
+        Assert.AreSequenceEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
+        Assert.Contains("token exchange failed", result.ErrorMessage);
     }
 
     [TestMethod]
     public async Task FetchCopilotModelsAsync_FallsBackWhenTokenExchangeReturnsNonJson()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, "<html>captive portal</html>");
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, "<html>captive portal</html>");
 
-        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_proxy", handler);
+        GitHubCopilotDetector.CopilotModelsResult result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_proxy", handler);
 
-        CollectionAssert.AreEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
-        StringAssert.Contains(result.ErrorMessage, "invalid response");
+        Assert.AreSequenceEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
+        Assert.Contains("invalid response", result.ErrorMessage);
     }
 
     [TestMethod]
     public async Task CopilotClient_GetChatCompletionContentAsync_DropsCachedSessionRejectedWith401()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)))
             .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.Unauthorized, "{}");
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_revoked", "Authorization", "gpt-5", 5, 0, handler);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_revoked", "Authorization", "gpt-5", 5, 0, handler);
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user"));
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user", TestContext.CancellationToken));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user", TestContext.CancellationToken));
 
         Assert.AreEqual(2, handler.Requests.Count(r => r.Url == ExchangeUrl));
     }
@@ -118,10 +119,10 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task CopilotClient_TestModelAsync_DropsCachedSessionRejectedWith401()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponseExpiringIn(TimeSpan.FromMinutes(30)))
             .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.Unauthorized, "{}");
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_revoked_test", "Authorization", "gpt-5", 5, 0, handler);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_revoked_test", "Authorization", "gpt-5", 5, 0, handler);
 
         await client.TestModelAsync();
         await client.TestModelAsync();
@@ -132,12 +133,12 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task CopilotClient_GetChatCompletionContentAsync_UsesSessionEndpointAndToken()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse)
             .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.OK, ChatResponse);
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", "gpt-5", 5, 0, handler);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", "gpt-5", 5, 0, handler);
 
-        var content = await client.GetChatCompletionContentAsync("system", "user");
+        string content = await client.GetChatCompletionContentAsync("system", "user", TestContext.CancellationToken);
 
         Assert.AreEqual("OK", content);
         Assert.AreEqual("Bearer " + SessionToken, handler.Requests[1].Authorization);
@@ -146,24 +147,24 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task CopilotClient_GetChatCompletionContentAsync_DoesNotRetryTokenExchangeFailure()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}");
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "gho_bad", "Authorization", "gpt-5", 5, 0, handler);
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{}");
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "gho_bad", "Authorization", "gpt-5", 5, 0, handler);
 
-        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user"));
+        InvalidOperationException error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => client.GetChatCompletionContentAsync("system", "user", TestContext.CancellationToken));
 
-        StringAssert.Contains(error.Message, "token exchange failed");
-        Assert.AreEqual(1, handler.Requests.Count);
+        Assert.Contains("token exchange failed", error.Message);
+        Assert.HasCount(1, handler.Requests);
     }
 
     [TestMethod]
     public async Task CopilotClient_TestModelAsync_TimeoutCoversOnlyTheModelRequest()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse, delayMilliseconds: 1500)
             .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.OK, ChatResponse);
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_slow_exchange", "Authorization", "gpt-5", 1, 0, handler);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_slow_exchange", "Authorization", "gpt-5", 1, 0, handler);
 
-        var result = await client.TestModelAsync();
+        OpenAiCompatibleClient.ConnectionTestResult result = await client.TestModelAsync();
 
         Assert.IsTrue(result.Succeeded, result.ErrorMessage);
     }
@@ -171,15 +172,15 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public void DetectCopilotStatus_ReadsTokenFromHostsJson()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         try
         {
-            var localAppData = Path.Combine(root, "local");
-            var configDir = Path.Combine(localAppData, "github-copilot");
+            string localAppData = Path.Combine(root, "local");
+            string configDir = Path.Combine(localAppData, "github-copilot");
             Directory.CreateDirectory(configDir);
             File.WriteAllText(Path.Combine(configDir, "hosts.json"), "{\"github.com\":{\"user\":\"octo\",\"oauth_token\":\"ghu_hosts\"}}");
 
-            var result = GitHubCopilotDetector.DetectCopilotStatus(Path.Combine(root, "profile"), localAppData, () => null);
+            CopilotDetectionResult result = GitHubCopilotDetector.DetectCopilotStatus(Path.Combine(root, "profile"), localAppData, () => null);
 
             Assert.IsTrue(result.IsActive);
             Assert.AreEqual("ghu_hosts", result.DetectedToken);
@@ -206,19 +207,19 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public void SupportedCopilotModels_ContainsGpt4oAndClaude()
     {
-        var models = GitHubCopilotDetector.SupportedCopilotModels;
+        string[] models = GitHubCopilotDetector.SupportedCopilotModels;
         Assert.IsNotNull(models);
-        Assert.IsTrue(models.Contains("gpt-4o"));
-        Assert.IsTrue(models.Contains("claude-3.5-sonnet"));
-        Assert.IsTrue(models.Contains("o1-mini"));
-        Assert.IsTrue(models.Contains("gpt-4o-mini"));
+        Assert.Contains("gpt-4o", models);
+        Assert.Contains("claude-3.5-sonnet", models);
+        Assert.Contains("o1-mini", models);
+        Assert.Contains("gpt-4o-mini", models);
     }
 
     [TestMethod]
     public void DetectCopilotStatus_DoesNotThrowAndReturnsValidResult()
     {
         // Act
-        var result = GitHubCopilotDetector.DetectCopilotStatus();
+        CopilotDetectionResult result = GitHubCopilotDetector.DetectCopilotStatus();
 
         // Assert
         Assert.IsNotNull(result);
@@ -230,20 +231,20 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task FetchCopilotModelsAsync_FallsBackToDefaultModelsWhenModelsEndpointFails()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse);
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse);
 
-        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
+        GitHubCopilotDetector.CopilotModelsResult result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
 
-        CollectionAssert.AreEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
-        StringAssert.Contains(result.ErrorMessage, "404");
+        Assert.AreSequenceEqual(GitHubCopilotDetector.SupportedCopilotModels, result.Models);
+        Assert.Contains("404", result.ErrorMessage);
     }
 
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_ReturnsSessionTokenAndApiEndpoint()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse);
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse);
 
-        var session = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("\"Bearer ghu_user\"", handler);
+        GitHubCopilotDetector.CopilotSession session = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("\"Bearer ghu_user\"", handler);
 
         Assert.IsNull(session.ErrorMessage);
         Assert.AreEqual(SessionToken, session.Token);
@@ -254,31 +255,31 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_KeepsExistingSessionTokenWithoutExchange()
     {
-        var handler = new FakeHttpHandler();
+        FakeHttpHandler handler = new FakeHttpHandler();
 
-        var session = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync(SessionToken, handler);
+        GitHubCopilotDetector.CopilotSession session = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync(SessionToken, handler);
 
         Assert.IsNull(session.ErrorMessage);
         Assert.AreEqual(SessionToken, session.Token);
-        Assert.AreEqual(0, handler.Requests.Count);
+        Assert.IsEmpty(handler.Requests);
     }
 
     [TestMethod]
     public async Task ExchangeForCopilotSessionAsync_ReportsRejectedGitHubToken()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.NotFound, "{\"message\":\"Not Found\"}");
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.NotFound, "{\"message\":\"Not Found\"}");
 
-        var session = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("gho_notcopilot", handler);
+        GitHubCopilotDetector.CopilotSession session = await GitHubCopilotDetector.ExchangeForCopilotSessionAsync("gho_notcopilot", handler);
 
         Assert.IsNull(session.Token);
-        StringAssert.Contains(session.ErrorMessage, "token exchange failed");
-        StringAssert.Contains(session.ErrorMessage, "404");
+        Assert.Contains("token exchange failed", session.ErrorMessage);
+        Assert.Contains("404", session.ErrorMessage);
     }
 
     [TestMethod]
     public async Task FetchCopilotModelsAsync_ReturnsAllChatModelsFromSessionApiEndpoint()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse)
             .On("https://api.business.githubcopilot.com/models", HttpStatusCode.OK,
                 "{\"data\":[" +
@@ -290,9 +291,9 @@ public sealed class GitHubCopilotDetectorTests
                 "{\"id\":\"responses-only\",\"capabilities\":{\"type\":\"chat\"},\"policy\":{\"state\":\"enabled\"},\"supported_endpoints\":[\"/responses\"]}," +
                 "{\"id\":\"text-embedding-3-small\",\"capabilities\":{\"type\":\"embeddings\"}}]}");
 
-        var result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
+        GitHubCopilotDetector.CopilotModelsResult result = await GitHubCopilotDetector.FetchCopilotModelsAsync("ghu_user", handler);
 
-        CollectionAssert.AreEquivalent(new[] { "gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "kimi-k3" }, result.Models);
+        Assert.AreSequenceEqual(new[] { "gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "kimi-k3" }, result.Models, Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         Assert.IsNull(result.ErrorMessage);
         Assert.AreEqual("Bearer " + SessionToken, handler.Requests[1].Authorization);
         Assert.AreEqual("visualstudio-chat", handler.Requests[1].Header("Copilot-Integration-Id"));
@@ -301,12 +302,12 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task CopilotClient_TestApiConnectionAsync_UsesSessionTokenAndSessionEndpoint()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse)
             .On("https://api.business.githubcopilot.com/models", HttpStatusCode.OK, "{\"data\":[{\"id\":\"gpt-5\"}]}");
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", null, 5, 0, handler);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", null, 5, 0, handler);
 
-        var result = await client.TestApiConnectionAsync();
+        OpenAiCompatibleClient.ConnectionTestResult result = await client.TestApiConnectionAsync();
 
         Assert.IsTrue(result.Succeeded, result.ErrorMessage);
         Assert.AreEqual("gpt-5", result.AvailableModels.Single());
@@ -316,12 +317,12 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task CopilotClient_TestModelAsync_PostsToSessionEndpointWithSessionToken()
     {
-        var handler = new FakeHttpHandler()
+        FakeHttpHandler handler = new FakeHttpHandler()
             .On(ExchangeUrl, HttpStatusCode.OK, ExchangeResponse)
             .On("https://api.business.githubcopilot.com/chat/completions", HttpStatusCode.OK, "{\"choices\":[{\"message\":{\"content\":\"OK\"}}]}");
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", "gpt-5", 5, 0, handler);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "ghu_user", "Authorization", "gpt-5", 5, 0, handler);
 
-        var result = await client.TestModelAsync();
+        OpenAiCompatibleClient.ConnectionTestResult result = await client.TestModelAsync();
 
         Assert.IsTrue(result.Succeeded, result.ErrorMessage);
         Assert.AreEqual(HttpMethod.Post, handler.Requests[1].Method);
@@ -332,32 +333,32 @@ public sealed class GitHubCopilotDetectorTests
     [TestMethod]
     public async Task CopilotClient_TestApiConnectionAsync_ReportsTokenExchangeFailureInsteadOfSendingGitHubToken()
     {
-        var handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
-        var client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "gho_bad", "Authorization", null, 5, 0, handler);
+        FakeHttpHandler handler = new FakeHttpHandler().On(ExchangeUrl, HttpStatusCode.Unauthorized, "{\"message\":\"Bad credentials\"}");
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(GitHubCopilotDetector.DefaultCopilotEndpoint, "gho_bad", "Authorization", null, 5, 0, handler);
 
-        var result = await client.TestApiConnectionAsync();
+        OpenAiCompatibleClient.ConnectionTestResult result = await client.TestApiConnectionAsync();
 
         Assert.IsFalse(result.Succeeded);
-        StringAssert.Contains(result.ErrorMessage, "token exchange failed");
-        Assert.AreEqual(1, handler.Requests.Count);
+        Assert.Contains("token exchange failed", result.ErrorMessage);
+        Assert.HasCount(1, handler.Requests);
     }
 
     [TestMethod]
     public void DetectCopilotStatus_PrefersCopilotConfigTokenOverLogsAndCredentialManager()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         try
         {
-            var userProfile = Path.Combine(root, "profile");
-            var localAppData = Path.Combine(root, "local");
-            var configDir = Path.Combine(userProfile, ".config", "github-copilot");
-            var logsDir = Path.Combine(localAppData, "Temp", "VSGitHubCopilotLogs");
+            string userProfile = Path.Combine(root, "profile");
+            string localAppData = Path.Combine(root, "local");
+            string configDir = Path.Combine(userProfile, ".config", "github-copilot");
+            string logsDir = Path.Combine(localAppData, "Temp", "VSGitHubCopilotLogs");
             Directory.CreateDirectory(configDir);
             Directory.CreateDirectory(logsDir);
             File.WriteAllText(Path.Combine(configDir, "apps.json"), "{\n  \"github.com:Iv1.app\": {\n    \"user\": \"octo\",\n    \"oauth_token\": \"ghu_copilot\"\n  }\n}");
             File.WriteAllText(Path.Combine(logsDir, "a.chat.log"), "HasToken: True");
 
-            var result = GitHubCopilotDetector.DetectCopilotStatus(userProfile, localAppData, () => "gho_credential_manager");
+            CopilotDetectionResult result = GitHubCopilotDetector.DetectCopilotStatus(userProfile, localAppData, () => "gho_credential_manager");
 
             Assert.IsTrue(result.IsActive);
             Assert.AreEqual("ghu_copilot", result.DetectedToken);
@@ -372,18 +373,19 @@ public sealed class GitHubCopilotDetectorTests
     {
         private readonly Dictionary<string, Tuple<HttpStatusCode, string, int>> _responses = new Dictionary<string, Tuple<HttpStatusCode, string, int>>(StringComparer.OrdinalIgnoreCase);
 
-        public List<RecordedRequest> Requests { get; } = new List<RecordedRequest>();
+        public List<RecordedRequest> Requests { get; } = [];
 
         public FakeHttpHandler On(string url, HttpStatusCode status, string body, int delayMilliseconds = 0)
         {
             _responses[url] = Tuple.Create(status, body, delayMilliseconds);
+
             return this;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add(new RecordedRequest(request));
-            if (!_responses.TryGetValue(request.RequestUri.AbsoluteUri, out var configured))
+            if (!_responses.TryGetValue(request.RequestUri.AbsoluteUri, out Tuple<HttpStatusCode, string, int> configured))
             {
                 return new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent(string.Empty) };
             }
@@ -411,6 +413,8 @@ public sealed class GitHubCopilotDetectorTests
 
         private Dictionary<string, string> Headers { get; }
 
-        public string Header(string name) => Headers.TryGetValue(name, out var value) ? value : null;
+        public string Header(string name) => Headers.TryGetValue(name, out string value) ? value : null;
     }
+
+    public TestContext TestContext { get; set; }
 }

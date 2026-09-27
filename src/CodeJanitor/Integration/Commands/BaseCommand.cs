@@ -9,7 +9,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// The base implementation of a command.
 /// </summary>
-
 internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
 {
     /// <summary>
@@ -18,7 +17,6 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// <param name="package">The hosting package.</param>
     /// <param name="menuGroup">The GUID for the command ID.</param>
     /// <param name="commandID">The id for the command ID.</param>
-
     protected BaseCommand(CodeJanitorPackage package, Guid menuGroup, int commandID)
         : base(BaseCommand_Execute, null, BaseCommand_BeforeQueryStatus, new CommandID(menuGroup, commandID))
     {
@@ -35,7 +33,6 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// </summary>
     /// <param name="on">True if switching the command on, otherwise false.</param>
     /// <returns>A task.</returns>
-
     public virtual async Task SwitchAsync(bool on)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(Package.DisposalToken);
@@ -56,7 +53,6 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected virtual void OnBeforeQueryStatus()
     {
         // By default, commands are always enabled.
@@ -66,7 +62,6 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected virtual void OnExecute()
     {
         OutputWindowHelper.InfoWriteLine($"{GetType().Name}.OnExecute invoked");
@@ -77,7 +72,6 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="e">The <see cref="System.EventArgs" /> instance containing the event data.</param>
-
     private static void BaseCommand_BeforeQueryStatus(object sender, EventArgs e)
     {
         var command = sender as BaseCommand;
@@ -89,7 +83,6 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="e">The <see cref="System.EventArgs" /> instance containing the event data.</param>
-
     private static void BaseCommand_Execute(object sender, EventArgs e)
     {
         var command = sender as BaseCommand;

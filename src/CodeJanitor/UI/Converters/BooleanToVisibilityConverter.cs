@@ -8,7 +8,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// Converts a boolean value into a visiblity enumeration result.
 /// </summary>
-
 public sealed class BooleanToVisibilityConverter : IValueConverter
 {
     /// <summary>
@@ -21,7 +20,6 @@ public sealed class BooleanToVisibilityConverter : IValueConverter
     /// The inverse <see cref="BooleanToVisibilityConverter" /> that returns Collapsed for true
     /// and Visible for false.
     /// </summary>
-
     public static BooleanToVisibilityConverter Inverse = new BooleanToVisibilityConverter
     {
         TrueResult = Visibility.Collapsed,
@@ -31,7 +29,6 @@ public sealed class BooleanToVisibilityConverter : IValueConverter
     /// <summary>
     /// Initializes a new instance of the <see cref="BooleanToVisibilityConverter" /> class.
     /// </summary>
-
     public BooleanToVisibilityConverter()
     {
         TrueResult = Visibility.Visible;
@@ -56,7 +53,6 @@ public sealed class BooleanToVisibilityConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         return value is bool && (bool)value ? TrueResult : FalseResult;
@@ -70,7 +66,6 @@ public sealed class BooleanToVisibilityConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         return (value is Visibility && (Visibility)value == TrueResult);

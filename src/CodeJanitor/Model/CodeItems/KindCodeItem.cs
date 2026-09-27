@@ -6,7 +6,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// An enumeration of kind of code items. Does not 1:1 correspond to the code item classes (ex:
 /// CodeItemMethod includes constructors and destructors).
 /// </summary>
-
 public enum KindCodeItem
 {
     [Description("Fields")]

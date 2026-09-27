@@ -12,14 +12,12 @@ namespace CodeJanitor.Integration.Events;
 /// <summary>
 /// A class that listens for running document table events.
 /// </summary>
-
 internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVsRunningDocTableEvents3
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="RunningDocumentTableEventListener" /> class.
     /// </summary>
     /// <param name="package">The package hosting the event listener.</param>
-
     private RunningDocumentTableEventListener(CodeJanitorPackage package)
         : base(package)
     {
@@ -31,19 +29,16 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// A delegate specifying the contract for a document save event.
     /// </summary>
     /// <param name="document">The document being saved.</param>
-
     internal delegate void OnDocumentSaveEventHandler(Document document);
 
     /// <summary>
     /// An event raised after a document is saved.
     /// </summary>
-
     internal event OnDocumentSaveEventHandler AfterSave;
 
     /// <summary>
     /// An event raised before a document is saved.
     /// </summary>
-
     internal event OnDocumentSaveEventHandler BeforeSave;
 
     /// <summary>
@@ -66,7 +61,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new RunningDocumentTableEventListener(package);
@@ -85,7 +79,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <param name="docCookie">The doc cookie.</param>
     /// <param name="grfAttribs">The grf attribs.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnAfterAttributeChange(uint docCookie, uint grfAttribs) => VSConstants.S_OK;
 
     /// <summary>
@@ -100,7 +93,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <param name="itemidNew">The itemid new.</param>
     /// <param name="pszMkDocumentNew">The psz mk document new.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnAfterAttributeChangeEx(uint docCookie, uint grfAttribs, IVsHierarchy pHierOld, uint itemidOld, string pszMkDocumentOld, IVsHierarchy pHierNew, uint itemidNew, string pszMkDocumentNew) => VSConstants.S_OK;
 
     /// <summary>
@@ -109,7 +101,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <param name="docCookie">The doc cookie.</param>
     /// <param name="pFrame">The p frame.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnAfterDocumentWindowHide(uint docCookie, IVsWindowFrame pFrame) => VSConstants.S_OK;
 
     /// <summary>
@@ -120,7 +111,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <param name="dwReadLocksRemaining">The dw read locks remaining.</param>
     /// <param name="dwEditLocksRemaining">The dw edit locks remaining.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnAfterFirstDocumentLock(uint docCookie, uint dwRDTLockType, uint dwReadLocksRemaining, uint dwEditLocksRemaining) => VSConstants.S_OK;
 
     /// <summary>
@@ -128,7 +118,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// </summary>
     /// <param name="docCookie">An abstract value representing the document about to be saved.</param>
     /// <returns>S_OK if successful, otherwise an error code.</returns>
-
     public int OnAfterSave(uint docCookie)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -152,7 +141,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <param name="fFirstShow">The f first show.</param>
     /// <param name="pFrame">The p frame.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnBeforeDocumentWindowShow(uint docCookie, int fFirstShow, IVsWindowFrame pFrame) => VSConstants.S_OK;
 
     /// <summary>
@@ -163,7 +151,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <param name="dwReadLocksRemaining">The dw read locks remaining.</param>
     /// <param name="dwEditLocksRemaining">The dw edit locks remaining.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnBeforeLastDocumentUnlock(uint docCookie, uint dwRDTLockType, uint dwReadLocksRemaining, uint dwEditLocksRemaining) => VSConstants.S_OK;
 
     /// <summary>
@@ -171,7 +158,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// </summary>
     /// <param name="docCookie">An abstract value representing the document about to be saved.</param>
     /// <returns>S_OK if successful, otherwise an error code.</returns>
-
     public int OnBeforeSave(uint docCookie)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -191,7 +177,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <summary>
     /// Registers event handlers with the IDE.
     /// </summary>
-
     protected override void RegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -202,7 +187,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// <summary>
     /// Unregisters event handlers with the IDE.
     /// </summary>
-
     protected override void UnRegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -215,7 +199,6 @@ internal sealed class RunningDocumentTableEventListener : BaseEventListener, IVs
     /// </summary>
     /// <param name="docCookie">The document cookie.</param>
     /// <returns>The document object, otherwise null.</returns>
-
     private Document GetDocumentFromCookie(uint docCookie)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

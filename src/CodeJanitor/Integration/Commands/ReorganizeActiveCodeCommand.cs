@@ -9,7 +9,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for reorganizing code in the active document.
 /// </summary>
-
 internal sealed class ReorganizeActiveCodeCommand : BaseCommand
 {
     private readonly CodeReorganizationAvailabilityLogic _codeReorganizationAvailabilityLogic;
@@ -18,7 +17,6 @@ internal sealed class ReorganizeActiveCodeCommand : BaseCommand
     /// Initializes a new instance of the <see cref="ReorganizeActiveCodeCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal ReorganizeActiveCodeCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorReorganizeActiveCode)
     {
@@ -42,7 +40,6 @@ internal sealed class ReorganizeActiveCodeCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new ReorganizeActiveCodeCommand(package);
@@ -52,7 +49,6 @@ internal sealed class ReorganizeActiveCodeCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -62,7 +58,6 @@ internal sealed class ReorganizeActiveCodeCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

@@ -19,7 +19,6 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
     /// Initializes a new instance of the <see cref="NullCheckPatternMatchingConverter" /> class that converts both
     /// equality (<c>== null</c>) and inequality (<c>!= null</c>) checks.
     /// </summary>
-
     public NullCheckPatternMatchingConverter()
         : this(true)
     {
@@ -32,7 +31,6 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
     /// True to also convert inequality checks (<c>!= null</c>) to <c>is not null</c>, which needs C# 9; false to
     /// convert only equality checks (<c>== null</c>) to <c>is null</c>, which needs C# 7.0.
     /// </param>
-
     public NullCheckPatternMatchingConverter(bool convertInequalityChecks)
     {
         _convertInequalityChecks = convertInequalityChecks;
@@ -60,7 +58,6 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
     /// <summary>
     /// A rewriter that transforms null check binary expressions into a normalized or optimized form.
     /// </summary>
-
     private sealed class NullCheckRewriter : CSharpSyntaxRewriter
     {
         private readonly bool _convertInequalityChecks;
@@ -69,17 +66,14 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
         /// Initializes a new instance of the <see cref="NullCheckRewriter" /> class.
         /// </summary>
         /// <param name="convertInequalityChecks">Whether inequality checks are converted to <c>is not null</c>.</param>
-
         internal NullCheckRewriter(bool convertInequalityChecks)
         {
             _convertInequalityChecks = convertInequalityChecks;
         }
 
         /// <summary>
-
         /// Overriding a syntax visitor, this method rewrites binary `==`/`!=` expressions where one operand is `null` into equivalent `is` or `is not` pattern expressions, preserving the original trivia.
         /// </summary>
-
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax node)

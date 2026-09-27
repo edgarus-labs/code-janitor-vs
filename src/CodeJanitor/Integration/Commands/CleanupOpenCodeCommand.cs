@@ -13,14 +13,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for cleaning up code in the open documents.
 /// </summary>
-
 internal sealed class CleanupOpenCodeCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleanupOpenCodeCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CleanupOpenCodeCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCleanupOpenCode)
     {
@@ -40,14 +38,12 @@ internal sealed class CleanupOpenCodeCommand : BaseCommand
     /// <summary>
     /// Gets the list of open documents that are cleanup candidates.
     /// </summary>
-
     private IEnumerable<Document> OpenCleanableDocuments
         => OpenDocuments.Where(x => CodeCleanupAvailabilityLogic.CanCleanupDocument(x));
 
     /// <summary>
     /// Gets the list of open documents.
     /// </summary>
-
     private IEnumerable<Document> OpenDocuments
         => Package.IDE.Documents.OfType<Document>().Where(x => x.ActiveWindow is not null);
 
@@ -56,7 +52,6 @@ internal sealed class CleanupOpenCodeCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CleanupOpenCodeCommand(package);
@@ -66,7 +61,6 @@ internal sealed class CleanupOpenCodeCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -76,7 +70,6 @@ internal sealed class CleanupOpenCodeCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

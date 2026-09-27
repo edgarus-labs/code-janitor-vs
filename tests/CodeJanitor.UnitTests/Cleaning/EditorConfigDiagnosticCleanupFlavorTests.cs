@@ -36,22 +36,22 @@ public sealed class EditorConfigDiagnosticCleanupFlavorTests
     {
         // In App, "Services" means Company.App.Services; in Tool it means the global Services namespace. The change
         // compiles in App but "using Company.App.Services;" does not exist in Tool (CS0234).
-        var solution = CreateSolution(("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, GlobalServicesLibrary));
+        Solution solution = CreateSolution(("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, GlobalServicesLibrary));
 
-        var reason = await ValidateChangeInAppAsync(solution, MovedTarget);
+        string reason = await ValidateChangeInAppAsync(solution, MovedTarget);
 
         Assert.IsNotNull(reason, "The change adds a compiler error in Tool and must be rejected.");
-        StringAssert.Contains(reason, "'Tool'");
-        StringAssert.Matches(reason, new System.Text.RegularExpressions.Regex("CS0(234|246)"));
+        Assert.Contains("'Tool'", reason);
+        Assert.MatchesRegex(new System.Text.RegularExpressions.Regex("CS0(234|246)"), reason);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task LinkedFile_ChangeValidInEveryProject_IsAccepted()
     {
-        var solution = CreateSolution(("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
+        Solution solution = CreateSolution(("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
 
-        var reason = await ValidateChangeInAppAsync(solution, MovedTarget);
+        string reason = await ValidateChangeInAppAsync(solution, MovedTarget);
 
         Assert.IsNull(reason);
     }
@@ -61,9 +61,9 @@ public sealed class EditorConfigDiagnosticCleanupFlavorTests
     public async Task LinkedFile_OtherProjectAlreadyHasErrors_OnlyNewErrorsReject()
     {
         // Tool already fails to bind Svc (CS0246) before the change; a change that keeps exactly that error adds none.
-        var solution = CreateSolution(("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, "namespace Other { }\r\n"));
+        Solution solution = CreateSolution(("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, "namespace Other { }\r\n"));
 
-        var reason = await ValidateChangeInAppAsync(solution, Target.Replace("Svc s;", "Svc t;"));
+        string reason = await ValidateChangeInAppAsync(solution, Target.Replace("Svc s;", "Svc t;"));
 
         Assert.IsNull(reason);
     }
@@ -74,9 +74,9 @@ public sealed class EditorConfigDiagnosticCleanupFlavorTests
     {
         // The engine's own compiler-error gate owns the flavor it ran in; a file compiled by one project needs no
         // extra compilation, so even a change the validator would reject in another flavor passes here.
-        var solution = CreateSolution(("App", AppProjectPath, GlobalServicesLibrary));
+        Solution solution = CreateSolution(("App", AppProjectPath, GlobalServicesLibrary));
 
-        var reason = await ValidateChangeInAppAsync(solution, MovedTarget);
+        string reason = await ValidateChangeInAppAsync(solution, MovedTarget);
 
         Assert.IsNull(reason);
     }
@@ -86,9 +86,9 @@ public sealed class EditorConfigDiagnosticCleanupFlavorTests
     /// </summary>
     private static Task<string> ValidateChangeInAppAsync(Solution solution, string newText)
     {
-        var appDocumentId = solution.GetDocumentIdsWithFilePath(TargetPath)
+        DocumentId appDocumentId = solution.GetDocumentIdsWithFilePath(TargetPath)
             .Single(id => solution.GetProject(id.ProjectId).Name == "App");
-        var changedSolution = solution.WithDocumentText(appDocumentId, SourceText.From(newText));
+        Solution changedSolution = solution.WithDocumentText(appDocumentId, SourceText.From(newText));
 
         return EditorConfigDiagnosticCleanupLogic.FindNewErrorInOtherFlavorsAsync(solution, changedSolution, CancellationToken.None);
     }
@@ -99,10 +99,10 @@ public sealed class EditorConfigDiagnosticCleanupFlavorTests
     /// </summary>
     private static Solution CreateSolution(params (string Name, string FilePath, string LibrarySource)[] projects)
     {
-        var solution = new AdhocWorkspace().CurrentSolution;
-        foreach (var (name, filePath, librarySource) in projects)
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        foreach ((string name, string filePath, string librarySource) in projects)
         {
-            var projectId = ProjectId.CreateNewId(name);
+            ProjectId projectId = ProjectId.CreateNewId(name);
             solution = solution.AddProject(ProjectInfo.Create(
                 projectId,
                 VersionStamp.Create(),

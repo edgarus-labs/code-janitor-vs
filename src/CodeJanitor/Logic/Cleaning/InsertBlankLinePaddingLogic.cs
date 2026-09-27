@@ -12,7 +12,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating insertion of blank line padding logic.
 /// </summary>
-
 internal sealed class InsertBlankLinePaddingLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -27,7 +26,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="InsertBlankLinePaddingLogic" /> class.</returns>
-
     internal static InsertBlankLinePaddingLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new InsertBlankLinePaddingLogic(package));
@@ -37,7 +35,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// Initializes a new instance of the <see cref="InsertBlankLinePaddingLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private InsertBlankLinePaddingLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -50,7 +47,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>True if code item should be preceded by a blank line, otherwise false.</returns>
-
     internal bool ShouldBePrecededByBlankLine(BaseCodeItem codeItem) =>
         ShouldBePrecededByBlankLine(codeItem, EffectiveCleanupSettings.For(null));
 
@@ -61,7 +57,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// <param name="codeItem">The code item.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the code item.</param>
     /// <returns>True if code item should be preceded by a blank line, otherwise false.</returns>
-
     internal bool ShouldBePrecededByBlankLine(BaseCodeItem codeItem, EffectiveCleanupSettings settings)
     {
         if (codeItem is null)
@@ -126,7 +121,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>True if code item should be followed by a blank line, otherwise false.</returns>
-
     internal bool ShouldBeFollowedByBlankLine(BaseCodeItem codeItem) =>
         ShouldBeFollowedByBlankLine(codeItem, EffectiveCleanupSettings.For(null));
 
@@ -137,7 +131,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// <param name="codeItem">The code item.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the code item.</param>
     /// <returns>True if code item should be followed by a blank line, otherwise false.</returns>
-
     internal bool ShouldBeFollowedByBlankLine(BaseCodeItem codeItem, EffectiveCleanupSettings settings)
     {
         if (codeItem is null)
@@ -200,7 +193,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
-
     internal void InsertPaddingBeforeRegionTags(IEnumerable<CodeItemRegion> regions) =>
         InsertPaddingBeforeRegionTags(regions, EffectiveCleanupSettings.For(null));
 
@@ -209,7 +201,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
-
     internal void InsertPaddingBeforeRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -229,7 +220,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
-
     internal void InsertPaddingAfterRegionTags(IEnumerable<CodeItemRegion> regions) =>
         InsertPaddingAfterRegionTags(regions, EffectiveCleanupSettings.For(null));
 
@@ -238,7 +228,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
-
     internal void InsertPaddingAfterRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -258,7 +247,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
-
     internal void InsertPaddingBeforeEndRegionTags(IEnumerable<CodeItemRegion> regions) =>
         InsertPaddingBeforeEndRegionTags(regions, EffectiveCleanupSettings.For(null));
 
@@ -267,7 +255,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
-
     internal void InsertPaddingBeforeEndRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -287,7 +274,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// settings (region generation does not resolve per-file cleanup settings).
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
-
     internal void InsertPaddingAfterEndRegionTags(IEnumerable<CodeItemRegion> regions) =>
         InsertPaddingAfterEndRegionTags(regions, EffectiveCleanupSettings.For(null));
 
@@ -296,7 +282,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="regions">The regions to pad.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the regions.</param>
-
     internal void InsertPaddingAfterEndRegionTags(IEnumerable<CodeItemRegion> regions, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -317,7 +302,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// <typeparam name="T">The type of the code element.</typeparam>
     /// <param name="codeElements">The code elements to pad.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the code elements.</param>
-
     internal void InsertPaddingBeforeCodeElements<T>(IEnumerable<T> codeElements, EffectiveCleanupSettings settings)
         where T : BaseCodeItemElement
     {
@@ -333,7 +317,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// DTE reports a member's start below its documentation comment, so padding has to be placed
     /// above the comment instead of between the comment and the member it documents.
     /// </summary>
-
     private static EnvDTE.EditPoint GetPointAboveDocumentationComment(EnvDTE.TextPoint startPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -364,7 +347,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// <typeparam name="T">The type of the code element.</typeparam>
     /// <param name="codeElements">The code elements to pad.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the code elements.</param>
-
     internal void InsertPaddingAfterCodeElements<T>(IEnumerable<T> codeElements, EffectiveCleanupSettings settings)
         where T : BaseCodeItemElement
     {
@@ -381,7 +363,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void InsertPaddingBeforeCaseStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -400,7 +381,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void InsertPaddingBeforeSingleLineComments(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -418,7 +398,6 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="properties">The properties.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the properties.</param>
-
     internal void InsertPaddingBetweenMultiLinePropertyAccessors(IEnumerable<CodeItemProperty> properties, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

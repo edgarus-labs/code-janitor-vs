@@ -10,7 +10,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// A converter that finds the specified member count within a specified parent.
 /// </summary>
-
 public sealed class CodeItemParentMemberCountConverter : IMultiValueConverter
 {
     /// <summary>
@@ -42,7 +41,6 @@ public sealed class CodeItemParentMemberCountConverter : IMultiValueConverter
     /// does not transfer the value or use the <see
     /// cref="P:System.Windows.Data.BindingBase.FallbackValue" /> or the default value.
     /// </returns>
-
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values is null || values.Length < 2) return null;
@@ -68,7 +66,6 @@ public sealed class CodeItemParentMemberCountConverter : IMultiValueConverter
     /// <returns>
     /// An array of values that have been converted from the target value back to the source values.
     /// </returns>
-
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

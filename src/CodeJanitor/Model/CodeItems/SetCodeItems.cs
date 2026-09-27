@@ -5,13 +5,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// A specialized container for holding a set of code items.
 /// </summary>
-
 public sealed class SetCodeItems : List<BaseCodeItem>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SetCodeItems" /> class.
     /// </summary>
-
     public SetCodeItems()
     {
     }
@@ -21,7 +19,6 @@ public sealed class SetCodeItems : List<BaseCodeItem>
     /// specified collection members.
     /// </summary>
     /// <param name="collection">The collection.</param>
-
     public SetCodeItems(IEnumerable<BaseCodeItem> collection)
         : this()
     {

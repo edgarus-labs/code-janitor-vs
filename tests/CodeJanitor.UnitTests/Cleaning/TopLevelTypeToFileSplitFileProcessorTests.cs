@@ -33,15 +33,15 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     [TestMethod]
     public void Apply_CreatesNewFiles_AndReturnsUpdatedSource()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\ninterface IBar { }\r\nenum Baz { A }\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
 
-        var result = _processor.Apply(source, filePath, Encoding.UTF8, null);
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(source, filePath, Encoding.UTF8, null);
 
         Assert.IsTrue(result.Changed);
-        Assert.AreEqual(2, result.CreatedFiles.Count);
-        Assert.IsFalse(result.UpdatedSource.Contains("interface IBar"));
+        Assert.HasCount(2, result.CreatedFiles);
+        Assert.DoesNotContain("interface IBar", result.UpdatedSource);
         Assert.IsTrue(File.Exists(Path.Combine(_tempDirectory, "IBar.cs")));
         Assert.IsTrue(File.Exists(Path.Combine(_tempDirectory, "Baz.cs")));
     }
@@ -49,11 +49,11 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     [TestMethod]
     public void Apply_UsesDedicatedTransformForCreatedFiles()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
 
-        var result = _processor.Apply(
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
             source,
             filePath,
             Encoding.UTF8,
@@ -62,52 +62,52 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
             transformCreatedFile: (text, path) => "// created\r\n" + text);
 
         Assert.IsTrue(result.Changed);
-        StringAssert.StartsWith(result.UpdatedSource, "// updated");
-        StringAssert.StartsWith(File.ReadAllText(Path.Combine(_tempDirectory, "Bar.cs")), "// created");
+        Assert.StartsWith("// updated", result.UpdatedSource);
+        Assert.StartsWith("// created", File.ReadAllText(Path.Combine(_tempDirectory, "Bar.cs")));
     }
 
     [TestMethod]
     public void Apply_PassesGeneratedAndUpdatedSourcesThroughTransformer()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
 
-        var result = _processor.Apply(
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
             source,
             filePath,
             Encoding.UTF8,
             (text, path) => "// " + Path.GetFileName(path) + "\r\n" + text);
 
         Assert.IsTrue(result.Changed);
-        StringAssert.StartsWith(result.UpdatedSource, "// Foo.cs");
-        var generatedFile = result.CreatedFiles.Single();
-        StringAssert.StartsWith(File.ReadAllText(generatedFile), "// Bar.cs");
+        Assert.StartsWith("// Foo.cs", result.UpdatedSource);
+        string generatedFile = result.CreatedFiles.Single();
+        Assert.StartsWith("// Bar.cs", File.ReadAllText(generatedFile));
     }
 
     [TestMethod]
     public void Apply_WhenNoSplitNeeded_ReturnsUnchangedWithoutCreatingFiles()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
 
-        var result = _processor.Apply(source, filePath, Encoding.UTF8, null);
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(source, filePath, Encoding.UTF8, null);
 
         Assert.IsFalse(result.Changed);
         Assert.AreEqual(source, result.UpdatedSource);
-        Assert.AreEqual(0, result.CreatedFiles.Count);
-        Assert.AreEqual(0, Directory.GetFiles(_tempDirectory, "*.cs").Length);
+        Assert.IsEmpty(result.CreatedFiles);
+        Assert.IsEmpty(Directory.GetFiles(_tempDirectory, "*.cs"));
     }
 
     [TestMethod]
     public void Apply_WithTransformUpdatedSourceDisabled_OnlyTransformsGeneratedFiles()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
 
-        var result = _processor.Apply(
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
             source,
             filePath,
             Encoding.UTF8,
@@ -116,21 +116,21 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
 
         Assert.IsTrue(result.Changed);
         Assert.IsFalse(result.UpdatedSource.StartsWith("// ", StringComparison.Ordinal));
-        var generatedFile = result.CreatedFiles.Single();
-        StringAssert.StartsWith(File.ReadAllText(generatedFile), "// Bar.cs");
+        string generatedFile = result.CreatedFiles.Single();
+        Assert.StartsWith("// Bar.cs", File.ReadAllText(generatedFile));
     }
 
     [TestMethod]
     public void Apply_WhenSplitCreatesFiles_DoesNotLeaveTemporaryFiles()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
 
-        var result = _processor.Apply(source, filePath, Encoding.UTF8, null);
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(source, filePath, Encoding.UTF8, null);
 
         Assert.IsTrue(result.Changed);
-        var tempArtifacts = Directory.GetFiles(_tempDirectory, "*.codejanitor.tmp.*", SearchOption.TopDirectoryOnly);
-        Assert.AreEqual(0, tempArtifacts.Length);
+        string[] tempArtifacts = Directory.GetFiles(_tempDirectory, "*.codejanitor.tmp.*", SearchOption.TopDirectoryOnly);
+        Assert.IsEmpty(tempArtifacts);
     }
 }

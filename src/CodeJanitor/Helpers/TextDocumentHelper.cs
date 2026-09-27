@@ -20,7 +20,6 @@ namespace CodeJanitor.Helpers;
 /// Note: All POSIXRegEx text replacements search against '\n' but insert/replace with
 ///       Environment.NewLine. This handles line endings correctly.
 /// </remarks>
-
 internal static class TextDocumentHelper
 {
     /// <summary>
@@ -34,7 +33,6 @@ internal static class TextDocumentHelper
     /// <param name="textDocument">The text document.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <returns>The set of matches.</returns>
-
     internal static IEnumerable<EditPoint> FindMatches(TextDocument textDocument, string patternString)
     {
         var matches = new List<EditPoint>();
@@ -62,7 +60,6 @@ internal static class TextDocumentHelper
     /// <param name="textSelection">The text selection.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <returns>The set of matches.</returns>
-
     internal static IEnumerable<EditPoint> FindMatches(TextSelection textSelection, string patternString)
     {
         var matches = new List<EditPoint>();
@@ -89,7 +86,6 @@ internal static class TextDocumentHelper
     /// <param name="textDocument">The text document.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <returns>The first match, otherwise null.</returns>
-
     internal static EditPoint FirstOrDefaultMatch(TextDocument textDocument, string patternString)
     {
         EditPoint result = null;
@@ -118,7 +114,6 @@ internal static class TextDocumentHelper
     /// <param name="endPoint"></param>
     /// <param name="patternString"></param>
     /// <returns>True if successful, false if no match found.</returns>
-
     internal static bool TryFindNextMatch(EditPoint startPoint, ref EditPoint endPoint, string patternString)
     {
         bool result = false;
@@ -151,7 +146,6 @@ internal static class TextDocumentHelper
     /// <param name="startPoint">The start point.</param>
     /// <param name="matchString">The match string.</param>
     /// <returns>The matching text, otherwise null.</returns>
-
     internal static string GetTextToFirstMatch(TextPoint startPoint, string matchString)
     {
         string result = null;
@@ -176,7 +170,6 @@ internal static class TextDocumentHelper
     /// Inserts a blank line before the specified point except where adjacent to a brace.
     /// </summary>
     /// <param name="point">The point.</param>
-
     internal static void InsertBlankLineBeforePoint(EditPoint point)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -198,7 +191,6 @@ internal static class TextDocumentHelper
     /// Inserts a blank line after the specified point except where adjacent to a brace.
     /// </summary>
     /// <param name="point">The point.</param>
-
     internal static void InsertBlankLineAfterPoint(EditPoint point)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -221,7 +213,6 @@ internal static class TextDocumentHelper
     /// <param name="document">The document.</param>
     /// <param name="codeItem">The code item.</param>
     /// <param name="centerOnWhole">True if the whole element should be used for centering.</param>
-
     internal static void MoveToCodeItem(Document document, BaseCodeItem codeItem, bool centerOnWhole)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -276,7 +267,6 @@ internal static class TextDocumentHelper
     /// </summary>
     /// <param name="document">The document.</param>
     /// <param name="codeItem">The code item.</param>
-
     internal static void SelectCodeItem(Document document, BaseCodeItem codeItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -310,7 +300,6 @@ internal static class TextDocumentHelper
     /// <param name="textDocument">The text document.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <param name="replacementString">The replacement string.</param>
-
     internal static void SubstituteAllStringMatches(TextDocument textDocument, string patternString, string replacementString)
     {
         UIThread.Run(() =>
@@ -332,7 +321,6 @@ internal static class TextDocumentHelper
     /// <param name="textSelection">The text selection.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <param name="replacementString">The replacement string.</param>
-
     internal static void SubstituteAllStringMatches(TextSelection textSelection, string patternString, string replacementString)
     {
         UIThread.Run(() =>
@@ -355,7 +343,6 @@ internal static class TextDocumentHelper
     /// <param name="endPoint">The end point.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <param name="replacementString">The replacement string.</param>
-
     internal static void SubstituteAllStringMatches(EditPoint startPoint, EditPoint endPoint, string patternString, string replacementString)
     {
         UIThread.Run(() =>
@@ -377,7 +364,6 @@ internal static class TextDocumentHelper
     /// <param name="textSnapshot">The text snapshot.</param>
     /// <param name="position">The position.</param>
     /// <returns>A EditPoint value produced by this method.</returns>
-
     private static EditPoint GetEditPointForSnapshotPosition(TextDocument textDocument, ITextSnapshot textSnapshot, int position)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -395,7 +381,6 @@ internal static class TextDocumentHelper
     /// <param name="findWhat">The find what.</param>
     /// <param name="textBuffer">The text buffer.</param>
     /// <returns>A IFinder value produced by this method.</returns>
-
     private static IFinder GetFinder(string findWhat, ITextBuffer textBuffer)
     {
         var findService = CodeJanitorPackage.Instance.ComponentModel.GetService<IFindService>();
@@ -411,7 +396,6 @@ internal static class TextDocumentHelper
     /// <param name="replaceWith">The replace with.</param>
     /// <param name="textBuffer">The text buffer.</param>
     /// <returns>A IFinder value produced by this method.</returns>
-
     private static IFinder GetFinder(string findWhat, string replaceWith, ITextBuffer textBuffer)
     {
         var findService = CodeJanitorPackage.Instance.ComponentModel.GetService<IFindService>();
@@ -426,7 +410,6 @@ internal static class TextDocumentHelper
     /// <param name="textSnapshot">The text snapshot.</param>
     /// <param name="selection">The selection.</param>
     /// <returns>A Span value produced by this method.</returns>
-
     private static Span GetSnapshotSpanForTextSelection(ITextSnapshot textSnapshot, TextSelection selection)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -450,7 +433,6 @@ internal static class TextDocumentHelper
     /// <param name="textSnapshot">The text snapshot.</param>
     /// <param name="textPoint">The text point.</param>
     /// <returns>A int value produced by this method.</returns>
-
     private static int GetSnapshotPositionForTextPoint(ITextSnapshot textSnapshot, TextPoint textPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -467,7 +449,6 @@ internal static class TextDocumentHelper
     /// <param name="startPoint">The start point.</param>
     /// <param name="endPoint">The end point.</param>
     /// <returns>A Span value produced by this method.</returns>
-
     private static Span GetSnapshotSpanForExtent(ITextSnapshot textSnapshot, EditPoint startPoint, EditPoint endPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -490,7 +471,6 @@ internal static class TextDocumentHelper
     /// </summary>
     /// <param name="textBuffer">The text buffer.</param>
     /// <param name="replacements">The replacements.</param>
-
     private static void ReplaceAll(ITextBuffer textBuffer, IEnumerable<FinderReplacement> replacements)
     {
         if (replacements.Any())
@@ -513,7 +493,6 @@ internal static class TextDocumentHelper
     /// <param name="filePath">The file path.</param>
     /// <param name="textBuffer">The text buffer.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool TryGetTextBufferAt(string filePath, out ITextBuffer textBuffer)
     {
         if (VsShellUtilities.IsDocumentOpen(

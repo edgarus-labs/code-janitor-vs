@@ -6,7 +6,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// <summary>
 /// Unit tests for <see cref="EnsureFinalNewlineConverter" />.
 /// </summary>
-
 [TestClass]
 public sealed class EnsureFinalNewlineConverterTests
 {
@@ -22,8 +21,8 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void MissingFinalNewline_Added()
     {
-        var input = "class C\n{\n}";
-        var expected = "class C\n{\n}\n";
+        string input = "class C\n{\n}";
+        string expected = "class C\n{\n}\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }
@@ -32,7 +31,7 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ExistingFinalNewline_Unchanged()
     {
-        var input = "class C\n{\n}\n";
+        string input = "class C\n{\n}\n";
 
         Assert.AreEqual(input, _converter.Convert(input));
     }
@@ -41,8 +40,8 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void CrlfFileMissingFinalNewline_GetsCrlf()
     {
-        var input = "class C\r\n{\r\n}";
-        var expected = "class C\r\n{\r\n}\r\n";
+        string input = "class C\r\n{\r\n}";
+        string expected = "class C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }
@@ -51,7 +50,7 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ExistingCrlfFinalNewline_Unchanged()
     {
-        var input = "class C\r\n{\r\n}\r\n";
+        string input = "class C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(input, _converter.Convert(input));
     }
@@ -60,8 +59,8 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void MultipleTrailingNewlines_CollapsedToOne()
     {
-        var input = "class C\n{\n}\n\n\n";
-        var expected = "class C\n{\n}\n";
+        string input = "class C\n{\n}\n\n\n";
+        string expected = "class C\n{\n}\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }
@@ -70,8 +69,8 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void MultipleTrailingCrlfNewlines_CollapsedToOneCrlf()
     {
-        var input = "class C\r\n{\r\n}\r\n\r\n";
-        var expected = "class C\r\n{\r\n}\r\n";
+        string input = "class C\r\n{\r\n}\r\n\r\n";
+        string expected = "class C\r\n{\r\n}\r\n";
 
         Assert.AreEqual(expected, _converter.Convert(input));
     }

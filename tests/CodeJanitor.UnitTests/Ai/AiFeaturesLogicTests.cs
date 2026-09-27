@@ -13,39 +13,39 @@ public sealed class AiFeaturesLogicTests
     public async Task AiExplainLogic_ExplainCodeAsync_WhenCodeIsEmpty_ReturnsNoCodeMessage()
     {
         // Arrange
-        var logic = CreateInstance<AiExplainLogic>();
+        AiExplainLogic logic = CreateInstance<AiExplainLogic>();
 
         // Act
-        var result = await logic.ExplainCodeAsync("TestMethod", string.Empty, CancellationToken.None);
+        string result = await logic.ExplainCodeAsync("TestMethod", string.Empty, CancellationToken.None);
 
         // Assert
-        Assert.IsTrue(result.Contains("No code provided"), $"Expected 'No code provided' message but got: {result}");
+        Assert.Contains("No code provided", result, $"Expected 'No code provided' message but got: {result}");
     }
 
     [TestMethod]
     public async Task AiTestGeneratorLogic_GenerateUnitTestsAsync_WhenCodeIsEmpty_ReturnsNoCodeComment()
     {
         // Arrange
-        var logic = CreateInstance<AiTestGeneratorLogic>();
+        AiTestGeneratorLogic logic = CreateInstance<AiTestGeneratorLogic>();
 
         // Act
-        var result = await logic.GenerateUnitTestsAsync("TestMethod", "   ", CancellationToken.None);
+        string result = await logic.GenerateUnitTestsAsync("TestMethod", "   ", CancellationToken.None);
 
         // Assert
-        Assert.IsTrue(result.Contains("No code provided"), $"Expected 'No code provided' comment but got: {result}");
+        Assert.Contains("No code provided", result, $"Expected 'No code provided' comment but got: {result}");
     }
 
     [TestMethod]
     public void AiTestGeneratorLogic_ExtractCodeSnippet_ExtractsFromMarkdownBlocks()
     {
         // Arrange
-        var responseWithMarkdown = "Here is the unit test class:\n```csharp\nusing Xunit;\npublic class SampleTests { }\n```\nHope this helps!";
+        string responseWithMarkdown = "Here is the unit test class:\n```csharp\nusing Xunit;\npublic class SampleTests { }\n```\nHope this helps!";
 
-        var method = typeof(AiTestGeneratorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiTestGeneratorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method, "ExtractCodeSnippet method should exist on AiTestGeneratorLogic");
 
         // Act
-        var extracted = (string)method.Invoke(null, new object[] { responseWithMarkdown });
+        string extracted = (string)method.Invoke(null, new object[] { responseWithMarkdown });
 
         // Assert
         Assert.AreEqual("using Xunit;\npublic class SampleTests { }", extracted);
@@ -55,27 +55,27 @@ public sealed class AiFeaturesLogicTests
     public async Task AiCleanRefactorLogic_RefactorCodeAsync_WhenCodeIsEmpty_ReturnsFailure()
     {
         // Arrange
-        var logic = CreateInstance<AiCleanRefactorLogic>();
+        AiCleanRefactorLogic logic = CreateInstance<AiCleanRefactorLogic>();
 
         // Act
-        var result = await logic.RefactorCodeAsync("TestMethod", null, CancellationToken.None);
+        AiRefactorResult result = await logic.RefactorCodeAsync("TestMethod", null, CancellationToken.None);
 
         // Assert
         Assert.IsFalse(result.Success);
-        Assert.IsTrue(result.ErrorMessage.Contains("No code provided"));
+        Assert.Contains("No code provided", result.ErrorMessage);
     }
 
     [TestMethod]
     public void AiCleanRefactorLogic_ExtractCodeSnippet_ExtractsCleanCode()
     {
         // Arrange
-        var response = "Key improvements:\n- Guard clauses\n- Flattened nesting\n```csharp\npublic void CleanMethod() { return; }\n```";
+        string response = "Key improvements:\n- Guard clauses\n- Flattened nesting\n```csharp\npublic void CleanMethod() { return; }\n```";
 
-        var method = typeof(AiCleanRefactorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiCleanRefactorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method, "ExtractCodeSnippet method should exist on AiCleanRefactorLogic");
 
         // Act
-        var extracted = (string)method.Invoke(null, new object[] { response });
+        string extracted = (string)method.Invoke(null, new object[] { response });
 
         // Assert
         Assert.AreEqual("public void CleanMethod() { return; }", extracted);
@@ -85,50 +85,50 @@ public sealed class AiFeaturesLogicTests
     public async Task AiCodeReviewLogic_ReviewCodeAsync_WhenCodeIsEmpty_ReturnsNoCodeMessage()
     {
         // Arrange
-        var logic = CreateInstance<AiCodeReviewLogic>();
+        AiCodeReviewLogic logic = CreateInstance<AiCodeReviewLogic>();
 
         // Act
-        var result = await logic.ReviewCodeAsync("TestMethod", "", CancellationToken.None);
+        string result = await logic.ReviewCodeAsync("TestMethod", "", CancellationToken.None);
 
         // Assert
-        Assert.IsTrue(result.Contains("No code provided"));
+        Assert.Contains("No code provided", result);
     }
 
     [TestMethod]
     public void AiExplainLogic_BuildExplainPrompt_IncludesMemberNameAndCode()
     {
         // Arrange
-        var method = typeof(AiExplainLogic).GetMethod("BuildExplainPrompt", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiExplainLogic).GetMethod("BuildExplainPrompt", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method, "BuildExplainPrompt method should exist");
 
         // Act
-        var prompt = (string)method.Invoke(null, new object[] { "CalculateDiscount", "public int CalculateDiscount() => 10;" });
+        string prompt = (string)method.Invoke(null, new object[] { "CalculateDiscount", "public int CalculateDiscount() => 10;" });
 
         // Assert
-        Assert.IsTrue(prompt.Contains("CalculateDiscount"));
-        Assert.IsTrue(prompt.Contains("public int CalculateDiscount() => 10;"));
-        Assert.IsTrue(prompt.Contains("Complexity & Risk Assessment"));
+        Assert.Contains("CalculateDiscount", prompt);
+        Assert.Contains("public int CalculateDiscount() => 10;", prompt);
+        Assert.Contains("Complexity & Risk Assessment", prompt);
     }
 
     [TestMethod]
     public void AiTestGeneratorLogic_ExtractCodeSnippet_HandlesGenericCodeBlockAndPlainText()
     {
         // Arrange
-        var method = typeof(AiTestGeneratorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiTestGeneratorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method);
 
         // Act & Assert - generic code block ```
-        var genericBlock = "Summary:\n```\npublic class GenericTest {}\n```";
-        var extractedGeneric = (string)method.Invoke(null, new object[] { genericBlock });
+        string genericBlock = "Summary:\n```\npublic class GenericTest {}\n```";
+        string extractedGeneric = (string)method.Invoke(null, new object[] { genericBlock });
         Assert.AreEqual("public class GenericTest {}", extractedGeneric);
 
         // Act & Assert - plain text
-        var plain = "public class PlainTest {}";
-        var extractedPlain = (string)method.Invoke(null, new object[] { plain });
+        string plain = "public class PlainTest {}";
+        string extractedPlain = (string)method.Invoke(null, new object[] { plain });
         Assert.AreEqual("public class PlainTest {}", extractedPlain);
 
         // Act & Assert - null/empty
-        var extractedEmpty = (string)method.Invoke(null, new object[] { "   " });
+        string extractedEmpty = (string)method.Invoke(null, new object[] { "   " });
         Assert.AreEqual(string.Empty, extractedEmpty);
     }
 
@@ -136,56 +136,56 @@ public sealed class AiFeaturesLogicTests
     public void AiCleanRefactorLogic_ExtractCodeSnippet_HandlesGenericMarkdownAndEmptyInput()
     {
         // Arrange
-        var method = typeof(AiCleanRefactorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiCleanRefactorLogic).GetMethod("ExtractCodeSnippet", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method);
 
         // Act & Assert - generic block
-        var genericBlock = "Code:\n```\npublic void Simple() {}\n```";
-        var extracted = (string)method.Invoke(null, new object[] { genericBlock });
+        string genericBlock = "Code:\n```\npublic void Simple() {}\n```";
+        string extracted = (string)method.Invoke(null, new object[] { genericBlock });
         Assert.AreEqual("public void Simple() {}", extracted);
 
         // Act & Assert - null/empty
-        var extractedEmpty = (string)method.Invoke(null, new object[] { null });
+        string extractedEmpty = (string)method.Invoke(null, new object[] { null });
         Assert.AreEqual(string.Empty, extractedEmpty);
     }
 
     [TestMethod]
     public void AiCodeReviewLogic_BuildReviewPrompt_IncludesTargetAndSections()
     {
-        var method = typeof(AiCodeReviewLogic).GetMethod("BuildReviewPrompt", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiCodeReviewLogic).GetMethod("BuildReviewPrompt", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method);
 
-        var prompt = (string)method.Invoke(null, new object[] { "OrderService", "public void PlaceOrder() { }" });
-        Assert.IsTrue(prompt.Contains("OrderService"));
-        Assert.IsTrue(prompt.Contains("public void PlaceOrder() { }"));
-        Assert.IsTrue(prompt.Contains("Critical Issues & Bugs"));
-        Assert.IsTrue(prompt.Contains("Clean Code & Maintainability Tips"));
+        string prompt = (string)method.Invoke(null, new object[] { "OrderService", "public void PlaceOrder() { }" });
+        Assert.Contains("OrderService", prompt);
+        Assert.Contains("public void PlaceOrder() { }", prompt);
+        Assert.Contains("Critical Issues & Bugs", prompt);
+        Assert.Contains("Clean Code & Maintainability Tips", prompt);
     }
 
     [TestMethod]
     public void AiCleanRefactorLogic_BuildRefactorPrompt_IncludesMemberNameAndGoals()
     {
-        var method = typeof(AiCleanRefactorLogic).GetMethod("BuildRefactorPrompt", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiCleanRefactorLogic).GetMethod("BuildRefactorPrompt", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method);
 
-        var prompt = (string)method.Invoke(null, new object[] { "ProcessPayment", "public bool ProcessPayment() { return true; }" });
-        Assert.IsTrue(prompt.Contains("ProcessPayment"));
-        Assert.IsTrue(prompt.Contains("public bool ProcessPayment() { return true; }"));
-        Assert.IsTrue(prompt.Contains("Guard Clauses"));
-        Assert.IsTrue(prompt.Contains("Refactoring Goals"));
+        string prompt = (string)method.Invoke(null, new object[] { "ProcessPayment", "public bool ProcessPayment() { return true; }" });
+        Assert.Contains("ProcessPayment", prompt);
+        Assert.Contains("public bool ProcessPayment() { return true; }", prompt);
+        Assert.Contains("Guard Clauses", prompt);
+        Assert.Contains("Refactoring Goals", prompt);
     }
 
     [TestMethod]
     public void AiTestGeneratorLogic_BuildTestPrompt_IncludesFrameworkAndMocking()
     {
-        var method = typeof(AiTestGeneratorLogic).GetMethod("BuildTestPrompt", BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo method = typeof(AiTestGeneratorLogic).GetMethod("BuildTestPrompt", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.IsNotNull(method);
 
-        var prompt = (string)method.Invoke(null, new object[] { "Calculator", "public int Add(int a, int b) => a + b;", "MSTest", "NSubstitute" });
-        Assert.IsTrue(prompt.Contains("Calculator"));
-        Assert.IsTrue(prompt.Contains("MSTest"));
-        Assert.IsTrue(prompt.Contains("NSubstitute"));
-        Assert.IsTrue(prompt.Contains("Arrange-Act-Assert"));
+        string prompt = (string)method.Invoke(null, new object[] { "Calculator", "public int Add(int a, int b) => a + b;", "MSTest", "NSubstitute" });
+        Assert.Contains("Calculator", prompt);
+        Assert.Contains("MSTest", prompt);
+        Assert.Contains("NSubstitute", prompt);
+        Assert.Contains("Arrange-Act-Assert", prompt);
     }
 
     [TestMethod]
@@ -193,23 +193,23 @@ public sealed class AiFeaturesLogicTests
     {
         CodeJanitor.Properties.Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl = string.Empty;
 
-        var explain = CreateInstance<AiExplainLogic>();
-        var testGen = CreateInstance<AiTestGeneratorLogic>();
-        var refactor = CreateInstance<AiCleanRefactorLogic>();
-        var review = CreateInstance<AiCodeReviewLogic>();
+        AiExplainLogic explain = CreateInstance<AiExplainLogic>();
+        AiTestGeneratorLogic testGen = CreateInstance<AiTestGeneratorLogic>();
+        AiCleanRefactorLogic refactor = CreateInstance<AiCleanRefactorLogic>();
+        AiCodeReviewLogic review = CreateInstance<AiCodeReviewLogic>();
 
-        var explainResult = await explain.ExplainCodeAsync("M", "void M() {}", CancellationToken.None);
-        Assert.IsTrue(explainResult.Contains("AI endpoint is not configured"));
+        string explainResult = await explain.ExplainCodeAsync("M", "void M() {}", CancellationToken.None);
+        Assert.Contains("AI endpoint is not configured", explainResult);
 
-        var testGenResult = await testGen.GenerateUnitTestsAsync("M", "void M() {}", CancellationToken.None);
-        Assert.IsTrue(testGenResult.Contains("AI endpoint is not configured"));
+        string testGenResult = await testGen.GenerateUnitTestsAsync("M", "void M() {}", CancellationToken.None);
+        Assert.Contains("AI endpoint is not configured", testGenResult);
 
-        var refactorResult = await refactor.RefactorCodeAsync("M", "void M() {}", CancellationToken.None);
+        AiRefactorResult refactorResult = await refactor.RefactorCodeAsync("M", "void M() {}", CancellationToken.None);
         Assert.IsFalse(refactorResult.Success);
-        Assert.IsTrue(refactorResult.ErrorMessage.Contains("AI endpoint is not configured"));
+        Assert.Contains("AI endpoint is not configured", refactorResult.ErrorMessage);
 
-        var reviewResult = await review.ReviewCodeAsync("M", "void M() {}", CancellationToken.None);
-        Assert.IsTrue(reviewResult.Contains("AI endpoint is not configured"));
+        string reviewResult = await review.ReviewCodeAsync("M", "void M() {}", CancellationToken.None);
+        Assert.Contains("AI endpoint is not configured", reviewResult);
 
         Assert.IsFalse(AiExplainLogic.IsConfigurationPresent());
         Assert.IsFalse(AiTestGeneratorLogic.IsConfigurationPresent());
@@ -247,7 +247,7 @@ public sealed class AiFeaturesLogicTests
     [TestMethod]
     public void OpenAiCompatibleClient_ConstructorsAndProperties_InitializeCorrectly()
     {
-        var client = new OpenAiCompatibleClient("http://localhost:11434", "secret-key", "X-Api-Key", "llama3", 45, 8192);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient("http://localhost:11434", "secret-key", "X-Api-Key", "llama3", 45, 8192);
 
         Assert.AreEqual("http://localhost:11434/chat/completions", client.EndpointUrl);
         Assert.AreEqual("secret-key", client.ApiKey);
@@ -262,37 +262,37 @@ public sealed class AiFeaturesLogicTests
     public void OpenAiCompatibleClient_TryExtractContent_ExtractsVariedProviderPayloads()
     {
         // 1. Choices with text
-        var textPayload = "{\"choices\":[{\"text\":\"Extracted text\"}]}";
+        string textPayload = "{\"choices\":[{\"text\":\"Extracted text\"}]}";
         Assert.AreEqual("Extracted text", OpenAiCompatibleClient.TryExtractContentFromChatResponse(textPayload));
 
         // 2. Candidates with content parts
-        var geminiPayload = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Gemini answer\"}]}}]}";
+        string geminiPayload = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Gemini answer\"}]}}]}";
         Assert.AreEqual("Gemini answer", OpenAiCompatibleClient.TryExtractContentFromChatResponse(geminiPayload));
 
         // 3. Direct response or output
-        var directOutput = "{\"output\":\"Direct model output\"}";
+        string directOutput = "{\"output\":\"Direct model output\"}";
         Assert.AreEqual("Direct model output", OpenAiCompatibleClient.TryExtractContentFromChatResponse(directOutput));
 
         // 4. Fallback reasoning fields
-        var reasoningPayload = "{\"reasoning_content\":\"DeepSeek reasoning output\"}";
+        string reasoningPayload = "{\"reasoning_content\":\"DeepSeek reasoning output\"}";
         Assert.AreEqual("DeepSeek reasoning output", OpenAiCompatibleClient.TryExtractContentFromChatResponse(reasoningPayload));
     }
 
     [TestMethod]
     public void OpenAiCompatibleClient_TryGenerateDocumentation_WithUnconfiguredEndpoint_ReturnsFalse()
     {
-        var client = new OpenAiCompatibleClient(string.Empty, null, null, null, 10);
-        var success = client.TryGenerateDocumentation("Document this method", out var completion, out var error);
+        OpenAiCompatibleClient client = new OpenAiCompatibleClient(string.Empty, null, null, null, 10);
+        bool success = client.TryGenerateDocumentation("Document this method", out string completion, out string error, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsFalse(success);
         Assert.IsNull(completion);
-        Assert.IsTrue(error.Contains("not configured"));
+        Assert.Contains("not configured", error);
     }
 
     [TestMethod]
     public void AiRefactorResult_Properties_SetAndGetCorrectly()
     {
-        var result = new AiRefactorResult
+        AiRefactorResult result = new AiRefactorResult
         {
             Success = true,
             RefactoredCode = "public void Clean() {}",
@@ -308,8 +308,10 @@ public sealed class AiFeaturesLogicTests
 
     private static T CreateInstance<T>() where T : class
     {
-        var ctor = typeof(T).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(CodeJanitorPackage) }, null);
+        ConstructorInfo ctor = typeof(T).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(CodeJanitorPackage) }, null);
 
         return (T)ctor?.Invoke(new object[] { null });
     }
+
+    public TestContext TestContext { get; set; }
 }

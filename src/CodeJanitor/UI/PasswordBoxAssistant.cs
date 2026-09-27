@@ -6,7 +6,6 @@ namespace CodeJanitor.UI;
 /// <summary>
 /// Enables binding a PasswordBox password in MVVM scenarios.
 /// </summary>
-
 public static class PasswordBoxAssistant
 {
     /// <summary>
@@ -38,7 +37,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="obj">The obj.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public static string GetBoundPassword(DependencyObject obj)
     {
         return (string)obj.GetValue(BoundPasswordProperty);
@@ -49,7 +47,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="obj">The obj.</param>
     /// <param name="value">The value.</param>
-
     public static void SetBoundPassword(DependencyObject obj, string value)
     {
         obj.SetValue(BoundPasswordProperty, value);
@@ -60,7 +57,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="obj">The obj.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     public static bool GetBindPassword(DependencyObject obj)
     {
         return (bool)obj.GetValue(BindPasswordProperty);
@@ -71,7 +67,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="obj">The obj.</param>
     /// <param name="value">The value.</param>
-
     public static void SetBindPassword(DependencyObject obj, bool value)
     {
         obj.SetValue(BindPasswordProperty, value);
@@ -82,7 +77,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="obj">The obj.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool GetUpdatingPassword(DependencyObject obj)
     {
         return (bool)obj.GetValue(UpdatingPasswordProperty);
@@ -93,7 +87,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="obj">The obj.</param>
     /// <param name="value">The value.</param>
-
     private static void SetUpdatingPassword(DependencyObject obj, bool value)
     {
         obj.SetValue(UpdatingPasswordProperty, value);
@@ -104,7 +97,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="d">The d.</param>
     /// <param name="e">The e.</param>
-
     private static void OnBindPasswordChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var passwordBox = d as PasswordBox;
@@ -129,7 +121,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="d">The d.</param>
     /// <param name="e">The e.</param>
-
     private static void OnBoundPasswordChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var passwordBox = d as PasswordBox;
@@ -152,7 +143,6 @@ public static class PasswordBoxAssistant
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The e.</param>
-
     private static void HandlePasswordChanged(object sender, RoutedEventArgs e)
     {
         var passwordBox = sender as PasswordBox;

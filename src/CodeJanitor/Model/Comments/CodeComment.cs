@@ -13,7 +13,6 @@ namespace CodeJanitor.Model.Comments;
 /// A <c>CodeComment</c> contains one or more <see cref="CodeCommentPhrase">phrases</see> which
 /// represent all the content of a comment.
 /// </summary>
-
 internal sealed class CodeComment
 {
     private readonly Regex _commentLineRegex;
@@ -26,7 +25,6 @@ internal sealed class CodeComment
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeComment" /> class.
     /// </summary>
-
     public CodeComment(TextPoint point, FormatterOptions options)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -61,7 +59,6 @@ internal sealed class CodeComment
     /// <summary>
     /// Helper function to generate the preview in the options menu.
     /// </summary>
-
     public static string Format(string text, string prefix = null, Action<FormatterOptions> options = null)
     {
         var xml = XElement.Parse($"<doc>{text}</doc>");
@@ -89,7 +86,6 @@ internal sealed class CodeComment
     /// <summary>
     /// Formats the comment.
     /// </summary>
-
     public TextPoint Format()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -151,7 +147,6 @@ internal sealed class CodeComment
     /// Expands a text point to the full comment.
     /// </summary>
     /// <param name="point">The original text point to expand from.</param>
-
     private void Expand(TextPoint point)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -196,7 +191,6 @@ internal sealed class CodeComment
     /// <returns>
     /// The endpoint of the comment, or <c>null</c> if the expansion did not find a valid comment.
     /// </returns>
-
     private EditPoint Expand(TextPoint point, Action<EditPoint> foundAction)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

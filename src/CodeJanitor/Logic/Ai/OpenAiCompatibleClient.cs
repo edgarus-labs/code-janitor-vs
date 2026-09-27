@@ -13,7 +13,6 @@ namespace CodeJanitor.Logic.Ai;
 /// <summary>
 /// A small OpenAI-compatible chat completion client used by AI-assisted XML documentation.
 /// </summary>
-
 internal sealed class OpenAiCompatibleClient : IAiChatClient
 {
     /// <summary>
@@ -44,7 +43,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         /// <summary>
         /// Gets the list of available models discovered during the connection test.
         /// </summary>
-        internal List<string> AvailableModels { get; set; } = new List<string>();
+        internal List<string> AvailableModels { get; set; } = [];
     }
 
     internal OpenAiCompatibleClient(string endpointUrl, string apiKey, string apiKeyHeader, string model, int timeoutSeconds)
@@ -243,6 +242,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         url = url.TrimEnd('/');
+
         return url + "/models";
     }
 
@@ -314,6 +314,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
         }
 
         models.Sort(StringComparer.OrdinalIgnoreCase);
+
         return models;
     }
 
@@ -378,16 +379,21 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     internal async Task<List<string>> FetchAvailableModelsAsync()
     {
         var result = await TestApiConnectionAsync().ConfigureAwait(false);
+
         return result.AvailableModels;
     }
 
     private sealed class ModelsFetchResult
     {
         internal bool Succeeded { get; set; }
+
         internal bool IsAuthError { get; set; }
+
         internal System.Net.HttpStatusCode? StatusCode { get; set; }
+
         internal string ErrorMessage { get; set; }
-        internal List<string> AvailableModels { get; set; } = new List<string>();
+
+        internal List<string> AvailableModels { get; set; } = [];
 
         internal ConnectionTestResult ToConnectionTestResult()
         {

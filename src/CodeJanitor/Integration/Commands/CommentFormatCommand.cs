@@ -10,7 +10,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for formatting the current comment.
 /// </summary>
-
 internal sealed class CommentFormatCommand : BaseCommand
 {
     private readonly CommentFormatLogic _commentFormatLogic;
@@ -20,7 +19,6 @@ internal sealed class CommentFormatCommand : BaseCommand
     /// Initializes a new instance of the <see cref="CommentFormatCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CommentFormatCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCommentFormat)
     {
@@ -36,7 +34,6 @@ internal sealed class CommentFormatCommand : BaseCommand
     /// <summary>
     /// Gets the active text document, otherwise null.
     /// </summary>
-
     private TextDocument ActiveTextDocument
     {
         get
@@ -52,7 +49,6 @@ internal sealed class CommentFormatCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CommentFormatCommand(package);
@@ -62,7 +58,6 @@ internal sealed class CommentFormatCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -73,7 +68,6 @@ internal sealed class CommentFormatCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

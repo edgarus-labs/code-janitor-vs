@@ -79,6 +79,14 @@
     <Compile Include="..\..\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Logic\Cleaning\IndentationPreference.cs" />
+    <Compile Include="Logic\Cleaning\NamespaceDeclarationPreference.cs" />
+    <Compile Include="Logic\Cleaning\RepositoryCleanupOverrides.cs" />
+    <Compile Include="Logic\Cleaning\UsingDirectivePlacementPreference.cs" />
+    <Compile Include="Logic\Cleaning\UsingsMoveOutcome.cs" />
+    <Compile Include="Logic\Transformations\UsingDirectivePlacementStatus.cs" />
+    <Compile Include="UI\Dialogs\CleanupOptions\CleanupPreviewFile.cs" />
+    <Compile Include="UI\Dialogs\CleanupOptions\CleanupPreviewRule.cs" />
     <None Include="..\..\CodeJanitor.snk">
       <Link>Properties\CodeJanitor.snk</Link>
     </None>

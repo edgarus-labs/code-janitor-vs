@@ -13,7 +13,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// This is a thin integration layer over the pure, unit-tested
 /// <see cref="IFieldMutabilityConverter" /> (see ADR-0005 / ADR-0006 / ADR-0007).
 /// </remarks>
-
 internal sealed class ReadonlyFieldLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -29,7 +28,6 @@ internal sealed class ReadonlyFieldLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="ReadonlyFieldLogic" /> class.</returns>
-
     internal static ReadonlyFieldLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new ReadonlyFieldLogic(package));
@@ -39,7 +37,6 @@ internal sealed class ReadonlyFieldLogic
     /// Initializes a new instance of the <see cref="ReadonlyFieldLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private ReadonlyFieldLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -52,7 +49,6 @@ internal sealed class ReadonlyFieldLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void AddReadonlyWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

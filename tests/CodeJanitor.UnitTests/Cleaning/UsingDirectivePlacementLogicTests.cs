@@ -67,9 +67,9 @@ public sealed class UsingDirectivePlacementLogicTests
     [TestCategory("Cleaning UnitTests")]
     public async Task LinkedFile_SameMoveInEveryProject_IsMoved()
     {
-        var solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
+        Solution solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
 
-        var result = await PlaceAsync(solution, Target, UsingDirectivePlacementPreference.OutsideNamespace);
+        UsingDirectivePlacementResult result = await PlaceAsync(solution, Target, UsingDirectivePlacementPreference.OutsideNamespace);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         Assert.AreEqual(MovedOutside, result.Text);
@@ -80,9 +80,9 @@ public sealed class UsingDirectivePlacementLogicTests
     [TestCategory("Cleaning UnitTests")]
     public async Task LinkedFile_SameInwardMoveInEveryProject_IsMoved()
     {
-        var solution = CreateSolution(FileLevelTarget, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
+        Solution solution = CreateSolution(FileLevelTarget, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
 
-        var result = await PlaceAsync(solution, FileLevelTarget, UsingDirectivePlacementPreference.InsideNamespace);
+        UsingDirectivePlacementResult result = await PlaceAsync(solution, FileLevelTarget, UsingDirectivePlacementPreference.InsideNamespace);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         Assert.AreEqual(MovedInside, result.Text);
@@ -95,12 +95,12 @@ public sealed class UsingDirectivePlacementLogicTests
     {
         // In App, "Services" means Company.App.Services; in Tool it means the global Services namespace. Applying
         // App's "using Company.App.Services;" would break Tool (CS0234).
-        var solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, GlobalServicesLibrary));
+        Solution solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, GlobalServicesLibrary));
 
-        var result = await PlaceAsync(solution, Target, UsingDirectivePlacementPreference.OutsideNamespace);
+        UsingDirectivePlacementResult result = await PlaceAsync(solution, Target, UsingDirectivePlacementPreference.OutsideNamespace);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status);
-        StringAssert.Contains(result.Reason, "'Tool'");
+        Assert.Contains("'Tool'", result.Reason);
         Assert.IsNull(result.Text);
     }
 
@@ -108,27 +108,27 @@ public sealed class UsingDirectivePlacementLogicTests
     [TestCategory("Cleaning UnitTests")]
     public async Task LinkedFile_MoveUnsafeInOneProject_IsSkippedWithThatProjectsReason()
     {
-        var solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, UnrelatedLibrary));
+        Solution solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, UnrelatedLibrary));
 
-        var result = await PlaceAsync(solution, Target, UsingDirectivePlacementPreference.OutsideNamespace);
+        UsingDirectivePlacementResult result = await PlaceAsync(solution, Target, UsingDirectivePlacementPreference.OutsideNamespace);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status);
-        StringAssert.EndsWith(result.Reason, "in project 'Tool'");
+        Assert.EndsWith("in project 'Tool'", result.Reason);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public async Task GetDocumentsAsync_ReturnsEveryFlavorWithCurrentText_ContainingProjectFirst()
     {
-        var solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
-        var currentText = Target.Replace("Svc s;", "Svc t;");
+        Solution solution = CreateSolution(Target, ("App", AppProjectPath, NestedServicesLibrary), ("Tool", ToolProjectPath, NestedServicesLibrary));
+        string currentText = Target.Replace("Svc s;", "Svc t;");
 
-        var documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, TargetPath, ToolProjectPath, currentText, CancellationToken.None);
+        IReadOnlyList<Document> documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, TargetPath, ToolProjectPath, currentText, CancellationToken.None);
 
-        CollectionAssert.AreEqual(new[] { "Tool", "App" }, documents.Select(document => document.Project.Name).ToList());
-        foreach (var document in documents)
+        Assert.AreSequenceEqual(new[] { "Tool", "App" }, documents.Select(document => document.Project.Name).ToList());
+        foreach (Document document in documents)
         {
-            Assert.AreEqual(currentText, (await document.GetTextAsync()).ToString(), document.Project.Name);
+            Assert.AreEqual(currentText, (await document.GetTextAsync(TestContext.CancellationToken)).ToString(), document.Project.Name);
         }
     }
 
@@ -142,7 +142,7 @@ public sealed class UsingDirectivePlacementLogicTests
         WriteEditorConfig("csharp_using_directive_placement = " + placement);
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = true;
 
-        var result = await PlaceAsConfiguredAsync(FileLevelTarget);
+        UsingDirectivePlacementResult result = await PlaceAsConfiguredAsync(FileLevelTarget);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         Assert.AreEqual(MovedInside, result.Text);
@@ -154,7 +154,7 @@ public sealed class UsingDirectivePlacementLogicTests
     {
         WriteEditorConfig("csharp_using_directive_placement = inside_namespace:suggestion");
 
-        var result = await PlaceAsConfiguredAsync(Target);
+        UsingDirectivePlacementResult result = await PlaceAsConfiguredAsync(Target);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.NothingToMove, result.Status, result.Reason);
     }
@@ -166,7 +166,7 @@ public sealed class UsingDirectivePlacementLogicTests
         WriteEditorConfig("csharp_using_directive_placement = outside_namespace:error");
         WriteRepositoryPolicy(moveUsingsOutsideNamespace: false);
 
-        var result = await PlaceAsConfiguredAsync(Target);
+        UsingDirectivePlacementResult result = await PlaceAsConfiguredAsync(Target);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         Assert.AreEqual(MovedOutside, result.Text);
@@ -180,7 +180,7 @@ public sealed class UsingDirectivePlacementLogicTests
         WriteRepositoryPolicy(moveUsingsOutsideNamespace: true);
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
 
-        var result = await PlaceAsConfiguredAsync(Target);
+        UsingDirectivePlacementResult result = await PlaceAsConfiguredAsync(Target);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         Assert.AreEqual(MovedOutside, result.Text);
@@ -193,11 +193,11 @@ public sealed class UsingDirectivePlacementLogicTests
     [DataRow(null, false, false, DisplayName = "nothing configured, user off")]
     public async Task NoneSeverity_IsIgnored_SoTheUserSettingDecides(string editorConfigPlacement, bool userSetting, bool movedOutside)
     {
-        WriteEditorConfig(editorConfigPlacement == null ? "indent_style = space" : "csharp_using_directive_placement = " + editorConfigPlacement);
+        WriteEditorConfig(editorConfigPlacement is null ? "indent_style = space" : "csharp_using_directive_placement = " + editorConfigPlacement);
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = userSetting;
 
-        var inside = await PlaceAsConfiguredAsync(Target);
-        var outside = await PlaceAsConfiguredAsync(FileLevelTarget);
+        UsingDirectivePlacementResult inside = await PlaceAsConfiguredAsync(Target);
+        UsingDirectivePlacementResult outside = await PlaceAsConfiguredAsync(FileLevelTarget);
 
         Assert.AreEqual(movedOutside ? UsingDirectivePlacementStatus.Moved : UsingDirectivePlacementStatus.NothingToMove, inside.Status, inside.Reason);
         Assert.AreEqual(UsingDirectivePlacementStatus.NothingToMove, outside.Status, outside.Text);
@@ -211,7 +211,7 @@ public sealed class UsingDirectivePlacementLogicTests
     public async Task ClosedFile_Moved_IsWrittenBackWithTheEncodingAndLineEndingsOfTheFile(string encodingName, string newline)
     {
         WriteEditorConfig("csharp_using_directive_placement = outside_namespace:warning");
-        var encoding = encodingName switch
+        Encoding encoding = encodingName switch
         {
             "utf-8-bom" => new UTF8Encoding(true),
             "utf-16" => new UnicodeEncoding(false, true),
@@ -220,18 +220,16 @@ public sealed class UsingDirectivePlacementLogicTests
 
         // The comment is not ASCII, so the written bytes differ between encodings.
         const string ClassLineEndWithNonAsciiComment = "Svc s; } // Za\u017C\u00F3\u0142\u0107";
-        var source = Target.Replace("Svc s; }", ClassLineEndWithNonAsciiComment).Replace("\r\n", newline);
-        var expected = MovedOutside.Replace("Svc s; }", ClassLineEndWithNonAsciiComment).Replace("\r\n", newline);
-        var filePath = Path.Combine(_tempDirectory, "Target.cs");
+        string source = Target.Replace("Svc s; }", ClassLineEndWithNonAsciiComment).Replace("\r\n", newline);
+        string expected = MovedOutside.Replace("Svc s; }", ClassLineEndWithNonAsciiComment).Replace("\r\n", newline);
+        string filePath = Path.Combine(_tempDirectory, "Target.cs");
         File.WriteAllBytes(filePath, encoding.GetPreamble().Concat(encoding.GetBytes(source)).ToArray());
 
-        var outcome = await PlaceInClosedFileAsync(filePath);
+        UsingsMoveOutcome outcome = await PlaceInClosedFileAsync(filePath, TestContext.CancellationToken);
 
         Assert.AreEqual(UsingsMoveOutcome.Moved, outcome);
-        CollectionAssert.AreEqual(
-            encoding.GetPreamble().Concat(encoding.GetBytes(expected)).ToArray(),
-            File.ReadAllBytes(filePath),
-            File.ReadAllText(filePath));
+        Assert.AreSequenceEqual(
+            encoding.GetPreamble().Concat(encoding.GetBytes(expected)).ToArray(), File.ReadAllBytes(filePath), File.ReadAllText(filePath));
     }
 
     [TestMethod]
@@ -239,10 +237,10 @@ public sealed class UsingDirectivePlacementLogicTests
     public async Task ClosedFile_UsingsInARegion_AreMovedWithTheRegionRemoved()
     {
         WriteEditorConfig("csharp_using_directive_placement = inside_namespace:warning");
-        var filePath = Path.Combine(_tempDirectory, "Target.cs");
+        string filePath = Path.Combine(_tempDirectory, "Target.cs");
         File.WriteAllText(filePath, FileLevelTargetInRegion);
 
-        var outcome = await PlaceInClosedFileAsync(filePath);
+        UsingsMoveOutcome outcome = await PlaceInClosedFileAsync(filePath, TestContext.CancellationToken);
 
         Assert.AreEqual(UsingsMoveOutcome.Moved, outcome);
         Assert.AreEqual(MovedInside, File.ReadAllText(filePath));
@@ -254,10 +252,10 @@ public sealed class UsingDirectivePlacementLogicTests
     {
         WriteEditorConfig("csharp_using_directive_placement = inside_namespace:warning");
         File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"), "{ \"cleanup\": { \"removeRegions\": false } }");
-        var filePath = Path.Combine(_tempDirectory, "Target.cs");
+        string filePath = Path.Combine(_tempDirectory, "Target.cs");
         File.WriteAllText(filePath, FileLevelTargetInRegion);
 
-        var outcome = await PlaceInClosedFileAsync(filePath);
+        UsingsMoveOutcome outcome = await PlaceInClosedFileAsync(filePath, TestContext.CancellationToken);
 
         Assert.AreEqual(UsingsMoveOutcome.LeftInPlace, outcome);
         Assert.AreEqual(FileLevelTargetInRegion, File.ReadAllText(filePath));
@@ -268,9 +266,9 @@ public sealed class UsingDirectivePlacementLogicTests
     public async Task ClosedFile_CanceledMove_ThrowsAndLeavesTheFileUnchanged()
     {
         WriteEditorConfig("csharp_using_directive_placement = outside_namespace:warning");
-        var filePath = Path.Combine(_tempDirectory, "Target.cs");
+        string filePath = Path.Combine(_tempDirectory, "Target.cs");
         File.WriteAllText(filePath, Target);
-        using var canceled = new CancellationTokenSource();
+        using CancellationTokenSource canceled = new CancellationTokenSource();
         canceled.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => PlaceInClosedFileAsync(filePath, canceled.Token));
@@ -280,7 +278,7 @@ public sealed class UsingDirectivePlacementLogicTests
 
     private static async Task<UsingDirectivePlacementResult> PlaceAsync(Solution solution, string currentText, UsingDirectivePlacementPreference placement)
     {
-        var documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, TargetPath, AppProjectPath, currentText, CancellationToken.None);
+        IReadOnlyList<Document> documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, TargetPath, AppProjectPath, currentText, CancellationToken.None);
 
         return await UsingDirectivePlacementLogic.PlaceInEveryFlavorAsync(new UsingDirectivePlacementConverter(), placement, documents, CancellationToken.None);
     }
@@ -291,11 +289,11 @@ public sealed class UsingDirectivePlacementLogicTests
     /// </summary>
     private async Task<UsingDirectivePlacementResult> PlaceAsConfiguredAsync(string source)
     {
-        var filePath = Path.Combine(_tempDirectory, "Target.cs");
-        var projectPath = Path.Combine(_tempDirectory, "App.csproj");
+        string filePath = Path.Combine(_tempDirectory, "Target.cs");
+        string projectPath = Path.Combine(_tempDirectory, "App.csproj");
         File.WriteAllText(filePath, source);
-        var solution = CreateSolution(source, filePath, ("App", projectPath, NestedServicesLibrary));
-        var documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, filePath, projectPath, source, CancellationToken.None);
+        Solution solution = CreateSolution(source, filePath, ("App", projectPath, NestedServicesLibrary));
+        IReadOnlyList<Document> documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, filePath, projectPath, source, CancellationToken.None);
 
         return await UsingDirectivePlacementLogic.PlaceInEveryFlavorAsync(
             new UsingDirectivePlacementConverter(),
@@ -311,13 +309,13 @@ public sealed class UsingDirectivePlacementLogicTests
     /// </summary>
     private Task<UsingsMoveOutcome> PlaceInClosedFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        var projectPath = Path.Combine(_tempDirectory, "App.csproj");
-        var solution = CreateSolution(File.ReadAllText(filePath), filePath, ("App", projectPath, NestedServicesLibrary));
+        string projectPath = Path.Combine(_tempDirectory, "App.csproj");
+        Solution solution = CreateSolution(File.ReadAllText(filePath), filePath, ("App", projectPath, NestedServicesLibrary));
 
         return UsingDirectivePlacementLogic.PlaceUsingDirectivesInFileAsync(filePath, async (currentText, placement) =>
         {
-            var documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, filePath, projectPath, currentText, cancellationToken);
-            var result = await UsingDirectivePlacementLogic.PlaceInEveryFlavorAsync(new UsingDirectivePlacementConverter(), placement, documents, cancellationToken);
+            IReadOnlyList<Document> documents = await VisualStudioRoslynWorkspace.GetDocumentsAsync(solution, filePath, projectPath, currentText, cancellationToken);
+            UsingDirectivePlacementResult result = await UsingDirectivePlacementLogic.PlaceInEveryFlavorAsync(new UsingDirectivePlacementConverter(), placement, documents, cancellationToken);
 
             return result.Status switch
             {
@@ -328,30 +326,30 @@ public sealed class UsingDirectivePlacementLogicTests
         });
     }
 
-    private void WriteEditorConfig(string option) =>
-        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\r\n\r\n[*.cs]\r\n" + option + "\r\n");
+    private void WriteEditorConfig(string option)
+        => File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\r\n\r\n[*.cs]\r\n" + option + "\r\n");
 
-    private void WriteRepositoryPolicy(bool moveUsingsOutsideNamespace) =>
-        File.WriteAllText(
+    private void WriteRepositoryPolicy(bool moveUsingsOutsideNamespace)
+        => File.WriteAllText(
             Path.Combine(_tempDirectory, ".codejanitor"),
             "{ \"cleanup\": { \"moveUsingsOutsideNamespace\": " + (moveUsingsOutsideNamespace ? "true" : "false") + " } }");
 
     private static async Task AssertCompilesInEveryProjectAsync(Solution solution, string targetPath, string text)
     {
-        foreach (var project in solution.Projects)
+        foreach (Project project in solution.Projects)
         {
-            var compilation = await project.GetDocument(project.DocumentIds.Single(id => project.GetDocument(id).FilePath == targetPath))
+            Compilation compilation = await project.GetDocument(project.DocumentIds.Single(id => project.GetDocument(id).FilePath == targetPath))
                 .WithText(SourceText.From(text))
                 .Project
                 .GetCompilationAsync();
 
-            var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToList();
-            Assert.AreEqual(0, errors.Count, $"{project.Name}: {string.Join("; ", errors)}");
+            List<Diagnostic> errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToList();
+            Assert.IsEmpty(errors, $"{project.Name}: {string.Join("; ", errors)}");
         }
     }
 
-    private static Solution CreateSolution(string targetSource, params (string Name, string FilePath, string LibrarySource)[] projects) =>
-        CreateSolution(targetSource, TargetPath, projects);
+    private static Solution CreateSolution(string targetSource, params (string Name, string FilePath, string LibrarySource)[] projects)
+        => CreateSolution(targetSource, TargetPath, projects);
 
     /// <summary>
     /// Creates a solution where <paramref name="targetSource" /> is linked into every project (same file path), each
@@ -359,10 +357,10 @@ public sealed class UsingDirectivePlacementLogicTests
     /// </summary>
     private static Solution CreateSolution(string targetSource, string targetPath, params (string Name, string FilePath, string LibrarySource)[] projects)
     {
-        var solution = new AdhocWorkspace().CurrentSolution;
-        foreach (var (name, filePath, librarySource) in projects)
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        foreach ((string name, string filePath, string librarySource) in projects)
         {
-            var projectId = ProjectId.CreateNewId(name);
+            ProjectId projectId = ProjectId.CreateNewId(name);
             solution = solution.AddProject(ProjectInfo.Create(
                 projectId,
                 VersionStamp.Create(),
@@ -385,4 +383,6 @@ public sealed class UsingDirectivePlacementLogicTests
 
         return solution;
     }
+
+    public TestContext TestContext { get; set; }
 }

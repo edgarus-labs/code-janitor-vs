@@ -5,14 +5,12 @@ namespace CodeJanitor.Integration.Events;
 /// <summary>
 /// The base implementation of an event listener.
 /// </summary>
-
 internal abstract class BaseEventListener : ISwitchableFeature
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseEventListener" /> class.
     /// </summary>
     /// <param name="package">The package hosting the event listener.</param>
-
     protected BaseEventListener(CodeJanitorPackage package)
     {
         Package = package;
@@ -35,7 +33,6 @@ internal abstract class BaseEventListener : ISwitchableFeature
     /// </summary>
     /// <param name="on">True if switching the event listener on, otherwise false.</param>
     /// <returns>A task.</returns>
-
     public async Task SwitchAsync(bool on)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
@@ -54,12 +51,10 @@ internal abstract class BaseEventListener : ISwitchableFeature
     /// <summary>
     /// Registers event handlers with the IDE.
     /// </summary>
-
     protected abstract void RegisterListeners();
 
     /// <summary>
     /// Unregisters event handlers with the IDE.
     /// </summary>
-
     protected abstract void UnRegisterListeners();
 }

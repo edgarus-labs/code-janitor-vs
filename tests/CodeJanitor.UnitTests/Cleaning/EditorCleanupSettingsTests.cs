@@ -45,9 +45,9 @@ public sealed class EditorCleanupSettingsTests
     {
         WriteEditorConfig("csharp_style_namespace_declarations = block_scoped");
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
-        var filePath = Path.Combine(_tempDirectory, "Sample.cs");
+        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
 
-        var output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(
+        string output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(
             "namespace Demo;\r\n\r\npublic class C\r\n{\r\n}\r\n",
             filePath,
             EffectiveCleanupSettings.For(filePath));
@@ -61,9 +61,9 @@ public sealed class EditorCleanupSettingsTests
     public void NamespaceStep_IndentsTheBlockScopedBody_AsEditorConfigRequires(string indentation, string level)
     {
         WriteEditorConfig("csharp_style_namespace_declarations = block_scoped", indentation);
-        var filePath = Path.Combine(_tempDirectory, "Sample.cs");
+        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
 
-        var output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(
+        string output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(
             "namespace Demo;\r\n\r\npublic class C\r\n{\r\n}\r\n",
             filePath,
             EffectiveCleanupSettings.For(filePath));
@@ -76,12 +76,12 @@ public sealed class EditorCleanupSettingsTests
     {
         CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp9 });
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
-        const string source = "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n";
-        var filePath = Path.Combine(_tempDirectory, "Sample.cs");
+        const string Source = "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n";
+        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
 
-        var output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(source, filePath, EffectiveCleanupSettings.For(filePath));
+        string output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(Source, filePath, EffectiveCleanupSettings.For(filePath));
 
-        Assert.AreEqual(source, output);
+        Assert.AreEqual(Source, output);
     }
 
     [TestMethod]
@@ -91,7 +91,7 @@ public sealed class EditorCleanupSettingsTests
         WriteRepositoryPolicy("\"fileHeaderCSharp\": \"// Policy header\"");
         Settings.Default.Cleaning_UpdateFileHeaderCSharp = "// User header";
 
-        var settings = EffectiveCleanupSettings.For(Path.Combine(_tempDirectory, "Sample.cs"));
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(Path.Combine(_tempDirectory, "Sample.cs"));
 
         Assert.AreEqual("// Copyright Sample.cs", FileHeaderHelper.GetFileHeaderFromSettings(CodeLanguage.CSharp, settings));
     }
@@ -102,7 +102,7 @@ public sealed class EditorCleanupSettingsTests
         WriteRepositoryPolicy("\"fileHeaderPosition\": \"afterUsings\"");
         Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition = (int)HeaderPosition.DocumentStart;
 
-        var settings = EffectiveCleanupSettings.For(Path.Combine(_tempDirectory, "Sample.cs"));
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(Path.Combine(_tempDirectory, "Sample.cs"));
 
         Assert.AreEqual(HeaderPosition.AfterUsings, FileHeaderHelper.GetFileHeaderPositionFromSettings(CodeLanguage.CSharp, settings));
         Assert.AreEqual(HeaderPosition.DocumentStart, FileHeaderHelper.GetFileHeaderPositionFromSettings(CodeLanguage.VisualBasic, settings));
@@ -115,9 +115,9 @@ public sealed class EditorCleanupSettingsTests
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
         Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods = false;
 
-        var settings = EffectiveCleanupSettings.For(Path.Combine(_tempDirectory, "Sample.cs"));
-        var logic = InsertBlankLinePaddingLogic.GetInstance(null);
-        var method = new TestCodeItem(KindCodeItem.Method);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(Path.Combine(_tempDirectory, "Sample.cs"));
+        InsertBlankLinePaddingLogic logic = InsertBlankLinePaddingLogic.GetInstance(null);
+        TestCodeItem method = new TestCodeItem(KindCodeItem.Method);
 
         Assert.IsFalse(logic.ShouldBePrecededByBlankLine(method, settings));
         Assert.IsTrue(logic.ShouldBeFollowedByBlankLine(method, settings));
@@ -126,7 +126,6 @@ public sealed class EditorCleanupSettingsTests
     /// <summary>
     /// Writes a root .editorconfig with the specified C# options into the test directory.
     /// </summary>
-
     private void WriteEditorConfig(params string[] options)
     {
         File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
@@ -136,7 +135,6 @@ public sealed class EditorCleanupSettingsTests
     /// <summary>
     /// Writes a .codejanitor repository policy with the specified cleanup entries into the test directory.
     /// </summary>
-
     private void WriteRepositoryPolicy(string cleanupEntries)
     {
         File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),

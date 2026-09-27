@@ -43,7 +43,6 @@ namespace CodeJanitor;
 /// Type="Microsoft.VisualStudio.VsPackage" ...&gt; in .vsixmanifest file.
 /// </para>
 /// </remarks>
-
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)] // Tells Visual Studio utilities that this is a package that needs registered.
 [InstalledProductRegistration("#110", "#112", Vsix.Version, IconResourceID = 400, LanguageIndependentName = "CodeJanitor")] // VS Help/About details (Name, Description, Version, Icon).
 [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string, PackageAutoLoadFlags.BackgroundLoad)] // Trigger CodeJanitor to load on solution open so menu items can determine their state.
@@ -107,7 +106,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// inside Visual Studio environment. The place to do all the other initialization is the
     /// Initialize method.
     /// </remarks>
-
     public CodeJanitorPackage()
     {
         Trace.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", this));
@@ -137,7 +135,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <summary>
     /// Gets the currently active document, otherwise null.
     /// </summary>
-
     public Document ActiveDocument
     {
         get
@@ -157,21 +154,18 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <summary>
     /// Gets the build progress tool window, if it already exists.
     /// </summary>
-
     public BuildProgressToolWindow BuildProgress =>
         _buildProgress ?? (_buildProgress = (FindToolWindow(typeof(BuildProgressToolWindow), 0, false) as BuildProgressToolWindow));
 
     /// <summary>
     /// Gets the build progress tool window, creating it if necessary.
     /// </summary>
-
     public BuildProgressToolWindow BuildProgressForceLoad =>
         _buildProgress ?? (_buildProgress = (FindToolWindow(typeof(BuildProgressToolWindow), 0, true) as BuildProgressToolWindow));
 
     /// <summary>
     /// Gets the IComponentModel service.
     /// </summary>
-
     public IComponentModel ComponentModel =>
         _componentModel ?? (_componentModel = GetGlobalService(typeof(SComponentModel)) as IComponentModel);
 
@@ -198,14 +192,12 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <summary>
     /// Gets the Spade tool window, if it already exists.
     /// </summary>
-
     public SpadeToolWindow Spade =>
         _spade ?? (_spade = (FindToolWindow(typeof(SpadeToolWindow), 0, false) as SpadeToolWindow));
 
     /// <summary>
     /// Gets the Spade tool window, creating it if necessary.
     /// </summary>
-
     public SpadeToolWindow SpadeForceLoad =>
         _spade ?? (_spade = (FindToolWindow(typeof(SpadeToolWindow), 0, true) as SpadeToolWindow));
 
@@ -228,7 +220,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// A task representing the async work of package initialization, or an already completed
     /// task if there is none. Do not return null from this method.
     /// </returns>
-
     protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
     {
         try
@@ -259,7 +250,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
 
             await RegisterCommandsAsync();
             await RegisterEventListenersAsync();
-
         }
         catch (Exception ex)
         {
@@ -277,7 +267,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
         }
     }
 
-
     /// <summary>
     /// Called when a DispatcherUnhandledException is raised by Visual Studio.
     /// </summary>
@@ -285,7 +274,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <param name="e">
     /// The <see cref="DispatcherUnhandledExceptionEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         if (!Settings.Default.General_DiagnosticsMode) return;
@@ -297,7 +285,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <summary>
     /// Called when a solution is closed to conditionally show the start page.
     /// </summary>
-
     private void OnSolutionClosedShowStartPage()
     {
         if (!Settings.Default.General_ShowStartPageOnSolutionClose) return;
@@ -308,7 +295,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <summary>
     /// Register the package commands (which must exist in the .vsct file).
     /// </summary>
-
     private async Task RegisterCommandsAsync()
     {
         await AboutCommand.InitializeAsync(this);
@@ -360,7 +346,6 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// <remarks>
     /// Every event listener registers VS events by itself.
     /// </remarks>
-
     private async Task RegisterEventListenersAsync()
     {
         var codeModelManager = CodeModelManager.GetInstance(this);

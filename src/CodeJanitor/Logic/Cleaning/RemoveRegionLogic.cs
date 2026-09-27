@@ -13,7 +13,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating the logic of removing regions.
 /// </summary>
-
 internal sealed class RemoveRegionLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -29,7 +28,6 @@ internal sealed class RemoveRegionLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="RemoveRegionLogic" /> class.</returns>
-
     internal static RemoveRegionLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new RemoveRegionLogic(package));
@@ -39,7 +37,6 @@ internal sealed class RemoveRegionLogic
     /// Initializes a new instance of the <see cref="RemoveRegionLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private RemoveRegionLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -51,7 +48,6 @@ internal sealed class RemoveRegionLogic
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>True if document can remove regions, otherwise false.</returns>
-
     internal bool CanRemoveRegions(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -66,7 +62,6 @@ internal sealed class RemoveRegionLogic
     /// Removes all region tags from the specified text document.
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
-
     internal void RemoveRegions(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -89,7 +84,6 @@ internal sealed class RemoveRegionLogic
     /// Removes all region tags from the specified text selection.
     /// </summary>
     /// <param name="textSelection">The text selection to update.</param>
-
     internal void RemoveRegions(TextSelection textSelection)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -112,7 +106,6 @@ internal sealed class RemoveRegionLogic
     /// Removes the region tags from the specified regions.
     /// </summary>
     /// <param name="regions">The regions to update.</param>
-
     internal void RemoveRegions(IEnumerable<CodeItemRegion> regions)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -133,7 +126,6 @@ internal sealed class RemoveRegionLogic
     /// Removes the region tags from the specified region.
     /// </summary>
     /// <param name="region">The region to update.</param>
-
     internal void RemoveRegion(CodeItemRegion region)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

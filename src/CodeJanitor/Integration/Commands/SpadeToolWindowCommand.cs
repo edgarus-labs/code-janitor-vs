@@ -9,14 +9,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for launching the Spade tool window.
 /// </summary>
-
 internal sealed class SpadeToolWindowCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeToolWindowCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SpadeToolWindowCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeToolWindow)
     {
@@ -32,7 +30,6 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SpadeToolWindowCommand(package);
@@ -44,7 +41,6 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     /// </summary>
     /// <param name="on">The on.</param>
     /// <returns>A Task value produced by this method.</returns>
-
     public override async Task SwitchAsync(bool on)
     {
         await base.SwitchAsync(on);
@@ -59,7 +55,6 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     /// Called when a document has been saved.
     /// </summary>
     /// <param name="document">The document that was saved.</param>
-
     internal void OnAfterDocumentSave(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -74,7 +69,6 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     /// Called when a window change has occurred, potentially to be used by the Spade tool window.
     /// </summary>
     /// <param name="document">The document that got focus, may be null.</param>
-
     internal void OnWindowChange(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -88,7 +82,6 @@ internal sealed class SpadeToolWindowCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

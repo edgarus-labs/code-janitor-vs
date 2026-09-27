@@ -16,7 +16,6 @@ public sealed class CenterConverter : System.Windows.Data.IValueConverter
     /// <param name="parameter">The parameter.</param>
     /// <param name="culture">The culture.</param>
     /// <returns>A object value produced by this method.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var result = (double)value / 2.0;
@@ -33,7 +32,6 @@ public sealed class CenterConverter : System.Windows.Data.IValueConverter
     /// <param name="culture">The culture.</param>
     /// <returns>A object value produced by this method.</returns>
     /// <exception cref="NotImplementedException">Thrown when method validation or execution fails for this exception type.</exception>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

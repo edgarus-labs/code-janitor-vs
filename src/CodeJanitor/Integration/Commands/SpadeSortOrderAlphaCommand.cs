@@ -8,14 +8,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for setting Spade to alphabetical sort order.
 /// </summary>
-
 internal sealed class SpadeSortOrderAlphaCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeSortOrderAlphaCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SpadeSortOrderAlphaCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeSortOrderAlpha)
     {
@@ -31,7 +29,6 @@ internal sealed class SpadeSortOrderAlphaCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SpadeSortOrderAlphaCommand(package);
@@ -41,7 +38,6 @@ internal sealed class SpadeSortOrderAlphaCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -55,7 +51,6 @@ internal sealed class SpadeSortOrderAlphaCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

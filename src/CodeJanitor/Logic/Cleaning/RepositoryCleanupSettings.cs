@@ -9,99 +9,6 @@ using System.Web.Script.Serialization;
 namespace CodeJanitor.Logic.Cleaning;
 
 /// <summary>
-/// Represents cleanup overrides loaded from a repository-level policy file (.codejanitor), mapping
-/// the shared CodeJanitor VS Code configuration schema onto Visual Studio setting property names.
-/// </summary>
-internal sealed class RepositoryCleanupOverrides
-{
-    /// <summary>
-    /// An empty overrides instance used when no repository policy file is present.
-    /// </summary>
-    internal static readonly RepositoryCleanupOverrides Empty = new RepositoryCleanupOverrides(
-        new Dictionary<string, object>(StringComparer.Ordinal), removeRegions: null, organizeUsings: null);
-
-    private readonly IReadOnlyDictionary<string, object> _values;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RepositoryCleanupOverrides" /> class.
-    /// </summary>
-    /// <param name="values">The overridden setting values keyed by Visual Studio setting property name.</param>
-    /// <param name="removeRegions">The repository policy for region removal, if specified.</param>
-    /// <param name="organizeUsings">The repository policy for forcing using directive organization, if specified.</param>
-
-    internal RepositoryCleanupOverrides(IReadOnlyDictionary<string, object> values, bool? removeRegions, bool? organizeUsings)
-    {
-        _values = values;
-        RemoveRegions = removeRegions;
-        OrganizeUsings = organizeUsings;
-    }
-
-    /// <summary>
-    /// Gets the overridden setting values keyed by Visual Studio setting property name.
-    /// </summary>
-    internal IReadOnlyDictionary<string, object> Values => _values;
-
-    /// <summary>
-    /// Gets the number of overridden settings.
-    /// </summary>
-    internal int Count => _values.Count;
-
-    /// <summary>
-    /// Gets the repository policy for region removal, if specified. Visual Studio has no user setting
-    /// for this; the policy only takes effect when the repository file defines it.
-    /// </summary>
-    internal bool? RemoveRegions { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the headless cleanup removes region directives: always, unless the
-    /// repository policy opts out with <c>removeRegions: false</c>.
-    /// </summary>
-    internal bool RemovesRegions => RemoveRegions ?? true;
-
-    /// <summary>
-    /// Gets the repository policy for forcing using directive organization independent of .editorconfig,
-    /// if specified.
-    /// </summary>
-    internal bool? OrganizeUsings { get; }
-
-    /// <summary>
-    /// Gets an overridden boolean setting value, falling back when the repository policy does not define it.
-    /// </summary>
-    /// <param name="settingName">The Visual Studio setting property name.</param>
-    /// <param name="fallback">The fallback value.</param>
-    /// <returns>The effective value.</returns>
-
-    internal bool TryGetBoolean(string settingName, bool fallback)
-    {
-        return _values.TryGetValue(settingName, out var value) && value is bool boolean ? boolean : fallback;
-    }
-
-    /// <summary>
-    /// Gets an overridden string setting value, falling back when the repository policy does not define it.
-    /// </summary>
-    /// <param name="settingName">The Visual Studio setting property name.</param>
-    /// <param name="fallback">The fallback value.</param>
-    /// <returns>The effective value.</returns>
-
-    internal string TryGetString(string settingName, string fallback)
-    {
-        return _values.TryGetValue(settingName, out var value) && value is string text ? text : fallback;
-    }
-
-    /// <summary>
-    /// Gets an overridden integer setting value, falling back when the repository policy does not define it.
-    /// </summary>
-    /// <param name="settingName">The Visual Studio setting property name.</param>
-    /// <param name="fallback">The fallback value.</param>
-    /// <returns>The effective value.</returns>
-
-    internal int TryGetInt32(string settingName, int fallback)
-    {
-        return _values.TryGetValue(settingName, out var value) && value is int number ? number : fallback;
-    }
-}
-
-/// <summary>
 /// Reads and writes the repository-level cleanup policy file (.codejanitor) shared with the VS Code
 /// extension. Unknown keys, wrong value types and invalid JSON are ignored, mirroring the VS Code behavior.
 /// </summary>
@@ -219,7 +126,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="filePath">The source file path.</param>
     /// <returns>The loaded overrides, or an empty instance when no policy file is present.</returns>
-
     internal static RepositoryCleanupOverrides LoadForFile(string filePath)
     {
         if (string.IsNullOrEmpty(filePath))
@@ -246,7 +152,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
     /// <returns>The loaded overrides, or an empty instance when no policy file is present.</returns>
-
     internal static RepositoryCleanupOverrides LoadFromDirectory(string startDirectory)
     {
         return TryFindConfigFile(startDirectory, out var configPath)
@@ -260,7 +165,6 @@ internal static class RepositoryCleanupSettings
     /// <param name="startDirectory">The directory to start searching from.</param>
     /// <param name="configPath">The located policy file path, if any.</param>
     /// <returns>True when a policy file was found, otherwise false.</returns>
-
     internal static bool TryFindConfigFile(string startDirectory, out string configPath)
     {
         configPath = null;
@@ -274,6 +178,7 @@ internal static class RepositoryCleanupSettings
                 if (File.Exists(candidate))
                 {
                     configPath = candidate;
+
                     return true;
                 }
             }
@@ -290,7 +195,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="json">The policy file content.</param>
     /// <returns>The parsed overrides.</returns>
-
     internal static RepositoryCleanupOverrides Parse(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -396,7 +300,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="settings">The settings instance to export.</param>
     /// <returns>The policy file JSON content.</returns>
-
     internal static string BuildJson(Settings settings)
     {
         var builder = new StringBuilder();
@@ -449,7 +352,6 @@ internal static class RepositoryCleanupSettings
     /// <param name="overrides">The overrides to apply.</param>
     /// <param name="settings">The settings instance to update.</param>
     /// <returns>The number of applied settings.</returns>
-
     internal static int ApplyToSettings(RepositoryCleanupOverrides overrides, Settings settings)
     {
         var applied = 0;
@@ -473,7 +375,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="configPath">The policy file path.</param>
     /// <returns>The parsed overrides.</returns>
-
     private static RepositoryCleanupOverrides ParseFile(string configPath)
     {
         try
@@ -493,7 +394,6 @@ internal static class RepositoryCleanupSettings
     /// <param name="values">The values being accumulated.</param>
     /// <param name="aliasKey">The alias key.</param>
     /// <param name="targetKeys">The alias target keys.</param>
-
     private static void ApplyBooleanAlias(
         IReadOnlyDictionary<string, object> cleanup,
         IDictionary<string, object> values,
@@ -525,7 +425,6 @@ internal static class RepositoryCleanupSettings
     /// <param name="firstValue">The first mapped value.</param>
     /// <param name="secondName">The second recognized string.</param>
     /// <param name="secondValue">The second mapped value.</param>
-
     private static void AddEnumOverride(
         IDictionary<string, object> values,
         string settingName,
@@ -555,7 +454,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="jsonKey">The policy file key.</param>
     /// <returns>The setting property name, or null when the key has no Visual Studio counterpart.</returns>
-
     private static string ResolveSettingName(string jsonKey)
     {
         if (string.IsNullOrEmpty(jsonKey))
@@ -576,7 +474,6 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="value">The value to escape.</param>
     /// <returns>The escaped value.</returns>
-
     private static string EscapeJsonString(string value)
     {
         var builder = new StringBuilder(value.Length);

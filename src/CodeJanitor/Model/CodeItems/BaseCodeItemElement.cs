@@ -9,7 +9,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// A base class representation of all code items that have an underlying VSX CodeElement.
 /// </summary>
-
 public abstract class BaseCodeItemElement : BaseCodeItem
 {
     /// <summary>
@@ -40,7 +39,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <summary>
     /// Abstract initialization code for <see cref="BaseCodeItemElement" />.
     /// </summary>
-
     protected BaseCodeItemElement()
     {
         _Access = new Lazy<vsCMAccess>();
@@ -53,7 +51,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <summary>
     /// Gets the start point adjusted for leading comments, may be null.
     /// </summary>
-
     public override EditPoint StartPoint
     {
         get
@@ -67,7 +64,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <summary>
     /// Gets the end point, may be null.
     /// </summary>
-
     public override EditPoint EndPoint
     {
         get
@@ -81,7 +77,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -98,7 +93,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <summary>
     /// Refreshes the cached position and name fields on this item.
     /// </summary>
-
     public override void RefreshCachedPositionAndName()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -149,7 +143,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="func">The function to execute.</param>
     /// <returns>A lazy initializer for the specified function.</returns>
-
     protected static Lazy<T> LazyTryDefault<T>(Func<T> func)
     {
         return new Lazy<T>(() => TryDefault(func), LazyThreadSafetyMode.PublicationOnly);
@@ -162,7 +155,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="func">The function to execute.</param>
     /// <returns>The result of the function, otherwise the default for the result type.</returns>
-
     protected static T TryDefault<T>(Func<T> func)
     {
         try
@@ -182,7 +174,6 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// </summary>
     /// <param name="originalPoint">The original point.</param>
     /// <returns>The adjusted starting point.</returns>
-
     private static EditPoint GetStartPointAdjustedForComments(TextPoint originalPoint)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

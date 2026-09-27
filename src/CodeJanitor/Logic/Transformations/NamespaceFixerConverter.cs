@@ -9,7 +9,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// <summary>
 /// Updates the namespace declaration in a C# file to match an expected namespace.
 /// </summary>
-
 public sealed class NamespaceFixerConverter
 {
     /// <summary>
@@ -18,7 +17,6 @@ public sealed class NamespaceFixerConverter
     /// <param name="source">The source.</param>
     /// <param name="expectedNamespace">The expected namespace.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string FixNamespace(string source, string expectedNamespace)
     {
         if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(expectedNamespace))
@@ -55,7 +53,6 @@ public sealed class NamespaceFixerConverter
     /// </summary>
     /// <param name="root">The root.</param>
     /// <returns>A BaseNamespaceDeclarationSyntax value produced by this method.</returns>
-
     private static BaseNamespaceDeclarationSyntax GetTopLevelNamespace(CompilationUnitSyntax root)
     {
         var namespaces = root.DescendantNodes()

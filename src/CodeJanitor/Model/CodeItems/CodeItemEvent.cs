@@ -8,7 +8,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code event.
 /// </summary>
-
 public sealed class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
 {
     private readonly Lazy<bool> _isExplicitInterfaceImplementation;
@@ -16,7 +15,6 @@ public sealed class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemEvent" /> class.
     /// </summary>
-
     public CodeItemEvent()
     {
         // Make exceptions for explicit interface implementations - which report private access
@@ -48,7 +46,6 @@ public sealed class CodeItemEvent : BaseCodeItemElement, IInterfaceItem
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         base.LoadLazyInitializedValues();

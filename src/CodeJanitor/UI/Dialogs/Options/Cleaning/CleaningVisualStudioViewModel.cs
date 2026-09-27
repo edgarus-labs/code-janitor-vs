@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Cleaning;
 /// <summary>
 /// The view model for cleaning visual studio options.
 /// </summary>
-
 public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public CleaningVisualStudioViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings)
     {
@@ -34,7 +32,6 @@ public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if the Visual Studio format document command should be run.
     /// </summary>
-
     public bool RunVisualStudioFormatDocument
     {
         get { return GetPropertyValue<bool>(); }
@@ -44,7 +41,6 @@ public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the flag indicating if using statements should be removed and sorted.
     /// </summary>
-
     public bool RunVisualStudioRemoveAndSortUsingStatements
     {
         get { return GetPropertyValue<bool>(); }
@@ -55,7 +51,6 @@ public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
     /// Gets or sets the flag indicating if using statements should not be removed and sorted
     /// during auto cleanup on save.
     /// </summary>
-
     public bool SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave
     {
         get { return GetPropertyValue<bool>(); }
@@ -65,7 +60,6 @@ public sealed class CleaningVisualStudioViewModel : OptionsPageViewModel
     /// <summary>
     /// Gets or sets the expression for using statements that should be re-inserted when removed.
     /// </summary>
-
     public string UsingStatementsToReinsertWhenRemovedExpression
     {
         get { return GetPropertyValue<string>(); }

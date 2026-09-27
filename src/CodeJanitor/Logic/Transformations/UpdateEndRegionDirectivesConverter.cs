@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// Updates #endregion directives to match the names of their corresponding #region directives,
 /// and normalizes whitespace around region names.
 /// </summary>
-
 public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
 {
     private static readonly Regex RegionDirectiveRegex = new Regex(
@@ -31,7 +30,6 @@ public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -97,7 +95,6 @@ public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
     /// </summary>
     /// <param name="line">The line.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string GetIndentation(string line)
     {
         int count = 0;

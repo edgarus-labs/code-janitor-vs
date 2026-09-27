@@ -15,14 +15,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// without a full compilation, mirroring <see cref="VarWhenApparentConverter" /> (see ADR-0007).
 /// Pure logic, unit-testable without Visual Studio.
 /// </remarks>
-
 public sealed class CollectionExpressionConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Collection Expression";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -47,7 +45,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitVariableDeclarator(VariableDeclaratorSyntax node)
         {
             node = (VariableDeclaratorSyntax)base.VisitVariableDeclarator(node);
@@ -69,7 +66,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             node = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
@@ -92,7 +88,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// <param name="declaredType">The declared type.</param>
         /// <param name="initializer">The initializer.</param>
         /// <returns>A ExpressionSyntax value produced by this method.</returns>
-
         private static ExpressionSyntax TryConvertToCollectionExpression(TypeSyntax declaredType, ExpressionSyntax initializer)
         {
             switch (initializer)
@@ -119,7 +114,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// <param name="declaredType">The declared type.</param>
         /// <param name="objectCreation">The object creation.</param>
         /// <returns>A ExpressionSyntax value produced by this method.</returns>
-
         private static ExpressionSyntax TryConvertObjectCreation(TypeSyntax declaredType, ObjectCreationExpressionSyntax objectCreation)
         {
             if (objectCreation.ArgumentList is not null && objectCreation.ArgumentList.Arguments.Count > 0)
@@ -145,7 +139,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// <param name="declaredType">The declared type.</param>
         /// <param name="arrayCreation">The array creation.</param>
         /// <returns>A ExpressionSyntax value produced by this method.</returns>
-
         private static ExpressionSyntax TryConvertArrayCreation(TypeSyntax declaredType, ArrayCreationExpressionSyntax arrayCreation)
         {
             if (!(declaredType is ArrayTypeSyntax declaredArrayType)
@@ -173,7 +166,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private static bool IsSupportedListType(TypeSyntax type) =>
                     type is GenericNameSyntax genericName && genericName.Identifier.ValueText == "List";
 
@@ -182,7 +174,6 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// </summary>
         /// <param name="elements">The elements.</param>
         /// <returns>A ExpressionSyntax value produced by this method.</returns>
-
         private static ExpressionSyntax BuildCollectionExpression(SeparatedSyntaxList<ExpressionSyntax> elements)
         {
             var elementsText = string.Join(", ", elements.Select(e => e.ToString()));

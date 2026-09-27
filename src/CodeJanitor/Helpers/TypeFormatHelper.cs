@@ -5,7 +5,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A simple helper class for formatting type definitions.
 /// </summary>
-
 public static class TypeFormatHelper
 {
     /// <summary>
@@ -13,7 +12,6 @@ public static class TypeFormatHelper
     /// </summary>
     /// <param name="input">The input string.</param>
     /// <returns>The formatted output string.</returns>
-
     public static string Format(string input)
     {
         if (string.IsNullOrEmpty(input)) return input;

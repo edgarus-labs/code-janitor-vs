@@ -5,7 +5,6 @@ namespace CodeJanitor.UI.Dialogs.Options.Reorganizing;
 /// <summary>
 /// The view model for reorganizing options - hosts the more specific reorganizing view models as tabs.
 /// </summary>
-
 public sealed class ReorganizingParentViewModel : CompositeOptionsPageViewModel
 {
     /// <summary>
@@ -13,7 +12,6 @@ public sealed class ReorganizingParentViewModel : CompositeOptionsPageViewModel
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     public ReorganizingParentViewModel(CodeJanitorPackage package, Settings activeSettings)
         : base(package, activeSettings, new OptionsPageViewModel[]
         {

@@ -5,7 +5,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// An interface for code items.
 /// </summary>
-
 public interface ICodeItem
 {
     /// <summary>
@@ -51,12 +50,10 @@ public interface ICodeItem
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     void LoadLazyInitializedValues();
 
     /// <summary>
     /// Refreshes the cached position and name fields on this item.
     /// </summary>
-
     void RefreshCachedPositionAndName();
 }

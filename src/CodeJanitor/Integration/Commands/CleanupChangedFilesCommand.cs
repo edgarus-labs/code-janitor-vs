@@ -19,14 +19,12 @@ namespace CodeJanitor.Integration.Commands;
 /// A command that provides for cleaning up code only in files reported as changed by git
 /// (see ADR-0007 / BL-017).
 /// </summary>
-
 internal sealed class CleanupChangedFilesCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleanupChangedFilesCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CleanupChangedFilesCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCleanupChangedFiles)
     {
@@ -52,7 +50,6 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// <summary>
     /// Gets the list of all project items in the solution eligible for cleanup.
     /// </summary>
-
     private IEnumerable<ProjectItem> AllProjectItems
         => SolutionHelper.GetAllItemsInSolution<ProjectItem>(Package.IDE.Solution).Where(x => CodeCleanupAvailabilityLogic.CanCleanupProjectItem(x));
 
@@ -61,7 +58,6 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CleanupChangedFilesCommand(package);
@@ -71,7 +67,6 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -81,7 +76,6 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -132,7 +126,6 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// <summary>
     /// Gets the directory of the currently open solution, or null when no solution is open.
     /// </summary>
-
     private string GetSolutionDirectory()
     {
         var solutionFullName = Package.IDE.Solution?.FullName;
@@ -146,7 +139,6 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// <param name="projectItem">The project item.</param>
     /// <param name="changedFiles">The set of changed absolute file paths.</param>
     /// <returns>True if the project item is a changed file, otherwise false.</returns>
-
     private static bool IsChangedFile(ProjectItem projectItem, HashSet<string> changedFiles)
     {
         for (short i = 1; i <= projectItem.FileCount; i++)

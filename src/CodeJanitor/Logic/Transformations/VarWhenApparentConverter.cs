@@ -13,18 +13,15 @@ namespace CodeJanitor.Logic.Transformations;
 /// without a full compilation: e.g. <c>IFoo x = new Foo()</c> is left unchanged because the
 /// declared type differs from the created type. Pure logic, unit-testable without Visual Studio.
 /// </remarks>
-
 public sealed class VarWhenApparentConverter : ITypeStyleConverter, ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Var When Apparent";
 
     /// <inheritdoc />
-
     public string Apply(string source) => UseVarWhenApparent(source);
 
     /// <inheritdoc />
-
     public string UseVarWhenApparent(string source)
     {
         if (string.IsNullOrEmpty(source))
@@ -49,7 +46,6 @@ public sealed class VarWhenApparentConverter : ITypeStyleConverter, ISourceTrans
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-
         public override SyntaxNode VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
         {
             var declaration = node.Declaration;
@@ -86,7 +82,6 @@ public sealed class VarWhenApparentConverter : ITypeStyleConverter, ISourceTrans
         /// <param name="declaredType">The declared type.</param>
         /// <param name="initializer">The initializer.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         private static bool IsTypeApparent(TypeSyntax declaredType, ExpressionSyntax initializer)
         {
             var declaredText = declaredType.ToString();

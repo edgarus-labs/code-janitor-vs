@@ -12,7 +12,6 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for finding a file in the solution explorer.
 /// </summary>
-
 internal sealed class FindInSolutionExplorerCommand : BaseCommand
 {
     private readonly CommandHelper _commandHelper;
@@ -21,7 +20,6 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     /// Initializes a new instance of the <see cref="FindInSolutionExplorerCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal FindInSolutionExplorerCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorFindInSolutionExplorer)
     {
@@ -38,7 +36,6 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new FindInSolutionExplorerCommand(package);
@@ -48,7 +45,6 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -59,7 +55,6 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -103,7 +98,6 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     /// Clears any exising search filtering in the solution explorer so that items not matching
     /// the query can be found.
     /// </summary>
-
     private void ClearSolutionExplorerSearchFilter()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -118,7 +112,6 @@ internal sealed class FindInSolutionExplorerCommand : BaseCommand
     /// solution folders that have never been expanded.
     /// </summary>
     /// <param name="parentItem">The parent item to inspect.</param>
-
     private void ToggleSolutionFoldersOpenTemporarily(UIHierarchyItem parentItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

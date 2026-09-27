@@ -11,7 +11,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// Helpers for deriving the expected namespace for a project item.
 /// </summary>
-
 internal static class NamespacePathHelper
 {
     private static readonly HashSet<string> ExcludedDirectoryNames =
@@ -22,7 +21,6 @@ internal static class NamespacePathHelper
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string GetExpectedNamespace(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -50,7 +48,6 @@ internal static class NamespacePathHelper
     /// <summary>
     /// Determines whether the specified file path is inside an excluded directory.
     /// </summary>
-
     internal static bool IsInExcludedDirectory(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -76,7 +73,6 @@ internal static class NamespacePathHelper
     /// <param name="projectDirectory">The project directory.</param>
     /// <param name="filePath">The file path.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string BuildExpectedNamespace(string rootNamespace, string projectDirectory, string filePath)
     {
         var namespaceSegments = new List<string>();
@@ -99,7 +95,6 @@ internal static class NamespacePathHelper
     /// </summary>
     /// <param name="namespaceName">The namespace name.</param>
     /// <returns>A IEnumerable&lt;string&gt; value produced by this method.</returns>
-
     private static IEnumerable<string> SplitNamespace(string namespaceName)
     {
         if (string.IsNullOrWhiteSpace(namespaceName))
@@ -122,7 +117,6 @@ internal static class NamespacePathHelper
     /// </summary>
     /// <param name="project">The project.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string GetProjectDirectory(Project project)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -147,7 +141,6 @@ internal static class NamespacePathHelper
     /// </summary>
     /// <param name="project">The project.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string GetProjectRootNamespace(Project project)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -183,7 +176,6 @@ internal static class NamespacePathHelper
     /// <param name="projectDirectory">The project directory.</param>
     /// <param name="filePath">The file path.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string GetRelativeDirectory(string projectDirectory, string filePath)
     {
         if (string.IsNullOrWhiteSpace(projectDirectory) || string.IsNullOrWhiteSpace(filePath))
@@ -216,7 +208,6 @@ internal static class NamespacePathHelper
     /// </summary>
     /// <param name="segment">The segment.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string NormalizeNamespaceSegment(string segment)
     {
         if (string.IsNullOrWhiteSpace(segment))
@@ -238,7 +229,6 @@ internal static class NamespacePathHelper
     /// </summary>
     /// <param name="path">The path.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string EnsureTrailingDirectorySeparator(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

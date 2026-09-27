@@ -18,7 +18,7 @@ public sealed class DiagnosticCleanupOptions
     /// <param name="maxPasses">The maximum number of fixes applied (each followed by a re-analysis).</param>
     public DiagnosticCleanupOptions(IEnumerable<DiagnosticCleanupCategory> enabledCategories, int maxPasses = DefaultMaxPasses)
     {
-        if (enabledCategories == null)
+        if (enabledCategories is null)
         {
             throw new ArgumentNullException(nameof(enabledCategories));
         }

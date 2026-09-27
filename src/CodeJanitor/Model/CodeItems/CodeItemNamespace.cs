@@ -6,13 +6,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code namespace.
 /// </summary>
-
 public sealed class CodeItemNamespace : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemNamespace" /> class.
     /// </summary>
-
     public CodeItemNamespace()
     {
         _DocComment = LazyTryDefault(

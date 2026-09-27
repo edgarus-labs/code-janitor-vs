@@ -10,7 +10,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code property.
 /// </summary>
-
 public sealed class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity, ICodeItemParameters, IInterfaceItem
 {
     private readonly Lazy<int> _complexity;
@@ -21,7 +20,6 @@ public sealed class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity,
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemProperty" /> class.
     /// </summary>
-
     public CodeItemProperty()
     {
         // Make exceptions for explicit interface implementations - which report private access
@@ -64,7 +62,6 @@ public sealed class CodeItemProperty : BaseCodeItemElement, ICodeItemComplexity,
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         base.LoadLazyInitializedValues();

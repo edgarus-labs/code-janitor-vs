@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating using statement cleanup logic.
 /// </summary>
-
 internal sealed class UsingStatementCleanupLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -26,7 +25,6 @@ internal sealed class UsingStatementCleanupLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="UsingStatementCleanupLogic" /> class.</returns>
-
     internal static UsingStatementCleanupLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new UsingStatementCleanupLogic(package));
@@ -36,7 +34,6 @@ internal sealed class UsingStatementCleanupLogic
     /// Initializes a new instance of the <see cref="UsingStatementCleanupLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private UsingStatementCleanupLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -52,7 +49,6 @@ internal sealed class UsingStatementCleanupLogic
     /// </remarks>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     public void RemoveAndSortUsingStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

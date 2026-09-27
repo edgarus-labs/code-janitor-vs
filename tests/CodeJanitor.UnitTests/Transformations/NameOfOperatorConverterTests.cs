@@ -28,7 +28,7 @@ public sealed class NameOfOperatorConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Apply_ArgumentNullException_ConvertsToNameOf()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(string myParam)
@@ -39,7 +39,7 @@ public class C
         }
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public void M(string myParam)
@@ -51,7 +51,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -60,7 +60,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_ArgumentException_ConvertsParameterNameToNameOf()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(int count)
@@ -71,7 +71,7 @@ public class C
         }
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public void M(int count)
@@ -83,7 +83,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -92,7 +92,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_UnknownIdentifier_DoesNotConvert()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(int count)
@@ -101,7 +101,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input, result);
     }
@@ -118,9 +118,9 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_QualifiedArgumentOutOfRangeException_ConvertsConstructorParameter()
     {
-        var input = "public class C { public C(int value) { throw new System.ArgumentOutOfRangeException(\"value\"); } }";
+        string input = "public class C { public C(int value) { throw new System.ArgumentOutOfRangeException(\"value\"); } }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input.Replace("\"value\"", "nameof(value)"), result);
     }
@@ -129,9 +129,9 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_LocalFunctionParameter_ConvertsToNameOf()
     {
-        var input = "public class C { public void M() { void Check(string value) { throw new ArgumentNullException(\"value\"); } } }";
+        string input = "public class C { public void M() { void Check(string value) { throw new ArgumentNullException(\"value\"); } } }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input.Replace("\"value\"", "nameof(value)"), result);
     }
@@ -140,9 +140,9 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_SimpleLambdaParameter_ConvertsToNameOf()
     {
-        var input = "using System; public class C { public Action<string> Create() => value => throw new ArgumentException(\"value\"); }";
+        string input = "using System; public class C { public Action<string> Create() => value => throw new ArgumentException(\"value\"); }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input.Replace("\"value\"", "nameof(value)"), result);
     }
@@ -151,9 +151,9 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_ParenthesizedLambdaParameters_ConvertsMatchingArgumentOnly()
     {
-        var input = "using System; public class C { public Action<string, int> Create() => (value, count) => throw new ArgumentException(\"value\", \"count\"); }";
+        string input = "using System; public class C { public Action<string, int> Create() => (value, count) => throw new ArgumentException(\"value\", \"count\"); }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input.Replace("\"value\"", "nameof(value)").Replace("\"count\"", "nameof(count)"), result);
     }
@@ -162,9 +162,9 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_NonTargetExceptionOrInvalidIdentifier_ReturnsOriginal()
     {
-        var input = "public class C { public void M(string value) { throw new InvalidOperationException(\"value\"); throw new ArgumentException(\"not a valid identifier\"); } }";
+        string input = "public class C { public void M(string value) { throw new InvalidOperationException(\"value\"); throw new ArgumentException(\"not a valid identifier\"); } }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input, result);
     }
@@ -173,9 +173,9 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_ExceptionWithoutArguments_ReturnsOriginal()
     {
-        var input = "public class C { public void M() { throw new ArgumentException(); } }";
+        string input = "public class C { public void M() { throw new ArgumentException(); } }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input, result);
     }

@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// receives the output of the previous one; a block that does not apply returns its input
 /// unchanged, so the pipeline is safe to run with any subset or ordering of blocks.
 /// </summary>
-
 public sealed class SourceTransformationPipeline
 {
     private readonly IList<ISourceTransformation> _transformations;
@@ -18,7 +17,6 @@ public sealed class SourceTransformationPipeline
     /// <summary>
     /// Initializes a new pipeline from the given transformations, in the order they should run.
     /// </summary>
-
     public SourceTransformationPipeline(params ISourceTransformation[] transformations)
         : this((IEnumerable<ISourceTransformation>)transformations)
     {
@@ -27,7 +25,6 @@ public sealed class SourceTransformationPipeline
     /// <summary>
     /// Initializes a new pipeline from the given transformations, in the order they should run.
     /// </summary>
-
     public SourceTransformationPipeline(IEnumerable<ISourceTransformation> transformations)
     {
         if (transformations is null)
@@ -47,7 +44,6 @@ public sealed class SourceTransformationPipeline
     /// Runs every transformation in order and returns the final source text. Empty or null input
     /// is returned unchanged.
     /// </summary>
-
     public string Run(string source)
     {
         return Execute(source, null, null);
@@ -92,8 +88,11 @@ public sealed class SourceTransformationPipeline
         }
 
         public string OriginalSource { get; }
+
         public string UpdatedSource { get; }
+
         public IReadOnlyList<PreviewStep> Steps { get; }
+
         public bool HasChanges => !string.Equals(OriginalSource, UpdatedSource, StringComparison.Ordinal);
 
         public bool TryApply(string currentSource, Action<string> replaceSource)
@@ -128,8 +127,11 @@ public sealed class SourceTransformationPipeline
         }
 
         public int Index { get; }
+
         public string Name { get; }
+
         public bool Included { get; }
+
         public bool Changed { get; }
     }
 }

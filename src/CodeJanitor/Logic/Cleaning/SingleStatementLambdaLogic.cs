@@ -8,7 +8,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for simplifying single-statement lambda block bodies to expression bodies during cleanup.
 /// </summary>
-
 internal sealed class SingleStatementLambdaLogic
 {
     private readonly ISourceTransformation _converter;
@@ -23,7 +22,6 @@ internal sealed class SingleStatementLambdaLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SingleStatementLambdaLogic" /> class.</returns>
-
     internal static SingleStatementLambdaLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new SingleStatementLambdaLogic(package));
@@ -33,7 +31,6 @@ internal sealed class SingleStatementLambdaLogic
     /// Initializes a new instance of the <see cref="SingleStatementLambdaLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private SingleStatementLambdaLogic(CodeJanitorPackage package)
     {
         _converter = new SingleStatementLambdaConverter();
@@ -44,7 +41,6 @@ internal sealed class SingleStatementLambdaLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void SimplifySingleStatementLambdas(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

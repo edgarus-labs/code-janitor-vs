@@ -9,7 +9,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A static helper class for working with the solution.
 /// </summary>
-
 internal static class SolutionHelper
 {
     /// <summary>
@@ -18,7 +17,6 @@ internal static class SolutionHelper
     /// <typeparam name="T">The type of item to retrieve.</typeparam>
     /// <param name="solution">The solution.</param>
     /// <returns>The enumerable set of all items.</returns>
-
     internal static IEnumerable<T> GetAllItemsInSolution<T>(Solution solution)
         where T : class
     {
@@ -40,7 +38,6 @@ internal static class SolutionHelper
     /// <typeparam name="T">The type of item to retrieve.</typeparam>
     /// <param name="parentItem">The parent item.</param>
     /// <returns>The enumerable set of items within the parent item, may be empty.</returns>
-
     internal static IEnumerable<T> GetItemsRecursively<T>(object parentItem)
         where T : class
     {
@@ -76,7 +73,6 @@ internal static class SolutionHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>The enumerable set of selected project items.</returns>
-
     internal static IEnumerable<ProjectItem> GetSelectedProjectItemsRecursively(CodeJanitorPackage package)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -113,7 +109,6 @@ internal static class SolutionHelper
     /// <param name="package">The hosting package.</param>
     /// <param name="projectItem">The project item to match.</param>
     /// <returns>The enumerable set of similar project items.</returns>
-
     internal static IEnumerable<ProjectItem> GetSimilarProjectItems(CodeJanitorPackage package, ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -127,7 +122,6 @@ internal static class SolutionHelper
     /// </summary>
     /// <param name="parentItem">The parent item.</param>
     /// <returns>An enumerable set of children, may be empty.</returns>
-
     private static IEnumerable<object> GetChildren(object parentItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -208,7 +202,6 @@ internal static class SolutionHelper
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string GetProjectItemName(ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -228,7 +221,6 @@ internal static class SolutionHelper
     /// </summary>
     /// <param name="project">The project.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string GetProjectName(Project project)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

@@ -10,7 +10,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// Formats comments in C# source code by applying consistent spacing and alignment rules.
 /// Handles both single-line (//) and multi-line (/* */) comments.
 /// </summary>
-
 public sealed class CommentFormatConverter : ISourceTransformation
 {
     private static readonly Regex SingleLineCommentRegex = new Regex(@"^(\s*)//\s*(.*)$", RegexOptions.Multiline | RegexOptions.Compiled);
@@ -27,7 +26,6 @@ public sealed class CommentFormatConverter : ISourceTransformation
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !Settings.Default.Formatting_CommentRunDuringCleanup)
@@ -101,7 +99,6 @@ public sealed class CommentFormatConverter : ISourceTransformation
     /// <param name="line">The line.</param>
     /// <param name="baseIndentation">The base indentation.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private string NormalizeMultiLineCommentLine(string line, string baseIndentation)
     {
         var trimmed = line.TrimStart();

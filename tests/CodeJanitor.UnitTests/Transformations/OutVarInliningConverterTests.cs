@@ -28,7 +28,7 @@ public sealed class OutVarInliningConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Apply_UninitializedDeclarationBeforeIfTryParse_InlinesOutVar()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(string s)
@@ -40,7 +40,7 @@ public class C
         }
     }
 }";
-        var expected = @"
+        string expected = @"
 public class C
 {
     public void M(string s)
@@ -52,7 +52,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -61,7 +61,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_InitializedDeclaration_DoesNotInlined()
     {
-        var input = @"
+        string input = @"
 public class C
 {
     public void M(string s)
@@ -74,7 +74,7 @@ public class C
     }
 }";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input, result);
     }

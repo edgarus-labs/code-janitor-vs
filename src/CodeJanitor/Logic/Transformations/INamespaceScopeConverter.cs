@@ -3,7 +3,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// <summary>
 /// Converts C# namespace declarations between block-scoped and file-scoped forms.
 /// </summary>
-
 public interface INamespaceScopeConverter
 {
     /// <summary>
@@ -19,7 +18,6 @@ public interface INamespaceScopeConverter
     /// directive between the namespace name and its body, a conditional directive block crossing a namespace brace, or
     /// text disabled by <c>#if</c> after the namespace).
     /// </returns>
-
     string ConvertToFileScoped(string source);
 
     /// <summary>
@@ -33,7 +31,6 @@ public interface INamespaceScopeConverter
     /// The converted source, or the original source unchanged when conversion is not applicable (no namespace,
     /// more than one namespace, a block-scoped namespace, a namespace declared inside <c>#if</c>, or syntax errors).
     /// </returns>
-
     string ConvertToBlockScoped(string source);
 
     /// <summary>
@@ -43,6 +40,5 @@ public interface INamespaceScopeConverter
     /// </summary>
     /// <param name="source">The full C# source text.</param>
     /// <returns>True if the source contains more than one namespace declaration.</returns>
-
     bool HasMultipleNamespaces(string source);
 }

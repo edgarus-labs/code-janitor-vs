@@ -42,7 +42,7 @@ public sealed class FileHeaderHelperTests
     [InlineData(CodeLanguage.VisualBasic, "' some PowerShell test header\r\n")]
     public void GetHeaderLengthLanguage(CodeLanguage language, string text)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(language, text);
+        int headerLength = FileHeaderHelper.GetHeaderLength(language, text);
 
         Assert.True(headerLength > 0, $"Expecting value > 0, found {headerLength}");
     }
@@ -65,7 +65,7 @@ public sealed class FileHeaderHelperTests
     [InlineData(CodeLanguage.VisualBasic, "// some PowerShell test header\r\n")]
     public void GetHeaderLengthLanguageWithWrongTags(CodeLanguage language, string text)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(language, text);
+        int headerLength = FileHeaderHelper.GetHeaderLength(language, text);
 
         Assert.Equal(0, headerLength);
     }
@@ -81,8 +81,8 @@ public sealed class FileHeaderHelperTests
     [InlineData("(* ~~~~ \r\n ~~ \r\n  Copyright © 2021 \r\n ~~ \r\n ~~~~ *)", "(*", "*)")]
     public void GetHeaderLengthMultiLine(string text, string tagStart, string tagEnd)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, false);
-        var expectedLength = text.Length - Regex.Matches(text, Environment.NewLine).Count + 1;
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, false);
+        int expectedLength = text.Length - Regex.Matches(text, Environment.NewLine).Count + 1;
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -92,7 +92,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("using EnvDTE;\r\nusing System;\r\nusing CodeJanitor.Helpers;\r\n/* \r\n   Copyright © 2021 \r\n */", "/*", "*/", 29)]
     public void GetHeaderLengthMultiLineSkipUsings(string text, string tagStart, string tagEnd, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -103,8 +103,8 @@ public sealed class FileHeaderHelperTests
     [InlineData("\r\n\r\n<!-- -->", "<!--", "-->")]
     public void GetHeaderLengthMultiLineWithEmptyLines(string text, string tagStart, string tagEnd)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, false);
-        var expectedLength = text.Length - Regex.Matches(text, Environment.NewLine).Count + 1;
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, false);
+        int expectedLength = text.Length - Regex.Matches(text, Environment.NewLine).Count + 1;
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -114,7 +114,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("using System;\r\n\r\n<!-- -->", "<!--", "-->", 9)]
     public void GetHeaderLengthMultiLineWithEmptyLinesSkipUsings(string text, string tagStart, string tagEnd, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -127,7 +127,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("*/           ", "/*", "*/")]
     public void GetHeaderLengthMultiLineZero(string text, string tagStart, string tagEnd)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, false);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, false);
 
         Assert.Equal(0, headerLength);
     }
@@ -139,7 +139,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("using System;\r\n*/           ", "/*", "*/")]
     public void GetHeaderLengthMultiLineZeroSkipUsings(string text, string tagStart, string tagEnd)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tagStart, tagEnd, true);
 
         Assert.Equal(0, headerLength);
     }
@@ -153,8 +153,8 @@ public sealed class FileHeaderHelperTests
     [InlineData("'", "' ==============\r\n' some text\r\n'   Copyright !\r\n' ==============\r\n")]
     public void GetHeaderLengthMultiSingleLine(string tag, string text)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, false);
-        var expectedLength = text.Length - Regex.Matches(text, Environment.NewLine).Count;
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tag, false);
+        int expectedLength = text.Length - Regex.Matches(text, Environment.NewLine).Count;
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -164,7 +164,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("//", "using System;\r\n// header I\r\n// header II\r\nnamespace ", 26)]
     public void GetHeaderLengthMultiSingleLineSkipUsings(string tag, string text, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -176,7 +176,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("'", "' some header\r\nnamespace\r\npublic class Test\r\n", 14)]
     public void GetHeaderLengthMultiSingleLineWithCode(string tag, string text, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, false);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tag, false);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -187,7 +187,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("//", "using System;\r\n\r\n//  header \r\n[assembly: AssemblyTitle(\"CodeJanitor.UnitTests\")]\r\nnamespace ", 13)]
     public void GetHeaderLengthMultiSingleLineWithCodeSkipUsings(string tag, string text, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -199,7 +199,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("'", "\r\n' some header\r\nnamespace\r\npublic class Test\r\n", 15)]
     public void GetHeaderLengthMultiSingleLineWithEmptyLines(string tag, string text, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, false);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tag, false);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -209,7 +209,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("//", "using EnvDTE;\r\nusing System;\r\nusing CodeJanitor.Helpers;\r\n//  header \r\n// more header \r\n namespace System.Text;\r\n{\r\n", 29)]
     public void GetHeaderLengthMultiSingleLineWithEmptyLinesSkipUsings(string tag, string text, int expectedLength)
     {
-        var headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
+        int headerLength = FileHeaderHelper.GetHeaderLength(text, tag, true);
 
         Assert.Equal(expectedLength, headerLength);
     }
@@ -222,7 +222,7 @@ public sealed class FileHeaderHelperTests
     [InlineData("using ", "using System;\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nusing System.Collections;\r\n\r\nnamespace CodeJanitor", "namespace ", 10)]
     public void GetNbLinesToSkip(string patternToFind, string text, string limit, int expectedNbLines)
     {
-        var nbLines = FileHeaderHelper.GetNbLinesToSkip(patternToFind, text, new List<string>() { limit });
+        int nbLines = FileHeaderHelper.GetNbLinesToSkip(patternToFind, text, new List<string>() { limit });
 
         Assert.Equal(expectedNbLines, nbLines);
     }

@@ -9,7 +9,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code delegate.
 /// </summary>
-
 public sealed class CodeItemDelegate : BaseCodeItemElement, ICodeItemParameters
 {
     private readonly Lazy<string> _namespace;
@@ -18,7 +17,6 @@ public sealed class CodeItemDelegate : BaseCodeItemElement, ICodeItemParameters
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemDelegate" /> class.
     /// </summary>
-
     public CodeItemDelegate()
     {
         _Access = LazyTryDefault(
@@ -48,7 +46,6 @@ public sealed class CodeItemDelegate : BaseCodeItemElement, ICodeItemParameters
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public override void LoadLazyInitializedValues()
     {
         base.LoadLazyInitializedValues();

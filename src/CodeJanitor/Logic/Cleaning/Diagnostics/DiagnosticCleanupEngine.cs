@@ -78,12 +78,12 @@ public sealed class DiagnosticCleanupEngine
     /// <returns>The changed solution with applied fixes and the diagnostics left unresolved.</returns>
     public async Task<DiagnosticCleanupResult> CleanupAsync(Document document, DiagnosticCleanupOptions options, CancellationToken cancellationToken)
     {
-        if (document == null)
+        if (document is null)
         {
             throw new ArgumentNullException(nameof(document));
         }
 
-        if (options == null)
+        if (options is null)
         {
             throw new ArgumentNullException(nameof(options));
         }
@@ -178,16 +178,17 @@ public sealed class DiagnosticCleanupEngine
         private readonly DiagnosticCleanupOptions _options;
         private readonly ImmutableArray<DiagnosticAnalyzer> _analyzers;
         private readonly Lazy<ILookup<string, CodeFixProvider>> _providersByDiagnosticId;
+
         private readonly Dictionary<(CodeFixProvider Provider, string EquivalenceKey), UnresolvedDiagnosticReason> _rejectedGroups =
             new Dictionary<(CodeFixProvider Provider, string EquivalenceKey), UnresolvedDiagnosticReason>();
 
         private readonly List<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider)> _appliedOrder =
-            new List<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider)>();
+            [];
 
         private readonly Dictionary<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider), int> _appliedCounts =
             new Dictionary<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider), int>();
 
-        private readonly List<CodeActionOperation> _postApplyOperations = new List<CodeActionOperation>();
+        private readonly List<CodeActionOperation> _postApplyOperations = [];
 
         private Solution _errorSolution;
         private Dictionary<ProjectId, IReadOnlyList<Diagnostic>> _errors = new Dictionary<ProjectId, IReadOnlyList<Diagnostic>>();
@@ -218,7 +219,7 @@ public sealed class DiagnosticCleanupEngine
                 }
 
                 var fixedSolution = await ApplyFirstAcceptedGroupAsync(solution, document, plans, cancellationToken).ConfigureAwait(false);
-                if (fixedSolution == null)
+                if (fixedSolution is null)
                 {
                     return CreateResult(originalSolution, solution, plans);
                 }
@@ -247,7 +248,7 @@ public sealed class DiagnosticCleanupEngine
         {
             var tree = await document.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
             var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
-            if (tree == null || compilation == null)
+            if (tree is null || compilation is null)
             {
                 return ImmutableArray<ActionableDiagnostic>.Empty;
             }
@@ -359,7 +360,7 @@ public sealed class DiagnosticCleanupEngine
             foreach (var provider in providers)
             {
                 var chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
-                if (chosen.Action != null)
+                if (chosen.Action is not null)
                 {
                     return FixPlan.Fixable(actionable, provider, chosen.Action, chosen.HasEquivalentAlternatives);
                 }
@@ -393,7 +394,7 @@ public sealed class DiagnosticCleanupEngine
             lock (actions)
             {
                 var chosen = actions.FirstOrDefault(action => action.NestedActions.IsDefaultOrEmpty);
-                var hasEquivalentAlternatives = chosen != null
+                var hasEquivalentAlternatives = chosen is not null
                     && actions.Any(action => action != chosen && string.Equals(action.EquivalenceKey, chosen.EquivalenceKey, StringComparison.Ordinal));
 
                 return (chosen, hasEquivalentAlternatives);
@@ -433,7 +434,7 @@ public sealed class DiagnosticCleanupEngine
 
             var hasAlternatives = group.Any(plan => plan.HasEquivalentAlternatives);
             var fixAllProvider = hasAlternatives ? WellKnownFixAllProviders.BatchFixer : first.Provider.GetFixAllProvider();
-            if (fixAllProvider != null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
+            if (fixAllProvider is not null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
             {
                 var diagnostics = group.Select(plan => plan.Actionable.Diagnostic).ToImmutableArray();
                 var fixAllContext = new FixAllContext(
@@ -447,7 +448,7 @@ public sealed class DiagnosticCleanupEngine
                 var fixAllAction = await fixAllProvider.GetFixAsync(fixAllContext).ConfigureAwait(false);
 
                 // A fix-all provider may decline; the provider's own action for the first diagnostic still applies.
-                if (fixAllAction != null)
+                if (fixAllAction is not null)
                 {
                     action = fixAllAction;
                     fixedDiagnostics = group.Select(plan => plan.Actionable).ToImmutableArray();
@@ -748,7 +749,7 @@ public sealed class DiagnosticCleanupEngine
 
         public UnresolvedDiagnosticReason? UnfixableReason { get; }
 
-        public bool IsFixable => Action != null;
+        public bool IsFixable => Action is not null;
 
         public (CodeFixProvider Provider, string EquivalenceKey) GroupKey => (Provider, Action?.EquivalenceKey);
 

@@ -37,7 +37,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="resolver">The language version resolver, or null when none is available.</param>
-
     private CSharpLanguageVersionSupport(string filePath, Func<string, IReadOnlyList<LanguageVersion>> resolver)
     {
         _filePath = filePath;
@@ -48,7 +47,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// Resolves language versions through the Visual Studio Roslyn workspace.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal static void UseVisualStudioWorkspace(CodeJanitorPackage package)
     {
         SetLanguageVersionResolver(new VisualStudioRoslynWorkspace(package).GetCSharpLanguageVersions);
@@ -59,7 +57,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// flavor, empty when no project compiles it). Null removes it, so no syntax newer than C# 7.3 is emitted.
     /// </summary>
     /// <param name="resolver">The resolver.</param>
-
     internal static void SetLanguageVersionResolver(Func<string, IReadOnlyList<LanguageVersion>> resolver)
     {
         _languageVersionResolver = resolver;
@@ -71,7 +68,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <returns>The language version support of the file.</returns>
-
     internal static CSharpLanguageVersionSupport For(string filePath)
     {
         return new CSharpLanguageVersionSupport(filePath, _languageVersionResolver);
@@ -83,7 +79,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// <param name="requirement">The syntax and the language version it needs.</param>
     /// <param name="skipMessage">The warning explaining why the conversion to the syntax is skipped; null when it may be emitted.</param>
     /// <returns>True when every project compiling the file uses the required language version or newer.</returns>
-
     internal bool Supports(SyntaxRequirement requirement, out string skipMessage)
     {
         var (oldest, unknownReason) = _oldestVersion.Value;
@@ -114,7 +109,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// <param name="filePath">The file path.</param>
     /// <param name="resolver">The language version resolver, or null when none is available.</param>
     /// <returns>The oldest language version, or null and the reason it is unknown.</returns>
-
     private static (LanguageVersion? Oldest, string UnknownReason) ResolveOldestVersion(string filePath, Func<string, IReadOnlyList<LanguageVersion>> resolver)
     {
         if (resolver is null)
@@ -152,7 +146,6 @@ internal sealed class CSharpLanguageVersionSupport
         /// </summary>
         /// <param name="syntax">The syntax, in plural form (for example "collection expressions").</param>
         /// <param name="minimumVersion">The oldest language version that compiles the syntax.</param>
-
         internal SyntaxRequirement(string syntax, LanguageVersion minimumVersion)
         {
             Syntax = syntax;

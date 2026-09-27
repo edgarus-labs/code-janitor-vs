@@ -32,7 +32,6 @@ public sealed class SettingsMonitor<TSetting>
     /// <param name="setting">The setting.</param>
     /// <param name="changedCallback">The changed callback.</param>
     /// <returns>A Task value produced by this method.</returns>
-
     public async Task WatchAsync<TValue>(Expression<Func<TSetting, TValue>> setting, Func<TValue, Task> changedCallback)
     {
         var settingName = (setting.Body as MemberExpression).Member.Name;
@@ -45,7 +44,6 @@ public sealed class SettingsMonitor<TSetting>
     /// <param name="settings">The settings.</param>
     /// <param name="changedCallback">The changed callback.</param>
     /// <returns>A Task value produced by this method.</returns>
-
     public async Task WatchAsync<TValue>(string[] settings, Func<TValue[], Task> changedCallback)
     {
         await WatchAsync(settings, async (object[] values) =>
@@ -61,7 +59,6 @@ public sealed class SettingsMonitor<TSetting>
     /// <param name="settings">The settings.</param>
     /// <param name="changedCallback">The changed callback.</param>
     /// <returns>A Task value produced by this method.</returns>
-
     public async Task WatchAsync(string[] settings, Func<object[], Task> changedCallback)
     {
         var values = FindValues(settings);
@@ -83,7 +80,6 @@ public sealed class SettingsMonitor<TSetting>
     /// Iterates through all monitors, compares each monitor&apos;s cached values to newly found values, and when they differ, updates the cached values and asynchronously invokes that monitor&apos;s callback with the new values.
     /// </summary>
     /// <returns>A Task value produced by this method.</returns>
-
     internal async Task NotifySettingsChangedAsync()
     {
         foreach (var item in _monitors)
@@ -104,7 +100,6 @@ public sealed class SettingsMonitor<TSetting>
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A object[] value produced by this method.</returns>
-
     private object[] FindValues(string[] settings) => Array.ConvertAll(settings, key => _settings[key]);
 
     /// <summary>
@@ -112,7 +107,6 @@ public sealed class SettingsMonitor<TSetting>
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The e.</param>
-
     private async void OnSettingsSaving(object sender, CancelEventArgs e)
     {
         if (_joinableTaskFactory is not null)
@@ -154,7 +148,6 @@ public sealed class SettingsMonitor<TSetting>
         /// <param name="x">The x.</param>
         /// <param name="y">The y.</param>
         /// <returns>A bool value produced by this method.</returns>
-
         public bool Equals(string[] x, string[] y)
                     => Enumerable.SequenceEqual(x, y, ElementComparer);
 
@@ -163,7 +156,6 @@ public sealed class SettingsMonitor<TSetting>
         /// </summary>
         /// <param name="strings">The strings.</param>
         /// <returns>A int value produced by this method.</returns>
-
         public int GetHashCode(string[] strings)
         {
             int hash = 0;

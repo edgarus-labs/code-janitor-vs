@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// This is used to encapsulate Visual Studio reported differences we do not want to consider
 /// (e.g. JavaScript vs. JScript or HTML vs. HTMLX)
 /// </remarks>
-
 public enum CodeLanguage
 {
     Unknown,

@@ -15,20 +15,17 @@ namespace CodeJanitor.UI;
 /// <remarks>
 /// Largely based on http://chrigas.blogspot.com/2014/08/wpf-treeview-with-multiple-selection.html
 /// </remarks>
-
 public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
 {
     /// <summary>
     /// The dependency property definition for the SelectedItems property.
     /// </summary>
-
     public static readonly DependencyProperty SelectedItemsProperty = DependencyProperty.Register(
         "SelectedItems", typeof(IList), typeof(TreeViewMultipleSelectionBehavior));
 
     /// <summary>
     /// Gets or sets the selected items.
     /// </summary>
-
     public IList SelectedItems
     {
         get { return (IList)GetValue(SelectedItemsProperty); }
@@ -38,14 +35,12 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// <summary>
     /// The dependency property definition for the AnchorItem property.
     /// </summary>
-
     private static readonly DependencyProperty AnchorItemProperty = DependencyProperty.Register(
         "AnchorItem", typeof(TreeViewItem), typeof(TreeViewMultipleSelectionBehavior));
 
     /// <summary>
     /// Gets or sets the anchor item.
     /// </summary>
-
     private TreeViewItem AnchorItem
     {
         get { return (TreeViewItem)GetValue(AnchorItemProperty); }
@@ -55,7 +50,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// <summary>
     /// The dependency property definition for the IsItemSelected attached property.
     /// </summary>
-
     public static readonly DependencyProperty IsItemSelectedProperty = DependencyProperty.RegisterAttached(
         "IsItemSelected", typeof(bool), typeof(TreeViewMultipleSelectionBehavior),
         new FrameworkPropertyMetadata(OnIsItemSelectedChanged));
@@ -65,7 +59,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-
     public static bool GetIsItemSelected(TreeViewItem target)
     {
         return (bool)target.GetValue(IsItemSelectedProperty);
@@ -76,7 +69,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-
     public static void SetIsItemSelected(TreeViewItem target, bool value)
     {
         target.SetValue(IsItemSelectedProperty, value);
@@ -87,7 +79,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// </summary>
     /// <param name="obj">The dependency object where the value has changed.</param>
     /// <param name="e">The <see cref="System.Windows.DependencyPropertyChangedEventArgs"/> instance containing the event data.</param>
-
     private static void OnIsItemSelectedChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
     {
         var treeViewItem = obj as TreeViewItem;
@@ -113,7 +104,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// <summary>
     /// Called after the behavior is attached to an AssociatedObject.
     /// </summary>
-
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -126,7 +116,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// Called when the behavior is being detached from its AssociatedObject, but before it has
     /// actually occurred.
     /// </summary>
-
     protected override void OnDetaching()
     {
         base.OnDetaching();
@@ -142,7 +131,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// <param name="e">
     /// The <see cref="System.Windows.Input.KeyEventArgs"/> instance containing the event data.
     /// </param>
-
     private void OnTreeViewItemKeyDown(object sender, KeyEventArgs e)
     {
         var treeViewItem = e.OriginalSource as TreeViewItem;
@@ -196,7 +184,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// The <see cref="System.Windows.Input.MouseButtonEventArgs"/> instance containing the
     /// event data.
     /// </param>
-
     private void OnTreeViewItemMouseUp(object sender, MouseButtonEventArgs e)
     {
         var treeViewItem = FindParentTreeViewItem(e.OriginalSource);
@@ -223,7 +210,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// Selects a range of consecutive items from the specified tree view item to the anchor (if exists).
     /// </summary>
     /// <param name="treeViewItem">The triggering tree view item.</param>
-
     public void SelectMultipleItemsContinuously(TreeViewItem treeViewItem)
     {
         if (AnchorItem is not null)
@@ -259,7 +245,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// Selects the specified tree view item, removing any other selections.
     /// </summary>
     /// <param name="treeViewItem">The triggering tree view item.</param>
-
     public void SelectSingleItem(TreeViewItem treeViewItem)
     {
         DeSelectAll();
@@ -271,7 +256,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// Toggles the selection state of the specified tree view item.
     /// </summary>
     /// <param name="treeViewItem">The triggering tree view item.</param>
-
     public void ToggleSingleItem(TreeViewItem treeViewItem)
     {
         SetIsItemSelected(treeViewItem, !GetIsItemSelected(treeViewItem));
@@ -296,7 +280,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// The list of all items is returned as a convenience to avoid multiple iterations.
     /// </remarks>
     /// <returns>The list of all items.</returns>
-
     private IEnumerable<TreeViewItem> DeSelectAll()
     {
         var items = GetItemsRecursively<TreeViewItem>(AssociatedObject);
@@ -313,7 +296,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// </summary>
     /// <param name="eventSource">The event source.</param>
     /// <returns>The parent TreeViewItem, otherwise null.</returns>
-
     private static TreeViewItem FindParentTreeViewItem(object eventSource)
     {
         var source = eventSource as DependencyObject;
@@ -329,7 +311,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// <typeparam name="T">The type of item to retrieve.</typeparam>
     /// <param name="parentItem">The parent item.</param>
     /// <returns>The list of items within the parent item, may be empty.</returns>
-
     private static IList<T> GetItemsRecursively<T>(ItemsControl parentItem)
         where T : ItemsControl
     {
@@ -361,7 +342,6 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// <param name="item">The item.</param>
     /// <param name="relativePosition">The relative position offset (e.g. +1, -1).</param>
     /// <returns>The item in the relative position, otherwise null.</returns>
-
     private T GetRelativeItem<T>(T item, int relativePosition)
         where T : ItemsControl
     {

@@ -24,7 +24,6 @@ namespace CodeJanitor.Logic.Ai;
 /// using an OpenAI-compatible endpoint for concise summaries and deterministic
 /// tags for parameters, returns and detected exceptions.
 /// </summary>
-
 internal sealed class AiXmlDocumentationLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -37,7 +36,6 @@ internal sealed class AiXmlDocumentationLogic
     /// Cancels the AI work of the current cleanup batch. Without this a single file can hold the
     /// batch for minutes, because one request may run until its own timeout.
     /// </summary>
-
     internal static CancellationToken RunToken => _runCancellation.Token;
 
     /// <summary>
@@ -546,7 +544,6 @@ internal sealed class AiXmlDocumentationLogic
     /// Applies documentation regardless of the preview setting, for sources that never reach the
     /// editor path where the preview prompt lives.
     /// </summary>
-
     internal string ApplyXmlDocumentationToSourceIgnoringPreview(string source)
     {
         if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled)
@@ -1595,7 +1592,6 @@ internal sealed class AiXmlDocumentationLogic
     /// The member's own line already carries its indentation, so the block is inserted at the
     /// start of that line rather than at the declaration token.
     /// </summary>
-
     /// <summary>
     /// Finds the start index of the line containing the character at the specified index.
     /// </summary>

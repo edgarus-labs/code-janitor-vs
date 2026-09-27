@@ -11,7 +11,6 @@ namespace CodeJanitor.UI.Converters;
 /// <summary>
 /// Converts a code item into a metadata string.
 /// </summary>
-
 public sealed class CodeItemToMetadataStringConverter : IValueConverter
 {
     /// <summary>
@@ -37,7 +36,6 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var codeItem = value as BaseCodeItemElement;
@@ -92,7 +90,6 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
@@ -103,7 +100,6 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// </summary>
     /// <param name="element">The element.</param>
     /// <returns>The metadata strings.</returns>
-
     private IEnumerable<string> GenerateMetadataStrings(BaseCodeItemElement element)
     {
         var strings = new List<string>();
@@ -121,7 +117,6 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// </summary>
     /// <param name="field">The field.</param>
     /// <returns>The metadata strings.</returns>
-
     private IEnumerable<string> GenerateMetadataStrings(CodeItemField field)
     {
         var strings = new List<string>();
@@ -141,7 +136,6 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// </summary>
     /// <param name="method">The method.</param>
     /// <returns>The metadata strings.</returns>
-
     private IEnumerable<string> GenerateMetadataStrings(CodeItemMethod method)
     {
         var strings = new List<string>();
@@ -175,7 +169,6 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// </summary>
     /// <param name="property">The property.</param>
     /// <returns>The metadata strings.</returns>
-
     private IEnumerable<string> GenerateMetadataStrings(CodeItemProperty property)
     {
         var strings = new List<string>();

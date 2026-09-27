@@ -7,7 +7,6 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// <summary>
 /// The abstract base class for option pages.
 /// </summary>
-
 public abstract class OptionsPageViewModel : Bindable
 {
     /// <summary>
@@ -15,7 +14,6 @@ public abstract class OptionsPageViewModel : Bindable
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <param name="activeSettings">The active settings.</param>
-
     protected OptionsPageViewModel(CodeJanitorPackage package, Settings activeSettings)
     {
         Package = package;
@@ -42,7 +40,6 @@ public abstract class OptionsPageViewModel : Bindable
     /// <summary>
     /// Gets or sets the children.
     /// </summary>
-
     public IEnumerable<OptionsPageViewModel> Children
     {
         get
@@ -76,7 +73,6 @@ public abstract class OptionsPageViewModel : Bindable
     /// <summary>
     /// Loads the settings and discards the .editorconfig notes, so they are resolved again for the solution open now.
     /// </summary>
-
     public virtual void LoadSettings()
     {
         Mappings?.CopySettingsToOptions();
@@ -88,7 +84,6 @@ public abstract class OptionsPageViewModel : Bindable
     /// <summary>
     /// Saves the settings.
     /// </summary>
-
     public virtual void SaveSettings()
     {
         Mappings?.CopyOptionsToSettings();
@@ -98,12 +93,12 @@ public abstract class OptionsPageViewModel : Bindable
     /// Gets the full path of the open solution file.
     /// </summary>
     /// <returns>The solution file path, or null when no solution is open.</returns>
-
     private string GetOpenSolutionFullName()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var solution = Package?.IDE?.Solution;
+
         return solution is not null && solution.IsOpen ? solution.FullName : null;
     }
 }

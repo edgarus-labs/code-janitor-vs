@@ -28,10 +28,10 @@ public sealed class ByteOrderMarkConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Apply_WithLeadingBom_StripsBom()
     {
-        var input = "\uFEFFusing System;\r\n\r\npublic class C { }\r\n";
-        var expected = "using System;\r\n\r\npublic class C { }\r\n";
+        string input = "\uFEFFusing System;\r\n\r\npublic class C { }\r\n";
+        string expected = "using System;\r\n\r\npublic class C { }\r\n";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
     }
@@ -40,9 +40,9 @@ public sealed class ByteOrderMarkConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Apply_WithoutLeadingBom_ReturnsSameText()
     {
-        var input = "using System;\r\n\r\npublic class C { }\r\n";
+        string input = "using System;\r\n\r\npublic class C { }\r\n";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(input, result);
     }
@@ -59,9 +59,9 @@ public sealed class ByteOrderMarkConverterTests
     [TestCategory("Transformations UnitTests")]
     public void Apply_BomOnly_ReturnsEmptyString()
     {
-        var input = "\uFEFF";
+        string input = "\uFEFF";
 
-        var result = _converter.Apply(input);
+        string result = _converter.Apply(input);
 
         Assert.AreEqual(string.Empty, result);
     }

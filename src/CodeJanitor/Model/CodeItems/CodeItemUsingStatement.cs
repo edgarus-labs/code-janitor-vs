@@ -5,13 +5,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code using statemen.
 /// </summary>
-
 public sealed class CodeItemUsingStatement : BaseCodeItemElement
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemUsingStatement" /> class.
     /// </summary>
-
     public CodeItemUsingStatement()
     {
         _TypeString = new Lazy<string>(
@@ -30,7 +28,6 @@ public sealed class CodeItemUsingStatement : BaseCodeItemElement
     /// Similar to BaseCodeItemElement's implementation, except ignores the Name property which
     /// is not available for using statements.
     /// </remarks>
-
     public override void RefreshCachedPositionAndName()
     {
         var startPoint = CodeElement.GetStartPoint();

@@ -8,14 +8,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for launching the CodeJanitor Options to the Spade page.
 /// </summary>
-
 internal sealed class SpadeOptionsCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeOptionsCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal SpadeOptionsCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeOptions)
     {
@@ -31,7 +29,6 @@ internal sealed class SpadeOptionsCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SpadeOptionsCommand(package);
@@ -41,7 +38,6 @@ internal sealed class SpadeOptionsCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         ThreadHelper.ThrowIfNotOnUIThread();

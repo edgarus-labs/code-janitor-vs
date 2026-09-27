@@ -8,7 +8,6 @@ namespace CodeJanitor.Model;
 /// <summary>
 /// A class for encapsulating a cache of code models.
 /// </summary>
-
 internal sealed class CodeModelCache
 {
     private readonly Dictionary<string, CodeModel> _cache;
@@ -16,7 +15,6 @@ internal sealed class CodeModelCache
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeModelCache" /> class.
     /// </summary>
-
     internal CodeModelCache()
     {
         _cache = new Dictionary<string, CodeModel>();
@@ -28,7 +26,6 @@ internal sealed class CodeModelCache
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>A code model representing the document.</returns>
-
     internal CodeModel GetCodeModel(Document document)
     {
         CodeModel codeModel;
@@ -62,7 +59,6 @@ internal sealed class CodeModelCache
     /// Removes the code model associated with the specified document if it exists.
     /// </summary>
     /// <param name="document">The document.</param>
-
     internal void RemoveCodeModel(Document document)
     {
         lock (_cache)
@@ -78,7 +74,6 @@ internal sealed class CodeModelCache
     /// Marks the code model associated with the specified document as stale if it exists.
     /// </summary>
     /// <param name="document">The document.</param>
-
     internal void StaleCodeModel(Document document)
     {
         if (_cache.TryGetValue(document.FullName, out CodeModel codeModel))

@@ -15,7 +15,6 @@ namespace CodeJanitor.Logic.Reorganizing;
 /// <summary>
 /// A manager class for reorganizing code.
 /// </summary>
-
 internal sealed class CodeReorganizationManager
 {
     private readonly CodeJanitorPackage _package;
@@ -37,7 +36,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeReorganizationManager" /> class.</returns>
-
     internal static CodeReorganizationManager GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CodeReorganizationManager(package));
@@ -47,7 +45,6 @@ internal sealed class CodeReorganizationManager
     /// Initializes a new instance of the <see cref="CodeReorganizationManager" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CodeReorganizationManager(CodeJanitorPackage package)
     {
         _package = package;
@@ -65,7 +62,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="itemToMove">The item to move.</param>
     /// <param name="baseItem">The base item.</param>
-
     internal void MoveItemAboveBase(BaseCodeItem itemToMove, BaseCodeItem baseItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -79,7 +75,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="itemToMove">The item to move.</param>
     /// <param name="baseItem">The base item.</param>
-
     internal void MoveItemBelowBase(BaseCodeItem itemToMove, BaseCodeItem baseItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -93,7 +88,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="itemToMove">The item to move.</param>
     /// <param name="baseItem">The base item.</param>
-
     internal void MoveItemIntoBase(BaseCodeItem itemToMove, ICodeItemParent baseItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -106,7 +100,6 @@ internal sealed class CodeReorganizationManager
     /// Reorganizes the specified document.
     /// </summary>
     /// <param name="document">The document for reorganizing.</param>
-
     internal void Reorganize(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -139,7 +132,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>The set of reorganizable code item elements.</returns>
-
     private static IList<BaseCodeItemElement> GetReorganizableCodeItemElements(IEnumerable<BaseCodeItem> codeItems)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -163,7 +155,6 @@ internal sealed class CodeReorganizationManager
     /// <param name="cursorOffset">
     /// The cursor's offset within the item being removed, otherwise -1.
     /// </param>
-
     private static string GetTextAndRemoveItem(BaseCodeItem itemToRemove, out int cursorOffset)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -200,7 +191,6 @@ internal sealed class CodeReorganizationManager
     /// <param name="firstItem">The first item.</param>
     /// <param name="secondItem">The second item.</param>
     /// <returns>True if the items should be separated by a newline, otherwise false.</returns>
-
     private bool ShouldBeSeparatedByNewLine(BaseCodeItem firstItem, BaseCodeItem secondItem)
     {
         return _insertBlankLinePaddingLogic.ShouldBeFollowedByBlankLine(firstItem) ||
@@ -212,7 +202,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="parent">The parent item.</param>
     /// <returns>True if the parent's children should be reorganized, otherwise false.</returns>
-
     private bool ShouldReorganizeChildren(BaseCodeItemElement parent)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -247,7 +236,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="itemToMove">The item to move.</param>
     /// <param name="baseItem">The base item.</param>
-
     private void RepositionItemAboveBase(BaseCodeItem itemToMove, BaseCodeItem baseItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -285,7 +273,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="itemToMove">The item to move.</param>
     /// <param name="baseItem">The base item.</param>
-
     private void RepositionItemBelowBase(BaseCodeItem itemToMove, BaseCodeItem baseItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -327,7 +314,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="itemToMove">The item to move.</param>
     /// <param name="baseItem">The base item.</param>
-
     private void RepositionItemIntoBase(BaseCodeItem itemToMove, ICodeItemParent baseItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -365,7 +351,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <param name="parent">The parent to the code items, otherwise null.</param>
-
     private void RecursivelyReorganize(IEnumerable<BaseCodeItem> codeItems, ICodeItemParent parent = null)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -428,7 +413,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>An updated code items collection.</returns>
-
     private IEnumerable<BaseCodeItem> RegionsRemoveExisting(IEnumerable<BaseCodeItem> codeItems)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -478,7 +462,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <returns>An updated code items collection.</returns>
-
     private IEnumerable<BaseCodeItem> RegionsFlatten(IEnumerable<BaseCodeItem> codeItems)
     {
         if (Settings.Default.Reorganizing_KeepMembersWithinRegions)
@@ -506,7 +489,6 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <param name="parent">The parent to the code items, otherwise null.</param>
-
     private void RegionsInsert(IEnumerable<BaseCodeItem> codeItems, ICodeItemParent parent)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

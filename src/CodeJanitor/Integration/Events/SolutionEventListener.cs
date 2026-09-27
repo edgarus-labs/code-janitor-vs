@@ -9,14 +9,12 @@ namespace CodeJanitor.Integration.Events;
 /// <summary>
 /// A class that encapsulates listening for solution events.
 /// </summary>
-
 internal sealed class SolutionEventListener : BaseEventListener
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SolutionEventListener" /> class.
     /// </summary>
     /// <param name="package">The package hosting the event listener.</param>
-
     private SolutionEventListener(CodeJanitorPackage package)
         : base(package)
     {
@@ -27,13 +25,11 @@ internal sealed class SolutionEventListener : BaseEventListener
     /// <summary>
     /// An event raised when a solution has closed.
     /// </summary>
-
     internal event Action OnSolutionClosed;
 
     /// <summary>
     /// An event raised when a solution has opened.
     /// </summary>
-
     internal event Action OnSolutionOpened;
 
     /// <summary>
@@ -51,7 +47,6 @@ internal sealed class SolutionEventListener : BaseEventListener
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new SolutionEventListener(package);
@@ -62,13 +57,11 @@ internal sealed class SolutionEventListener : BaseEventListener
     /// Fires the solution opened event directly, used for lazy loading scenarios where we detect
     /// the solution load after it happens.
     /// </summary>
-
     internal void FireSolutionOpenedEvent() => SolutionEvents_Opened();
 
     /// <summary>
     /// Registers event handlers with the IDE.
     /// </summary>
-
     protected override void RegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -79,7 +72,6 @@ internal sealed class SolutionEventListener : BaseEventListener
     /// <summary>
     /// Unregisters event handlers with the IDE.
     /// </summary>
-
     protected override void UnRegisterListeners()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -90,7 +82,6 @@ internal sealed class SolutionEventListener : BaseEventListener
     /// <summary>
     /// An event handler for a solution being closed.
     /// </summary>
-
     private void SolutionEvents_AfterClosing()
     {
         var onSolutionClosed = OnSolutionClosed;
@@ -105,7 +96,6 @@ internal sealed class SolutionEventListener : BaseEventListener
     /// <summary>
     /// An event handler for a solution being opened.
     /// </summary>
-
     private void SolutionEvents_Opened()
     {
         var onSolutionOpened = OnSolutionOpened;

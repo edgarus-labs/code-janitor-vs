@@ -9,7 +9,6 @@ namespace CodeJanitor.Model;
 /// <summary>
 /// A helper class for working with the code model.
 /// </summary>
-
 internal sealed class CodeModelHelper
 {
     private readonly CodeJanitorPackage _package;
@@ -23,7 +22,6 @@ internal sealed class CodeModelHelper
     /// Initializes a new instance of the <see cref="CodeModelHelper" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private CodeModelHelper(CodeJanitorPackage package)
     {
         _package = package;
@@ -34,7 +32,6 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeModelHelper" /> class.</returns>
-
     internal static CodeModelHelper GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new CodeModelHelper(package));
@@ -46,7 +43,6 @@ internal sealed class CodeModelHelper
     /// <typeparam name="T">The type of the code item.</typeparam>
     /// <param name="codeItems">The code items.</param>
     /// <returns>An enumerable collection of blocks of code items.</returns>
-
     internal static IEnumerable<IList<T>> GetCodeItemBlocks<T>(IEnumerable<T> codeItems)
         where T : BaseCodeItem
     {
@@ -78,7 +74,6 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <returns>True if there is a region under the cursor, otherwise false.</returns>
-
     internal bool IsCodeRegionUnderCursor(TextDocument textDocument)
     {
         if (textDocument is not null && textDocument.Selection is not null)
@@ -97,7 +92,6 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="textDocument">The text document to walk.</param>
     /// <returns>An enumerable collection of regions.</returns>
-
     internal IEnumerable<CodeItemRegion> RetrieveCodeRegions(TextDocument textDocument)
     {
         var editPoints = TextDocumentHelper.FindMatches(textDocument, RegionPattern);
@@ -110,7 +104,6 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="textSelection">The text selection to walk.</param>
     /// <returns>An enumerable collection of regions.</returns>
-
     internal IEnumerable<CodeItemRegion> RetrieveCodeRegions(TextSelection textSelection)
     {
         var editPoints = TextDocumentHelper.FindMatches(textSelection, RegionPattern);
@@ -123,7 +116,6 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="textDocument">The text document.</param>
     /// <returns>The region under the cursor, otherwise null.</returns>
-
     internal CodeItemRegion RetrieveCodeRegionUnderCursor(TextDocument textDocument)
     {
         if (IsCodeRegionUnderCursor(textDocument))
@@ -147,7 +139,6 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="editPoints">The edit points to walk.</param>
     /// <returns>An enumerable collection of regions.</returns>
-
     private static IEnumerable<CodeItemRegion> RetrieveCodeRegions(IEnumerable<EditPoint> editPoints)
     {
         var regionStack = new Stack<CodeItemRegion>();

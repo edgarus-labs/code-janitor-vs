@@ -8,7 +8,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A helper class for writing messages to a CodeJanitor output window pane.
 /// </summary>
-
 internal static class OutputWindowHelper
 {
     private static IVsOutputWindowPane _CodeJanitorOutputWindowPane;
@@ -25,7 +24,6 @@ internal static class OutputWindowHelper
     /// times/early (e.g. during package load) so the pane isn't only lazily created on the
     /// first logged message.
     /// </summary>
-
     internal static void EnsurePaneCreated()
     {
         _ = CodeJanitorOutputWindowPane;
@@ -36,7 +34,6 @@ internal static class OutputWindowHelper
     /// regardless of Diagnostics Mode.
     /// </summary>
     /// <param name="message">The message.</param>
-
     internal static void InfoWriteLine(string message)
     {
         WriteLine(Resources.Info, message);
@@ -47,7 +44,6 @@ internal static class OutputWindowHelper
     /// </summary>
     /// <param name="message">The message.</param>
     /// <param name="ex">An optional exception that was handled.</param>
-
     internal static void DiagnosticWriteLine(string message, Exception ex = null)
     {
         if (!Settings.Default.General_DiagnosticsMode) return;
@@ -65,7 +61,6 @@ internal static class OutputWindowHelper
     /// </summary>
     /// <param name="message">The message.</param>
     /// <param name="ex">The exception that was handled.</param>
-
     internal static void ExceptionWriteLine(string message, Exception ex)
     {
         var exceptionMessage = $"{message}: {ex}";
@@ -77,7 +72,6 @@ internal static class OutputWindowHelper
     /// Writes the specified warning line to the CodeJanitor output pane.
     /// </summary>
     /// <param name="message">The message.</param>
-
     internal static void WarningWriteLine(string message)
     {
         WriteLine(Resources.Warning, message);
@@ -87,7 +81,6 @@ internal static class OutputWindowHelper
     /// Attempts to create and retrieve the CodeJanitor output window pane.
     /// </summary>
     /// <returns>The CodeJanitor output window pane, otherwise null.</returns>
-
     private static IVsOutputWindowPane GetCodeJanitorOutputWindowPane()
     {
         if (!(Package.GetGlobalService(typeof(SVsOutputWindow)) is IVsOutputWindow outputWindow))
@@ -108,7 +101,6 @@ internal static class OutputWindowHelper
     /// </summary>
     /// <param name="category">The category.</param>
     /// <param name="message">The message.</param>
-
     private static void WriteLine(string category, string message)
     {
         try

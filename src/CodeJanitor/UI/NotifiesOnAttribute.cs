@@ -6,7 +6,6 @@ namespace CodeJanitor.UI;
 /// This attribute is used to declare that a property should raise a notification
 /// when an independent property is raising a notification.
 /// </summary>
-
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
 public sealed class NotifiesOnAttribute : Attribute
 {
@@ -15,7 +14,6 @@ public sealed class NotifiesOnAttribute : Attribute
     /// </summary>
     /// <param name="name">The name of the independent property.</param>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
-
     public NotifiesOnAttribute(string name)
     {
         if (name is null) throw new ArgumentNullException(nameof(name));

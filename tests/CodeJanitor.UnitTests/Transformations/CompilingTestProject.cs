@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.Emit;
 
 namespace CodeJanitor.UnitTests.Transformations;
 
@@ -50,8 +51,8 @@ internal static class CompilingTestProject
     /// <summary>
     /// Creates the target document <c>Target.cs</c> in a project that also contains <paramref name="librarySources" />.
     /// </summary>
-    public static Document CreateDocument(string source, params string[] librarySources) =>
-        CreateDocument(source, LanguageVersion.Latest, new MetadataReference[0], librarySources);
+    public static Document CreateDocument(string source, params string[] librarySources)
+        => CreateDocument(source, LanguageVersion.Latest, new MetadataReference[0], librarySources);
 
     /// <summary>
     /// Creates the target document <c>Target.cs</c> in a project with the given language version and additional
@@ -61,8 +62,8 @@ internal static class CompilingTestProject
         string source,
         LanguageVersion languageVersion,
         IEnumerable<MetadataReference> additionalReferences,
-        params string[] librarySources) =>
-        CreateDocument(source, new CSharpParseOptions(languageVersion), additionalReferences, librarySources);
+        params string[] librarySources)
+        => CreateDocument(source, new CSharpParseOptions(languageVersion), additionalReferences, librarySources);
 
     /// <summary>
     /// Creates the target document <c>Target.cs</c> in a project with the given parse options (for example the
@@ -72,8 +73,8 @@ internal static class CompilingTestProject
         string source,
         CSharpParseOptions parseOptions,
         IEnumerable<MetadataReference> additionalReferences,
-        params string[] librarySources) =>
-        AddProject(new AdhocWorkspace().CurrentSolution, "TestProject", parseOptions, additionalReferences, librarySources)
+        params string[] librarySources)
+        => AddProject(new AdhocWorkspace().CurrentSolution, "TestProject", parseOptions, additionalReferences, librarySources)
             .AddDocument("Target.cs", SourceText.From(source));
 
     /// <summary>
@@ -82,8 +83,8 @@ internal static class CompilingTestProject
     /// </summary>
     public static Document CreateDocumentReferencingProject(string source, IEnumerable<string> referencedSources, params string[] librarySources)
     {
-        var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
-        var referenced = AddProject(new AdhocWorkspace().CurrentSolution, "ReferencedProject", parseOptions, new MetadataReference[0], referencedSources);
+        CSharpParseOptions parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
+        Project referenced = AddProject(new AdhocWorkspace().CurrentSolution, "ReferencedProject", parseOptions, new MetadataReference[0], referencedSources);
 
         return AddProject(referenced.Solution, "TestProject", parseOptions, new MetadataReference[0], librarySources)
             .AddProjectReference(new ProjectReference(referenced.Id))
@@ -97,15 +98,15 @@ internal static class CompilingTestProject
         IEnumerable<MetadataReference> additionalReferences,
         IEnumerable<string> sources)
     {
-        var project = solution
+        Project project = solution
             .AddProject(name, name, LanguageNames.CSharp)
             .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true))
             .WithParseOptions(parseOptions)
             .AddMetadataReference(MscorlibReference)
             .AddMetadataReferences(additionalReferences);
 
-        var index = 0;
-        foreach (var source in sources)
+        int index = 0;
+        foreach (string source in sources)
         {
             project = project.AddDocument($"Library{index++}.cs", SourceText.From(source)).Project;
         }
@@ -119,15 +120,15 @@ internal static class CompilingTestProject
     /// </summary>
     public static MetadataReference CreateAliasedReference(string assemblyName, string source, string alias)
     {
-        var compilation = CSharpCompilation.Create(
+        CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName,
             new[] { CSharpSyntaxTree.ParseText(source) },
             new[] { MscorlibReference },
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        using (var stream = new MemoryStream())
+        using (MemoryStream stream = new MemoryStream())
         {
-            var result = compilation.Emit(stream);
+            EmitResult result = compilation.Emit(stream);
             if (!result.Success)
             {
                 throw new InvalidOperationException("The aliased test assembly does not compile: " + string.Join("; ", result.Diagnostics));
@@ -145,7 +146,7 @@ internal static class CompilingTestProject
     /// </summary>
     public static async Task<IReadOnlyList<string>> GetCompileErrorsAsync(Document document, string text)
     {
-        var compilation = await document.WithText(SourceText.From(text)).Project.GetCompilationAsync();
+        Compilation compilation = await document.WithText(SourceText.From(text)).Project.GetCompilationAsync();
 
         return compilation.GetDiagnostics()
             .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)

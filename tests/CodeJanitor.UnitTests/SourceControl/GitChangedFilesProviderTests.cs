@@ -10,7 +10,6 @@ namespace CodeJanitor.UnitTests.SourceControl;
 /// Unit tests for <see cref="GitChangedFilesProvider" /> using a fake process runner
 /// (no real git process required).
 /// </summary>
-
 [TestClass]
 public sealed class GitChangedFilesProviderTests
 {
@@ -36,7 +35,6 @@ public sealed class GitChangedFilesProviderTests
         /// <param name="arguments">The arguments.</param>
         /// <param name="workingDirectory">The working directory.</param>
         /// <returns>A string value produced by this method.</returns>
-
         public string Run(string fileName, string arguments, string workingDirectory)
         {
             if (arguments.Contains("rev-parse"))
@@ -57,23 +55,22 @@ public sealed class GitChangedFilesProviderTests
     [TestCategory("SourceControl UnitTests")]
     public void ReturnsChangedFiles_FromGitOutput()
     {
-        var runner = new FakeProcessRunner { TopLevel = "C:/repo", Status = " M src/A.cs\r\n" };
-        var provider = new GitChangedFilesProvider(runner, new GitStatusParser());
+        FakeProcessRunner runner = new FakeProcessRunner { TopLevel = "C:/repo", Status = " M src/A.cs\r\n" };
+        GitChangedFilesProvider provider = new GitChangedFilesProvider(runner, new GitStatusParser());
 
-        var result = provider.GetChangedFiles(@"C:\repo\src");
+        IReadOnlyList<string> result = provider.GetChangedFiles(@"C:\repo\src");
 
-        CollectionAssert.AreEqual(
-            new List<string> { Path.Combine(@"C:\repo", "src\\A.cs") },
-            result.ToList());
+        Assert.AreSequenceEqual(
+            new List<string> { Path.Combine(@"C:\repo", "src\\A.cs") }, result.ToList());
     }
 
     [TestMethod]
     [TestCategory("SourceControl UnitTests")]
     public void NotAGitRepo_ReturnsEmpty()
     {
-        var runner = new FakeProcessRunner { TopLevel = string.Empty, Status = " M src/A.cs\r\n" };
-        var provider = new GitChangedFilesProvider(runner, new GitStatusParser());
+        FakeProcessRunner runner = new FakeProcessRunner { TopLevel = string.Empty, Status = " M src/A.cs\r\n" };
+        GitChangedFilesProvider provider = new GitChangedFilesProvider(runner, new GitStatusParser());
 
-        Assert.AreEqual(0, provider.GetChangedFiles(@"C:\repo").Count);
+        Assert.IsEmpty(provider.GetChangedFiles(@"C:\repo"));
     }
 }

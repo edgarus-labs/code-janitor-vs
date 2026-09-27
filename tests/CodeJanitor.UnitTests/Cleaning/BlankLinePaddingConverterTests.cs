@@ -28,12 +28,12 @@ public sealed class BlankLinePaddingConverterTests
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
 
-        var source = "class C\r\n{\r\n    int _x;\r\n    /// <summary>\r\n    /// Does a thing.\r\n    /// </summary>\r\n    void M() { }\r\n}\r\n";
+        string source = "class C\r\n{\r\n    int _x;\r\n    /// <summary>\r\n    /// Does a thing.\r\n    /// </summary>\r\n    void M() { }\r\n}\r\n";
 
-        var result = _converter.Apply(source);
+        string result = _converter.Apply(source);
 
-        Assert.IsFalse(result.Contains("/// </summary>\r\n\r\n    void M()"), "A blank line was inserted between the doc comment and the method.");
-        StringAssert.Contains(result, "int _x;\r\n\r\n    /// <summary>");
+        Assert.DoesNotContain("/// </summary>\r\n\r\n    void M()", result, "A blank line was inserted between the doc comment and the method.");
+        Assert.Contains("int _x;\r\n\r\n    /// <summary>", result);
     }
 
     private static void DisableAllSettings()
@@ -75,15 +75,15 @@ public sealed class BlankLinePaddingConverterTests
     [TestMethod]
     public void AllSettingsDisabled_ReturnsUnchanged()
     {
-        var source = "public class Foo { public void Bar() { } }";
-        var result = _converter.Apply(source);
+        string source = "public class Foo { public void Bar() { } }";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
     [TestMethod]
     public void EmptySource_ReturnsUnchanged()
     {
-        var result = _converter.Apply("");
+        string result = _converter.Apply("");
         Assert.AreEqual("", result);
     }
 
@@ -97,37 +97,37 @@ public sealed class BlankLinePaddingConverterTests
     public void BeforeMethod_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
-        var source = "public class Foo\r\n{\r\n    private int _x;\r\n    public void Bar() { }\r\n}\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("_x;\r\n\r\n    public void Bar()"), result);
+        string source = "public class Foo\r\n{\r\n    private int _x;\r\n    public void Bar() { }\r\n}\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("_x;\r\n\r\n    public void Bar()", result, result);
     }
 
     [TestMethod]
     public void BeforeMethod_AlreadyHasBlankLine_DoesNotDouble()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
-        var source = "public class Foo\r\n{\r\n    private int _x;\r\n\r\n    public void Bar() { }\r\n}\r\n";
-        var result = _converter.Apply(source);
+        string source = "public class Foo\r\n{\r\n    private int _x;\r\n\r\n    public void Bar() { }\r\n}\r\n";
+        string result = _converter.Apply(source);
         // Should not add another blank line
-        Assert.IsFalse(result.Contains("_x;\r\n\r\n\r\n    public void Bar()"), result);
+        Assert.DoesNotContain("_x;\r\n\r\n\r\n    public void Bar()", result, result);
     }
 
     [TestMethod]
     public void AfterMethod_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods = true;
-        var source = "public class Foo\r\n{\r\n    public void Bar() { }\r\n    private int _x;\r\n}\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("{ }\r\n\r\n    private int _x;"), result);
+        string source = "public class Foo\r\n{\r\n    public void Bar() { }\r\n    private int _x;\r\n}\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("{ }\r\n\r\n    private int _x;", result, result);
     }
 
     [TestMethod]
     public void BeforeClass_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses = true;
-        var source = "namespace MyNs\r\n{\r\n    public class Foo { }\r\n    public class Bar { }\r\n}\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("Foo { }\r\n\r\n    public class Bar"), result);
+        string source = "namespace MyNs\r\n{\r\n    public class Foo { }\r\n    public class Bar { }\r\n}\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("Foo { }\r\n\r\n    public class Bar", result, result);
     }
 
     [TestMethod]
@@ -135,82 +135,82 @@ public sealed class BlankLinePaddingConverterTests
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeClasses = true;
         // Class at start of namespace body (right after {)
-        var source = "namespace MyNs\r\n{\r\n    public class Foo { }\r\n}\r\n";
-        var result = _converter.Apply(source);
+        string source = "namespace MyNs\r\n{\r\n    public class Foo { }\r\n}\r\n";
+        string result = _converter.Apply(source);
         // Should not insert before Foo (adjacent to opening brace of namespace)
-        Assert.IsFalse(result.Contains("{\r\n\r\n    public class Foo"), result);
+        Assert.DoesNotContain("{\r\n\r\n    public class Foo", result, result);
     }
 
     [TestMethod]
     public void BeforeMethod_AdjacentToOpenBrace_SkipsInsertion()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
-        var source = "public class Foo\r\n{\r\n    public void Bar() { }\r\n}\r\n";
-        var result = _converter.Apply(source);
+        string source = "public class Foo\r\n{\r\n    public void Bar() { }\r\n}\r\n";
+        string result = _converter.Apply(source);
         // Method is first in class (after {), should not insert blank
-        Assert.IsFalse(result.Contains("{\r\n\r\n    public void Bar()"), result);
+        Assert.DoesNotContain("{\r\n\r\n    public void Bar()", result, result);
     }
 
     [TestMethod]
     public void BeforeProperty_SingleLine_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine = true;
-        var source = "public class Foo\r\n{\r\n    private int _x;\r\n    public int X { get; set; }\r\n}\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("_x;\r\n\r\n    public int X"), result);
+        string source = "public class Foo\r\n{\r\n    private int _x;\r\n    public int X { get; set; }\r\n}\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("_x;\r\n\r\n    public int X", result, result);
     }
 
     [TestMethod]
     public void BeforeEnum_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeEnumerations = true;
-        var source = "public class Foo { }\r\npublic enum Bar { A, B }\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("{ }\r\n\r\npublic enum Bar"), result);
+        string source = "public class Foo { }\r\npublic enum Bar { A, B }\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("{ }\r\n\r\npublic enum Bar", result, result);
     }
 
     [TestMethod]
     public void BeforeStruct_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeStructs = true;
-        var source = "public class Foo { }\r\npublic struct Bar { }\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("{ }\r\n\r\npublic struct Bar"), result);
+        string source = "public class Foo { }\r\npublic struct Bar { }\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("{ }\r\n\r\npublic struct Bar", result, result);
     }
 
     [TestMethod]
     public void BeforeInterface_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeInterfaces = true;
-        var source = "public class Foo { }\r\npublic interface IBar { }\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("{ }\r\n\r\npublic interface IBar"), result);
+        string source = "public class Foo { }\r\npublic interface IBar { }\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("{ }\r\n\r\npublic interface IBar", result, result);
     }
 
     [TestMethod]
     public void BeforeRegionTag_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeRegionTags = true;
-        var source = "public class Foo\r\n{\r\n    private int _x;\r\n    #region Methods\r\n    public void Bar() { }\r\n    #endregion\r\n}\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("_x;\r\n\r\n    #region Methods"), result);
+        string source = "public class Foo\r\n{\r\n    private int _x;\r\n    #region Methods\r\n    public void Bar() { }\r\n    #endregion\r\n}\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("_x;\r\n\r\n    #region Methods", result, result);
     }
 
     [TestMethod]
     public void AfterEndRegionTag_InsertsBlankLine()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags = true;
-        var source = "public class Foo\r\n{\r\n    #region Fields\r\n    private int _x;\r\n    #endregion\r\n    public void Bar() { }\r\n}\r\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("#endregion\r\n\r\n    public void Bar()"), result);
+        string source = "public class Foo\r\n{\r\n    #region Fields\r\n    private int _x;\r\n    #endregion\r\n    public void Bar() { }\r\n}\r\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("#endregion\r\n\r\n    public void Bar()", result, result);
     }
 
     [TestMethod]
     public void PreservesNewlineStyle_Unix()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
-        var source = "public class Foo\n{\n    private int _x;\n    public void Bar() { }\n}\n";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("_x;\n\n    public void Bar()"), result);
+        string source = "public class Foo\n{\n    private int _x;\n    public void Bar() { }\n}\n";
+        string result = _converter.Apply(source);
+        Assert.Contains("_x;\n\n    public void Bar()", result, result);
     }
 }

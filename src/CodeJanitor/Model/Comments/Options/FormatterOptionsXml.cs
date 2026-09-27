@@ -41,7 +41,6 @@ public sealed class FormatterOptionsXml
     /// </summary>
     /// <param name="tagName">The tag name.</param>
     /// <returns>A IXmlTagOptions value produced by this method.</returns>
-
     public IXmlTagOptions GetTagOptions(string tagName)
     {
         return !Tags.TryGetValue(tagName, out var tag) ? Default : new XmlTagOptions(tag, Default);
@@ -52,7 +51,6 @@ public sealed class FormatterOptionsXml
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A FormatterOptionsXml value produced by this method.</returns>
-
     internal static FormatterOptionsXml FromSettings(Settings settings)
     {
         return new FormatterOptionsXml

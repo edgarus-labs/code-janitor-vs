@@ -58,7 +58,7 @@ internal static class IndentationGuard
     /// </summary>
     private static bool IsInterpolatedStringContent(SyntaxToken token, int lineStart)
     {
-        for (var node = token.Parent; node != null; node = node.Parent)
+        for (var node = token.Parent; node is not null; node = node.Parent)
         {
             switch (node)
             {

@@ -8,7 +8,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// A base class representation of all code items. Includes VSX supported CodeElements as well
 /// as code regions.
 /// </summary>
-
 [DebuggerDisplay("{GetType().Name,nq}: {Name}")]
 public abstract class BaseCodeItem : Bindable, ICodeItem
 {
@@ -60,7 +59,6 @@ public abstract class BaseCodeItem : Bindable, ICodeItem
     /// <summary>
     /// Loads all lazy initialized values immediately.
     /// </summary>
-
     public virtual void LoadLazyInitializedValues()
     {
     }
@@ -68,7 +66,6 @@ public abstract class BaseCodeItem : Bindable, ICodeItem
     /// <summary>
     /// Refreshes the cached position and name fields on this item.
     /// </summary>
-
     public virtual void RefreshCachedPositionAndName()
     {
         StartLine = StartPoint.Line;

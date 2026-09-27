@@ -10,7 +10,6 @@ namespace CodeJanitor.Model.CodeTree;
 /// <summary>
 /// A helper class for performing code tree building.
 /// </summary>
-
 internal static class CodeTreeBuilder
 {
     /// <summary>
@@ -18,7 +17,6 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="request">The request.</param>
     /// <returns>The built code tree, otherwise null.</returns>
-
     internal static SetCodeItems RetrieveCodeTree(CodeTreeRequest request)
     {
         ClearHierarchyInformation(request.RawCodeItems);
@@ -52,7 +50,6 @@ internal static class CodeTreeBuilder
     /// Clears any hierarchy information from the specified code items.
     /// </summary>
     /// <param name="codeItems">The code items.</param>
-
     private static void ClearHierarchyInformation(SetCodeItems codeItems)
     {
         foreach (var codeItem in codeItems.OfType<ICodeItemParent>())
@@ -66,7 +63,6 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="rawCodeItems">The raw code items.</param>
     /// <returns>The organized code items.</returns>
-
     private static SetCodeItems OrganizeCodeItemsByAlphaSortOrder(SetCodeItems rawCodeItems)
     {
         var organizedCodeItems = new SetCodeItems();
@@ -90,7 +86,6 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="rawCodeItems">The raw code items.</param>
     /// <returns>The organized code items.</returns>
-
     private static SetCodeItems OrganizeCodeItemsByFileSortOrder(IEnumerable<BaseCodeItem> rawCodeItems)
     {
         var organizedCodeItems = new SetCodeItems();
@@ -143,7 +138,6 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="rawCodeItems">The raw code items.</param>
     /// <returns>The organized code items.</returns>
-
     private static SetCodeItems OrganizeCodeItemsByTypeSortOrder(SetCodeItems rawCodeItems)
     {
         var organizedCodeItems = new SetCodeItems();
@@ -172,7 +166,6 @@ internal static class CodeTreeBuilder
     /// Recursively groups the children within the specified item based on their type.
     /// </summary>
     /// <param name="codeItem">The code item.</param>
-
     private static void RecursivelyGroupByType(ICodeItemParent codeItem)
     {
         // Skip any code item that is already a region or does not have children.
@@ -217,7 +210,6 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <param name="sortComparer">The sort comparer.</param>
-
     private static void RecursivelySort(SetCodeItems codeItems, IComparer<BaseCodeItem> sortComparer)
     {
         codeItems.Sort(sortComparer);
@@ -233,7 +225,6 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <param name="nameFilter">The name filter.</param>
-
     private static void RecursivelyFilter(SetCodeItems codeItems, string nameFilter)
     {
         codeItems.RemoveAll(codeItem =>

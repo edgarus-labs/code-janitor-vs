@@ -6,7 +6,6 @@ namespace CodeJanitor.UnitTests.Helpers;
 /// <summary>
 /// Unit tests for <see cref="NamespacePathHelper" />.
 /// </summary>
-
 [TestClass]
 public sealed class NamespacePathHelperTests
 {
@@ -14,7 +13,7 @@ public sealed class NamespacePathHelperTests
     [TestCategory("Helpers UnitTests")]
     public void BuildExpectedNamespace_UsesRootNamespaceAndRelativeFolders()
     {
-        var result = NamespacePathHelper.BuildExpectedNamespace(
+        string result = NamespacePathHelper.BuildExpectedNamespace(
             "CodeJanitor",
             @"C:\Src\CodeJanitor",
             @"C:\Src\CodeJanitor\Features\Cleanup\Foo.cs");
@@ -26,7 +25,7 @@ public sealed class NamespacePathHelperTests
     [TestCategory("Helpers UnitTests")]
     public void BuildExpectedNamespace_UsesProjectRootWhenFileIsAtProjectRoot()
     {
-        var result = NamespacePathHelper.BuildExpectedNamespace(
+        string result = NamespacePathHelper.BuildExpectedNamespace(
             "CodeJanitor",
             @"C:\Src\CodeJanitor",
             @"C:\Src\CodeJanitor\Foo.cs");
@@ -38,7 +37,7 @@ public sealed class NamespacePathHelperTests
     [TestCategory("Helpers UnitTests")]
     public void BuildExpectedNamespace_SanitizesFolderNames()
     {
-        var result = NamespacePathHelper.BuildExpectedNamespace(
+        string result = NamespacePathHelper.BuildExpectedNamespace(
             "CodeJanitor",
             @"C:\Src\CodeJanitor",
             @"C:\Src\CodeJanitor\My Features\123Cleanup\Foo.cs");

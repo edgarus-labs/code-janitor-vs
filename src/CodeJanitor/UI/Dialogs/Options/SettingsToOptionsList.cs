@@ -6,7 +6,6 @@ namespace CodeJanitor.UI.Dialogs.Options;
 /// <summary>
 /// A specialized list class holding settings to options mappings.
 /// </summary>
-
 public sealed class SettingsToOptionsList : List<ISettingToOptionMapping>
 {
     /// <summary>
@@ -14,7 +13,6 @@ public sealed class SettingsToOptionsList : List<ISettingToOptionMapping>
     /// </summary>
     /// <param name="activeSettings">The active settings.</param>
     /// <param name="optionsPageViewModel">The options page view model.</param>
-
     public SettingsToOptionsList(Settings activeSettings, OptionsPageViewModel optionsPageViewModel)
     {
         ActiveSettings = activeSettings;
@@ -34,7 +32,6 @@ public sealed class SettingsToOptionsList : List<ISettingToOptionMapping>
     /// <summary>
     /// Iterates across all mappings, copying the setting values onto the options.
     /// </summary>
-
     public void CopySettingsToOptions()
     {
         foreach (var mapping in this)
@@ -46,7 +43,6 @@ public sealed class SettingsToOptionsList : List<ISettingToOptionMapping>
     /// <summary>
     /// Iterates across all mappings, copying the option values onto the settings.
     /// </summary>
-
     public void CopyOptionsToSettings()
     {
         foreach (var mapping in this)

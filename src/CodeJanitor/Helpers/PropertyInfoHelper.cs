@@ -8,7 +8,6 @@ namespace CodeJanitor.Helpers;
 /// A helper class that provides reflection access to property information.
 /// </summary>
 /// <typeparam name="T">The class where the property exists.</typeparam>
-
 public static class PropertyInfoHelper<T>
 {
     /// <summary>
@@ -17,7 +16,6 @@ public static class PropertyInfoHelper<T>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     /// <param name="lambda">The lambda.</param>
     /// <returns>The property info for the referenced property, otherwise null.</returns>
-
     public static PropertyInfo GetPropertyInfo<TValue>(Expression<Func<T, TValue>> lambda)
     {
         return lambda.Body.NodeType == ExpressionType.MemberAccess

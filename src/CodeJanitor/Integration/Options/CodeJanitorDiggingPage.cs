@@ -25,7 +25,6 @@ public sealed class CodeJanitorDiggingPage : CodeJanitorSectionDialogPage
     /// <param name="package">The package.</param>
     /// <param name="settings">The settings.</param>
     /// <returns>A OptionsPageViewModel value produced by this method.</returns>
-
     protected override OptionsPageViewModel CreateViewModel(CodeJanitorPackage package, Settings settings) =>
             new DiggingViewModel(package, settings);
 }

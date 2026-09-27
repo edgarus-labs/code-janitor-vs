@@ -4,6 +4,8 @@ using CodeJanitor.Properties;
 using System;
 using System.IO;
 using System.Linq;
+using CodeJanitor.Logic.Transformations;
+using System.Collections.Generic;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -99,7 +101,7 @@ public sealed class EffectiveCleanupSettingsTests
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
 
-        var settings = EffectiveCleanupSettings.For(filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(filePath);
 
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToVarWhenApparent"));
         Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
@@ -118,7 +120,7 @@ public sealed class EffectiveCleanupSettingsTests
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = false;
         WriteRootEditorConfig("csharp_style_namespace_declarations = file_scoped:silent");
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
@@ -132,7 +134,7 @@ public sealed class EffectiveCleanupSettingsTests
         WritePolicy("\"convertToFileScopedNamespace\": true");
         WriteRootEditorConfig("csharp_style_namespace_declarations = block_scoped:warning");
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(NamespaceDeclarationPreference.BlockScoped, settings.NamespaceDeclarations);
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
@@ -163,7 +165,7 @@ public sealed class EffectiveCleanupSettingsTests
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = userSetting;
         WriteRootEditorConfig($"csharp_using_directive_placement = {option}");
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(expected, settings.UsingDirectivePlacement);
         Assert.AreEqual(expectedMoveOutside, settings.GetBoolean("Cleaning_MoveUsingsOutsideNamespace"));
@@ -197,7 +199,7 @@ public sealed class EffectiveCleanupSettingsTests
     {
         WriteRootEditorConfig(options);
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(expected, settings.Indentation);
         Assert.AreEqual(expectedTabSize, settings.TabSize);
@@ -213,7 +215,7 @@ public sealed class EffectiveCleanupSettingsTests
     {
         WriteRootEditorConfig(options);
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(expectedIndentSize, settings.IndentSize);
         Assert.AreEqual(expectedTabSize, settings.TabSize);
@@ -224,9 +226,9 @@ public sealed class EffectiveCleanupSettingsTests
     public void NamespaceConverter_MovesTheBodyByIndentSize_NotByTabWidth()
     {
         WriteRootEditorConfig("indent_size = 4", "tab_width = 8");
-        var converter = FileScopedNamespaceLogic.CreateConverter(EffectiveCleanupSettings.For(_filePath));
-        var blockScoped = "namespace N\n{\n    public class C\n    {\n        void M() {}\n    }\n}\n";
-        var fileScoped = "namespace N;\n\npublic class C\n{\n    void M() {}\n}\n";
+        FileScopedNamespaceConverter converter = FileScopedNamespaceLogic.CreateConverter(EffectiveCleanupSettings.For(_filePath));
+        string blockScoped = "namespace N\n{\n    public class C\n    {\n        void M() {}\n    }\n}\n";
+        string fileScoped = "namespace N;\n\npublic class C\n{\n    void M() {}\n}\n";
 
         Assert.AreEqual(fileScoped, converter.ConvertToFileScoped(blockScoped));
         Assert.AreEqual(blockScoped, converter.ConvertToBlockScoped(fileScoped));
@@ -246,7 +248,7 @@ public sealed class EffectiveCleanupSettingsTests
         Settings.Default.Cleaning_RemoveEndOfFileTrailingNewLine = !expectedRemoveSetting;
         WriteRootEditorConfig($"insert_final_newline = {option}");
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(expectedInsertFinalNewline, settings.InsertFinalNewline);
         Assert.AreEqual(expectedInsertSetting, settings.GetBoolean("Cleaning_InsertEndOfFileTrailingNewLine"));
@@ -334,15 +336,15 @@ public sealed class EffectiveCleanupSettingsTests
     [DataRow("omit_if_default:silent", false)]
     public void GetBoolean_RequireAccessibilityModifiers_DrivesEveryExplicitAccessModifierSetting(string option, bool expected)
     {
-        foreach (var settingName in ExplicitAccessModifierSettings)
+        foreach (string settingName in ExplicitAccessModifierSettings)
         {
             Settings.Default[settingName] = !expected;
         }
 
         WriteRootEditorConfig($"dotnet_style_require_accessibility_modifiers = {option}");
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        foreach (var settingName in ExplicitAccessModifierSettings)
+        foreach (string settingName in ExplicitAccessModifierSettings)
         {
             Assert.AreEqual(expected, settings.GetBoolean(settingName), settingName);
         }
@@ -356,7 +358,7 @@ public sealed class EffectiveCleanupSettingsTests
         WritePolicy("\"fileHeaderCSharp\": \"// Policy header\"");
         WriteRootEditorConfig(@"file_header_template = Copyright: Contoso Ltd.\n\n{fileName} is licensed under MIT.");
 
-        var header = EffectiveCleanupSettings.For(_filePath).GetString("Cleaning_UpdateFileHeaderCSharp");
+        string header = EffectiveCleanupSettings.For(_filePath).GetString("Cleaning_UpdateFileHeaderCSharp");
 
         Assert.AreEqual(
             string.Join(Environment.NewLine, "// Copyright: Contoso Ltd.", "//", "// Sample.cs is licensed under MIT."),
@@ -392,7 +394,7 @@ public sealed class EffectiveCleanupSettingsTests
             "indent_style = tab:none",
             "insert_final_newline = false:none");
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(NamespaceDeclarationPreference.Unchanged, settings.NamespaceDeclarations, "policy");
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"), "policy");
@@ -432,7 +434,7 @@ public sealed class EffectiveCleanupSettingsTests
         WritePolicy("\"convertToFileScopedNamespace\": true");
         WriteRootEditorConfig($"csharp_style_namespace_declarations = {option}");
 
-        var settings = EffectiveCleanupSettings.For(_filePath);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
@@ -455,10 +457,10 @@ public sealed class EffectiveCleanupSettingsTests
         WriteRootEditorConfig(
             "trim_trailing_whitespace = true",
             "csharp_style_var_when_type_is_apparent = true");
-        var nested = Directory.CreateDirectory(Path.Combine(_tempDirectory, "src", "App"));
+        DirectoryInfo nested = Directory.CreateDirectory(Path.Combine(_tempDirectory, "src", "App"));
         File.WriteAllText(Path.Combine(_tempDirectory, "src", ".editorconfig"), "[*.cs]\r\ntrim_trailing_whitespace = false\r\n");
 
-        var settings = EffectiveCleanupSettings.For(Path.Combine(nested.FullName, "Sample.cs"));
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(Path.Combine(nested.FullName, "Sample.cs"));
 
         Assert.IsFalse(settings.GetBoolean("Cleaning_RemoveEndOfLineWhitespace"));
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToVarWhenApparent"));
@@ -470,10 +472,10 @@ public sealed class EffectiveCleanupSettingsTests
     {
         Settings.Default.Cleaning_ConvertToVarWhenApparent = false;
         WriteRootEditorConfig("csharp_style_var_when_type_is_apparent = true");
-        var nested = Directory.CreateDirectory(Path.Combine(_tempDirectory, "src"));
+        DirectoryInfo nested = Directory.CreateDirectory(Path.Combine(_tempDirectory, "src"));
         File.WriteAllText(Path.Combine(nested.FullName, ".editorconfig"), "root = true\r\n\r\n[*.cs]\r\ntrim_trailing_whitespace = false\r\n");
 
-        var settings = EffectiveCleanupSettings.For(Path.Combine(nested.FullName, "Sample.cs"));
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(Path.Combine(nested.FullName, "Sample.cs"));
 
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToVarWhenApparent"), "The parent .editorconfig must not apply below a root .editorconfig.");
         Assert.IsFalse(settings.GetBoolean("Cleaning_RemoveEndOfLineWhitespace"));
@@ -495,11 +497,11 @@ public sealed class EffectiveCleanupSettingsTests
             "[*.vb]",
             "dotnet_style_readonly_field = true",
             string.Empty));
-        var source = Directory.CreateDirectory(Path.Combine(_tempDirectory, "src", "App"));
-        var tests = Directory.CreateDirectory(Path.Combine(_tempDirectory, "tests"));
+        DirectoryInfo source = Directory.CreateDirectory(Path.Combine(_tempDirectory, "src", "App"));
+        DirectoryInfo tests = Directory.CreateDirectory(Path.Combine(_tempDirectory, "tests"));
 
-        var inSource = EffectiveCleanupSettings.For(Path.Combine(source.FullName, "Sample.cs"));
-        var inTests = EffectiveCleanupSettings.For(Path.Combine(tests.FullName, "Sample.cs"));
+        EffectiveCleanupSettings inSource = EffectiveCleanupSettings.For(Path.Combine(source.FullName, "Sample.cs"));
+        EffectiveCleanupSettings inTests = EffectiveCleanupSettings.For(Path.Combine(tests.FullName, "Sample.cs"));
 
         Assert.IsFalse(inSource.GetBoolean("Cleaning_RemoveEndOfLineWhitespace"));
         Assert.IsTrue(inSource.GetBoolean("Cleaning_ConvertToVarWhenApparent"));
@@ -525,7 +527,7 @@ public sealed class EffectiveCleanupSettingsTests
     /// </summary>
     private void WriteRootEditorConfig(params string[] csharpOptions)
     {
-        var lines = new[] { "root = true", string.Empty, "[*.cs]" }
+        IEnumerable<string> lines = new[] { "root = true", string.Empty, "[*.cs]" }
             .Concat(csharpOptions.Where(option => option is not null))
             .Concat(new[] { string.Empty });
 

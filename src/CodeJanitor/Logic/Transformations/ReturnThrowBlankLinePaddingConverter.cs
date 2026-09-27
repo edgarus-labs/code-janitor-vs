@@ -17,14 +17,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// This is a pure text transformation with no dependency on Visual Studio / EnvDTE,
 /// which keeps it unit-testable in isolation (see ADR-0005 / ADR-0006).
 /// </remarks>
-
 public sealed class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
 {
     /// <inheritdoc />
     public string Name => "Blank Line Before Return/Throw";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source))

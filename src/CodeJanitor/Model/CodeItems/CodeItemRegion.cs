@@ -7,7 +7,6 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code region.
 /// </summary>
-
 public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
 {
     private bool _isExpanded = true;
@@ -15,7 +14,6 @@ public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemRegion" /> class.
     /// </summary>
-
     public CodeItemRegion()
     {
         Children = new SetCodeItems();
@@ -29,7 +27,6 @@ public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
     /// <summary>
     /// An event raised when the IsExpanded state has changed.
     /// </summary>
-
     public event EventHandler IsExpandedChanged;
 
     /// <summary>
@@ -40,7 +37,6 @@ public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
     /// <summary>
     /// Gets the insert point, may be null.
     /// </summary>
-
     public EditPoint InsertPoint
     {
         get
@@ -61,7 +57,6 @@ public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
     /// <summary>
     /// Gets or sets the flag indicating if this parent item is expanded.
     /// </summary>
-
     public bool IsExpanded
     {
         get
@@ -83,7 +78,6 @@ public sealed class CodeItemRegion : BaseCodeItem, ICodeItemParent
     /// <summary>
     /// Gets a flag indicating if this region is empty.
     /// </summary>
-
     public bool IsEmpty
     {
         get

@@ -19,7 +19,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// corresponding cleanup setting remains an explicit opt-in. Pure logic, unit-testable without
 /// Visual Studio.
 /// </remarks>
-
 public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransformation
 {
     private readonly IReadOnlyCollection<string> _externalDisqualifiedTypeNames;
@@ -76,7 +75,7 @@ public sealed class SealedClassConverter : IClassSealingConverter, ISourceTransf
             disqualifiedTypeNames.Add(constraintType);
         }
 
-        if (externalDisqualifiedTypeNames != null)
+        if (externalDisqualifiedTypeNames is not null)
         {
             foreach (var name in externalDisqualifiedTypeNames)
             {

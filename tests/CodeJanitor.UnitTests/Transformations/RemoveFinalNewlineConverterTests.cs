@@ -6,7 +6,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// <summary>
 /// Unit tests for <see cref="RemoveFinalNewlineConverter" /> (<c>insert_final_newline = false</c>).
 /// </summary>
-
 [TestClass]
 public sealed class RemoveFinalNewlineConverterTests
 {
@@ -35,7 +34,7 @@ public sealed class RemoveFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NoFinalLineBreak_ReturnsTheSameInstance()
     {
-        var input = "class C\r\n{\r\n}";
+        string input = "class C\r\n{\r\n}";
 
         Assert.AreSame(input, _converter.Convert(input));
     }

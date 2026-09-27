@@ -7,7 +7,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// for BL-018). Pure and unit-testable. Safe alongside <c>InsertBlankLinePaddingLogic</c>, which
 /// adds at most one blank line at a time.
 /// </summary>
-
 public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 {
     // Matches 3+ consecutive newlines (= 2+ blank lines), where intermediate lines may contain
@@ -20,7 +19,6 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
     public string Name => "Normalize blank lines";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Normalize(source);
@@ -29,7 +27,6 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
     /// <summary>
     /// Collapses any run of two or more consecutive blank lines to a single blank line.
     /// </summary>
-
     public string Normalize(string source)
     {
         if (string.IsNullOrEmpty(source))

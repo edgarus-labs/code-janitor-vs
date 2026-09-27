@@ -10,7 +10,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A set of helper methods focused around code comments.
 /// </summary>
-
 internal static class CodeCommentHelper
 {
     /// <summary>
@@ -33,7 +32,6 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string FakeToSpace(string value)
     {
         return value.Replace(KeepTogetherSpacer, Spacer);
@@ -44,7 +42,6 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="document">The document.</param>
     /// <returns>The comment prefix regex, without trailing spaces.</returns>
-
     internal static string GetCommentPrefix(TextDocument document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -57,7 +54,6 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="codeLanguage">The code language.</param>
     /// <returns>The comment prefix regex, without trailing spaces.</returns>
-
     internal static string GetCommentPrefixForLanguage(CodeLanguage codeLanguage)
     {
         switch (codeLanguage)
@@ -88,7 +84,6 @@ internal static class CodeCommentHelper
     /// <summary>
     /// Gets the regex for matching a complete comment line.
     /// </summary>
-
     internal static Regex GetCommentRegex(CodeLanguage codeLanguage, bool includePrefix = true)
     {
         string prefix = null;
@@ -115,7 +110,6 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="package"></param>
     /// <returns></returns>
-
     public static IEnumerable<string> GetTaskListTokens(CodeJanitorPackage package)
     {
         var settings = package.IDE.Properties["Environment", "TaskList"];
@@ -134,7 +128,6 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="point">The point.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     internal static bool IsCommentLine(EditPoint point)
     {
         return LineMatchesRegex(point, GetCommentRegex(point.GetCodeLanguage())).Success;
@@ -146,7 +139,6 @@ internal static class CodeCommentHelper
     /// <param name="point">The point.</param>
     /// <param name="regex">The regex.</param>
     /// <returns>A Match value produced by this method.</returns>
-
     internal static Match LineMatchesRegex(EditPoint point, Regex regex)
     {
         var line = point.GetLine();
@@ -160,7 +152,6 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string SpaceToFake(string value)
     {
         return value.Replace(Spacer, KeepTogetherSpacer);

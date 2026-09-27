@@ -13,7 +13,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// <summary>
 /// A class for encapsulating the logic of general updates.
 /// </summary>
-
 internal sealed class UpdateLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -28,7 +27,6 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="UpdateLogic" /> class.</returns>
-
     internal static UpdateLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new UpdateLogic(package));
@@ -38,7 +36,6 @@ internal sealed class UpdateLogic
     /// Initializes a new instance of the <see cref="UpdateLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private UpdateLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -55,7 +52,6 @@ internal sealed class UpdateLogic
     /// </remarks>
     /// <param name="textDocument">The text document to cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void UpdateEndRegionDirectives(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -123,7 +119,6 @@ internal sealed class UpdateLogic
     /// <param name="regionText">The raw directive text after '#'.</param>
     /// <param name="regionName">The parsed, trimmed region name.</param>
     /// <returns>True if the text represents a #region directive; otherwise false.</returns>
-
     internal static bool TryParseRegionDirective(string regionText, out string regionName)
     {
         regionName = null;
@@ -159,7 +154,6 @@ internal sealed class UpdateLogic
     /// The parsed end region name as-is (including leading whitespace) for strict comparison.
     /// </param>
     /// <returns>True if the text represents a #endregion directive; otherwise false.</returns>
-
     internal static bool TryParseEndRegionDirective(string regionText, out string endRegionName)
     {
         endRegionName = null;
@@ -192,7 +186,6 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="regionName">The region name.</param>
     /// <returns>An empty suffix for empty names, otherwise a single leading space + name.</returns>
-
     internal static string BuildDirectiveNameSuffix(string regionName)
     {
         return string.IsNullOrWhiteSpace(regionName) ? string.Empty : " " + regionName.Trim();
@@ -203,7 +196,6 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="events">The events to update.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the events.</param>
-
     internal void UpdateEventAccessorsToBothBeSingleLineOrMultiLine(IEnumerable<CodeItemEvent> events, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -221,7 +213,6 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="properties">The properties to update.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the properties.</param>
-
     internal void UpdatePropertyAccessorsToBothBeSingleLineOrMultiLine(IEnumerable<CodeItemProperty> properties, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -239,7 +230,6 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="methods">The methods to update.</param>
     /// <param name="settings">The effective cleanup settings of the document containing the methods.</param>
-
     internal void UpdateSingleLineMethods(IEnumerable<CodeItemMethod> methods, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -257,7 +247,6 @@ internal sealed class UpdateLogic
     /// Joins the specified multi-line method onto a single line.
     /// </summary>
     /// <param name="method">The method to update.</param>
-
     private void JoinMultiLineMethodOntoSingleLine(CodeFunction method)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -276,7 +265,6 @@ internal sealed class UpdateLogic
     /// Spreads the specified single line method onto multiple lines.
     /// </summary>
     /// <param name="method">The method to update.</param>
-
     private void SpreadSingleLineMethodOntoMultipleLines(CodeFunction method)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -313,7 +301,6 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="first">The first accessor.</param>
     /// <param name="second">The second accessor.</param>
-
     private void UpdateAccessorsToBothBeSingleLineOrMultiLine(CodeFunction first, CodeFunction second)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

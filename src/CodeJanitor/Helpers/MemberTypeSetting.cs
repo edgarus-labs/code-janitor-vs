@@ -7,7 +7,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A class that encapsulates the settings associcated with a member type.
 /// </summary>
-
 public sealed class MemberTypeSetting : Bindable
 {
     /// <summary>
@@ -16,7 +15,6 @@ public sealed class MemberTypeSetting : Bindable
     /// <param name="defaultName">The default name.</param>
     /// <param name="effectiveName">The effective name.</param>
     /// <param name="order">The order.</param>
-
     public MemberTypeSetting(string defaultName, string effectiveName, int order)
     {
         DefaultName = defaultName;
@@ -32,7 +30,6 @@ public sealed class MemberTypeSetting : Bindable
     /// <summary>
     /// Gets or sets the effective name associated with this member type.
     /// </summary>
-
     public string EffectiveName
     {
         get { return GetPropertyValue<string>(); }
@@ -42,7 +39,6 @@ public sealed class MemberTypeSetting : Bindable
     /// <summary>
     /// Gets or sets the order associated with this member type.
     /// </summary>
-
     public int Order
     {
         get { return GetPropertyValue<int>(); }
@@ -54,7 +50,6 @@ public sealed class MemberTypeSetting : Bindable
     /// </summary>
     /// <param name="serializedString">The serialized string to deserialize.</param>
     /// <returns>A new instance of <see cref="MemberTypeSetting" />.</returns>
-
     public static explicit operator MemberTypeSetting(string serializedString)
     {
         const string pattern = @"^(?<defaultName>\w+)\|\|(?<order>\d+)\|\|(?<effectiveName>.*)$";
@@ -81,7 +76,6 @@ public sealed class MemberTypeSetting : Bindable
     /// Serializes the specified <see cref="MemberTypeSetting"/> into a string (e.g. for persistence to settings).
     /// </summary>
     /// <returns>A serialized string representing the object.</returns>
-
     public static explicit operator string(MemberTypeSetting memberTypeSetting)
     {
         return $"{memberTypeSetting.DefaultName}||{memberTypeSetting.Order}||{memberTypeSetting.EffectiveName}";

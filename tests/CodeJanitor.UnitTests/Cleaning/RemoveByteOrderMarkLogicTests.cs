@@ -100,24 +100,24 @@ public sealed class RemoveByteOrderMarkLogicTests
         byte[] bytes = [0xEF, 0xBB, 0xBF, 0x41, 0x42];
         byte[] expected = [0x41, 0x42];
 
-        var stripped = RemoveByteOrderMarkLogic.StripByteOrderMark(bytes);
+        byte[] stripped = RemoveByteOrderMarkLogic.StripByteOrderMark(bytes);
 
-        CollectionAssert.AreEqual(expected, stripped);
+        Assert.AreSequenceEqual(expected, stripped);
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void StripByteOrderMark_Utf16LeBom_ConvertsToUtf8WithoutBom()
     {
-        var text = "Hello World";
-        var utf16WithBom = Encoding.Unicode.GetPreamble();
-        var utf16Bytes = Encoding.Unicode.GetBytes(text);
-        var combined = new byte[utf16WithBom.Length + utf16Bytes.Length];
+        string text = "Hello World";
+        byte[] utf16WithBom = Encoding.Unicode.GetPreamble();
+        byte[] utf16Bytes = Encoding.Unicode.GetBytes(text);
+        byte[] combined = new byte[utf16WithBom.Length + utf16Bytes.Length];
         Buffer.BlockCopy(utf16WithBom, 0, combined, 0, utf16WithBom.Length);
         Buffer.BlockCopy(utf16Bytes, 0, combined, utf16WithBom.Length, utf16Bytes.Length);
 
-        var stripped = RemoveByteOrderMarkLogic.StripByteOrderMark(combined);
-        var resultText = Encoding.UTF8.GetString(stripped);
+        byte[] stripped = RemoveByteOrderMarkLogic.StripByteOrderMark(combined);
+        string resultText = Encoding.UTF8.GetString(stripped);
 
         Assert.AreEqual(text, resultText);
         Assert.IsFalse(RemoveByteOrderMarkLogic.HasByteOrderMark(stripped));
@@ -145,16 +145,16 @@ public sealed class RemoveByteOrderMarkLogicTests
     [TestCategory("Cleaning UnitTests")]
     public void RemoveByteOrderMark_FileOnDiskWithUtf8Bom_RemovesBom()
     {
-        var filePath = Path.Combine(_tempDirectory, "Utf8WithBom.cs");
-        var content = "namespace Demo;\r\n\r\npublic class C { }\r\n";
+        string filePath = Path.Combine(_tempDirectory, "Utf8WithBom.cs");
+        string content = "namespace Demo;\r\n\r\npublic class C { }\r\n";
         File.WriteAllText(filePath, content, new UTF8Encoding(true));
 
         Assert.IsTrue(RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(filePath)));
 
-        var modified = _logic.RemoveByteOrderMark(filePath);
+        bool modified = _logic.RemoveByteOrderMark(filePath);
 
         Assert.IsTrue(modified);
-        var bytesAfter = File.ReadAllBytes(filePath);
+        byte[] bytesAfter = File.ReadAllBytes(filePath);
         Assert.IsFalse(RemoveByteOrderMarkLogic.HasByteOrderMark(bytesAfter));
         Assert.AreEqual(content, File.ReadAllText(filePath));
     }
@@ -163,11 +163,11 @@ public sealed class RemoveByteOrderMarkLogicTests
     [TestCategory("Cleaning UnitTests")]
     public void RemoveByteOrderMark_FileOnDiskWithoutBom_DoesNotModify()
     {
-        var filePath = Path.Combine(_tempDirectory, "Utf8WithoutBom.cs");
-        var content = "namespace Demo;\r\n\r\npublic class C { }\r\n";
+        string filePath = Path.Combine(_tempDirectory, "Utf8WithoutBom.cs");
+        string content = "namespace Demo;\r\n\r\npublic class C { }\r\n";
         File.WriteAllText(filePath, content, new UTF8Encoding(false));
 
-        var modified = _logic.RemoveByteOrderMark(filePath);
+        bool modified = _logic.RemoveByteOrderMark(filePath);
 
         Assert.IsFalse(modified);
     }
@@ -178,11 +178,11 @@ public sealed class RemoveByteOrderMarkLogicTests
     {
         Settings.Default.Cleaning_RemoveByteOrderMark = false;
 
-        var filePath = Path.Combine(_tempDirectory, "DisabledTest.cs");
-        var content = "namespace Demo;\r\n\r\npublic class C { }\r\n";
+        string filePath = Path.Combine(_tempDirectory, "DisabledTest.cs");
+        string content = "namespace Demo;\r\n\r\npublic class C { }\r\n";
         File.WriteAllText(filePath, content, new UTF8Encoding(true));
 
-        var modified = _logic.RemoveByteOrderMark(filePath);
+        bool modified = _logic.RemoveByteOrderMark(filePath);
 
         Assert.IsFalse(modified);
         Assert.IsTrue(RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(filePath)));
@@ -192,40 +192,40 @@ public sealed class RemoveByteOrderMarkLogicTests
     [TestCategory("Cleaning UnitTests")]
     public void StripByteOrderMark_OtherEncodings_ConvertsToUtf8WithoutBom()
     {
-        var text = "Hello Encoded";
+        string text = "Hello Encoded";
 
         // UTF-16 BE
-        var utf16Be = new UTF8Encoding(false).GetBytes(text);
-        var utf16BeBytes = Encoding.BigEndianUnicode.GetPreamble();
-        var utf16BeText = Encoding.BigEndianUnicode.GetBytes(text);
-        var combined16Be = new byte[utf16BeBytes.Length + utf16BeText.Length];
+        byte[] utf16Be = new UTF8Encoding(false).GetBytes(text);
+        byte[] utf16BeBytes = Encoding.BigEndianUnicode.GetPreamble();
+        byte[] utf16BeText = Encoding.BigEndianUnicode.GetBytes(text);
+        byte[] combined16Be = new byte[utf16BeBytes.Length + utf16BeText.Length];
         Buffer.BlockCopy(utf16BeBytes, 0, combined16Be, 0, utf16BeBytes.Length);
         Buffer.BlockCopy(utf16BeText, 0, combined16Be, utf16BeBytes.Length, utf16BeText.Length);
-        var stripped16Be = RemoveByteOrderMarkLogic.StripByteOrderMark(combined16Be);
+        byte[] stripped16Be = RemoveByteOrderMarkLogic.StripByteOrderMark(combined16Be);
         Assert.AreEqual(text, Encoding.UTF8.GetString(stripped16Be));
 
         // UTF-32 LE
-        var utf32LePreamble = Encoding.UTF32.GetPreamble();
-        var utf32LeText = Encoding.UTF32.GetBytes(text);
-        var combined32Le = new byte[utf32LePreamble.Length + utf32LeText.Length];
+        byte[] utf32LePreamble = Encoding.UTF32.GetPreamble();
+        byte[] utf32LeText = Encoding.UTF32.GetBytes(text);
+        byte[] combined32Le = new byte[utf32LePreamble.Length + utf32LeText.Length];
         Buffer.BlockCopy(utf32LePreamble, 0, combined32Le, 0, utf32LePreamble.Length);
         Buffer.BlockCopy(utf32LeText, 0, combined32Le, utf32LePreamble.Length, utf32LeText.Length);
-        var stripped32Le = RemoveByteOrderMarkLogic.StripByteOrderMark(combined32Le);
+        byte[] stripped32Le = RemoveByteOrderMarkLogic.StripByteOrderMark(combined32Le);
         Assert.AreEqual(text, Encoding.UTF8.GetString(stripped32Le));
 
         // UTF-32 BE
-        var utf32BeEnc = new UTF32Encoding(true, true);
-        var utf32BePreamble = utf32BeEnc.GetPreamble();
-        var utf32BeText = utf32BeEnc.GetBytes(text);
-        var combined32Be = new byte[utf32BePreamble.Length + utf32BeText.Length];
+        UTF32Encoding utf32BeEnc = new UTF32Encoding(true, true);
+        byte[] utf32BePreamble = utf32BeEnc.GetPreamble();
+        byte[] utf32BeText = utf32BeEnc.GetBytes(text);
+        byte[] combined32Be = new byte[utf32BePreamble.Length + utf32BeText.Length];
         Buffer.BlockCopy(utf32BePreamble, 0, combined32Be, 0, utf32BePreamble.Length);
         Buffer.BlockCopy(utf32BeText, 0, combined32Be, utf32BePreamble.Length, utf32BeText.Length);
-        var stripped32Be = RemoveByteOrderMarkLogic.StripByteOrderMark(combined32Be);
+        byte[] stripped32Be = RemoveByteOrderMarkLogic.StripByteOrderMark(combined32Be);
         Assert.AreEqual(text, Encoding.UTF8.GetString(stripped32Be));
 
         // Null / Empty
-        Assert.AreEqual(0, RemoveByteOrderMarkLogic.StripByteOrderMark((byte[])null).Length);
-        Assert.AreEqual(0, RemoveByteOrderMarkLogic.StripByteOrderMark(new byte[0]).Length);
+        Assert.IsEmpty(RemoveByteOrderMarkLogic.StripByteOrderMark((byte[])null));
+        Assert.IsEmpty(RemoveByteOrderMarkLogic.StripByteOrderMark(new byte[0]));
     }
 
     [TestMethod]

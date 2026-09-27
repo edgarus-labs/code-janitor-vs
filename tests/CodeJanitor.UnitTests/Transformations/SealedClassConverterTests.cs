@@ -12,7 +12,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 /// derived types declared in other files of the same assembly, so it remains an explicit
 /// opt-in setting.
 /// </summary>
-
 [TestClass]
 public sealed class SealedClassConverterTests
 {
@@ -28,8 +27,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void InternalClassWithNoDerivedTypeInFile_BecomesSealed()
     {
-        var input = "internal class Foo { }";
-        var expected = "internal sealed class Foo { }";
+        string input = "internal class Foo { }";
+        string expected = "internal sealed class Foo { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -38,8 +37,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithNoAccessModifier_BecomesSealed()
     {
-        var input = "class Foo { }";
-        var expected = "sealed class Foo { }";
+        string input = "class Foo { }";
+        string expected = "sealed class Foo { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -48,8 +47,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithDerivedClassInSameFile_StaysUnsealed()
     {
-        var input = "internal class Foo { } internal class Bar : Foo { }";
-        var expected = "internal class Foo { } internal sealed class Bar : Foo { }";
+        string input = "internal class Foo { } internal class Bar : Foo { }";
+        string expected = "internal class Foo { } internal sealed class Bar : Foo { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -58,7 +57,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void AlreadySealedClass_Unchanged()
     {
-        var input = "internal sealed class Foo { }";
+        string input = "internal sealed class Foo { }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -67,7 +66,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void AbstractClass_Unchanged()
     {
-        var input = "internal abstract class Foo { }";
+        string input = "internal abstract class Foo { }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -76,7 +75,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void StaticClass_Unchanged()
     {
-        var input = "internal static class Foo { }";
+        string input = "internal static class Foo { }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -85,7 +84,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void PartialClass_Unchanged()
     {
-        var input = "internal partial class Foo { }";
+        string input = "internal partial class Foo { }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -94,8 +93,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void PublicClass_BecomesSealed()
     {
-        var input = "public class Foo { }";
-        var expected = "public sealed class Foo { }";
+        string input = "public class Foo { }";
+        string expected = "public sealed class Foo { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -104,8 +103,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void PublicClassWithDerivedClassInSameFile_BaseStaysUnsealed_DerivedBecomesSealed()
     {
-        var input = "public class Animal { } public class Dog : Animal { }";
-        var expected = "public class Animal { } public sealed class Dog : Animal { }";
+        string input = "public class Animal { } public class Dog : Animal { }";
+        string expected = "public class Animal { } public sealed class Dog : Animal { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -114,8 +113,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void PublicRecordClass_BecomesSealed()
     {
-        var input = "public record Person(string Name);";
-        var expected = "public sealed record Person(string Name);";
+        string input = "public record Person(string Name);";
+        string expected = "public sealed record Person(string Name);";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -124,7 +123,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void RecordStruct_Unchanged()
     {
-        var input = "public record struct Point(int X, int Y);";
+        string input = "public record struct Point(int X, int Y);";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -133,8 +132,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassImplementingInterface_BecomesSealed()
     {
-        var input = "internal class Foo : System.IDisposable { public void Dispose() { } }";
-        var expected = "internal sealed class Foo : System.IDisposable { public void Dispose() { } }";
+        string input = "internal class Foo : System.IDisposable { public void Dispose() { } }";
+        string expected = "internal sealed class Foo : System.IDisposable { public void Dispose() { } }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -143,8 +142,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NestedClassIsNotSealed_OnlyOuterConsidered()
     {
-        var input = "internal class Outer { internal class Inner { } }";
-        var expected = "internal sealed class Outer { internal class Inner { } }";
+        string input = "internal class Outer { internal class Inner { } }";
+        string expected = "internal sealed class Outer { internal class Inner { } }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -153,7 +152,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void NameAndNullOrEmpty_HandledCorrectly()
     {
-        var converter = new SealedClassConverter();
+        SealedClassConverter converter = new SealedClassConverter();
         Assert.AreEqual("Sealed Class", converter.Name);
         Assert.IsNull(converter.Apply(null));
         Assert.AreEqual(string.Empty, converter.Apply(string.Empty));
@@ -163,8 +162,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void QualifiedAndAliasBaseTypes_IdentifiesBaseClass()
     {
-        var input = "class Animal { } class Dog : global::Animal { } class Cat : MyNamespace.Animal { }";
-        var expected = "class Animal { } sealed class Dog : global::Animal { } sealed class Cat : MyNamespace.Animal { }";
+        string input = "class Animal { } class Dog : global::Animal { } class Cat : MyNamespace.Animal { }";
+        string expected = "class Animal { } sealed class Dog : global::Animal { } sealed class Cat : MyNamespace.Animal { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -173,8 +172,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void FileScopedNamespace_SealsTopLevelClass()
     {
-        var input = "namespace N;\r\nclass Foo { }";
-        var expected = "namespace N;\r\nsealed class Foo { }";
+        string input = "namespace N;\r\nclass Foo { }";
+        string expected = "namespace N;\r\nsealed class Foo { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -183,7 +182,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithVirtualProperty_StaysUnsealed()
     {
-        var input = "public class Foo : SomeBaseType { public virtual OtherType SomeProperty { get; } }";
+        string input = "public class Foo : SomeBaseType { public virtual OtherType SomeProperty { get; } }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -192,7 +191,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithVirtualMethod_StaysUnsealed()
     {
-        var input = "public class Foo { public virtual void DoWork() { } }";
+        string input = "public class Foo { public virtual void DoWork() { } }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -201,7 +200,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithVirtualIndexer_StaysUnsealed()
     {
-        var input = "public class Foo { public virtual int this[int i] => i; }";
+        string input = "public class Foo { public virtual int this[int i] => i; }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -210,7 +209,7 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithVirtualEvent_StaysUnsealed()
     {
-        var input = "public class Foo { public virtual event System.EventHandler Changed; }";
+        string input = "public class Foo { public virtual event System.EventHandler Changed; }";
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input));
     }
@@ -219,8 +218,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassUsedInGenericConstraintInSameFile_StaysUnsealed()
     {
-        var input = "public class Result { } public class Handler<T> where T : Result { }";
-        var expected = "public class Result { } public sealed class Handler<T> where T : Result { }";
+        string input = "public class Result { } public class Handler<T> where T : Result { }";
+        string expected = "public class Result { } public sealed class Handler<T> where T : Result { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }
@@ -229,8 +228,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassWithExternalDerivedTypeOrConstraint_StaysUnsealed()
     {
-        var input = "public class Result { }";
-        var disqualified = new[] { "Result" };
+        string input = "public class Result { }";
+        string[] disqualified = ["Result"];
 
         Assert.AreEqual(input, _converter.SealWhenSafe(input, disqualified));
     }
@@ -240,7 +239,7 @@ public sealed class SealedClassConverterTests
     public void ConverterWithConstructorDisqualifiedTypes_WhenInvokedViaParameterlessSealWhenSafe_PreservesDisqualifiedTypes()
     {
         IClassSealingConverter converter = new SealedClassConverter(new[] { "Result" });
-        var input = "public class Result { }";
+        string input = "public class Result { }";
 
         Assert.AreEqual(input, converter.SealWhenSafe(input));
     }
@@ -249,8 +248,8 @@ public sealed class SealedClassConverterTests
     [TestCategory("Transformations UnitTests")]
     public void ClassUsedInNullableGenericConstraintInSameFile_StaysUnsealed()
     {
-        var input = "public class Result { } public class Handler<T> where T : Result? { }";
-        var expected = "public class Result { } public sealed class Handler<T> where T : Result? { }";
+        string input = "public class Result { } public class Handler<T> where T : Result? { }";
+        string expected = "public class Result { } public sealed class Handler<T> where T : Result? { }";
 
         Assert.AreEqual(expected, _converter.SealWhenSafe(input));
     }

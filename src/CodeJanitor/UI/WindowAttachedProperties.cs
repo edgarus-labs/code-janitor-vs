@@ -6,13 +6,11 @@ namespace CodeJanitor.UI;
 /// A helper class for attached properties on <see cref="Window" />.
 /// </summary>
 /// <remarks>DialogResult attached property based on: http://blog.excastle.com/2010/07/25/mvvm-and-dialogresult-with-no-code-behind/.</remarks>
-
 public static class WindowAttachedProperties
 {
     /// <summary>
     /// The dependency property definition for the DialogResult attached property.
     /// </summary>
-
     public static DependencyProperty DialogResultProperty = DependencyProperty.RegisterAttached(
         "DialogResult", typeof(bool?), typeof(WindowAttachedProperties),
         new FrameworkPropertyMetadata(OnDialogResultChanged));
@@ -22,7 +20,6 @@ public static class WindowAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-
     public static bool? GetDialogResult(Window target)
     {
         return (bool?)target.GetValue(DialogResultProperty);
@@ -33,7 +30,6 @@ public static class WindowAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-
     public static void SetDialogResult(Window target, bool? value)
     {
         target.SetValue(DialogResultProperty, value);
@@ -47,7 +43,6 @@ public static class WindowAttachedProperties
     /// The <see cref="System.Windows.DependencyPropertyChangedEventArgs" /> instance containing
     /// the event data.
     /// </param>
-
     private static void OnDialogResultChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
     {
         var window = obj as Window;

@@ -18,7 +18,7 @@ public sealed class SettingsMonitorTests
     [TestMethod]
     public async Task CallbackShouldBeCalledAtOnce()
     {
-        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+        SettingsMonitor<Settings> monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
         int callbackTimes = 0;
         await monitor.WatchAsync(s => s.Feature_CleanupAllCode, _ =>
@@ -35,7 +35,7 @@ public sealed class SettingsMonitorTests
     public async Task CallbackShouldNotBeCalledIfSettingNotChanged()
     {
         Settings.Default.Feature_CleanupAllCode = false;
-        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+        SettingsMonitor<Settings> monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
         bool? value = null;
         int callbackTimes = 0;
@@ -58,7 +58,7 @@ public sealed class SettingsMonitorTests
     public async Task CallbackShouldBeCalledOnceSettingChanged()
     {
         Settings.Default.Feature_CleanupAllCode = false;
-        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+        SettingsMonitor<Settings> monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
         bool? value = null;
         int callbackTimes = 0;
@@ -81,7 +81,7 @@ public sealed class SettingsMonitorTests
     public async Task AllCallbacksShouldBeCalledOnceSettingChanged()
     {
         Settings.Default.Feature_CleanupAllCode = false;
-        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+        SettingsMonitor<Settings> monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
         bool? value1 = null, value2 = null;
         int callbackTimes1 = 0, callbackTimes2 = 0;
@@ -115,7 +115,7 @@ public sealed class SettingsMonitorTests
         Settings.Default.Feature_CleanupAllCode = false;
         Settings.Default.Feature_CleanupOpenCode = false;
         Settings.Default.Feature_CleanupSelectedCode = true;
-        var monitor = new SettingsMonitor<Settings>(Settings.Default, null);
+        SettingsMonitor<Settings> monitor = new SettingsMonitor<Settings>(Settings.Default, null);
 
         bool[] values = null;
         int callbackTimes = 0;

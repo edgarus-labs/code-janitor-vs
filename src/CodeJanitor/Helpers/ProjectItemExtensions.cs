@@ -8,7 +8,6 @@ namespace CodeJanitor.Helpers;
 /// <summary>
 /// A set of extension methods for <see cref="ProjectItem" />.
 /// </summary>
-
 internal static class ProjectItemExtensions
 {
     /// <summary>
@@ -16,7 +15,6 @@ internal static class ProjectItemExtensions
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The filename of the project item if available, otherwise null.</returns>
-
     internal static string GetFileName(this ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -37,7 +35,6 @@ internal static class ProjectItemExtensions
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The parent project item, otherwise null.</returns>
-
     internal static ProjectItem GetParentProjectItem(this ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -60,7 +57,6 @@ internal static class ProjectItemExtensions
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>True if the project item is external, otherwise false.</returns>
-
     internal static bool IsExternal(this ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -86,7 +82,6 @@ internal static class ProjectItemExtensions
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>True if the project item is a physical file, otherwise false.</returns>
-
     internal static bool IsPhysicalFile(this ProjectItem projectItem)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

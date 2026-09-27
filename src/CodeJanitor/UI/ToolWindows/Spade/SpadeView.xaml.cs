@@ -19,7 +19,6 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// <summary>
 /// The WPF based control/view for the <see cref="SpadeToolWindow" />.
 /// </summary>
-
 public partial class SpadeView
 {
     private CodeReorganizationManager _codeReorganizationManager;
@@ -31,7 +30,6 @@ public partial class SpadeView
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeView" /> class.
     /// </summary>
-
     public SpadeView()
     {
         Application.ResourceAssembly = Assembly.GetExecutingAssembly();
@@ -42,7 +40,6 @@ public partial class SpadeView
     /// <summary>
     /// Gets the lazy-initialized code reorganization manager.
     /// </summary>
-
     private CodeReorganizationManager CodeReorganizationManager =>
         _codeReorganizationManager ?? (_codeReorganizationManager = CodeReorganizationManager.GetInstance(ViewModel.Package));
 
@@ -59,7 +56,6 @@ public partial class SpadeView
     /// <summary>
     /// The dependency property definition for the ScaleFactor property.
     /// </summary>
-
     public static DependencyProperty ScaleFactorProperty = DependencyProperty.Register(
         "ScaleFactor", typeof(double), typeof(SpadeView),
         new FrameworkPropertyMetadata(1.0d, null, OnCoerceScaleFactor));
@@ -67,7 +63,6 @@ public partial class SpadeView
     /// <summary>
     /// Gets or sets the scale factor.
     /// </summary>
-
     public double ScaleFactor
     {
         get { return (double)GetValue(ScaleFactorProperty); }
@@ -80,7 +75,6 @@ public partial class SpadeView
     /// <param name="obj">The dependency object where the value has changed..</param>
     /// <param name="basevalue">The base value.</param>
     /// <returns>The coerced value.</returns>
-
     private static object OnCoerceScaleFactor(DependencyObject obj, object basevalue)
     {
         var value = (double)basevalue;
@@ -99,7 +93,6 @@ public partial class SpadeView
     /// The <see cref="System.Windows.Input.MouseButtonEventArgs" /> instance containing the
     /// event data.
     /// </param>
-
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (Keyboard.Modifiers == ModifierKeys.Control &&
@@ -119,7 +112,6 @@ public partial class SpadeView
     /// The <see cref="System.Windows.Input.MouseWheelEventArgs" /> instance containing the
     /// event data.
     /// </param>
-
     private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Delta != 0)
@@ -140,7 +132,6 @@ public partial class SpadeView
     /// <param name="e">
     /// The <see cref="System.Windows.Input.KeyEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnTreeViewItemKeyDown(object sender, KeyEventArgs e)
     {
         var treeViewItem = e.Source as TreeViewItem;
@@ -167,7 +158,6 @@ public partial class SpadeView
     /// The <see cref="System.Windows.Input.MouseButtonEventArgs" /> instance containing the
     /// event data.
     /// </param>
-
     private void OnTreeViewItemHeaderMouseDown(object sender, MouseButtonEventArgs e)
     {
         _isDoubleClick = false;
@@ -204,7 +194,6 @@ public partial class SpadeView
     /// <param name="e">
     /// The <see cref="System.Windows.Input.MouseEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnTreeViewItemHeaderMouseMove(object sender, MouseEventArgs e)
     {
         if (_dragCandidate is null || !_dragStartPoint.HasValue) return;
@@ -243,7 +232,6 @@ public partial class SpadeView
     /// The <see cref="System.Windows.Input.MouseButtonEventArgs" /> instance containing the
     /// event data.
     /// </param>
-
     private void OnTreeViewItemHeaderMouseUp(object sender, MouseButtonEventArgs e)
     {
         _dragCandidate = null;
@@ -282,7 +270,6 @@ public partial class SpadeView
     /// <param name="e">
     /// The <see cref="System.Windows.DragEventArgs"/> instance containing the event data.
     /// </param>
-
     private void OnTreeViewItemHeaderDragEvent(object sender, DragEventArgs e)
     {
         HandleDragScrolling(ScrollViewer, e);
@@ -340,7 +327,6 @@ public partial class SpadeView
     /// <param name="e">
     /// The <see cref="System.Windows.DragEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnTreeViewItemHeaderDragLeave(object sender, DragEventArgs e)
     {
         var targetTreeViewItem = FindParentTreeViewItem(sender);
@@ -359,7 +345,6 @@ public partial class SpadeView
     /// <param name="e">
     /// The <see cref="System.Windows.DragEventArgs" /> instance containing the event data.
     /// </param>
-
     private void OnTreeViewItemHeaderDrop(object sender, DragEventArgs e)
     {
         if (!e.Data.GetDataPresent(typeof(IList<BaseCodeItem>))) return;
@@ -407,7 +392,6 @@ public partial class SpadeView
     /// </summary>
     /// <param name="treeViewItem">The tree view item that must be selected.</param>
     /// <returns>The set of selected tree view items, guaranteed to include the specified one.</returns>
-
     private IList<TreeViewItem> GetSelectedTreeViewItemsIncluding(TreeViewItem treeViewItem)
     {
         // Get the currently selected tree view items.
@@ -433,7 +417,6 @@ public partial class SpadeView
     /// </summary>
     /// <param name="eventSource">The event source.</param>
     /// <returns>The parent TreeViewItem, otherwise null.</returns>
-
     private static TreeViewItem FindParentTreeViewItem(object eventSource)
     {
         var source = eventSource as DependencyObject;
@@ -452,7 +435,6 @@ public partial class SpadeView
     /// <param name="targetItem">The target item.</param>
     /// <param name="targetElement">The target element.</param>
     /// <returns>The drop position.</returns>
-
     private static DropPosition GetDropPosition(DragEventArgs e, BaseCodeItem targetItem, TreeViewItem targetElement)
     {
         var header = targetElement.Template.FindName("PART_HeaderBorder", targetElement) as FrameworkElement;
@@ -481,7 +463,6 @@ public partial class SpadeView
     /// <param name="e">
     /// The <see cref="System.Windows.DragEventArgs" /> instance containing the event data.
     /// </param>
-
     private static void HandleDragScrolling(ScrollViewer scrollViewer, DragEventArgs e)
     {
         const int threshold = 20;
@@ -505,7 +486,6 @@ public partial class SpadeView
     /// <param name="item">The item.</param>
     /// <param name="baseItem">The base item.</param>
     /// <returns>True if item is an ancestor of the specified base, otherwise false.</returns>
-
     private static bool IsItemAncestorOfBase(BaseCodeItem item, BaseCodeItem baseItem)
     {
         var itemAsParent = item as ICodeItemParent;
@@ -522,7 +502,6 @@ public partial class SpadeView
     /// Jumps to the specified code item.
     /// </summary>
     /// <param name="codeItem">The code item.</param>
-
     private void JumpToCodeItem(BaseCodeItem codeItem)
     {
         var viewModel = ViewModel;
@@ -535,7 +514,6 @@ public partial class SpadeView
     /// <summary>
     /// Requests a refresh of Spade.
     /// </summary>
-
     private void Refresh()
     {
         ViewModel.RequestRefresh();
@@ -545,7 +523,6 @@ public partial class SpadeView
     /// Selects the specified code item.
     /// </summary>
     /// <param name="codeItem">The code item.</param>
-
     private void SelectCodeItem(BaseCodeItem codeItem)
     {
         var viewModel = ViewModel;
@@ -559,7 +536,6 @@ public partial class SpadeView
     /// Shows a context menu at the specified point.
     /// </summary>
     /// <param name="point">The point where the context menu should be shown.</param>
-
     private void ShowContextMenu(Point point)
     {
         if (ViewModel?.Package is var package)

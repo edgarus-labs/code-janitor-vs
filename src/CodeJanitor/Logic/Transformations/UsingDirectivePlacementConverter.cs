@@ -195,7 +195,7 @@ public sealed class UsingDirectivePlacementConverter
     /// </summary>
     private static async Task<UsingDirectivePlacementResult> MoveAsync(Document document, UsingMove move, CancellationToken cancellationToken)
     {
-        if (document == null)
+        if (document is null)
         {
             throw new ArgumentNullException(nameof(document));
         }
@@ -212,7 +212,7 @@ public sealed class UsingDirectivePlacementConverter
         }
 
         var unsupportedLayout = move.FindUnsupportedLayout(root, movedUsings);
-        if (unsupportedLayout != null)
+        if (unsupportedLayout is not null)
         {
             return UsingDirectivePlacementResult.Skipped(unsupportedLayout);
         }
@@ -227,7 +227,7 @@ public sealed class UsingDirectivePlacementConverter
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         var unsafeDirective = ResolveTargets(movedUsings, semanticModel, cancellationToken, out var targets)
             ?? FindUnverifiableImplicitCall(root, targets, semanticModel, cancellationToken);
-        if (unsafeDirective != null)
+        if (unsafeDirective is not null)
         {
             return UsingDirectivePlacementResult.Skipped(unsafeDirective);
         }
@@ -255,7 +255,7 @@ public sealed class UsingDirectivePlacementConverter
 
         var unsafeChange = FindMisqualifiedUsing(move, targets, qualifiedUsings, movedModel, cancellationToken)
             ?? FindUnsafeChange(semanticModel, movedModel, cancellationToken);
-        if (unsafeChange != null)
+        if (unsafeChange is not null)
         {
             return UsingDirectivePlacementResult.Skipped(unsafeChange);
         }
@@ -263,7 +263,7 @@ public sealed class UsingDirectivePlacementConverter
         foreach (var variant in ConditionalCompilationVariants.GetOtherVariants(document, symbols))
         {
             var unsafeVariantChange = await FindUnsafeChangeInVariantAsync(variant.Solution.GetDocument(document.Id), move, movedText, text, cancellationToken).ConfigureAwait(false);
-            if (unsafeVariantChange != null)
+            if (unsafeVariantChange is not null)
             {
                 return UsingDirectivePlacementResult.Skipped($"with {variant.Description}: {unsafeVariantChange}");
             }
@@ -284,7 +284,7 @@ public sealed class UsingDirectivePlacementConverter
         var semanticModel = await variant.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         var unsafeDirective = ResolveTargets(move.GetMovedUsings(root), semanticModel, cancellationToken, out var targets)
             ?? FindUnverifiableImplicitCall(root, targets, semanticModel, cancellationToken);
-        if (unsafeDirective != null)
+        if (unsafeDirective is not null)
         {
             return unsafeDirective;
         }
@@ -292,7 +292,7 @@ public sealed class UsingDirectivePlacementConverter
         var movedModel = await GetSemanticModelAsync(variant, movedText, originalText, cancellationToken).ConfigureAwait(false);
         var leftBehind = move.GetMovedUsings(movedModel.SyntaxTree.GetCompilationUnitRoot(cancellationToken)).FirstOrDefault();
 
-        return leftBehind != null
+        return leftBehind is not null
             ? $"'{leftBehind.WithoutTrivia().ToFullString()}' would stay {move.Origin}"
             : FindUnsafeChange(semanticModel, movedModel, cancellationToken);
     }
@@ -476,7 +476,7 @@ public sealed class UsingDirectivePlacementConverter
 
     private static IEnumerable<DirectiveTriviaSyntax> GetDirectives(CompilationUnitSyntax root)
     {
-        for (var directive = root.GetFirstDirective(); directive != null; directive = directive.GetNextDirective())
+        for (var directive = root.GetFirstDirective(); directive is not null; directive = directive.GetNextDirective())
         {
             yield return directive;
         }
@@ -486,7 +486,7 @@ public sealed class UsingDirectivePlacementConverter
     /// Gets the namespace or type a using directive imports or aliases.
     /// </summary>
     private static ISymbol GetTarget(UsingDirectiveSyntax usingDirective, SemanticModel semanticModel, CancellationToken cancellationToken) =>
-        usingDirective.Alias != null
+        usingDirective.Alias is not null
             ? (semanticModel.GetDeclaredSymbol(usingDirective, cancellationToken) as IAliasSymbol)?.Target
             : semanticModel.GetSymbolInfo(usingDirective.NamespaceOrType, cancellationToken).Symbol;
 
@@ -497,7 +497,7 @@ public sealed class UsingDirectivePlacementConverter
     private static string Identify(ISymbol symbol)
     {
         var normalized = Normalize(symbol);
-        if (normalized == null)
+        if (normalized is null)
         {
             return null;
         }
@@ -530,7 +530,7 @@ public sealed class UsingDirectivePlacementConverter
     /// (<c>E.Twice(int)</c>), whose identity includes the declaring class and the receiver parameter.
     /// </summary>
     private static ISymbol Normalize(ISymbol symbol) =>
-        symbol is IMethodSymbol method && method.ReducedFrom != null ? method.GetConstructedReducedFrom() : symbol;
+        symbol is IMethodSymbol method && method.ReducedFrom is not null ? method.GetConstructedReducedFrom() : symbol;
 
     /// <summary>
     /// Returns <paramref name="usingDirective" /> with its name or alias target replaced by the fully qualified name
@@ -562,7 +562,7 @@ public sealed class UsingDirectivePlacementConverter
             return "text " + GetUsingKey(usingDirective);
         }
 
-        var kind = usingDirective.Alias != null ? "alias " + usingDirective.Alias.Name.Identifier.ValueText
+        var kind = usingDirective.Alias is not null ? "alias " + usingDirective.Alias.Name.Identifier.ValueText
             : usingDirective.StaticKeyword.IsKind(SyntaxKind.None) ? "import"
             : "static";
 
@@ -601,6 +601,7 @@ public sealed class UsingDirectivePlacementConverter
                 {
                     // Symbols that read the same are told apart by their assemblies.
                     var withAssemblies = beforeBinding.Describe(withAssemblies: false) == afterBinding.Describe(withAssemblies: false);
+
                     return $"moving them would change what '{DescribeSite(beforeNodes[i])}' refers to ({beforeBinding.Describe(withAssemblies)} -> {afterBinding.Describe(withAssemblies)})";
                 }
             }
@@ -808,7 +809,7 @@ public sealed class UsingDirectivePlacementConverter
         foreach (var call in UnverifiableImplicitCalls)
         {
             var importingDirective = targets.FirstOrDefault(pair => ImportsExtensionMethod(pair.Key, pair.Value, call.Name)).Key;
-            if (importingDirective != null && root.DescendantNodes().Any(node => call.IsCaller(node, semanticModel, cancellationToken)))
+            if (importingDirective is not null && root.DescendantNodes().Any(node => call.IsCaller(node, semanticModel, cancellationToken)))
             {
                 return $"'{importingDirective.WithoutTrivia().ToFullString()}' imports an extension method '{call.DisplayName}', which {call.CalledBy} call implicitly in a way that cannot be verified";
             }
@@ -831,7 +832,7 @@ public sealed class UsingDirectivePlacementConverter
     /// </summary>
     private static bool ImportsExtensionMethod(UsingDirectiveSyntax usingDirective, ISymbol target, string name)
     {
-        if (usingDirective.Alias != null)
+        if (usingDirective.Alias is not null)
         {
             return false;
         }
@@ -875,7 +876,7 @@ public sealed class UsingDirectivePlacementConverter
 
             case INamedTypeSymbol named:
                 return named.TypeArguments.Any(ContainsErrorType)
-                    || (named.ContainingType != null && ContainsErrorType(named.ContainingType));
+                    || (named.ContainingType is not null && ContainsErrorType(named.ContainingType));
 
             default:
                 return false;
@@ -1115,7 +1116,7 @@ public sealed class UsingDirectivePlacementConverter
         var updatedRoot = root.ReplaceNode(ns, updatedNamespace);
         updatedRoot = updatedRoot.WithUsings(SyntaxFactory.List(updatedRoot.Usings.Where(usingDirective => !usingDirective.GlobalKeyword.IsKind(SyntaxKind.None))));
 
-        if (headerOwner != null)
+        if (headerOwner is not null)
         {
             // The file header stays at the top of the file, in front of what is now the first token.
             var firstToken = updatedRoot.GetFirstToken();
@@ -1274,10 +1275,10 @@ public sealed class UsingDirectivePlacementConverter
         public string Identity =>
             _reason + ":" + string.Join("|", _symbols.Select(Identify).OrderBy(identity => identity, StringComparer.Ordinal));
 
-        public static Binding Of(ISymbol symbol) => symbol == null ? None : new Binding(new[] { symbol }, CandidateReason.None);
+        public static Binding Of(ISymbol symbol) => symbol is null ? None : new Binding(new[] { symbol }, CandidateReason.None);
 
         public static Binding Of(SymbolInfo info) =>
-            info.Symbol != null ? Of(info.Symbol) : new Binding(info.CandidateSymbols.ToArray(), info.CandidateReason);
+            info.Symbol is not null ? Of(info.Symbol) : new Binding(info.CandidateSymbols.ToArray(), info.CandidateReason);
 
         /// <summary>
         /// Describes the binding for a skip reason by the names of its symbols, each followed by the name of its

@@ -13,14 +13,12 @@ namespace CodeJanitor.Integration.Commands;
 /// <summary>
 /// A command that provides for cleaning up code in all documents.
 /// </summary>
-
 internal sealed class CleanupAllCodeCommand : BaseCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CleanupAllCodeCommand" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     internal CleanupAllCodeCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCleanupAllCode)
     {
@@ -35,7 +33,6 @@ internal sealed class CleanupAllCodeCommand : BaseCommand
     /// <summary>
     /// Gets the list of all project items.
     /// </summary>
-
     private IEnumerable<ProjectItem> AllProjectItems
         => SolutionHelper.GetAllItemsInSolution<ProjectItem>(Package.IDE.Solution).Where(x => CodeCleanupAvailabilityLogic.CanCleanupProjectItem(x));
 
@@ -49,7 +46,6 @@ internal sealed class CleanupAllCodeCommand : BaseCommand
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>A task.</returns>
-
     public static async Task InitializeAsync(CodeJanitorPackage package)
     {
         Instance = new CleanupAllCodeCommand(package);
@@ -59,7 +55,6 @@ internal sealed class CleanupAllCodeCommand : BaseCommand
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-
     protected override void OnBeforeQueryStatus()
     {
         Enabled = Package.IDE.Solution.IsOpen;
@@ -68,7 +63,6 @@ internal sealed class CleanupAllCodeCommand : BaseCommand
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-
     protected override void OnExecute()
     {
         base.OnExecute();

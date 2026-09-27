@@ -74,7 +74,6 @@ internal sealed class CommentLineXml : CommentLine
     /// <returns>
     /// The XML close tag, or <c>null</c> if the element has no value and is a self-closing tag.
     /// </returns>
-
     private static string CreateXmlCloseTag(XElement element, IXmlTagOptions options)
     {
         if (element.IsEmpty)
@@ -90,7 +89,6 @@ internal sealed class CommentLineXml : CommentLine
     /// </summary>
     /// <param name="element">The element.</param>
     /// <returns>The XML open tag. In case of an element without value, the tag is self-closing.</returns>
-
     private static string CreateXmlOpenTag(XElement element, IXmlTagOptions options)
     {
         var builder = new StringBuilder();
@@ -131,7 +129,6 @@ internal sealed class CommentLineXml : CommentLine
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool StartsWithInterpunction(string value)
     {
         return InterpunctionRegex.IsMatch(value);
@@ -143,7 +140,6 @@ internal sealed class CommentLineXml : CommentLine
     /// <param name="tag">The tag.</param>
     /// <param name="tagCase">The tag case.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string TagCase(string tag, XmlTagCase tagCase)
     {
         return tagCase == XmlTagCase.LowerCase ? tag.ToLowerInvariant() :
@@ -154,7 +150,6 @@ internal sealed class CommentLineXml : CommentLine
     /// <summary>
     /// If there is text left in the buffer, parse and append it as a comment line.
     /// </summary>
-
     private void CloseInnerText(bool isLast)
     {
         if (_innerText.Length > 0)
@@ -169,7 +164,6 @@ internal sealed class CommentLineXml : CommentLine
     /// </summary>
     /// <param name="e">The e.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private bool NeedsXmlHandling(XElement e)
     {
         // All root level elements are always on their own line.
@@ -187,7 +181,6 @@ internal sealed class CommentLineXml : CommentLine
     /// Parses an XML element&apos;s children by either reading literal inner XML into `Content` when `TagOptions.Literal` is set, or recursively walking child nodes to append text and tags to `_innerText`, add XML comment lines to `Lines`, and call `CloseInnerText` for handled elements, while trimming and adjusting whitespace based on node context.
     /// </summary>
     /// <param name="xml">The xml.</param>
-
     private void ParseChildNodes(XElement xml)
     {
         if (TagOptions.Literal)

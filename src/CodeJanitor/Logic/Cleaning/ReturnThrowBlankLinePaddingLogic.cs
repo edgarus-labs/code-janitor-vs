@@ -14,7 +14,6 @@ namespace CodeJanitor.Logic.Cleaning;
 /// This is a thin integration layer over the pure, unit-tested
 /// <see cref="ReturnThrowBlankLinePaddingConverter" /> (see ADR-0005 / ADR-0006).
 /// </remarks>
-
 internal sealed class ReturnThrowBlankLinePaddingLogic
 {
     private readonly CodeJanitorPackage _package;
@@ -30,7 +29,6 @@ internal sealed class ReturnThrowBlankLinePaddingLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="ReturnThrowBlankLinePaddingLogic" /> class.</returns>
-
     internal static ReturnThrowBlankLinePaddingLogic GetInstance(CodeJanitorPackage package)
     {
         return _instance ?? (_instance = new ReturnThrowBlankLinePaddingLogic(package));
@@ -40,7 +38,6 @@ internal sealed class ReturnThrowBlankLinePaddingLogic
     /// Initializes a new instance of the <see cref="ReturnThrowBlankLinePaddingLogic" /> class.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-
     private ReturnThrowBlankLinePaddingLogic(CodeJanitorPackage package)
     {
         _package = package;
@@ -53,7 +50,6 @@ internal sealed class ReturnThrowBlankLinePaddingLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-
     internal void InsertPaddingBeforeReturnAndThrowStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();

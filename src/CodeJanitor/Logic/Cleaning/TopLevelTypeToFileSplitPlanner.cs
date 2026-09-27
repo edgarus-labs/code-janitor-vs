@@ -77,7 +77,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="source">The source.</param>
     /// <param name="filePath">The file path.</param>
     /// <returns>A SplitPlan value produced by this method.</returns>
-
     internal SplitPlan CreatePlan(string source, string filePath)
     {
         if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(filePath))
@@ -138,7 +137,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string BuildTypeFileName(MemberDeclarationSyntax member)
     {
         return BuildTypeFileStem(member) + ".cs";
@@ -149,7 +147,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>A string value produced by this method.</returns>
-
     internal static string BuildTypeFileStem(MemberDeclarationSyntax member)
     {
         var identifier = GetIdentifier(member);
@@ -165,7 +162,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="root">The root.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool HasUnsupportedStructure(CompilationUnitSyntax root)
     {
         if (root.AttributeLists.Count > 0)
@@ -202,7 +198,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="root">The root.</param>
     /// <param name="members">The members.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool TryGetContainerMembers(CompilationUnitSyntax root, out IReadOnlyList<MemberDeclarationSyntax> members)
     {
         if (root.Members.Count == 1 && root.Members[0] is BaseNamespaceDeclarationSyntax namespaceDeclaration)
@@ -222,7 +217,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member)
     {
         if (member is ClassDeclarationSyntax classDeclaration)
@@ -253,7 +247,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="modifiers">The modifiers.</param>
     /// <returns>A bool value produced by this method.</returns>
-
     private static bool HasPartialModifier(SyntaxTokenList modifiers)
     {
         return modifiers.Any(x => x.IsKind(SyntaxKind.PartialKeyword));
@@ -265,7 +258,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="eligibleMembers">The eligible members.</param>
     /// <param name="originalFileName">The original file name.</param>
     /// <returns>A MemberDeclarationSyntax value produced by this method.</returns>
-
     private static MemberDeclarationSyntax ChooseMemberToKeep(IEnumerable<MemberDeclarationSyntax> eligibleMembers, string originalFileName)
     {
         return eligibleMembers.FirstOrDefault(x => string.Equals(BuildTypeFileName(x), originalFileName, StringComparison.OrdinalIgnoreCase));
@@ -277,7 +269,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="root">The root.</param>
     /// <param name="members">The members.</param>
     /// <returns>A CompilationUnitSyntax value produced by this method.</returns>
-
     private static CompilationUnitSyntax ReplaceContainedMembers(CompilationUnitSyntax root, IEnumerable<MemberDeclarationSyntax> members)
     {
         var memberList = SyntaxFactory.List(members);
@@ -301,7 +292,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="desiredFileName">The desired file name.</param>
     /// <param name="reservedFileNames">The reserved file names.</param>
     /// <returns>A string value produced by this method.</returns>
-
     private static string MakeFileNameUnique(string desiredFileName, ISet<string> reservedFileNames)
     {
         if (!reservedFileNames.Contains(desiredFileName))
@@ -330,7 +320,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="member">The member.</param>
     /// <returns>A string value produced by this method.</returns>
     /// <exception cref="InvalidOperationException">Thrown when method validation or execution fails for this exception type.</exception>
-
     private static string GetIdentifier(MemberDeclarationSyntax member)
     {
         switch (member)
@@ -351,7 +340,6 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>A IReadOnlyList&lt;string&gt; value produced by this method.</returns>
-
     private static IReadOnlyList<string> GetTypeParameterNames(MemberDeclarationSyntax member)
     {
         switch (member)

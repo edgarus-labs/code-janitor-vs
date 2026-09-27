@@ -70,9 +70,9 @@ public sealed class EditorConfigOverrideNotesTests
     [DataRow("insert_final_newline = false", "Cleaning_RemoveEndOfFileTrailingNewLine", "insert_final_newline")]
     public void Indexer_EnforcedEditorConfigKey_NamesKeyAndDefiningFile(string option, string settingName, string key)
     {
-        var configPath = WriteEditorConfig(_solutionDirectory, isRoot: false, option);
+        string configPath = WriteEditorConfig(_solutionDirectory, isRoot: false, option);
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.AreEqual($"Overridden by .editorconfig: {key} in {configPath}", notes[settingName]);
     }
@@ -83,11 +83,11 @@ public sealed class EditorConfigOverrideNotesTests
     {
         WriteEditorConfig(_solutionDirectory, isRoot: false, "dotnet_style_require_accessibility_modifiers = always:warning");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
-        foreach (var settingName in ExplicitAccessModifierSettings)
+        foreach (string settingName in ExplicitAccessModifierSettings)
         {
-            StringAssert.Contains(notes[settingName], "dotnet_style_require_accessibility_modifiers", settingName);
+            Assert.Contains("dotnet_style_require_accessibility_modifiers", notes[settingName], settingName);
         }
     }
 
@@ -111,16 +111,16 @@ public sealed class EditorConfigOverrideNotesTests
             "indent_style = space",
             "dotnet_sort_system_directives_first = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
-        var annotated = Settings.Default.Properties
+        string[] annotated = Settings.Default.Properties
             .Cast<System.Configuration.SettingsProperty>()
             .Select(property => property.Name)
             .Where(name => notes[name] is not null)
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 
-        var expected = ExplicitAccessModifierSettings
+        string[] expected = ExplicitAccessModifierSettings
             .Concat(new[]
             {
                 "Cleaning_ConvertToCollectionExpressions",
@@ -137,7 +137,7 @@ public sealed class EditorConfigOverrideNotesTests
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 
-        CollectionAssert.AreEqual(expected, annotated, string.Join(", ", annotated));
+        Assert.AreSequenceEqual(expected, annotated, string.Join(", ", annotated));
     }
 
     [TestMethod]
@@ -149,7 +149,7 @@ public sealed class EditorConfigOverrideNotesTests
     {
         WriteEditorConfig(_solutionDirectory, isRoot: false, option);
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.IsNull(notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -160,7 +160,7 @@ public sealed class EditorConfigOverrideNotesTests
     {
         WriteEditorConfig(_solutionDirectory, isRoot: false, "csharp_style_var_when_type_is_apparent = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.IsNull(notes["Cleaning_SealClassesWhenSafe"]);
     }
@@ -170,9 +170,9 @@ public sealed class EditorConfigOverrideNotesTests
     public void Indexer_KeyOnlyInParentConfig_NamesParentFile()
     {
         WriteEditorConfig(_solutionDirectory, isRoot: false, "dotnet_style_readonly_field = true");
-        var parentPath = WriteEditorConfig(_tempDirectory, isRoot: true, "csharp_style_var_when_type_is_apparent = true");
+        string parentPath = WriteEditorConfig(_tempDirectory, isRoot: true, "csharp_style_var_when_type_is_apparent = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.AreEqual($"Overridden by .editorconfig: csharp_style_var_when_type_is_apparent in {parentPath}", notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -182,9 +182,9 @@ public sealed class EditorConfigOverrideNotesTests
     public void Indexer_KeyInSolutionAndParentConfig_NamesNearestFile()
     {
         WriteEditorConfig(_tempDirectory, isRoot: true, "csharp_style_var_when_type_is_apparent = true");
-        var nearestPath = WriteEditorConfig(_solutionDirectory, isRoot: false, "csharp_style_var_when_type_is_apparent = false");
+        string nearestPath = WriteEditorConfig(_solutionDirectory, isRoot: false, "csharp_style_var_when_type_is_apparent = false");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.AreEqual($"Overridden by .editorconfig: csharp_style_var_when_type_is_apparent in {nearestPath}", notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -193,13 +193,13 @@ public sealed class EditorConfigOverrideNotesTests
     [TestCategory("UI UnitTests")]
     public void Indexer_KeyAboveRootConfig_HasNoNote()
     {
-        var outer = Path.Combine(_tempDirectory, "outer");
-        var solutionDirectory = Path.Combine(outer, "repo");
+        string outer = Path.Combine(_tempDirectory, "outer");
+        string solutionDirectory = Path.Combine(outer, "repo");
         Directory.CreateDirectory(solutionDirectory);
         WriteEditorConfig(outer, isRoot: false, "csharp_style_var_when_type_is_apparent = true");
         WriteEditorConfig(solutionDirectory, isRoot: true, "dotnet_style_readonly_field = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(Path.Combine(solutionDirectory, "Sample.sln"));
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(Path.Combine(solutionDirectory, "Sample.sln"));
 
         Assert.IsNull(notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -208,10 +208,10 @@ public sealed class EditorConfigOverrideNotesTests
     [TestCategory("UI UnitTests")]
     public void Indexer_KeyOnlyInNestedProjectConfig_HasNoNote()
     {
-        var project = Directory.CreateDirectory(Path.Combine(_solutionDirectory, "src"));
+        DirectoryInfo project = Directory.CreateDirectory(Path.Combine(_solutionDirectory, "src"));
         WriteEditorConfig(project.FullName, isRoot: false, "csharp_style_var_when_type_is_apparent = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.IsNull(notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -224,7 +224,7 @@ public sealed class EditorConfigOverrideNotesTests
             Path.Combine(_solutionDirectory, ".editorconfig"),
             "[*.vb]\r\ndotnet_style_readonly_field = true\r\n");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.IsNull(notes["Cleaning_MakeFieldsReadonlyWhenSafe"]);
     }
@@ -238,7 +238,7 @@ public sealed class EditorConfigOverrideNotesTests
     {
         WriteEditorConfig(_solutionDirectory, isRoot: false, "csharp_style_var_when_type_is_apparent = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(solutionPath);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(solutionPath);
 
         Assert.IsNull(notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -250,17 +250,17 @@ public sealed class EditorConfigOverrideNotesTests
         WriteEditorConfig(_solutionDirectory, isRoot: false,
             "dotnet_style_require_accessibility_modifiers = always",
             "insert_final_newline = true");
-        var lookups = new List<string>();
+        List<string> lookups = [];
 
         EditorConfigOverrideNotes.ForSolution(_solutionPath, (probePath, key) =>
         {
             lookups.Add(key);
+
             return "defining.editorconfig";
         });
 
-        CollectionAssert.AreEquivalent(
-            new[] { "dotnet_style_require_accessibility_modifiers", "insert_final_newline" },
-            lookups);
+        Assert.AreSequenceEqual(
+            new[] { "dotnet_style_require_accessibility_modifiers", "insert_final_newline" }, lookups, Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -269,7 +269,7 @@ public sealed class EditorConfigOverrideNotesTests
     {
         WriteEditorConfig(_solutionDirectory, isRoot: false, "csharp_style_var_when_type_is_apparent = true");
 
-        var notes = EditorConfigOverrideNotes.ForSolution(_solutionPath, (probePath, key) => null);
+        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath, (probePath, key) => null);
 
         Assert.AreEqual("Overridden by .editorconfig: csharp_style_var_when_type_is_apparent", notes["Cleaning_ConvertToVarWhenApparent"]);
     }
@@ -279,13 +279,14 @@ public sealed class EditorConfigOverrideNotesTests
     /// </summary>
     private static string WriteEditorConfig(string directory, bool isRoot, params string[] csharpOptions)
     {
-        var lines = (isRoot ? new[] { "root = true", string.Empty } : Array.Empty<string>())
+        IEnumerable<string> lines = (isRoot ? new[] { "root = true", string.Empty } : Array.Empty<string>())
             .Concat(new[] { "[*.cs]" })
             .Concat(csharpOptions)
             .Concat(new[] { string.Empty });
 
-        var path = Path.Combine(directory, ".editorconfig");
+        string path = Path.Combine(directory, ".editorconfig");
         File.WriteAllText(path, string.Join("\r\n", lines));
+
         return path;
     }
 }

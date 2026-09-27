@@ -15,7 +15,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// are preserved exactly. Each tab is expanded to a fixed number of spaces (<see cref="TabSize" />);
 /// this is a simple fixed-width expansion, not column-aware elastic-tab alignment.
 /// </remarks>
-
 public sealed class TabToSpaceConverter : ISourceTransformation
 {
     /// <summary>
@@ -28,7 +27,6 @@ public sealed class TabToSpaceConverter : ISourceTransformation
     /// <summary>
     /// Initializes a converter that expands each tab to the default number of spaces (4).
     /// </summary>
-
     public TabToSpaceConverter()
         : this(DefaultTabSize)
     {
@@ -37,7 +35,6 @@ public sealed class TabToSpaceConverter : ISourceTransformation
     /// <summary>
     /// Initializes a converter that expands each tab to <paramref name="tabSize" /> spaces.
     /// </summary>
-
     public TabToSpaceConverter(int tabSize)
     {
         if (tabSize < 1)
@@ -58,7 +55,6 @@ public sealed class TabToSpaceConverter : ISourceTransformation
     public string Name => "Convert tabs to spaces";
 
     /// <inheritdoc />
-
     public string Apply(string source)
     {
         return Convert(source);
@@ -68,7 +64,6 @@ public sealed class TabToSpaceConverter : ISourceTransformation
     /// Converts indentation/whitespace tabs to spaces in the given C# source, leaving tabs inside
     /// string/char literals and comments untouched.
     /// </summary>
-
     public string Convert(string source)
     {
         if (string.IsNullOrEmpty(source))

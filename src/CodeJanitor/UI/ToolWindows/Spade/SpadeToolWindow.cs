@@ -24,7 +24,6 @@ namespace CodeJanitor.UI.ToolWindows.Spade;
 /// <summary>
 /// The Spade tool window pane.
 /// </summary>
-
 [Guid(PackageGuids.GuidCodeJanitorToolWindowSpadeString)]
 public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
 {
@@ -37,7 +36,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeToolWindow" /> class.
     /// </summary>
-
     public SpadeToolWindow()
         : base(null)
     {
@@ -71,7 +69,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Gets or sets the current document.
     /// </summary>
-
     public Document Document
     {
         get
@@ -93,7 +90,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Gets or sets the name filter.
     /// </summary>
-
     public string NameFilter
     {
         get { return _viewModel.NameFilter; }
@@ -118,7 +114,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Gets or sets the sort order.
     /// </summary>
-
     public CodeSortOrder SortOrder
     {
         get
@@ -138,7 +133,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Gets or sets a flag indicating if this tool window is visible.
     /// </summary>
-
     private bool IsVisible
     {
         get
@@ -160,7 +154,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Clears the search by setting NameFilter to null, which removes any active name-based filtering; no exceptions are thrown.
     /// </summary>
-
     public override void ClearSearch()
     {
         NameFilter = null;
@@ -169,7 +162,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// This method verifies the caller is on the UI thread, then closes the Frame as an IVsWindowFrame using FRAMECLOSE_NoSave, causing the window to close without.
     /// </summary>
-
     public void Close()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -184,7 +176,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <param name="pSearchQuery">The p search query.</param>
     /// <param name="pSearchCallback">The p search callback.</param>
     /// <returns>A IVsSearchTask value produced by this method.</returns>
-
     public override IVsSearchTask CreateSearch(uint dwCookie, IVsSearchQuery pSearchQuery, IVsSearchCallback pSearchCallback)
             => new MemberSearchTask(dwCookie, pSearchQuery, pSearchCallback, x => NameFilter = x);
 
@@ -192,7 +183,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// A method to be called to notify the tool window about the current active document.
     /// </summary>
     /// <param name="document">The active document.</param>
-
     public void NotifyActiveDocument(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -204,7 +194,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// A method to be called to notify the tool window that has a document has been saved.
     /// </summary>
     /// <param name="document">The document.</param>
-
     public void NotifyDocumentSave(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -221,7 +210,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// </summary>
     /// <param name="pgrfSaveOptions">The pgrf save options.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnClose(ref uint pgrfSaveOptions) => VSConstants.S_OK;
 
     /// <summary>
@@ -233,7 +221,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <param name="w">The w.</param>
     /// <param name="h">The h.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnDockableChange(int fDockable, int x, int y, int w, int h) => VSConstants.S_OK;
 
     /// <summary>
@@ -244,7 +231,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <param name="w">The w.</param>
     /// <param name="h">The h.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnMove(int x, int y, int w, int h) => VSConstants.S_OK;
 
     /// <summary>
@@ -252,7 +238,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// </summary>
     /// <param name="fShow">The f show.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnShow(int fShow)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -280,7 +265,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <param name="w">The w.</param>
     /// <param name="h">The h.</param>
     /// <returns>A int value produced by this method.</returns>
-
     public int OnSize(int x, int y, int w, int h) => VSConstants.S_OK;
 
     /// <summary>
@@ -289,7 +273,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// should make sure its command handler are set by the time they return from this method.
     /// This is called when someone set the Frame property.
     /// </summary>
-
     public override void OnToolWindowCreated()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -349,7 +332,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// Overrides search settings by enforcing UI thread execution, delegating to the base implementation, and then setting the search control&apos;s minimum width to 200, maximum width to the maximum unsigned integer value, and watermark text to a localized resource string, thereby mutating the provided search settings data source.
     /// </summary>
     /// <param name="pSearchSettings">The p search settings.</param>
-
     public override void ProvideSearchSettings(IVsUIDataSource pSearchSettings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -364,7 +346,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Refresh the Spade tool window.
     /// </summary>
-
     public void Refresh()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -378,7 +359,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// Conditionally updates the code model.
     /// </summary>
     /// <param name="isRefresh">True if refreshing a document, otherwise false.</param>
-
     private void ConditionallyUpdateCodeModel(bool isRefresh)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -420,7 +400,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// document currently being shown by Spade, the raw code items will be processed and displayed.
     /// </summary>
     /// <param name="codeModel">The code model.</param>
-
     private void OnCodeModelBuilt(CodeModel codeModel)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -434,7 +413,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// An event handler called when settings are changed.
     /// </summary>
-
     private void OnSettingsChange()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -448,7 +426,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The e.</param>
-
     private void OnSettingsLoaded(object sender, System.Configuration.SettingsLoadedEventArgs e)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -460,7 +437,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The e.</param>
-
     private void OnSettingsSaving(object sender, System.ComponentModel.CancelEventArgs e)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -471,7 +447,6 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// Update the view model's raw set of code items based on the specified code items.
     /// </summary>
     /// <param name="codeItems">The code items.</param>
-
     private void UpdateViewModelRawCodeItems(SetCodeItems codeItems)
     {
         // Create a copy of the original collection, filtering out undesired items.

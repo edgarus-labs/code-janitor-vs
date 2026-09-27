@@ -6,13 +6,11 @@ namespace CodeJanitor.Model.CodeItems;
 /// <summary>
 /// The representation of a code enumeration.
 /// </summary>
-
 public sealed class CodeItemEnum : BaseCodeItemElementParent
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeItemEnum" /> class.
     /// </summary>
-
     public CodeItemEnum()
     {
         _Access = LazyTryDefault(

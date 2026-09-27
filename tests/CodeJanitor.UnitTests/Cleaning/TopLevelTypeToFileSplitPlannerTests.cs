@@ -32,16 +32,16 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
     [TestMethod]
     public void CreatePlan_KeepsTypeMatchingOriginalFileName_AndMovesOtherTypes()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\ninterface IBar { }\r\nenum Baz { A }\r\n";
 
-        var plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
 
         Assert.IsTrue(plan.HasChanges);
-        StringAssert.Contains(plan.UpdatedSource, "class Foo");
-        Assert.IsFalse(plan.UpdatedSource.Contains("interface IBar"));
-        Assert.IsFalse(plan.UpdatedSource.Contains("enum Baz"));
-        CollectionAssert.AreEquivalent(new[] { "IBar.cs", "Baz.cs" }, plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray());
+        Assert.Contains("class Foo", plan.UpdatedSource);
+        Assert.DoesNotContain("interface IBar", plan.UpdatedSource);
+        Assert.DoesNotContain("enum Baz", plan.UpdatedSource);
+        Assert.AreSequenceEqual(new[] { "IBar.cs", "Baz.cs" }, plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -49,23 +49,22 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
     {
         File.WriteAllText(Path.Combine(_tempDirectory, "Thing{TIn}.cs"), string.Empty);
 
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Thing { }\r\nclass Thing<TIn> { }\r\nclass Thing<TIn, TOut> { }\r\n";
 
-        var plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Thing.cs"));
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Thing.cs"));
 
-        CollectionAssert.AreEquivalent(
-            new[] { "Thing{TIn}~1.cs", "Thing{TIn,TOut}.cs" },
-            plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray());
+        Assert.AreSequenceEqual(
+            new[] { "Thing{TIn}~1.cs", "Thing{TIn,TOut}.cs" }, plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
     public void CreatePlan_SkipsFilesWithConditionalCompilationDirectives()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\n#if DEBUG\r\nclass Foo { }\r\n#endif\r\nclass Bar { }\r\n";
 
-        var plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
 
         Assert.IsFalse(plan.HasChanges);
         Assert.AreEqual(source, plan.UpdatedSource);
@@ -74,37 +73,37 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
     [TestMethod]
     public void CreatePlan_LeavesPartialAndNestedTypesInTheOriginalFile()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { class Nested { } }\r\npartial class Shared { }\r\ninterface IBar { }\r\n";
 
-        var plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
 
         Assert.IsTrue(plan.HasChanges);
-        StringAssert.Contains(plan.UpdatedSource, "partial class Shared");
-        StringAssert.Contains(plan.UpdatedSource, "class Nested");
-        CollectionAssert.AreEquivalent(new[] { "IBar.cs" }, plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray());
+        Assert.Contains("partial class Shared", plan.UpdatedSource);
+        Assert.Contains("class Nested", plan.UpdatedSource);
+        Assert.AreSequenceEqual(new[] { "IBar.cs" }, plan.NewFiles.Select(x => Path.GetFileName(x.FilePath)).ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
     public void CreatePlan_PreservesFileScopedNamespace_InGeneratedFiles()
     {
-        var source =
+        string source =
             "namespace Demo;\r\n\r\nclass Foo { }\r\ndelegate void Work<TIn, TOut>(TIn input);\r\n";
 
-        var plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
 
-        var generated = plan.NewFiles.Single();
-        StringAssert.Contains(generated.Content, "namespace Demo;");
-        StringAssert.Contains(generated.Content, "delegate void Work<TIn, TOut>");
+        TopLevelTypeToFileSplitPlanner.PlannedFile generated = plan.NewFiles.Single();
+        Assert.Contains("namespace Demo;", generated.Content);
+        Assert.Contains("delegate void Work<TIn, TOut>", generated.Content);
     }
 
     [TestMethod]
     public void CreatePlan_SkipsFilesWithAssemblyAttributes()
     {
-        var source =
+        string source =
             "[assembly: CLSCompliant(true)]\r\nnamespace Demo;\r\n\r\nclass Foo { }\r\nclass Bar { }\r\n";
 
-        var plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
 
         Assert.IsFalse(plan.HasChanges);
         Assert.AreEqual(source, plan.UpdatedSource);

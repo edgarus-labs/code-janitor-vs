@@ -6,7 +6,6 @@ namespace CodeJanitor.Properties;
 /// <summary>
 /// This partial class instructs the <see cref="Settings"/> class to utilize the <see cref="CodeJanitorSettingsProvider"/>.
 /// </summary>
-
 [SettingsProvider(typeof(CodeJanitorSettingsProvider))]
 public sealed partial class Settings
 {
@@ -14,7 +13,6 @@ public sealed partial class Settings
     /// Migrates legacy sensitive settings values to their protected equivalents.
     /// </summary>
     /// <returns>True when settings were changed, otherwise false.</returns>
-
     public bool MigrateSensitiveSettings()
     {
         var changed = false;
@@ -33,7 +31,6 @@ public sealed partial class Settings
     /// <summary>
     /// Updates application settings to reflect a more recent installation of the application.
     /// </summary>
-
     public override void Upgrade()
     {
         var oldSettingsProvider = new LocalFileSettingsProvider();

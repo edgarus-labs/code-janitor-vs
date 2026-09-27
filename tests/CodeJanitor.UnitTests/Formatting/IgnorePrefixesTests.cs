@@ -7,7 +7,6 @@ namespace CodeJanitor.UnitTests.Formatting;
 /// <summary>
 /// Test for the ignoring of comments lines starting with certain prefixes.
 /// </summary>
-
 [TestClass]
 public sealed class IgnorePrefixesTests
 {
@@ -28,13 +27,13 @@ public sealed class IgnorePrefixesTests
     [TestCategory("Formatting UnitTests")]
     public void IgnorePrefixesTests_DoesNotWrapLineInsideComment()
     {
-        var input =
+        string input =
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +
             "TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
         // Expect all lines to be wrapped except for the one starting with "TODO".
-        var expected =
+        string expected =
             "Lorem ipsum dolor sit amet," + Environment.NewLine +
             "consectetur adipiscing elit." + Environment.NewLine +
             "TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +
@@ -48,14 +47,14 @@ public sealed class IgnorePrefixesTests
     [TestCategory("Formatting UnitTests")]
     public void IgnorePrefixesTests_DoesNotCombineSubsequentLines()
     {
-        var input =
+        string input =
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +
             "TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +
             "TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
         // Expect every "ignored" line to stay on it's own.
-        var expected =
+        string expected =
             "Lorem ipsum dolor sit amet," + Environment.NewLine +
             "consectetur adipiscing elit." + Environment.NewLine +
             "TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit." + Environment.NewLine +

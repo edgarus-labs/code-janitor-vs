@@ -1,4 +1,4 @@
-﻿using EnvDTE;
+using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Cleaning;
@@ -21,6 +21,7 @@ internal sealed class RemoveXmlDocCommand : BaseCommand
     /// The large scope warning threshold.
     /// </summary>
     private const int LargeScopeWarningThreshold = 50;
+
     /// <summary>
     /// The very large scope warning threshold.
     /// </summary>

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
@@ -434,7 +434,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         // (not canceled, no worker error, no per-file failures) and Visual Studio's
         // build context is available.
         if (!e.Cancelled && e.Error is null && stats.FailedItems == 0 &&
-            _package?.IDE?.Solution?.SolutionBuild != null &&
+            _package?.IDE?.Solution?.SolutionBuild is not null &&
             (stats.HeadlessChangedItems > 0 || stats.DiagnosticChangedItems > 0))
         {
             try

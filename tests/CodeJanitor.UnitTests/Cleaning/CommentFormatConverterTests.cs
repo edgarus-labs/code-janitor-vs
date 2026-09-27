@@ -26,95 +26,95 @@ public sealed class CommentFormatConverterTests
     public void SettingDisabled_ReturnsUnchanged()
     {
         Settings.Default.Formatting_CommentRunDuringCleanup = false;
-        var source = "// comment\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "// comment\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
     [TestMethod]
     public void EmptySource_ReturnsUnchanged()
     {
-        var source = "";
-        var result = _converter.Apply(source);
+        string source = "";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
     [TestMethod]
     public void NullSource_ReturnsUnchanged()
     {
-        var result = _converter.Apply(null);
+        string result = _converter.Apply(null);
         Assert.IsNull(result);
     }
 
     [TestMethod]
     public void NoComments_ReturnsUnchanged()
     {
-        var source = "public class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "public class MyClass { }";
+        string result = _converter.Apply(source);
         Assert.AreEqual(source, result);
     }
 
     [TestMethod]
     public void SingleLineComment_NormalizesSpacing()
     {
-        var source = "//  comment with extra spaces\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "//  comment with extra spaces\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
         // Should normalize to single space after //
-        Assert.IsTrue(result.Contains("// comment with extra spaces"));
+        Assert.Contains("// comment with extra spaces", result);
     }
 
     [TestMethod]
     public void SingleLineCommentWithoutSpace_AddsSpace()
     {
-        var source = "//comment\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "//comment\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
         // Should add space after //
-        Assert.IsTrue(result.Contains("// comment"));
+        Assert.Contains("// comment", result);
     }
 
     [TestMethod]
     public void IndentedComment_PreservesIndentation()
     {
-        var source = "    // indented comment\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "    // indented comment\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
         // Should preserve indentation
-        Assert.IsTrue(result.Contains("    // indented comment"));
+        Assert.Contains("    // indented comment", result);
     }
 
     [TestMethod]
     public void EmptyComment_NormalizesCorrectly()
     {
-        var source = "//\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("//"));
+        string source = "//\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
+        Assert.Contains("//", result);
     }
 
     [TestMethod]
     public void MultiLineComment_PreservesStructure()
     {
-        var source = "/* comment */\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
-        Assert.IsTrue(result.Contains("/* comment */"));
+        string source = "/* comment */\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
+        Assert.Contains("/* comment */", result);
     }
 
     [TestMethod]
     public void MultipleComments_FormatsAll()
     {
-        var source = "//  comment1\r\n//  comment2\r\npublic class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "//  comment1\r\n//  comment2\r\npublic class MyClass { }";
+        string result = _converter.Apply(source);
         // Both should be normalized
-        Assert.IsTrue(result.Contains("// comment1"));
-        Assert.IsTrue(result.Contains("// comment2"));
+        Assert.Contains("// comment1", result);
+        Assert.Contains("// comment2", result);
     }
 
     [TestMethod]
     public void PreservesNewlineStyle()
     {
-        var source = "// comment\n// another";
-        var result = _converter.Apply(source);
+        string source = "// comment\n// another";
+        string result = _converter.Apply(source);
         // Should preserve \n style
-        Assert.IsTrue(result.Contains("\n"));
-        Assert.IsFalse(result.Contains("\r\n"));
+        Assert.Contains("\n", result);
+        Assert.DoesNotContain("\r\n", result);
     }
 
     [TestMethod]
@@ -126,29 +126,29 @@ public sealed class CommentFormatConverterTests
     [TestMethod]
     public void MultiLineComment_WithAsteriskContinuationLines_AlignsWithBaseIndentation()
     {
-        var source = "    /*\r\n    * line 1\r\n    * line 2\r\n    */\r\n    public class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "    /*\r\n    * line 1\r\n    * line 2\r\n    */\r\n    public class MyClass { }";
+        string result = _converter.Apply(source);
 
-        Assert.IsTrue(result.Contains("    * line 1"));
-        Assert.IsTrue(result.Contains("    * line 2"));
+        Assert.Contains("    * line 1", result);
+        Assert.Contains("    * line 2", result);
     }
 
     [TestMethod]
     public void MultiLineComment_WithoutAsteriskContinuationLines_PreservesLines()
     {
-        var source = "    /*\r\n    content line 1\r\n    content line 2\r\n    */\r\n    public class MyClass { }";
-        var result = _converter.Apply(source);
+        string source = "    /*\r\n    content line 1\r\n    content line 2\r\n    */\r\n    public class MyClass { }";
+        string result = _converter.Apply(source);
 
-        Assert.IsTrue(result.Contains("    content line 1"));
-        Assert.IsTrue(result.Contains("    content line 2"));
+        Assert.Contains("    content line 1", result);
+        Assert.Contains("    content line 2", result);
     }
 
     [TestMethod]
     public void PreservesCarriageReturnNewlineStyle()
     {
-        var source = "// comment 1\r// comment 2";
-        var result = _converter.Apply(source);
+        string source = "// comment 1\r// comment 2";
+        string result = _converter.Apply(source);
 
-        Assert.IsTrue(result.Contains("\r"));
+        Assert.Contains("\r", result);
     }
 }
