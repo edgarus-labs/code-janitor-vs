@@ -13,9 +13,10 @@ namespace CodeJanitor.Logic.Transformations;
 /// on a new line, method body content on separate lines, and closing brace on its own line.
 /// </summary>
 /// <remarks>
-/// Only trivia is rewritten: comments are kept, the indentation follows the line of the opening
-/// brace (one extra tab or four spaces for the statements) and the line break is the one ending
-/// the method's line (or the first one of the file), so the file's line endings are preserved.
+/// Only trivia is rewritten: comments are kept and the line break is the one ending the opening
+/// brace's line (or the first one of the file), so the file's line endings are preserved. The
+/// indentation follows the declaration's first line when the brace is on the header line, and the
+/// brace's own line otherwise (one extra tab or four spaces for the statements).
 /// </remarks>
 public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
 {

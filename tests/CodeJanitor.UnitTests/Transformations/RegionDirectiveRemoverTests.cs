@@ -92,4 +92,13 @@ public class C
     {
         Assert.AreEqual("class C { }\r", _remover.Apply("#region A\rclass C { }\r#endregion\r"));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void RegionLinesInsideVerbatimStringOfInactiveBranch_AreKept()
+    {
+        string input = "#if DEBUG\r\nconst string T = @\"\r\n#region X\r\nx\r\n#endregion\r\n\";\r\n#endif\r\n";
+
+        Assert.AreEqual(input, _remover.Apply(input));
+    }
 }

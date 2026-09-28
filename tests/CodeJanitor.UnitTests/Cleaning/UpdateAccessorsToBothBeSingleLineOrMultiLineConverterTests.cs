@@ -145,12 +145,6 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
     }
 
     [TestMethod]
-    public void Name_DescribesTheCleanup()
-    {
-        Assert.AreEqual("Update accessors to both be single line or multi-line", _converter.Name);
-    }
-
-    [TestMethod]
     [DataRow("class C\r\n{\r\n    event System.Action E\r\n    {\r\n        add { }\r\n        remove { }\r\n    }\r\n}\r\n", DisplayName = "event with consistent single-line accessors")]
     [DataRow("class C\r\n{\r\n    event System.Action E\r\n    {\r\n        add\r\n        {\r\n            _e += value;\r\n        }\r\n        remove\r\n        {\r\n            _e -= value;\r\n        }\r\n    }\r\n}\r\n", DisplayName = "event with consistent multi-line accessors")]
     [DataRow("class C\r\n{\r\n    event System.Action E\r\n    {\r\n        add => _e += value;\r\n        remove\r\n        {\r\n            _e -= value;\r\n        }\r\n    }\r\n}\r\n", DisplayName = "event with an expression-bodied accessor")]

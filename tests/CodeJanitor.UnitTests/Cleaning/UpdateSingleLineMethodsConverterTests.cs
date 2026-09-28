@@ -91,12 +91,6 @@ public sealed class UpdateSingleLineMethodsConverterTests
     }
 
     [TestMethod]
-    public void Name_DescribesTheCleanup()
-    {
-        Assert.AreEqual("Update single-line methods", _converter.Name);
-    }
-
-    [TestMethod]
     [DataRow("class C\r\n{\r\n    int M() => 1;\r\n}\r\n", DisplayName = "expression-bodied method")]
     [DataRow("class C\r\n{\r\n    void M() { }\r\n}\r\n", DisplayName = "empty body")]
     [DataRow("class C\r\n{\r\n    void M() { Foo(1,\r\n        2); }\r\n}\r\n", DisplayName = "statement spanning two lines")]

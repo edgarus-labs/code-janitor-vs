@@ -47,15 +47,16 @@ public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
         {
             int contentEnd = RegionDirectiveRemover.FindLineEnd(source, lineStart, out int nextLineStart);
             string line = source.Substring(lineStart, contentEnd - lineStart);
-            bool isCode = !RegionDirectiveRemover.StartsInside(protectedSpans, lineStart);
-            Match regionMatch = isCode ? RegionDirectiveRegex.Match(line) : Match.Empty;
+            Match regionMatch = RegionDirectiveRegex.Match(line);
+            bool isEndRegion = !regionMatch.Success && regionStack.Count > 0 && EndRegionDirectiveRegex.IsMatch(line);
+            bool isCode = (regionMatch.Success || isEndRegion) && !RegionDirectiveRemover.StartsInside(protectedSpans, lineStart);
 
-            if (regionMatch.Success)
+            if (regionMatch.Success && isCode)
             {
                 regionStack.Push(regionMatch.Groups[1].Value.Trim());
                 result.Append(line);
             }
-            else if (isCode && regionStack.Count > 0 && EndRegionDirectiveRegex.IsMatch(line))
+            else if (isEndRegion && isCode)
             {
                 string matchingRegionName = regionStack.Pop();
 

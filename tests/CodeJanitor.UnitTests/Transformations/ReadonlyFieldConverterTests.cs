@@ -763,6 +763,11 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C<T> { private T _t; void M() { _t.ToString(); } }", DisplayName = "unconstrained type parameter")]
     [DataRow("struct Timer { int _ticks; public void Tick() => _ticks++; } class C { private Timer _t; void M() => _t.Tick(); }", DisplayName = "mutable struct in the file named like a well-known class")]
     [DataRow("record struct IPoint(int X) { public void Move() => X++; } class C { private IPoint _p; void M() => _p.Move(); }", DisplayName = "mutable record struct in the file named like an interface")]
+    [DataRow("namespace Geo { record Point(double X, double Y); class Canvas { private System.Drawing.Point _origin; public void Shift() => _origin.Offset(1, 1); } }", DisplayName = "qualified external type named like a record in the file")]
+    [DataRow("using System.Collections.Generic; class C { class Enumerator { } private List<int>.Enumerator _cursor; public bool Next() => _cursor.MoveNext(); }", DisplayName = "nested external type named like a class in the file")]
+    [DataRow("extern alias Draw; record Point(double X, double Y); class C { private Draw::Point _p; void M() => _p.Offset(1, 1); }", DisplayName = "alias-qualified external type named like a record in the file")]
+    [DataRow("class Node { } class C { private Node<int> _n; void M() => _n.Advance(); }", DisplayName = "generic type named like a non-generic class in the file")]
+    [DataRow("class C { private Acme.Timer _t; void M() => _t.Tick(); }", DisplayName = "well-known class name in another namespace")]
     public void MethodCallOnFieldOfPossiblyMutableStructType_KeepsFieldMutable(string input)
     {
         Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
@@ -777,6 +782,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("interface IService { void Run(); } class C { private IService _s; C(IService s) { _s = s; } void M() => _s.Run(); }", "interface IService { void Run(); } class C { private readonly IService _s; C(IService s) { _s = s; } void M() => _s.Run(); }", DisplayName = "interface declared in the file")]
     [DataRow("using System.Collections.Generic; class C { private List<int> _l = new List<int>(); void M() => _l.Add(1); }", "using System.Collections.Generic; class C { private readonly List<int> _l = new List<int>(); void M() => _l.Add(1); }", DisplayName = "well-known BCL class")]
     [DataRow("class C { private System.Text.StringBuilder _b = new System.Text.StringBuilder(); void M() => _b.Append(1); }", "class C { private readonly System.Text.StringBuilder _b = new System.Text.StringBuilder(); void M() => _b.Append(1); }", DisplayName = "qualified well-known BCL class")]
+    [DataRow("class C { private global::System.Threading.Tasks.Task _t; void M() => _t.Wait(); }", "class C { private readonly global::System.Threading.Tasks.Task _t; void M() => _t.Wait(); }", DisplayName = "globally qualified well-known BCL class")]
     [DataRow("class C { private Unknown _u; void M() { _u?.Reset(); } }", "class C { private readonly Unknown _u; void M() { _u?.Reset(); } }", DisplayName = "null-conditional call")]
     public void MethodCallOnFieldOfReferenceOrImmutableType_BecomesReadonly(string input, string expected)
     {

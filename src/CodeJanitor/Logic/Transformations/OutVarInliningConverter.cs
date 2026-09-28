@@ -160,7 +160,17 @@ public sealed class OutVarInliningConverter : ISourceTransformation
 
             if (callLeading.Any(IsComment))
             {
-                return merged.AddRange(callLeading.SkipWhile(t => t.IsKind(SyntaxKind.WhitespaceTrivia)));
+                var callTrivia = callLeading.SkipWhile(t => t.IsKind(SyntaxKind.WhitespaceTrivia)).ToList();
+                if (callTrivia[0].IsKind(SyntaxKind.EndOfLineTrivia))
+                {
+                    // A blank line follows: the declaration's indentation would otherwise be left on an empty line.
+                    while (merged.Count > 0 && merged.Last().IsKind(SyntaxKind.WhitespaceTrivia))
+                    {
+                        merged = merged.RemoveAt(merged.Count - 1);
+                    }
+                }
+
+                return merged.AddRange(callTrivia);
             }
 
             return merged;

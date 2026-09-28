@@ -257,6 +257,7 @@ public class C
     [DataRow("class C\n{\n    void M()\n    {\n        int x; // result\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        // result\n        F(out var x);\n    }\n}\n", DisplayName = "trailing comment of the declaration")]
     [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        int x;\r\n        // parse\r\n        F(out x);\r\n    }\r\n}\r\n", "class C\r\n{\r\n    void M()\r\n    {\r\n        // parse\r\n        F(out var x);\r\n    }\r\n}\r\n", DisplayName = "leading comment of the call")]
     [DataRow("class C\n{\n    void M()\n    {\n        int x; /* a */\n        /* b */\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        /* a */\n        /* b */\n        F(out var x);\n    }\n}\n", DisplayName = "both")]
+    [DataRow("class C\n{\n    void M()\n    {\n        int x;\n\n        // parse\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n\n        // parse\n        F(out var x);\n    }\n}\n", DisplayName = "blank line before the leading comment of the call")]
     public void CommentsBetweenDeclarationAndCall_AreKept(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));

@@ -142,4 +142,13 @@ public sealed class NormalizeBlankLinesConverterTests
     {
         Assert.AreEqual(expected, _converter.Apply(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void BlankLinesInsideVerbatimStringOfInactiveBranch_AreKept()
+    {
+        string input = "#if DEBUG\nconst string S = @\"a\n\n\n\nb\";\n#endif\n";
+
+        Assert.AreEqual(input, _converter.Normalize(input));
+    }
 }

@@ -426,25 +426,35 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     }
 
     /// <summary>
-    /// Well-known framework reference types whose instance methods are commonly called on fields. A method call on a
-    /// readonly field of a mutable struct type runs on a defensive copy, so calls are only accepted on types known not
-    /// to be mutable structs.
+    /// Well-known framework reference types whose instance methods are commonly called on fields, mapped to the
+    /// namespaces declaring them. A method call on a readonly field of a mutable struct type runs on a defensive copy,
+    /// so calls are only accepted on types known not to be mutable structs.
     /// </summary>
-    private static readonly HashSet<string> KnownReferenceTypeNames = new HashSet<string>(System.StringComparer.Ordinal)
-    {
-        "Object", "String", "Array", "Delegate", "Action", "Func", "EventHandler", "Task", "Lazy", "Random", "Type",
-        "List", "Dictionary", "HashSet", "SortedSet", "SortedList", "SortedDictionary", "LinkedList", "Queue", "Stack",
-        "ConcurrentDictionary", "ConcurrentQueue", "ConcurrentStack", "ConcurrentBag", "BlockingCollection",
-        "StringBuilder", "Stream", "MemoryStream", "StreamReader", "StreamWriter", "TextReader", "TextWriter",
-        "Stopwatch", "Timer", "CancellationTokenSource", "SemaphoreSlim", "ManualResetEventSlim", "HttpClient",
-    };
+    private static readonly Dictionary<string, string[]> KnownReferenceTypeNamespaces = BuildKnownReferenceTypeNamespaces(
+        ("System", new[] { "Object", "String", "Array", "Delegate", "Action", "Func", "EventHandler", "Lazy", "Random", "Type" }),
+        ("System.Threading.Tasks", new[] { "Task" }),
+        ("System.Collections.Generic", new[] { "List", "Dictionary", "HashSet", "SortedSet", "SortedList", "SortedDictionary", "LinkedList", "Queue", "Stack" }),
+        ("System.Collections.Concurrent", new[] { "ConcurrentDictionary", "ConcurrentQueue", "ConcurrentStack", "ConcurrentBag", "BlockingCollection" }),
+        ("System.Text", new[] { "StringBuilder" }),
+        ("System.IO", new[] { "Stream", "MemoryStream", "StreamReader", "StreamWriter", "TextReader", "TextWriter" }),
+        ("System.Diagnostics", new[] { "Stopwatch" }),
+        ("System.Threading", new[] { "Timer", "CancellationTokenSource", "SemaphoreSlim", "ManualResetEventSlim" }),
+        ("System.Timers", new[] { "Timer" }),
+        ("System.Net.Http", new[] { "HttpClient" }));
+
+    private static Dictionary<string, string[]> BuildKnownReferenceTypeNamespaces(params (string Namespace, string[] Names)[] entries) =>
+        entries
+            .SelectMany(entry => entry.Names.Select(name => (Name: name, entry.Namespace)))
+            .GroupBy(pair => pair.Name, System.StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Select(pair => pair.Namespace).ToArray(), System.StringComparer.Ordinal);
 
     /// <summary>
     /// Determines whether the declared type is syntactically known not to be a mutable struct: a predefined type, an
-    /// array or pointer, a nullable value, a type declared in this file as a class, interface, record class, delegate,
-    /// enum or <c>readonly struct</c>, or, unless this file declares a mutable struct of that name, a well-known
-    /// framework reference type or a name following the interface naming convention (<c>I</c> followed by an
-    /// upper-case letter).
+    /// array or pointer, a nullable value, an unqualified name of a class, interface, record class, delegate, enum or
+    /// <c>readonly struct</c> declared in this file with the same arity, or, unless this file declares a mutable struct
+    /// of that name, a well-known framework reference type (unqualified or qualified with its own namespace) or a name
+    /// following the interface naming convention (<c>I</c> followed by an upper-case letter). A qualified name may refer
+    /// to a type outside this file, so a same-named declaration here only ever counts against it.
     /// </summary>
     private static bool IsKnownNotMutableStruct(TypeSyntax type, SyntaxNode root)
     {
@@ -458,16 +468,25 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         }
 
         SimpleNameSyntax name;
+        string qualifier;
         switch (type)
         {
             case SimpleNameSyntax simple:
                 name = simple;
+                qualifier = null;
                 break;
             case QualifiedNameSyntax qualified:
                 name = qualified.Right;
+                qualifier = string.Concat(qualified.Left.DescendantTokens().Select(t => t.ValueText));
+                if (qualifier.StartsWith("global::", System.StringComparison.Ordinal))
+                {
+                    qualifier = qualifier.Substring("global::".Length);
+                }
+
                 break;
             case AliasQualifiedNameSyntax aliasQualified:
                 name = aliasQualified.Name;
+                qualifier = aliasQualified.Alias.Identifier.ValueText + "::";
                 break;
             default:
                 return false;
@@ -486,8 +505,21 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
             return false;
         }
 
-        return declarations.Count > 0 ||
-            KnownReferenceTypeNames.Contains(text) ||
+        if (qualifier == null && declarations.Any(declaration => GetArity(declaration) == name.Arity))
+        {
+            return true;
+        }
+
+        return (KnownReferenceTypeNamespaces.TryGetValue(text, out var namespaces) &&
+                (qualifier == null || namespaces.Contains(qualifier))) ||
             (text.Length > 1 && text[0] == 'I' && char.IsUpper(text[1]));
     }
+
+    /// <summary>
+    /// Gets the number of type parameters of a type or delegate declaration.
+    /// </summary>
+    private static int GetArity(SyntaxNode declaration) =>
+        declaration is TypeDeclarationSyntax typeDeclaration ? typeDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
+        declaration is DelegateDeclarationSyntax delegateDeclaration ? delegateDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
+        0;
 }

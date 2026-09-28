@@ -592,7 +592,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         if (!result.IsComplete)
         {
             OutputWindowHelper.WarningWriteLine(
-                $"Diagnostic cleanup for '{filePath}' is incomplete: some fixes were rejected as unsafe or did not converge.");
+                $"Diagnostic cleanup for '{filePath}' is incomplete: some fixes were rejected as unsafe, failed in their code fix provider, or did not converge.");
         }
     }
 

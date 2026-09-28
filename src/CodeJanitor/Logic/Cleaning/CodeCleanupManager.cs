@@ -6,6 +6,7 @@ using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Model;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
+using CodeJanitor.UI.Dialogs.CleanupProgress;
 using CodeJanitor.UI.Enumerations;
 using EnvDTE;
 using Microsoft.CodeAnalysis;
@@ -323,8 +324,10 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen);
-            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(projectItem));
+            if (CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen))
+            {
+                ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(projectItem));
+            }
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -372,15 +375,34 @@ internal sealed class CodeCleanupManager
 
         var headlessResult = HeadlessCleanupResult.NotApplicable;
         var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
+        var changedBySemanticSteps = false;
 
         if (!wasOpen)
         {
             // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
             // Studio workspace and run first, so the headless steps (header, using organization, type splitting) see
-            // their result.
-            usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
-            var classesSealed = await _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
-            var nullChecksConverted = await _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
+            // their result. The file is counted as changed as soon as a step rewrites it, so it is counted even when
+            // a later step fails.
+            await CleanupProgressViewModel.RunSemanticStepsAsync(
+                new Func<Task<bool>>[]
+                {
+                    async () =>
+                    {
+                        usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
+
+                        return usingsMoveOutcome == UsingsMoveOutcome.Moved;
+                    },
+                    () => _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken),
+                    () => _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken),
+                },
+                () =>
+                {
+                    if (!changedBySemanticSteps)
+                    {
+                        changedBySemanticSteps = true;
+                        IncrementHeadlessChanged();
+                    }
+                });
 
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
@@ -389,7 +411,7 @@ internal sealed class CodeCleanupManager
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            headlessResult = (usingsMoveOutcome == UsingsMoveOutcome.Moved || classesSealed || nullChecksConverted) && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
+            headlessResult = changedBySemanticSteps && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
 
             if (outcome.SplitOperationOccurred)
             {
@@ -405,13 +427,17 @@ internal sealed class CodeCleanupManager
 
         if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
-            if (headlessResult == HeadlessCleanupResult.Changed)
+            // A file rewritten by the semantic steps was already counted as changed.
+            if (!changedBySemanticSteps)
             {
-                _cleanupExecutionStats.HeadlessChangedItems++;
-            }
-            else
-            {
-                _cleanupExecutionStats.HeadlessNoOpItems++;
+                if (headlessResult == HeadlessCleanupResult.Changed)
+                {
+                    _cleanupExecutionStats.HeadlessChangedItems++;
+                }
+                else
+                {
+                    _cleanupExecutionStats.HeadlessNoOpItems++;
+                }
             }
 
             // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
@@ -441,8 +467,10 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen);
-            await RunXmlDocumentationDuringCleanupAsync(projectItem);
+            if (CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen))
+            {
+                await RunXmlDocumentationDuringCleanupAsync(projectItem);
+            }
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -1386,13 +1414,32 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        CleanupDocument(document, usingsLeftInPlace: false, semanticStepsDone: false);
-
-        // AI requests take seconds per file: they never run for the automatic cleanup on save.
-        if (!_package.IsAutoSaveContext && document.ProjectItem is not null)
+        var xmlDocumentationItem = CleanupWithoutXmlDocumentation(document);
+        if (xmlDocumentationItem is not null)
         {
-            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(document.ProjectItem));
+            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(xmlDocumentationItem));
         }
+    }
+
+    /// <summary>
+    /// Attempts to run code cleanup on the specified document, without the AI XML documentation step.
+    /// </summary>
+    /// <param name="document">The document for cleanup.</param>
+    /// <returns>
+    /// The project item to run the XML documentation step for (<see cref="RunXmlDocumentationDuringCleanupAsync" />),
+    /// or null when the document was not cleaned, has no project item or is cleaned up on save: AI requests take
+    /// seconds per file, so they never run for the automatic cleanup on save.
+    /// </returns>
+    internal ProjectItem CleanupWithoutXmlDocumentation(Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!CleanupDocument(document, usingsLeftInPlace: false, semanticStepsDone: false) || _package.IsAutoSaveContext)
+        {
+            return null;
+        }
+
+        return document.ProjectItem;
     }
 
     /// <summary>
@@ -1407,13 +1454,17 @@ internal sealed class CodeCleanupManager
     /// True when class sealing and null check conversion already ran for the closed file in this cleanup: they are
     /// not repeated, since each attempt analyzes the semantic model of every project compiling the file.
     /// </param>
-    private void CleanupDocument(Document document, bool usingsLeftInPlace, bool semanticStepsDone)
+    /// <returns>
+    /// True when the document was cleaned; false when it cannot be cleaned up (for example an excluded or
+    /// auto-generated file) or a designer window of it is active.
+    /// </returns>
+    private bool CleanupDocument(Document document, bool usingsLeftInPlace, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         _cleanupExecutionStats.EditorItems++;
 
-        if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true)) return;
+        if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true)) return false;
 
         // Make sure the document to be cleaned up is active, required for some commands like format document.
         document.Activate();
@@ -1421,7 +1472,7 @@ internal sealed class CodeCleanupManager
         // Check for designer windows being active, which should not proceed with cleanup as the code isn't truly active.
         if (document.ActiveWindow.Caption.EndsWith(" [Design]"))
         {
-            return;
+            return false;
         }
 
         if (_package.ActiveDocument != document)
@@ -1496,6 +1547,8 @@ internal sealed class CodeCleanupManager
                 _package.IDE.StatusBar.Text = string.Format(Resources.CodeJanitorCleaned0WithUnresolvedDiagnostics, document.Name);
             }
         }
+
+        return true;
     }
 
     /// <summary>

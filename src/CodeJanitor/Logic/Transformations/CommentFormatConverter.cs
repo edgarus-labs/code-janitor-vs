@@ -21,7 +21,7 @@ public sealed class CommentFormatConverter : ISourceTransformation
     /// <summary>
     /// Puts exactly one space after the <c>//</c> of every comment that starts its line and aligns the
     /// <c>*</c> continuation lines of block comments that start their line. Only real comment trivia is
-    /// changed: string literals, documentation comments, comments starting with more than two slashes
+    /// changed: string literals, <c>///</c> documentation comments, comments starting with more than two slashes
     /// and the line endings of the file are left as they are.
     /// </summary>
     /// <param name="source">The source.</param>

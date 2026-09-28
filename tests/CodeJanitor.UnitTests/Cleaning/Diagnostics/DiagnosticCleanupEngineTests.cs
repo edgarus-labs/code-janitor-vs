@@ -927,6 +927,86 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_ProviderWhoseGetFixAllProviderThrows_IsRejectedAndTheOtherFixesOfTheFileAreApplied()
+    {
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(
+            new LegacyFieldAnalyzer("old", ("CJT0044", "Performance")),
+            new HiddenLegacyFieldAnalyzer("CJT0045"));
+        using (workspace)
+        {
+            workspace.ConfigureRuleSeverity("CJT0044", "warning");
+            workspace.ConfigureRuleSeverity("CJT0045", "warning");
+            DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(
+                "class Settings",
+                "{",
+                "    public int oldValue;",
+                "    public int legacyValue;",
+                "}"));
+            CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new CodeFixProvider[]
+            {
+                new UnreliableFixAllLegacyFieldCodeFixProvider("CJT0044", FixAllFailure.GetFixAllProvider),
+                new RenameLegacyFieldCodeFixProvider("CJT0045"),
+            });
+
+            DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+            Assert.AreEqual("CJT0045", result.AppliedFixes.Single().DiagnosticId);
+            StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "renamedValue");
+            Assert.IsFalse(result.IsComplete);
+            UnresolvedDiagnostic unresolved = result.Unresolved.Single();
+            Assert.AreEqual("CJT0044", unresolved.DiagnosticId);
+            Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+            StringAssert.Contains(unresolved.Detail, "Fix-all provider unavailable");
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_ProviderThatThrowsFollowedByWorkingProviderForSameId_AppliesTheWorkingFix()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0046", out DocumentId documentId);
+        CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new CodeFixProvider[]
+        {
+            new ThrowingLegacyFieldCodeFixProvider("CJT0046"),
+            new UnreliableFixAllLegacyFieldCodeFixProvider("CJT0046", FixAllFailure.None),
+        });
+
+        DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+        Assert.AreEqual(
+            LegacySettingsClass().Replace("legacyValue", "renamedValue"),
+            await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.IsTrue(result.IsComplete);
+        Assert.IsEmpty(result.Unresolved);
+        Assert.AreEqual("CJT0046", result.AppliedFixes.Single().DiagnosticId);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixAllProviderThatThrowsForMultiDiagnosticGroup_ReportsEveryDiagnosticOfTheGroupAsProviderFailure()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateTwoLegacyFieldsWorkspace("CJT0047", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
+        CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new CodeFixProvider[]
+        {
+            new UnreliableFixAllLegacyFieldCodeFixProvider("CJT0047", FixAllFailure.GetFixAsync),
+        });
+
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.IsFalse(result.IsComplete);
+        Assert.HasCount(2, result.Unresolved);
+        foreach (UnresolvedDiagnostic unresolved in result.Unresolved)
+        {
+            Assert.AreEqual("CJT0047", unresolved.DiagnosticId);
+            Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+            StringAssert.Contains(unresolved.Detail, "Fix-all computation failed");
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ProviderThatCancelsTheCleanupAndThrows_PropagatesTheCancellation()
     {
         using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0043", out DocumentId documentId);

@@ -65,7 +65,7 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         var changes = new List<TextChange>();
         foreach (var idx in wantBlankBefore)
         {
-            if (ShouldSkipInsertion(lines, idx))
+            if (ShouldSkipInsertion(lines, idx) || !IndentationGuard.CanChangeIndentation(root, text.Lines[idx].Start))
                 continue;
 
             var previousLine = text.Lines[idx - 1];

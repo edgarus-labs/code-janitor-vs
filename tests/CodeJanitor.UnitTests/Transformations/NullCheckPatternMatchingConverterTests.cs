@@ -106,7 +106,7 @@ public sealed class NullCheckPatternMatchingConverterTests
         string input = @"
 public class C
 {
-    public async Task M(object x)
+    public void M(object x)
     {
         if (x != null)
         {
@@ -117,7 +117,7 @@ public class C
         string expected = @"
 public class C
 {
-    public async Task M(object x)
+    public void M(object x)
     {
         if (x is not null)
         {
@@ -138,7 +138,7 @@ public class C
         string input = @"
 public class C
 {
-    public async Task M(object x)
+    public void M(object x)
     {
         if (x == null)
         {
@@ -149,7 +149,7 @@ public class C
         string expected = @"
 public class C
 {
-    public async Task M(object x)
+    public void M(object x)
     {
         if (x is null)
         {
@@ -170,7 +170,7 @@ public class C
         string input = @"
 public class C
 {
-    public async Task M(object a, object b)
+    public void M(object a, object b)
     {
         if (null != a && null == b)
         {
@@ -181,7 +181,7 @@ public class C
         string expected = @"
 public class C
 {
-    public async Task M(object a, object b)
+    public void M(object a, object b)
     {
         if (a is not null && b is null)
         {

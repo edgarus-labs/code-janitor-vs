@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Composition.Hosting;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -388,11 +391,102 @@ public sealed class ClassSealingConverterTests
     [DataRow("object M(IBar bar) => (Foo)bar;", DisplayName = "cast from an interface")]
     [DataRow("bool M(IBar bar) => bar is Foo foo;", DisplayName = "pattern from an interface")]
     [DataRow("void M(Foo[] foos) { foreach (IBar bar in foos) { } }", DisplayName = "foreach with an interface iteration variable")]
+    [DataRow("int M(Foo foo) { switch (foo) { case IBar: return 1; default: return 0; } }", DisplayName = "case type label (CS8121 when sealed)")]
+    [DataRow("bool M(Foo foo, IBar bar) => foo == bar;", DisplayName = "reference equality with an interface (CS0019 when sealed)")]
+    [DataRow("bool M(IBar bar, Foo foo) => bar != foo;", DisplayName = "reference inequality with an interface")]
+    [DataRow("object M(Foo foo) => ((IBar, int))(foo, 1);", DisplayName = "tuple literal to a tuple with an interface element")]
+    [DataRow("object M((int, Foo) pair) => ((int, IBar))pair;", DisplayName = "tuple to a tuple with an interface element")]
+    [DataRow("object M(System.Func<Foo> make) => (System.Func<IBar>)make;", DisplayName = "covariant delegate type argument")]
+    [DataRow("object M(System.Func<Foo>[] makers) => (System.Func<IBar>[])makers;", DisplayName = "array of a delegate with a covariant type argument")]
     public async Task ClassConvertedToAnInterfaceItDoesNotImplement_StaysUnsealed(string use)
     {
         string input = "public class Foo { }";
 
         Assert.AreEqual(input, await SealAsync(input, "public interface IBar { } public static class Use { public static " + use + " }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("object M(System.Collections.Generic.IEnumerable<Foo> foos) => (System.Collections.Generic.IEnumerable<IBar>)foos;", DisplayName = "cast of a variant interface type argument")]
+    [DataRow("bool M(System.Collections.Generic.IEnumerable<Foo> foos) => foos is System.Collections.Generic.IEnumerable<IBar>;", DisplayName = "is of a variant interface type argument")]
+    [DataRow("object M(System.Action<IBar> use) => (System.Action<Foo>)use;", DisplayName = "contravariant delegate type argument")]
+    public async Task ClassConvertedOnlyThroughAnInterfaceOrContravariantTypeArgument_BecomesSealed(string use)
+    {
+        // Any interface converts explicitly to any other, and a contravariant type argument only needs reference
+        // types: these conversions do not depend on the class being unsealed.
+        Assert.AreEqual(
+            "public sealed class Foo { }",
+            await SealAsync("public class Foo { }", "public interface IBar { } public static class Use { public static " + use + " }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassOfAProjectReferencedByANonCSharpProject_StaysUnsealed()
+    {
+        // The converter cannot see derivations, constraints or conversions written in another language.
+        string input = "namespace Demo { public class Foo { } }";
+        Solution solution = new AdhocWorkspace(NonCSharpLanguageHost).CurrentSolution;
+        Document target = AddProject(ref solution, "Library", input);
+        ProjectId consumerId = ProjectId.CreateNewId();
+        solution = solution
+            .AddProject(ProjectInfo.Create(consumerId, VersionStamp.Create(), "Consumer", "Consumer", LanguageNames.VisualBasic))
+            .AddProjectReference(consumerId, new ProjectReference(target.Project.Id));
+
+        Assert.AreEqual(input, await SealAsync(solution.GetDocument(target.Id)));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassOfAProjectNotReferencedByTheNonCSharpProject_BecomesSealed()
+    {
+        Solution solution = new AdhocWorkspace(NonCSharpLanguageHost).CurrentSolution;
+        Document target = AddProject(ref solution, "Library", "namespace Demo { public class Foo { } }");
+        solution = solution.AddProject(ProjectInfo.Create(ProjectId.CreateNewId(), VersionStamp.Create(), "Other", "Other", LanguageNames.VisualBasic));
+
+        Assert.AreEqual("namespace Demo { public sealed class Foo { } }", await SealAsync(solution.GetDocument(target.Id)));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FilesOfTheSameSolution_AreSealedAsWhenAnalyzedOneByOne()
+    {
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document converted = AddProject(
+            ref solution,
+            "Library",
+            "public class Foo { }",
+            "public interface IBar { } public static class Use { public static object M(Foo foo) => (IBar)foo; }",
+            "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\n");
+        Project project = solution.GetProject(converted.Project.Id);
+        Document inactive = project.AddDocument("Widget.cs", SourceText.From("public class Widget { }"));
+        Document free = inactive.Project.AddDocument("Free.cs", SourceText.From("public class Free { }"));
+        solution = free.Project.Solution;
+        Document[] documents = { solution.GetDocument(converted.Id), solution.GetDocument(inactive.Id), solution.GetDocument(free.Id) };
+        string[] expected = { "public class Foo { }", "public class Widget { }", "public sealed class Free { }" };
+        ClassSealingConverter shared = new ClassSealingConverter();
+
+        foreach (int index in new[] { 2, 0, 1, 2, 1, 0 })
+        {
+            Assert.AreEqual(expected[index], await shared.SealWhenSafeAsync(new[] { documents[index] }, CancellationToken.None));
+            Assert.AreEqual(expected[index], await new ClassSealingConverter().SealWhenSafeAsync(new[] { documents[index] }, CancellationToken.None));
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConverterReusedOnAChangedSolution_SeesTheChange()
+    {
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document target = AddProject(ref solution, "Library", "public class Foo { }", "public interface IBar { }", "public static class Use { }");
+        DocumentId useId = solution.GetProject(target.Project.Id).Documents.Single(document => document.Name == "Library1.cs").Id;
+        Solution converting = solution.WithDocumentText(useId, SourceText.From("public static class Use { public static object M(Foo foo) => (IBar)foo; }"));
+        Solution inactive = solution.WithDocumentText(useId, SourceText.From("#if LEGACY\r\npublic static class Use { static object M(Foo foo) => foo; }\r\n#endif\r\n"));
+        ClassSealingConverter shared = new ClassSealingConverter();
+
+        Assert.AreEqual("public sealed class Foo { }", await shared.SealWhenSafeAsync(new[] { solution.GetDocument(target.Id) }, CancellationToken.None));
+        Assert.AreEqual("public class Foo { }", await shared.SealWhenSafeAsync(new[] { converting.GetDocument(target.Id) }, CancellationToken.None));
+        Assert.AreEqual("public class Foo { }", await shared.SealWhenSafeAsync(new[] { inactive.GetDocument(target.Id) }, CancellationToken.None));
+        Assert.AreEqual("public sealed class Foo { }", await shared.SealWhenSafeAsync(new[] { solution.GetDocument(target.Id) }, CancellationToken.None));
     }
 
     [TestMethod]
@@ -568,6 +662,16 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    public async Task ClassWithAModifierInAnInactivePreprocessorBranchBeforeIt_StaysUnsealed()
+    {
+        // In a LEGACY build the class is abstract: 'abstract sealed' would not compile.
+        string input = "#if LEGACY\r\nabstract\r\n#endif\r\nclass Foo { }\r\n";
+
+        Assert.AreEqual(input, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async Task ClassNamedInInactiveCodeOfAnotherFile_StaysUnsealed()
     {
         string input = "public class Widget { }";
@@ -630,6 +734,24 @@ public sealed class ClassSealingConverterTests
         solution = target.Project.Solution;
 
         return target;
+    }
+
+    /// <summary>
+    /// A host that also supports <see cref="LanguageNames.VisualBasic" /> as a language without compilation, standing in
+    /// for a project whose code the C# converter cannot analyze (the Visual Basic Roslyn assemblies are not referenced).
+    /// </summary>
+    private static HostServices NonCSharpLanguageHost { get; } = MefHostServices.Create(
+        new ContainerConfiguration()
+            .WithAssemblies(MefHostServices.DefaultAssemblies)
+            .WithPart<NonCSharpLanguageService>()
+            .CreateContainer());
+
+    /// <summary>
+    /// Makes <see cref="LanguageNames.VisualBasic" /> a supported language of <see cref="NonCSharpLanguageHost" />.
+    /// </summary>
+    [ExportLanguageService(typeof(NonCSharpLanguageService), LanguageNames.VisualBasic)]
+    public sealed class NonCSharpLanguageService : ILanguageService
+    {
     }
 
     private static Task<string> SealAsync(string input, params string[] librarySources) =>

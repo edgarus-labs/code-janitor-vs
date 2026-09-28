@@ -361,10 +361,16 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 }
                 else
                 {
-                    // The document is converted to its static type first: a lambda over the dynamic item would bind the
-                    // Func<TResult> overload of InvokeAsync and fail at run time, since Cleanup returns void.
+                    // The document is converted to its static type first, so the cleanup call is bound at compile time
+                    // rather than at run time on the dynamic item. The editor cleanup runs on the UI thread; the AI XML
+                    // documentation step then runs from this thread, so its requests neither block Visual Studio nor
+                    // the Cancel button.
                     EnvDTE.Document document = item;
-                    await _dispatcher.InvokeAsync(() => CodeCleanupManager.Cleanup(document));
+                    var xmlDocumentationItem = await _dispatcher.InvokeAsync(() => CodeCleanupManager.CleanupWithoutXmlDocumentation(document));
+                    if (xmlDocumentationItem is not null)
+                    {
+                        await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(xmlDocumentationItem);
+                    }
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -466,34 +472,41 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        // The handler references the events object, which keeps it (and the subscription) alive until the build ends.
-        var buildEvents = _package.IDE.Events.BuildEvents;
+        EnvDTE.BuildEvents subscribedEvents = null;
         EnvDTE._dispBuildEvents_OnBuildDoneEventHandler onBuildDone = null;
-        onBuildDone = (scope, action) =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            buildEvents.OnBuildDone -= onBuildDone;
-
-            var failedProjects = _package.IDE.Solution.SolutionBuild.LastBuildInfo;
-            if (failedProjects > 0)
-            {
-                OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification reported {failedProjects} failed project(s).");
-            }
-            else
-            {
-                OutputWindowHelper.InfoWriteLine("Post-cleanup build verification passed: solution compiled successfully.");
-            }
-        };
-
-        buildEvents.OnBuildDone += onBuildDone;
         try
         {
+            // The handler references the events object, which keeps it (and the subscription) alive until the build ends.
+            var buildEvents = _package.IDE.Events.BuildEvents;
+            onBuildDone = (scope, action) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                buildEvents.OnBuildDone -= onBuildDone;
+
+                var failedProjects = _package.IDE.Solution.SolutionBuild.LastBuildInfo;
+                if (failedProjects > 0)
+                {
+                    OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification reported {failedProjects} failed project(s).");
+                }
+                else
+                {
+                    OutputWindowHelper.InfoWriteLine("Post-cleanup build verification passed: solution compiled successfully.");
+                }
+            };
+
+            buildEvents.OnBuildDone += onBuildDone;
+            subscribedEvents = buildEvents;
+
             OutputWindowHelper.InfoWriteLine("Running post-cleanup build verification...");
             _package.IDE.Solution.SolutionBuild.Build(WaitForBuildToFinish: false);
         }
         catch (Exception ex)
         {
-            buildEvents.OnBuildDone -= onBuildDone;
+            if (subscribedEvents is not null)
+            {
+                subscribedEvents.OnBuildDone -= onBuildDone;
+            }
+
             OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification could not be executed: {ex.Message}");
         }
     }

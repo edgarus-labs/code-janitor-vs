@@ -60,7 +60,7 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 
         return _excessiveBlankLines.Replace(result, m =>
         {
-            if (root.FindToken(m.Index).Span.Contains(m.Index))
+            if (root.FindToken(m.Index).Span.Contains(m.Index) || IsInsideDisabledLiteral(root, m.Index))
             {
                 return m.Value;
             }
@@ -69,6 +69,22 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 
             return nl + nl;
         });
+    }
+
+    /// <summary>
+    /// Returns true when <paramref name="position"/> lies inside a string literal of an inactive <c>#if</c> branch,
+    /// found by parsing the disabled text on its own.
+    /// </summary>
+    private static bool IsInsideDisabledLiteral(SyntaxNode root, int position)
+    {
+        var trivia = root.FindTrivia(position);
+        if (!trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+        {
+            return false;
+        }
+
+        int offset = position - trivia.SpanStart;
+        return CSharpSyntaxTree.ParseText(trivia.ToString()).GetRoot().FindToken(offset).Span.Contains(offset);
     }
 
     /// <summary>

@@ -252,6 +252,55 @@ internal sealed class ThrowingLegacyFieldCodeFixProvider : LegacyFieldCodeFixPro
 }
 
 /// <summary>
+/// Where <see cref="UnreliableFixAllLegacyFieldCodeFixProvider" /> throws.
+/// </summary>
+internal enum FixAllFailure
+{
+    None,
+    GetFixAllProvider,
+    GetFixAsync,
+}
+
+/// <summary>
+/// Renames the field (<c>legacy</c> to <c>renamed</c>) and optionally has broken fix-all support: either
+/// <see cref="CodeFixProvider.GetFixAllProvider" /> itself throws, or the fix-all provider throws while computing the fix.
+/// Its type name sorts after <see cref="ThrowingLegacyFieldCodeFixProvider" />, so the catalog tries it second.
+/// </summary>
+internal sealed class UnreliableFixAllLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly FixAllFailure _failure;
+
+    public UnreliableFixAllLegacyFieldCodeFixProvider(string diagnosticId, FixAllFailure failure)
+        : base(diagnosticId)
+    {
+        _failure = failure;
+    }
+
+    public override FixAllProvider GetFixAllProvider() => _failure switch
+    {
+        FixAllFailure.GetFixAllProvider => throw new InvalidOperationException("Fix-all provider unavailable"),
+        FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
+        _ => null,
+    };
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+
+        context.RegisterCodeFix(
+            CodeAction.Create("Rename", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct), "UnreliableFixAllLegacyField"),
+            context.Diagnostics);
+    }
+
+    private sealed class ThrowingFixAllProvider : FixAllProvider
+    {
+        public override IEnumerable<FixAllScope> GetSupportedFixAllScopes() => new[] { FixAllScope.Document };
+
+        public override Task<CodeAction> GetFixAsync(FixAllContext fixAllContext) => throw new InvalidOperationException("Fix-all computation failed");
+    }
+}
+
+/// <summary>
 /// Cancels the cleanup and then throws while registering its fixes, like a provider interrupted by the user.
 /// </summary>
 internal sealed class CancelingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase

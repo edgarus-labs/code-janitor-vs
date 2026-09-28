@@ -116,11 +116,9 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed "Seal Classes" sealing a class that code elsewhere in the solution casts, `as`-converts or pattern-matches
 	to or from an interface it does not implement (`CS0030`, `CS0039`, `CS8121`), or that code in an inactive `#if`
 	branch derives from, overrides or names.
-- Fixed "Cleanup Open Code" failing every open document with a `RuntimeBinderException` in sequential cleanup.
-- Fixed single-document cleanups skipping AI XML documentation after a canceled cleanup batch.
-- Fixed the diagnostic cleanup of one project overwriting closed files another project's cleanup had just written;
-	the diagnostic pass now runs one project at a time.
-- Fixed class sealing and null-check conversion analyzing a closed file twice when editor cleanup also runs.
+- Fixed the AI XML documentation option "Run during cleanup" having no effect: cleanup now adds the AI-generated
+	XML documentation to each file it cleans up, open or closed, except in the automatic cleanup on save. Canceling
+	a cleanup batch also stops its XML documentation.
 - Fixed pattern-matching null checks rewriting constant null checks (`const` initializers, default parameter values,
 	attribute arguments, `case` labels), where `is null` does not compile.
 - Fixed string interpolation copying placeholders with spaces or an empty format (`{1, 10}`, `{0 }`, `{0:}`) as
@@ -141,8 +139,6 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
 	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
 - Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.
-- Fixed a batch cleanup not counting a file as changed when a semantic step (using placement, class sealing,
-	null checks) rewrote it and a later step on the same file failed.
 - Fixed "Make Fields Readonly" cleanup adding `readonly` to private fields mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)` and `Interlocked.Decrement(ref field)`) or writes inside nested types, or fields whose address is taken directly (`&field`, `CS0192`).
 - Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.
 - Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
@@ -198,7 +194,8 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed "Convert to `var` when the type is apparent" producing `const var` (`CS0822`) and converting arrays
 	whose rank differs from the declared type.
 - Fixed string-format-to-interpolation treating escaped braces (`{{`, `}}`) as placeholders, not escaping
-	braces in format specifiers, and not parenthesizing conditional expressions and `global::` names in holes.
+	backslashes, quotes and control characters in format specifiers (a format specifier containing a brace leaves
+	the call unchanged), and not parenthesizing conditional expressions and `global::` names in holes.
 - Fixed pattern-matching null checks changing behavior or breaking compilation: the conversion now runs on
 	the Visual Studio Roslyn workspace and changes a check only when `==`/`!=` binds to the built-in operator
 	(no user-defined or lifted operator from any file, project or referenced assembly, e.g.

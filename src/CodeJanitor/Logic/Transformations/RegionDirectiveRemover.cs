@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -66,27 +67,58 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
     internal static List<TextSpan> FindMultiLineLiteralAndCommentSpans(string source)
     {
         var spans = new List<TextSpan>();
-        SyntaxNode root = CSharpSyntaxTree.ParseText(source).GetRoot();
+        AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(source).GetRoot(), 0, spans);
+        return spans;
+    }
+
+    /// <summary>
+    /// Adds the multi-line literal and comment spans of <paramref name="root"/>, shifted by <paramref name="offset"/>;
+    /// inactive <c>#if</c>/<c>#elif</c>/<c>#else</c> branches are parsed on their own so their literals and comments are found too.
+    /// </summary>
+    private static void AddMultiLineLiteralAndCommentSpans(string source, SyntaxNode root, int offset, List<TextSpan> spans)
+    {
         foreach (SyntaxNodeOrToken nodeOrToken in root.DescendantNodesAndTokens())
         {
             bool isLiteral = nodeOrToken.IsToken || nodeOrToken.AsNode() is InterpolatedStringExpressionSyntax;
-            if (isLiteral && ContainsLineBreak(source, nodeOrToken.Span))
+            TextSpan span = Shift(nodeOrToken.Span, offset);
+            if (isLiteral && ContainsLineBreak(source, span))
             {
-                spans.Add(nodeOrToken.Span);
+                spans.Add(span);
             }
         }
 
         foreach (SyntaxTrivia trivia in root.DescendantTrivia())
         {
+            TextSpan span = Shift(trivia.Span, offset);
             if ((trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
-                && ContainsLineBreak(source, trivia.Span))
+                && ContainsLineBreak(source, span))
             {
-                spans.Add(trivia.Span);
+                spans.Add(span);
             }
         }
 
-        return spans;
+        // The directives inside an inactive branch split its text into several disabled-text trivia, so
+        // the whole branch (up to its #elif, #else or #endif) is parsed on its own instead.
+        string rootText = null;
+        foreach (SyntaxTrivia directiveTrivia in root.DescendantTrivia().Where(trivia => trivia.IsDirective))
+        {
+            var directive = (DirectiveTriviaSyntax)directiveTrivia.GetStructure();
+            if (directive is BranchingDirectiveTriviaSyntax branch && !branch.BranchTaken)
+            {
+                int start = directive.FullSpan.End;
+                DirectiveTriviaSyntax next = directive.GetRelatedDirectives().SkipWhile(d => d != directive).Skip(1).FirstOrDefault();
+                int end = next?.FullSpan.Start ?? root.FullSpan.End;
+                if (end > start)
+                {
+                    rootText = rootText ?? root.ToFullString();
+                    string block = rootText.Substring(start, end - start);
+                    AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(block).GetRoot(), offset + start, spans);
+                }
+            }
+        }
     }
+
+    private static TextSpan Shift(TextSpan span, int offset) => new TextSpan(span.Start + offset, span.Length);
 
     /// <summary>
     /// Returns true when <paramref name="position"/> lies strictly inside one of <paramref name="spans"/>.

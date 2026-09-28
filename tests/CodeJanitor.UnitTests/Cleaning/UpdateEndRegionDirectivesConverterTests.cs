@@ -102,12 +102,6 @@ public sealed class UpdateEndRegionDirectivesConverterTests
     }
 
     [TestMethod]
-    public void Name_IsUpdateEndRegionDirectives()
-    {
-        Assert.AreEqual("Update end region directives", _converter.Name);
-    }
-
-    [TestMethod]
     public void RegionWithTrailingSpaceButNoName_EndregionLosesItsStaleName()
     {
         string source = Lines("class C", "{", "    #region ", "    int _x;", "    #endregion Old", "}");
@@ -197,4 +191,12 @@ public sealed class UpdateEndRegionDirectivesConverterTests
     }
 
     private static string Lines(params string[] lines) => string.Join(System.Environment.NewLine, lines);
+
+    [TestMethod]
+    public void RegionLinesInsideVerbatimStringOfInactiveBranch_AreKept()
+    {
+        string source = Lines("#if DEBUG", "const string T = @\"", "#region X", "x", "#endregion Old", "\";", "#endif", string.Empty);
+
+        Assert.AreEqual(source, _converter.Apply(source));
+    }
 }

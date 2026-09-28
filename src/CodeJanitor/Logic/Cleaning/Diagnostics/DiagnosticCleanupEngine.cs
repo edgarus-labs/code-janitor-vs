@@ -49,8 +49,10 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// were applied.
 /// </para>
 /// <para>
-/// Exceptions thrown by code fix providers propagate to the caller. Analyzer failures are reported by Roslyn without a
-/// source location, so they never become actionable.
+/// Exceptions thrown by code fix providers (while registering fixes, providing a fix-all provider or computing a fix)
+/// never abort the cleanup: the affected diagnostics are reported as <see cref="UnresolvedDiagnosticReason.FixProviderFailed" />
+/// and the other fixes still apply. Only cancellation propagates to the caller. Analyzer failures are reported by Roslyn
+/// without a source location, so they never become actionable.
 /// </para>
 /// </remarks>
 public sealed class DiagnosticCleanupEngine
@@ -517,10 +519,10 @@ public sealed class DiagnosticCleanupEngine
             var fixedDiagnostics = ImmutableArray.Create(first.Actionable);
 
             var hasAlternatives = group.Any(plan => plan.HasEquivalentAlternatives);
-            var fixAllProvider = hasAlternatives ? WellKnownFixAllProviders.BatchFixer : first.Provider.GetFixAllProvider();
             ImmutableArray<CodeActionOperation> operations;
             try
             {
+                var fixAllProvider = hasAlternatives ? WellKnownFixAllProviders.BatchFixer : first.Provider.GetFixAllProvider();
                 if (fixAllProvider is not null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
                 {
                     var diagnostics = group.Select(plan => plan.Actionable.Diagnostic).ToImmutableArray();

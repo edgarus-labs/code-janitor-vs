@@ -941,17 +941,18 @@ public sealed class UsingDirectivePlacementConverterOutwardTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    [DataRow("using System;\r\n\r\nConsole.WriteLine(\"namespace N { }\");\r\n", DisplayName = "top-level program")]
-    [DataRow("namespace N;\r\n\r\nnamespace M\r\n{\r\n    using System;\r\n    class C { Action a; }\r\n}\r\n", DisplayName = "file-scoped and block-scoped namespaces")]
-    [DataRow("namespace Company.App\r\n{\r\n    using Services\r\n    class C { Svc s; }\r\n", DisplayName = "missing semicolon and closing brace")]
-    [DataRow("namespace Company.App\r\n{\r\n    using Services;\r\n    class C { Svc s; }\r\n    unsafe struct S { fixed int b[new int[0] is [1, .. var r] ? 1 : 2]; }\r\n}\r\n", DisplayName = "list and slice patterns in a non-constant fixed buffer size")]
-    public async Task FileWithErrorsOrNoNamespace_GetsNoNewCompileErrors(string input)
+    [DataRow("using System;\r\n\r\nConsole.WriteLine(\"namespace N { }\");\r\n", UsingDirectivePlacementStatus.NothingToMove, DisplayName = "top-level program")]
+    [DataRow("namespace N;\r\n\r\nnamespace M\r\n{\r\n    using System;\r\n    class C { Action a; }\r\n}\r\n", UsingDirectivePlacementStatus.Moved, DisplayName = "file-scoped and block-scoped namespaces")]
+    [DataRow("namespace Company.App\r\n{\r\n    using Services\r\n    class C { Svc s; }\r\n", UsingDirectivePlacementStatus.Moved, DisplayName = "missing semicolon and closing brace")]
+    [DataRow("namespace Company.App\r\n{\r\n    using Services;\r\n    class C { Svc s; }\r\n    unsafe struct S { fixed int b[new int[0] is [1, .. var r] ? 1 : 2]; }\r\n}\r\n", UsingDirectivePlacementStatus.Moved, DisplayName = "list and slice patterns in a non-constant fixed buffer size")]
+    public async Task FileWithErrorsOrNoNamespace_GetsNoNewCompileErrors(string input, UsingDirectivePlacementStatus expectedStatus)
     {
         Document document = CompilingTestProject.CreateDocument(input, Library);
         IReadOnlyList<string> before = await CompilingTestProject.GetCompileErrorsAsync(document, input);
 
         UsingDirectivePlacementResult result = await MoveAsync(document);
 
+        Assert.AreEqual(expectedStatus, result.Status, result.Reason ?? result.Text);
         if (result.Status == UsingDirectivePlacementStatus.Moved)
         {
             CollectionAssert.IsSubsetOf((System.Collections.ICollection)await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), (System.Collections.ICollection)before, result.Text);

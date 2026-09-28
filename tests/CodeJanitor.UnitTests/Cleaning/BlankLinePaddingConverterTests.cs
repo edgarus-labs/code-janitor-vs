@@ -626,4 +626,13 @@ public sealed class BlankLinePaddingConverterTests
 
         Assert.AreEqual("class C\n{\r\n    int _x;\r\n\r\n    void M() { }\r\n    int _y;\r\n    int _z;\r\n}\r\n", _converter.Apply(source));
     }
+
+    [TestMethod]
+    public void AfterSingleLineField_FollowedByVerbatimStringLines_DoesNotChangeTheString()
+    {
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine = true;
+        string source = "class C\r\n{\r\n    int a; string b = @\"x\r\ny\";\r\n}\r\n";
+
+        Assert.AreEqual(source, _converter.Apply(source));
+    }
 }
