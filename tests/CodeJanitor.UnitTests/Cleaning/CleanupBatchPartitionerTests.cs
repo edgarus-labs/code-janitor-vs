@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -71,6 +74,70 @@ public sealed class CleanupBatchPartitionerTests
 
         Assert.IsEmpty(parallel);
         Assert.AreSequenceEqual(new[] { open }, sequential);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RunPerGroupAsync_ItemsOfDifferentGroups_AreProcessedAtTheSameTime()
+    {
+        int started = 0;
+        TaskCompletionSource<bool> bothStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ConcurrentBag<bool> sawTheOtherGroup = new ConcurrentBag<bool>();
+
+        await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "b1" }, item => item.Substring(0, 1), 4, CancellationToken.None, async item =>
+        {
+            if (Interlocked.Increment(ref started) == 2)
+            {
+                bothStarted.TrySetResult(true);
+            }
+
+            sawTheOtherGroup.Add(await Task.WhenAny(bothStarted.Task, Task.Delay(1000)) == bothStarted.Task);
+        });
+
+        Assert.AreSequenceEqual(new[] { true, true }, sawTheOtherGroup.ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RunPerGroupAsync_ItemsOfOneGroup_AreProcessedOneAtATimeInOrder()
+    {
+        int running = 0;
+        int maxRunning = 0;
+        List<string> order = new List<string>();
+
+        await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "a2", "a3" }, item => item.Substring(0, 1), 4, CancellationToken.None, async item =>
+        {
+            int now = Interlocked.Increment(ref running);
+            maxRunning = System.Math.Max(maxRunning, now);
+            lock (order)
+            {
+                order.Add(item);
+            }
+
+            await Task.Delay(20);
+            Interlocked.Decrement(ref running);
+        });
+
+        Assert.AreEqual(1, maxRunning);
+        Assert.AreSequenceEqual(new[] { "a1", "a2", "a3" }, order);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RunPerGroupAsync_Canceled_TakesNoFurtherItems()
+    {
+        using CancellationTokenSource cancellation = new CancellationTokenSource();
+        List<string> processed = new List<string>();
+
+        await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "a2", "a3" }, item => item.Substring(0, 1), 4, cancellation.Token, item =>
+        {
+            processed.Add(item);
+            cancellation.Cancel();
+
+            return Task.CompletedTask;
+        });
+
+        Assert.AreSequenceEqual(new[] { "a1" }, processed);
     }
 
     private static (List<TestItem> Parallel, List<TestItem> Sequential) Partition(TestItem[] items)

@@ -115,14 +115,11 @@ internal sealed class SemanticFileRewriter
         var projectFilePath = VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem);
 
         string originalText;
-        Encoding encoding;
         try
         {
-            // Without a byte order mark the file is written back without one.
             using (var reader = new StreamReader(filePath, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true))
             {
                 originalText = await reader.ReadToEndAsync();
-                encoding = reader.CurrentEncoding;
             }
         }
         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
@@ -139,17 +136,55 @@ internal sealed class SemanticFileRewriter
             return false;
         }
 
+        // The analysis took a while: a file the user opened meanwhile is left alone, its editor buffer is the truth.
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        if (VsShellUtilities.IsDocumentOpen(_package, filePath, Guid.Empty, out _, out _, out _))
+        {
+            WriteNotRewrittenWarning(filePath, "the file was opened while it was being analyzed; it was left unchanged.");
+
+            return false;
+        }
+
+        return TryWriteRewrittenText(filePath, originalText, rewrittenText, reason => WriteNotRewrittenWarning(filePath, reason));
+    }
+
+    /// <summary>
+    /// Writes the rewritten text of a closed file with the file's encoding, unless the file changed on disk since
+    /// <paramref name="originalText" /> was read: an edit made during the analysis is never overwritten.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="originalText">The text the rewrite was computed from.</param>
+    /// <param name="rewrittenText">The rewritten text.</param>
+    /// <param name="reportNotWritten">Reports why the file was left unchanged.</param>
+    /// <returns>True when the file was written.</returns>
+    internal static bool TryWriteRewrittenText(string filePath, string originalText, string rewrittenText, Action<string> reportNotWritten)
+    {
+        ClosedFileWriteResult result;
         try
         {
-            File.WriteAllText(filePath, rewrittenText, encoding);
-
-            return true;
+            result = VisualStudioRoslynWorkspace.TryWriteClosedFileText(filePath, originalText, rewrittenText);
         }
         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
         {
-            WriteNotRewrittenWarning(filePath, ex.Message);
+            reportNotWritten(ex.Message);
 
             return false;
+        }
+
+        switch (result)
+        {
+            case ClosedFileWriteResult.Written:
+                return true;
+
+            case ClosedFileWriteResult.ChangedOnDisk:
+                reportNotWritten("the file changed while it was being analyzed; it was left unchanged.");
+
+                return false;
+
+            default:
+                reportNotWritten("the file is read-only or cannot be written directly; it was left unchanged.");
+
+                return false;
         }
     }
 

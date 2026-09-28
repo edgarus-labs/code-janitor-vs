@@ -30,13 +30,16 @@ internal static class OutputWindowHelper
     }
 
     /// <summary>
-    /// Writes the specified informational line to the CodeJanitor output pane. Always shown,
-    /// regardless of Diagnostics Mode.
+    /// Writes the specified informational line to the CodeJanitor output pane, but only if diagnostics are enabled.
+    /// Without Diagnostics Mode the pane only shows warnings and handled exceptions.
     /// </summary>
     /// <param name="message">The message.</param>
     internal static void InfoWriteLine(string message)
     {
-        WriteLine(Resources.Info, message);
+        if (Settings.Default.General_DiagnosticsMode)
+        {
+            WriteLine(Resources.Info, message);
+        }
     }
 
     /// <summary>

@@ -1,16 +1,17 @@
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 
@@ -20,11 +21,22 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 public sealed class CleanupProgressViewModel : BaseProgressViewModel
 {
     private readonly CodeJanitorPackage _package;
-    private readonly BackgroundWorker _backgroundWorker;
+
+    /// <summary>
+    /// Projects whose files are analyzed at the same time; each one holds a project compilation in memory.
+    /// </summary>
+    private const int MaxParallelProjects = 4;
+
+    private readonly Dispatcher _dispatcher;
     private readonly Stopwatch _batchStopwatch;
 
     /// <summary>
-    /// Canceled with the background worker, to stop the semantic using directive placement of the current file.
+    /// Refreshes the elapsed time and the counts every second, independently of the cleanup progress reports.
+    /// </summary>
+    private readonly DispatcherTimer _refreshTimer;
+
+    /// <summary>
+    /// Canceled by the Cancel button, to stop the batch and the semantic steps of the current file.
     /// </summary>
     private readonly CancellationTokenSource _cancellationSource = new CancellationTokenSource();
 
@@ -57,6 +69,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     public CleanupProgressViewModel(CodeJanitorPackage package, IEnumerable<object> items)
     {
         _package = package;
+        _dispatcher = Dispatcher.CurrentDispatcher;
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
         _batchStopwatch = Stopwatch.StartNew();
@@ -67,19 +80,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         CountTotal = cleanupItems.Count;
         ProcessedCount = 0;
         UpdateExecutionSummary();
+        _refreshTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, (_, _) => UpdateExecutionSummary(), _dispatcher);
 
-        // Initialize background worker.
-        _backgroundWorker = new BackgroundWorker
-        {
-            WorkerReportsProgress = true,
-            WorkerSupportsCancellation = true
-        };
-
-        _backgroundWorker.DoWork += backgroundWorker_DoWork;
-        _backgroundWorker.ProgressChanged += backgroundWorker_ProgressChanged;
-        _backgroundWorker.RunWorkerCompleted += backgroundWorker_RunWorkerCompleted;
-
-        _backgroundWorker.RunWorkerAsync(cleanupItems);
+        // The batch runs on the thread pool; UI work goes through the dispatcher.
+        _ = RunBatchAsync(cleanupItems);
     }
 
     /// <summary>
@@ -96,22 +100,46 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         IsCanceling = true;
         CancelCommand.RaiseCanExecuteChanged();
 
-        _backgroundWorker.CancelAsync();
         _cancellationSource.Cancel();
+        AiXmlDocumentationLogic.CancelRun();
     }
 
     /// <summary>
-    /// Handles the DoWork event of the backgroundWorker control.
+    /// Runs the batch on the thread pool and completes it on the UI thread.
     /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">
-    /// The <see cref="System.ComponentModel.DoWorkEventArgs" /> instance containing the event data.
-    /// </param>
-    private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+    /// <param name="items">The items to cleanup.</param>
+    private async Task RunBatchAsync(List<object> items)
     {
-        var bw = (BackgroundWorker)sender;
-        var items = ((IEnumerable<object>)e.Argument).ToList();
+        // AI XML documentation run during cleanup is canceled with the batch.
+        AiXmlDocumentationLogic.BeginRun();
+        Exception error = null;
+        var canceled = false;
+        try
+        {
+            canceled = !await Task.Run(() => CleanupItemsAsync(items));
+        }
+        catch (Exception ex)
+        {
+            error = ex;
+        }
 
+        await _dispatcher.InvokeAsync(() => OnBatchCompleted(error, canceled));
+    }
+
+    /// <summary>
+    /// Posts a progress update to the UI thread without waiting for it.
+    /// </summary>
+    /// <param name="state">The progress state.</param>
+    private void ReportProgress(ProgressReportState state) =>
+        _ = _dispatcher.InvokeAsync(() => OnProgressChanged(state));
+
+    /// <summary>
+    /// Cleans up the items on a thread pool thread.
+    /// </summary>
+    /// <param name="items">The items to cleanup.</param>
+    /// <returns>False when the batch was canceled.</returns>
+    private async Task<bool> CleanupItemsAsync(List<object> items)
+    {
         int totalCount = items.Count;
         int completedCount = 0;
         var cancellationToken = _cancellationSource.Token;
@@ -130,12 +158,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 MaxDegreeOfParallelism = maxDegree
             };
 
-            var workItems = ThreadHelper.JoinableTaskFactory.Run(async () =>
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                return projectItems.Select(CreateWorkItem).ToList();
-            });
+            var workItems = await _dispatcher.InvokeAsync(() => projectItems.Select(CreateWorkItem).ToList());
 
             // Open documents, files in other languages than C#, and C# files that need editor-backed steps
             // (reorganizing, third-party cleanup) are cleaned one at a time in the editor.
@@ -146,59 +169,59 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
-            // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
-            // Studio workspace (UI thread), so they run one file at a time before the parallel headless pass; the headless
-            // steps (header, using organization, type splitting) then see their result. A file is counted as changed as
+            // The semantic steps (using directive placement, class sealing, null check conversion) run before the
+            // parallel headless pass, so the headless steps (header, using organization, type splitting) see their
+            // result. Projects run in parallel, the files of one project one at a time. A file is counted as changed as
             // soon as it is rewritten, so it is counted even when the batch is canceled before its headless cleanup. The
             // set is only read during the parallel pass, which does not count these files again.
             var filesChangedBySemanticSteps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var workItem in parallelItems)
+            await CleanupBatchPartitioner.RunPerGroupAsync(parallelItems, workItem => workItem.ProjectKey, MaxParallelProjects, cancellationToken, async workItem =>
             {
-                if (bw.CancellationPending)
-                {
-                    e.Cancel = true;
+                ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = Volatile.Read(ref completedCount), Total = totalCount });
 
-                    return;
+                try
+                {
+                    await RunSemanticStepsAsync(
+                        new Func<Task<bool>>[]
+                        {
+                            () => CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken),
+                            () => CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken),
+                            () => CodeCleanupManager.ConvertNullChecksWhenSafeAsync(workItem.ProjectItem, cancellationToken),
+                        },
+                        () =>
+                        {
+                            bool added;
+                            lock (filesChangedBySemanticSteps)
+                            {
+                                added = filesChangedBySemanticSteps.Add(workItem.FilePath);
+                            }
+
+                            if (added)
+                            {
+                                CodeCleanupManager.IncrementHeadlessChanged();
+                            }
+                        });
                 }
-
-                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
-
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    try
-                    {
-                        await RunSemanticStepsAsync(
-                            new Func<Task<bool>>[]
-                            {
-                                () => CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken),
-                                () => CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken),
-                                () => CodeCleanupManager.ConvertNullChecksWhenSafeAsync(workItem.ProjectItem, cancellationToken),
-                            },
-                            () =>
-                            {
-                                if (filesChangedBySemanticSteps.Add(workItem.FilePath))
-                                {
-                                    CodeCleanupManager.IncrementHeadlessChanged();
-                                }
-                            });
-                    }
-                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                    {
-                        // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
-                    }
-                    catch (Exception ex)
-                    {
-                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
-                    }
-                });
+                    // Canceled by the user: the file was left unchanged, and the batch ends below.
+                }
+                catch (Exception ex)
+                {
+                    CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
+                }
+            });
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return false;
             }
 
             try
             {
                 Parallel.ForEach(parallelItems, parallelOptions, (workItem, loopState) =>
                 {
-                    if (bw.CancellationPending)
+                    if (cancellationToken.IsCancellationRequested)
                     {
                         loopState.Stop();
 
@@ -207,7 +230,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
 
                     var fileName = workItem.FileName;
 
-                    bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
+                    ReportProgress(new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
 
                     try
                     {
@@ -229,9 +252,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         if (outcome.SplitOperationOccurred && outcome.CreatedFiles.Count > 0)
                         {
                             CodeCleanupManager.RecordSplitOperation(outcome.CreatedFiles.Count);
-                            ThreadHelper.JoinableTaskFactory.Run(async () =>
+                            _dispatcher.Invoke(() =>
                             {
-                                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                                 foreach (var createdFile in outcome.CreatedFiles)
                                 {
                                     CodeCleanupManager.AddGeneratedFileToProject(workItem.ProjectItem, createdFile);
@@ -245,93 +267,77 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     }
 
                     // The file is counted as completed after its diagnostic cleanup below.
-                    bw.ReportProgress(0, new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
+                    ReportProgress(new ProgressReportState { FileName = fileName, Completed = completedCount, Total = totalCount });
                 });
             }
             catch (OperationCanceledException)
             {
-                e.Cancel = true;
-
-                return;
+                return false;
             }
 
-            if (bw.CancellationPending)
+            if (cancellationToken.IsCancellationRequested)
             {
-                e.Cancel = true;
-
-                return;
+                return false;
             }
 
-            foreach (var workItem in parallelItems)
+            await CleanupBatchPartitioner.RunPerGroupAsync(parallelItems, workItem => workItem.ProjectKey, MaxParallelProjects, cancellationToken, async workItem =>
             {
-                if (bw.CancellationPending)
+                ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = Volatile.Read(ref completedCount), Total = totalCount });
+
+                try
                 {
-                    e.Cancel = true;
-
-                    return;
+                    await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
+                    await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(workItem.ProjectItem);
+                }
+                catch (Exception ex)
+                {
+                    CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                 }
 
-                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+                var completed = Interlocked.Increment(ref completedCount);
+                ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = completed, Total = totalCount });
+            });
 
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
-                {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    try
-                    {
-                        await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
-                    }
-                    catch (Exception ex)
-                    {
-                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
-                    }
-                });
-
-                completedCount++;
-                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return false;
             }
 
             foreach (var workItem in sequentialItems)
             {
-                if (bw.CancellationPending)
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    e.Cancel = true;
-
-                    return;
+                    return false;
                 }
 
-                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+                ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
 
-                ThreadHelper.JoinableTaskFactory.Run(async delegate
+                try
                 {
-                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                    try
-                    {
-                        await CodeCleanupManager.CleanupAsync(workItem.ProjectItem, cancellationToken);
-                    }
-                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                    {
-                        // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
-                    }
-                    catch (Exception ex)
-                    {
-                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath ?? workItem.FileName ?? "Unknown", ex);
-                    }
-                });
+                    await CodeCleanupManager.CleanupAsync(workItem.ProjectItem, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
+                }
+                catch (Exception ex)
+                {
+                    CodeCleanupManager.RecordCleanupFailure(workItem.FilePath ?? workItem.FileName ?? "Unknown", ex);
+                }
 
                 completedCount++;
-                bw.ReportProgress(0, new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
+                ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = completedCount, Total = totalCount });
             }
 
-            return;
+            return true;
         }
 
         // Sequential fallback path (parallel cleanup disabled, or items that are not all project items)
         foreach (dynamic item in items)
         {
-            if (bw.CancellationPending)
+            if (cancellationToken.IsCancellationRequested)
             {
-                e.Cancel = true;
-                break;
+                return false;
             }
 
             string itemName = null;
@@ -343,72 +349,61 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             {
             }
 
-            bw.ReportProgress(0, new ProgressReportState { FileName = itemName, Completed = completedCount, Total = totalCount });
+            ReportProgress(new ProgressReportState { FileName = itemName, Completed = completedCount, Total = totalCount });
 
-            ThreadHelper.JoinableTaskFactory.Run(async delegate
+            try
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-                try
+                if (item is EnvDTE.ProjectItem projectItem)
                 {
-                    if (item is EnvDTE.ProjectItem projectItem)
-                    {
-                        await CodeCleanupManager.CleanupAsync(projectItem, cancellationToken);
-                    }
-                    else
-                    {
-                        CodeCleanupManager.Cleanup(item);
-                    }
+                    await CodeCleanupManager.CleanupAsync(projectItem, cancellationToken);
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                else
                 {
-                    // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
+                    await _dispatcher.InvokeAsync(() => CodeCleanupManager.Cleanup(item));
                 }
-                catch (Exception ex)
-                {
-                    CodeCleanupManager.RecordCleanupFailure(itemName ?? "Unknown", ex);
-                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Canceled by the user: the file was left unchanged, and the next iteration ends the batch.
+            }
+            catch (Exception ex)
+            {
+                CodeCleanupManager.RecordCleanupFailure(itemName ?? "Unknown", ex);
+            }
 
-                var currentCompleted = Interlocked.Increment(ref completedCount);
-                bw.ReportProgress(0, new ProgressReportState { FileName = itemName, Completed = currentCompleted, Total = totalCount });
-            });
+            completedCount++;
+            ReportProgress(new ProgressReportState { FileName = itemName, Completed = completedCount, Total = totalCount });
         }
+
+        return true;
     }
 
     /// <summary>
-    /// Handles the ProgressChanged event of the backgroundWorker control.
+    /// Shows the progress of the batch; runs on the UI thread.
     /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">
-    /// The <see cref="System.ComponentModel.ProgressChangedEventArgs" /> instance containing
-    /// the event data.
-    /// </param>
-    private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+    /// <param name="state">The progress state.</param>
+    private void OnProgressChanged(ProgressReportState state)
     {
-        if (e.UserState is ProgressReportState state)
+        if (!string.IsNullOrEmpty(state.FileName))
         {
-            if (!string.IsNullOrEmpty(state.FileName))
-            {
-                CurrentFileName = state.FileName;
-            }
-
-            CountTotal = state.Total;
-            ProcessedCount = Math.Min(state.Total, state.Completed);
-            CountProgress = ProcessedCount;
+            CurrentFileName = state.FileName;
         }
+
+        CountTotal = state.Total;
+        ProcessedCount = Math.Min(state.Total, state.Completed);
+        CountProgress = ProcessedCount;
 
         UpdateExecutionSummary();
     }
 
     /// <summary>
-    /// Handles the RunWorkerCompleted event of the backgroundWorker control.
+    /// Completes the batch; runs on the UI thread.
     /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">
-    /// The <see cref="System.ComponentModel.RunWorkerCompletedEventArgs" /> instance containing
-    /// the event data.
-    /// </param>
-    private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    /// <param name="error">The exception that ended the batch, if any.</param>
+    /// <param name="canceled">Whether the batch was canceled.</param>
+    private void OnBatchCompleted(Exception error, bool canceled)
     {
+        _refreshTimer.Stop();
         _batchStopwatch.Stop();
         ProcessedCount = CountTotal;
         UpdateExecutionSummary();
@@ -416,24 +411,24 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         var stats = CodeCleanupManager.GetCleanupExecutionStats();
         var counts = $"headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, diagnosticChanged={stats.DiagnosticChangedItems}, diagnosticUnresolved={stats.DiagnosticUnresolvedItems}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}";
 
-        if (e.Error is not null)
+        if (error is not null)
         {
             OutputWindowHelper.WarningWriteLine($"Cleanup batch failed after {counts}.");
-            MessageBox.Show(e.Error.Message, "CodeJanitor Cleanup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowMessage(error.Message, "CodeJanitor Cleanup Error", MessageBoxImage.Error);
         }
-        else if (e.Cancelled)
+        else if (canceled)
         {
             OutputWindowHelper.InfoWriteLine($"Cleanup batch canceled. Processed: {counts}.");
         }
         else if (stats.FailedItems > 0)
         {
             OutputWindowHelper.WarningWriteLine($"Cleanup batch completed with failures. Processed: {counts}.");
-            MessageBox.Show($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowMessage($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxImage.Warning);
         }
         else if (stats.DiagnosticUnresolvedItems > 0)
         {
             OutputWindowHelper.WarningWriteLine($"Cleanup batch completed with unresolved diagnostics. Processed: {counts}.");
-            MessageBox.Show($"Cleanup completed, but {stats.DiagnosticUnresolvedItems} file(s) still have diagnostics that could not be fixed automatically. Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowMessage($"Cleanup completed, but {stats.DiagnosticUnresolvedItems} file(s) still have diagnostics that could not be fixed automatically. Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxImage.Warning);
         }
         else
         {
@@ -443,31 +438,85 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         // Run post-cleanup build verification only when the batch completed cleanly
         // (not canceled, no worker error, no per-file failures) and Visual Studio's
         // build context is available.
-        if (!e.Cancelled && e.Error is null && stats.FailedItems == 0 &&
+        if (!canceled && error is null && stats.FailedItems == 0 &&
             _package?.IDE?.Solution?.SolutionBuild is not null &&
             (stats.HeadlessChangedItems > 0 || stats.DiagnosticChangedItems > 0))
         {
-            try
-            {
-                OutputWindowHelper.InfoWriteLine("Running post-cleanup build verification...");
-                _package.IDE.Solution.SolutionBuild.Build(true);
-                if (_package.IDE.Solution.SolutionBuild.LastBuildInfo > 0)
-                {
-                    OutputWindowHelper.WarningWriteLine(
-                        $"Post-cleanup build verification reported {_package.IDE.Solution.SolutionBuild.LastBuildInfo} failed project(s).");
-                }
-                else
-                {
-                    OutputWindowHelper.InfoWriteLine("Post-cleanup build verification passed: solution compiled successfully.");
-                }
-            }
-            catch (Exception ex)
-            {
-                OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification could not be executed: {ex.Message}");
-            }
+            StartBuildVerification();
         }
+
         DialogResult = true;
         _cancellationSource.Dispose();
+    }
+
+    /// <summary>
+    /// Starts the post-cleanup build without waiting for it, so Visual Studio stays responsive while it runs, and
+    /// reports its result when the build is done.
+    /// </summary>
+    private void StartBuildVerification()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        // The handler references the events object, which keeps it (and the subscription) alive until the build ends.
+        var buildEvents = _package.IDE.Events.BuildEvents;
+        EnvDTE._dispBuildEvents_OnBuildDoneEventHandler onBuildDone = null;
+        onBuildDone = (scope, action) =>
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            buildEvents.OnBuildDone -= onBuildDone;
+
+            var failedProjects = _package.IDE.Solution.SolutionBuild.LastBuildInfo;
+            if (failedProjects > 0)
+            {
+                OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification reported {failedProjects} failed project(s).");
+            }
+            else
+            {
+                OutputWindowHelper.InfoWriteLine("Post-cleanup build verification passed: solution compiled successfully.");
+            }
+        };
+
+        buildEvents.OnBuildDone += onBuildDone;
+        try
+        {
+            OutputWindowHelper.InfoWriteLine("Running post-cleanup build verification...");
+            _package.IDE.Solution.SolutionBuild.Build(WaitForBuildToFinish: false);
+        }
+        catch (Exception ex)
+        {
+            buildEvents.OnBuildDone -= onBuildDone;
+            OutputWindowHelper.WarningWriteLine($"Post-cleanup build verification could not be executed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Shows a message box owned by the progress window and above every other window, so it cannot end up hidden
+    /// behind the progress window or Visual Studio while the batch waits for it.
+    /// </summary>
+    /// <param name="message">The message.</param>
+    /// <param name="caption">The caption.</param>
+    /// <param name="image">The icon.</param>
+    private void ShowMessage(string message, string caption, MessageBoxImage image)
+    {
+        var owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => ReferenceEquals(window.DataContext, this));
+        if (owner is null)
+        {
+            MessageBox.Show(message, caption, MessageBoxButton.OK, image, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+
+            return;
+        }
+
+        var wasTopmost = owner.Topmost;
+        owner.Topmost = true;
+        owner.Activate();
+        try
+        {
+            MessageBox.Show(owner, message, caption, MessageBoxButton.OK, image);
+        }
+        finally
+        {
+            owner.Topmost = wasTopmost;
+        }
     }
 
     private static WorkItem CreateWorkItem(EnvDTE.ProjectItem projectItem)
@@ -480,24 +529,26 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 projectItem,
                 projectItem.Name,
                 projectItem.GetFileName(),
-                projectItem.IsOpen[EnvDTE.Constants.vsViewKindTextView] || projectItem.IsOpen[EnvDTE.Constants.vsViewKindCode]);
+                projectItem.IsOpen[EnvDTE.Constants.vsViewKindTextView] || projectItem.IsOpen[EnvDTE.Constants.vsViewKindCode],
+                projectItem.ContainingProject?.UniqueName);
         }
         catch (Exception ex)
         {
             OutputWindowHelper.ExceptionWriteLine("Unable to read a project item for cleanup", ex);
 
-            return new WorkItem(projectItem, null, null, false);
+            return new WorkItem(projectItem, null, null, false, null);
         }
     }
 
     private sealed class WorkItem
     {
-        public WorkItem(EnvDTE.ProjectItem projectItem, string fileName, string filePath, bool isOpen)
+        public WorkItem(EnvDTE.ProjectItem projectItem, string fileName, string filePath, bool isOpen, string projectKey)
         {
             ProjectItem = projectItem;
             FileName = fileName;
             FilePath = filePath;
             IsOpen = isOpen;
+            ProjectKey = projectKey;
         }
 
         public EnvDTE.ProjectItem ProjectItem { get; }
@@ -507,6 +558,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         public string FilePath { get; }
 
         public bool IsOpen { get; }
+
+        /// <summary>
+        /// Gets the unique name of the project that contains the file, or null when unknown.
+        /// </summary>
+        public string ProjectKey { get; }
     }
 
     /// <summary>

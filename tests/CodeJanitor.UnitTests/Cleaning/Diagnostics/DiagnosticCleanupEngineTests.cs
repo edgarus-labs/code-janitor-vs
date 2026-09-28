@@ -873,6 +873,45 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_FixThatThrowsWhileComputed_IsRejectedAndTheOtherFixesOfTheFileAreApplied()
+    {
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(("CJT0040", "Performance"), ("CJT0041", "Performance")));
+        using (workspace)
+        {
+            workspace.ConfigureRuleSeverity("CJT0040", "warning");
+            workspace.ConfigureRuleSeverity("CJT0041", "warning");
+            DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+            CustomOperationsLegacyFieldCodeFixProvider throwing = new CustomOperationsLegacyFieldCodeFixProvider(
+                "CJT0040",
+                (_, _, _) => throw new System.InvalidOperationException("Sequence contains no elements"));
+            CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new CodeFixProvider[] { throwing, new RenameLegacyFieldCodeFixProvider("CJT0041") });
+
+            DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+            Assert.IsTrue(result.HasChanges, "The fix of the other rule must still be applied.");
+            Assert.AreEqual("CJT0041", result.AppliedFixes.Single().DiagnosticId);
+            StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "renamedValue");
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_ProviderThatThrowsWhileRegisteringFixes_ReportsTheDiagnosticAsProviderFailure()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0042", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
+
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new ThrowingLegacyFieldCodeFixProvider("CJT0042"));
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        Assert.IsFalse(result.IsComplete);
+        UnresolvedDiagnostic unresolved = result.Unresolved.Single();
+        Assert.AreEqual("CJT0042", unresolved.DiagnosticId);
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixChangingSolutionStructure_IsRejectedAsUnsupported()
     {
         using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0006", out DocumentId documentId);

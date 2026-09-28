@@ -33,4 +33,10 @@ public enum UnresolvedDiagnosticReason
     /// The diagnostic was still present when the maximum number of passes was reached.
     /// </summary>
     NotConverged,
+
+    /// <summary>
+    /// Every code fix provider of the diagnostic threw while offering or computing its fix (a provider bug). Only the
+    /// fixes of that provider are skipped; the other fixes of the file still apply.
+    /// </summary>
+    FixProviderFailed,
 }

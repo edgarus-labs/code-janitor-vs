@@ -232,6 +232,19 @@ internal sealed class BreakingLegacyFieldCodeFixProvider : LegacyFieldCodeFixPro
 }
 
 /// <summary>
+/// Throws while registering its fixes, like a third-party provider with a bug.
+/// </summary>
+internal sealed class ThrowingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    public ThrowingLegacyFieldCodeFixProvider(string diagnosticId)
+        : base(diagnosticId)
+    {
+    }
+
+    public override Task RegisterCodeFixesAsync(CodeFixContext context) => throw new InvalidOperationException("Sequence contains no elements");
+}
+
+/// <summary>
 /// Adds a new document instead of editing text, which the engine must reject as an unsupported change.
 /// </summary>
 internal sealed class AddDocumentLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase

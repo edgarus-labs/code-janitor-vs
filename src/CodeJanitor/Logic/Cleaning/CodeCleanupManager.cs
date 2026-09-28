@@ -1,4 +1,5 @@
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Formatting;
 using CodeJanitor.Logic.Reorganizing;
 using CodeJanitor.Logic.Transformations;
@@ -173,6 +174,7 @@ internal sealed class CodeCleanupManager
     private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
     private readonly NullCheckPatternMatchingLogic _nullCheckPatternMatchingLogic;
     private readonly SealedClassLogic _sealedClassLogic;
+    private readonly AiXmlDocumentationLogic _aiXmlDocumentationLogic;
     private readonly SingleStatementLambdaLogic _singleStatementLambdaLogic;
     private readonly RemoveRegionLogic _removeRegionLogic;
     private readonly RemoveWhitespaceLogic _removeWhitespaceLogic;
@@ -238,6 +240,7 @@ internal sealed class CodeCleanupManager
         _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
         _nullCheckPatternMatchingLogic = NullCheckPatternMatchingLogic.GetInstance(_package);
         _sealedClassLogic = SealedClassLogic.GetInstance(_package);
+        _aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_package);
         _singleStatementLambdaLogic = SingleStatementLambdaLogic.GetInstance(_package);
         _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
         _removeWhitespaceLogic = RemoveWhitespaceLogic.GetInstance(_package);
@@ -295,6 +298,7 @@ internal sealed class CodeCleanupManager
 
             // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
             ThreadHelper.JoinableTaskFactory.Run(() => RunDiagnosticCleanupAsync(projectItem));
+            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(projectItem));
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -320,6 +324,7 @@ internal sealed class CodeCleanupManager
         if (projectItem.Document is not null)
         {
             CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
+            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(projectItem));
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -411,6 +416,7 @@ internal sealed class CodeCleanupManager
 
             // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
             await RunDiagnosticCleanupAsync(projectItem);
+            await RunXmlDocumentationDuringCleanupAsync(projectItem);
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
@@ -436,6 +442,7 @@ internal sealed class CodeCleanupManager
         if (projectItem.Document is not null)
         {
             CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
+            await RunXmlDocumentationDuringCleanupAsync(projectItem);
 
             // Close the document if it was opened for cleanup.
             if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
@@ -1380,6 +1387,12 @@ internal sealed class CodeCleanupManager
         ThreadHelper.ThrowIfNotOnUIThread();
 
         CleanupDocument(document, usingsLeftInPlace: false);
+
+        // AI requests take seconds per file: they never run for the automatic cleanup on save.
+        if (!_package.IsAutoSaveContext && document.ProjectItem is not null)
+        {
+            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(document.ProjectItem));
+        }
     }
 
     /// <summary>
@@ -1538,6 +1551,22 @@ internal sealed class CodeCleanupManager
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
     internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
         _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
+
+    /// <summary>
+    /// Adds AI-generated XML documentation to a cleaned file (open in the editor or closed on disk), when AI XML
+    /// documentation is enabled with "Run during cleanup". The AI requests run off the UI thread.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>A task.</returns>
+    internal async Task RunXmlDocumentationDuringCleanupAsync(ProjectItem projectItem)
+    {
+        if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled || !Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup)
+        {
+            return;
+        }
+
+        await _aiXmlDocumentationLogic.ApplyXmlDocumentationAsync(projectItem);
+    }
 
     /// <summary>
     /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup

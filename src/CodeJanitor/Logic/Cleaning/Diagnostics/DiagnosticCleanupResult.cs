@@ -80,5 +80,6 @@ public sealed class DiagnosticCleanupResult
     private static bool IsBlocking(UnresolvedDiagnosticReason reason) =>
         reason == UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors
         || reason == UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges
-        || reason == UnresolvedDiagnosticReason.NotConverged;
+        || reason == UnresolvedDiagnosticReason.NotConverged
+        || reason == UnresolvedDiagnosticReason.FixProviderFailed;
 }

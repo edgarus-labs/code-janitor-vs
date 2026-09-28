@@ -420,16 +420,29 @@ public sealed class DiagnosticCleanupEngine
                 return FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.NoCodeFixProvider);
             }
 
+            var providerFailed = false;
             foreach (var provider in providers)
             {
-                var chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
+                (CodeAction Action, bool HasEquivalentAlternatives) chosen;
+                try
+                {
+                    chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // A provider bug must not stop the cleanup of the file; the next provider may still offer a fix.
+                    providerFailed = true;
+
+                    continue;
+                }
+
                 if (chosen.Action is not null)
                 {
                     return FixPlan.Fixable(actionable, provider, chosen.Action, chosen.HasEquivalentAlternatives);
                 }
             }
 
-            return FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.NoApplicableCodeAction);
+            return FixPlan.Unfixable(actionable, providerFailed ? UnresolvedDiagnosticReason.FixProviderFailed : UnresolvedDiagnosticReason.NoApplicableCodeAction);
         }
 
         /// <summary>
@@ -473,7 +486,17 @@ public sealed class DiagnosticCleanupEngine
                     continue;
                 }
 
-                var attempt = await TryApplyGroupAsync(solution, document, group.ToImmutableArray(), cancellationToken).ConfigureAwait(false);
+                FixAttempt attempt;
+                try
+                {
+                    attempt = await TryApplyGroupAsync(solution, document, group.ToImmutableArray(), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // The provider (or its fix-all provider) threw while computing the fix: only this group is skipped.
+                    attempt = FixAttempt.Rejected(UnresolvedDiagnosticReason.FixProviderFailed);
+                }
+
                 if (attempt.Rejection.HasValue)
                 {
                     _rejectedGroups.Add(group.Key, attempt.Rejection.Value);
