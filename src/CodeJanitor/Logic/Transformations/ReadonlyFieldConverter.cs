@@ -441,9 +441,10 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
 
     /// <summary>
     /// Determines whether the declared type is syntactically known not to be a mutable struct: a predefined type, an
-    /// array or pointer, a nullable value, a well-known framework reference type, a type declared in this file as a
-    /// class, interface, record class, delegate, enum or <c>readonly struct</c>, or a name following the interface
-    /// naming convention (<c>I</c> followed by an upper-case letter).
+    /// array or pointer, a nullable value, a type declared in this file as a class, interface, record class, delegate,
+    /// enum or <c>readonly struct</c>, or, unless this file declares a mutable struct of that name, a well-known
+    /// framework reference type or a name following the interface naming convention (<c>I</c> followed by an
+    /// upper-case letter).
     /// </summary>
     private static bool IsKnownNotMutableStruct(TypeSyntax type, SyntaxNode root)
     {
@@ -473,19 +474,20 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         }
 
         var text = name.Identifier.ValueText;
-        if (KnownReferenceTypeNames.Contains(text) ||
-            (text.Length > 1 && text[0] == 'I' && char.IsUpper(text[1])))
-        {
-            return true;
-        }
-
         var declarations = root.DescendantNodes(n => !(n is BlockSyntax))
             .Where(n => n is BaseTypeDeclarationSyntax || n is DelegateDeclarationSyntax)
             .Where(n => (n is BaseTypeDeclarationSyntax t ? t.Identifier : ((DelegateDeclarationSyntax)n).Identifier).ValueText == text)
             .ToList();
 
-        return declarations.Count > 0 && declarations.All(declaration =>
-            !(declaration is StructDeclarationSyntax || declaration.IsKind(SyntaxKind.RecordStructDeclaration)) ||
-            ((TypeDeclarationSyntax)declaration).Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword)));
+        if (declarations.Any(declaration =>
+                (declaration is StructDeclarationSyntax || declaration.IsKind(SyntaxKind.RecordStructDeclaration)) &&
+                !((TypeDeclarationSyntax)declaration).Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword))))
+        {
+            return false;
+        }
+
+        return declarations.Count > 0 ||
+            KnownReferenceTypeNames.Contains(text) ||
+            (text.Length > 1 && text[0] == 'I' && char.IsUpper(text[1]));
     }
 }

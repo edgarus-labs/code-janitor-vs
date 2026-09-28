@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FindSymbols;
+using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +24,11 @@ namespace CodeJanitor.Logic.Transformations;
 /// accessors, fields and nested types included (overrides excepted): such members only make sense for derived
 /// classes, and sealing would report CS0628;</item>
 /// <item>no class of the solution derives from it;</item>
-/// <item>no generic type constraint of the solution names it (a sealed type in a constraint is CS0701).</item>
+/// <item>no generic type constraint of the solution names it (a sealed type in a constraint is CS0701);</item>
+/// <item>no cast, <c>as</c>, <c>is</c>, type pattern or <c>foreach</c> of the solution converts it to or from an
+/// interface it does not implement (sealing removes that explicit conversion);</item>
+/// <item>its declaration contains no code excluded by a preprocessor directive, and no such code of the solution
+/// names it (the semantic model cannot see inactive code, which other build configurations compile).</item>
 /// </list>
 /// A file compiled by several projects or target frameworks is analyzed in each of them, and a class is sealed only
 /// when it is safe in every one. Classes outside the solution (other repositories, published packages) cannot be
@@ -78,19 +83,77 @@ public sealed class ClassSealingConverter
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         var solution = document.Project.Solution;
-        var safe = new HashSet<int>();
+        var inactiveIdentifiers = await GetInactiveCodeIdentifiersAsync(solution, cancellationToken).ConfigureAwait(false);
+        var sealable = new Dictionary<INamedTypeSymbol, int>(SymbolEqualityComparer.Default);
 
         foreach (var declaration in GetCandidates(root))
         {
-            if (semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is INamedTypeSymbol type &&
+            if (!ContainsInactiveCode(declaration) &&
+                semanticModel.GetDeclaredSymbol(declaration, cancellationToken) is INamedTypeSymbol type &&
+                !inactiveIdentifiers.Contains(type.Name) &&
                 IsDeclaredForSealing(type) &&
                 !await IsInheritedOrConstrainedAsync(type, solution, cancellationToken).ConfigureAwait(false))
             {
-                safe.Add(declaration.SpanStart);
+                sealable[type] = declaration.SpanStart;
             }
         }
 
-        return safe;
+        if (sealable.Count > 0)
+        {
+            var converted = await GetExplicitlyConvertedWithInterfacesAsync(sealable.Keys.ToList(), document.Project, cancellationToken).ConfigureAwait(false);
+            foreach (var type in converted)
+            {
+                sealable.Remove(type);
+            }
+        }
+
+        return new HashSet<int>(sealable.Values);
+    }
+
+    /// <summary>
+    /// Determines whether the declaration contains code excluded by a preprocessor directive (<c>#if</c>/<c>#elif</c>/
+    /// <c>#else</c> branches inactive in this project flavor). The semantic model cannot see that code, which other
+    /// build configurations compile and which may declare members that forbid sealing.
+    /// </summary>
+    private static bool ContainsInactiveCode(TypeDeclarationSyntax declaration) =>
+        declaration.DescendantTrivia(declaration.Span, descendIntoTrivia: true)
+            .Any(trivia => trivia.IsKind(SyntaxKind.DisabledTextTrivia));
+
+    /// <summary>
+    /// Gets the identifiers that occur in code excluded by a preprocessor directive anywhere in the solution. Such code
+    /// is compiled in other build configurations and may derive from, constrain or convert a class the semantic model
+    /// sees as safe to seal.
+    /// </summary>
+    private static async Task<HashSet<string>> GetInactiveCodeIdentifiersAsync(Solution solution, CancellationToken cancellationToken)
+    {
+        var identifiers = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var document in solution.Projects.SelectMany(project => project.Documents))
+        {
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            if (root is null || !root.ContainsDirectives)
+            {
+                continue;
+            }
+
+            foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
+            {
+                if (!trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+                {
+                    continue;
+                }
+
+                foreach (var token in SyntaxFactory.ParseTokens(trivia.ToString()))
+                {
+                    if (token.IsKind(SyntaxKind.IdentifierToken))
+                    {
+                        identifiers.Add(token.ValueText);
+                    }
+                }
+            }
+        }
+
+        return identifiers;
     }
 
     /// <summary>
@@ -150,6 +213,135 @@ public sealed class ClassSealingConverter
             {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the <paramref name="candidates" /> that a cast, <c>as</c>, <c>is</c>, type pattern or <c>foreach</c>
+    /// iteration variable of <paramref name="project" /> or of a project depending on it explicitly converts to or from
+    /// an interface the class does not implement. That explicit reference conversion exists only while the class is
+    /// not sealed: sealing would report CS0030, CS0039 or CS8121, or turn an <c>is</c> test into CS0184.
+    /// </summary>
+    private static async Task<List<INamedTypeSymbol>> GetExplicitlyConvertedWithInterfacesAsync(
+        IReadOnlyCollection<INamedTypeSymbol> candidates,
+        Project project,
+        CancellationToken cancellationToken)
+    {
+        var solution = project.Solution;
+        var projectIds = new List<ProjectId> { project.Id };
+        projectIds.AddRange(solution.GetProjectDependencyGraph().GetProjectsThatTransitivelyDependOnThisProject(project.Id));
+        var converted = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        foreach (var scanned in projectIds.Select(solution.GetProject).Where(scanned => scanned?.Language == LanguageNames.CSharp))
+        {
+            if (!(await scanned.GetCompilationAsync(cancellationToken).ConfigureAwait(false) is CSharpCompilation compilation))
+            {
+                continue;
+            }
+
+            // The candidate as seen by this compilation, mapped back to the candidate of the analyzed project.
+            var candidateInCompilation = new Dictionary<INamedTypeSymbol, INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            foreach (var candidate in candidates.Where(candidate => !converted.Contains(candidate)))
+            {
+                var similar = SymbolFinder.FindSimilarSymbols(candidate, compilation, cancellationToken).FirstOrDefault();
+                if (similar != null)
+                {
+                    candidateInCompilation[similar.OriginalDefinition] = candidate;
+                }
+            }
+
+            if (candidateInCompilation.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var document in scanned.Documents)
+            {
+                var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+                SemanticModel semanticModel = null;
+
+                foreach (var node in root.DescendantNodes())
+                {
+                    if (!IsExplicitConversionSite(node))
+                    {
+                        continue;
+                    }
+
+                    semanticModel ??= await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                    var (source, target) = GetConversionTypes(node, semanticModel, cancellationToken);
+                    if (TryGetConvertedCandidate(source, target, candidateInCompilation, compilation, out var candidate))
+                    {
+                        converted.Add(candidate);
+                    }
+                }
+            }
+        }
+
+        return converted.ToList();
+    }
+
+    private static bool IsExplicitConversionSite(SyntaxNode node) =>
+        node is CastExpressionSyntax ||
+        node is PatternSyntax ||
+        node is ForEachStatementSyntax ||
+        node.IsKind(SyntaxKind.AsExpression) ||
+        node.IsKind(SyntaxKind.IsExpression);
+
+    /// <summary>
+    /// Gets the type converted from and the type converted to at an explicit conversion site.
+    /// </summary>
+    private static (ITypeSymbol Source, ITypeSymbol Target) GetConversionTypes(SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken)
+    {
+        switch (node)
+        {
+            case CastExpressionSyntax cast:
+                return (semanticModel.GetTypeInfo(cast.Expression, cancellationToken).Type, semanticModel.GetTypeInfo(cast.Type, cancellationToken).Type);
+            case BinaryExpressionSyntax binary:
+                return (semanticModel.GetTypeInfo(binary.Left, cancellationToken).Type, semanticModel.GetTypeInfo(binary.Right, cancellationToken).Type);
+            case ForEachStatementSyntax forEach:
+                return (semanticModel.GetForEachStatementInfo(forEach).ElementType, semanticModel.GetTypeInfo(forEach.Type, cancellationToken).Type);
+            case PatternSyntax pattern when semanticModel.GetOperation(pattern, cancellationToken) is IPatternOperation operation:
+                return (operation.InputType, operation.NarrowedType);
+            default:
+                return (null, null);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the conversion goes between a candidate (or an array of it) and an interface (or an array of
+    /// it) that the candidate does not implicitly convert to, a conversion that sealing the candidate removes.
+    /// </summary>
+    private static bool TryGetConvertedCandidate(
+        ITypeSymbol source,
+        ITypeSymbol target,
+        IReadOnlyDictionary<INamedTypeSymbol, INamedTypeSymbol> candidateInCompilation,
+        CSharpCompilation compilation,
+        out INamedTypeSymbol candidate)
+    {
+        while (source is IArrayTypeSymbol sourceArray && target is IArrayTypeSymbol targetArray)
+        {
+            source = sourceArray.ElementType;
+            target = targetArray.ElementType;
+        }
+
+        candidate = null;
+        if (source is null || target is null)
+        {
+            return false;
+        }
+
+        if (target.TypeKind == TypeKind.Interface && source is INamedTypeSymbol sourceClass &&
+            candidateInCompilation.TryGetValue(sourceClass.OriginalDefinition, out candidate))
+        {
+            return !compilation.ClassifyConversion(source, target).IsImplicit;
+        }
+
+        if (source.TypeKind == TypeKind.Interface && target is INamedTypeSymbol targetClass &&
+            candidateInCompilation.TryGetValue(targetClass.OriginalDefinition, out candidate))
+        {
+            return !compilation.ClassifyConversion(target, source).IsImplicit;
         }
 
         return false;

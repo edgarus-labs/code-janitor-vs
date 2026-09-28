@@ -94,7 +94,7 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
 
             // Spread it onto multiple lines; positions are taken from the original node.
 
-            return SpreadMethodOntoMultipleLines(visited, node.Body.OpenBraceToken.SpanStart);
+            return SpreadMethodOntoMultipleLines(visited, node.Body.OpenBraceToken.SpanStart, node.SpanStart);
         }
 
         /// <summary>
@@ -117,20 +117,23 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
         /// </summary>
         /// <param name="method">The method.</param>
         /// <param name="openBracePosition">The position of the opening brace in the original source.</param>
+        /// <param name="declarationPosition">The position of the declaration's first token in the original source.</param>
         /// <returns>A MethodDeclarationSyntax value produced by this method.</returns>
-        private MethodDeclarationSyntax SpreadMethodOntoMultipleLines(MethodDeclarationSyntax method, int openBracePosition)
+        private MethodDeclarationSyntax SpreadMethodOntoMultipleLines(MethodDeclarationSyntax method, int openBracePosition, int declarationPosition)
         {
             var line = _text.Lines.GetLineFromPosition(openBracePosition);
             var newline = SyntaxFactory.EndOfLine(GetLineBreak(line));
-            var indentText = GetIndentation(line);
-            var indent = SyntaxFactory.Whitespace(indentText);
-            var statementIndent = SyntaxFactory.Whitespace(indentText + (indentText.Length > 0 && indentText[0] == '\t' ? "\t" : "    "));
-
             var body = method.Body;
             var openBrace = body.OpenBraceToken;
             var previous = openBrace.GetPreviousToken();
             var braceIsOnHeaderLine = !previous.TrailingTrivia.Any(SyntaxKind.EndOfLineTrivia)
                 && !openBrace.LeadingTrivia.Any(SyntaxKind.EndOfLineTrivia);
+
+            // A brace on the header line may follow wrapped parameters or a where clause, whose
+            // continuation indentation must not be used for the body.
+            var indentText = GetIndentation(braceIsOnHeaderLine ? _text.Lines.GetLineFromPosition(declarationPosition) : line);
+            var indent = SyntaxFactory.Whitespace(indentText);
+            var statementIndent = SyntaxFactory.Whitespace(indentText + (indentText.Length > 0 && indentText[0] == '\t' ? "\t" : "    "));
 
             if (braceIsOnHeaderLine)
             {

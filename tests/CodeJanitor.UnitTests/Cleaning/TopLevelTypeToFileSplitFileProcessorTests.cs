@@ -193,9 +193,10 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     }
 
     [TestMethod]
-    public void Apply_TargetFileAppearingAfterPlanning_IsReplacedWithoutLeavingTemporaryFiles()
+    public void Apply_TargetFileAppearingAfterPlanning_IsKeptAndTheTypeGetsTheNextFreeName()
     {
         string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string foreignFile = Path.Combine(_tempDirectory, "Bar.cs");
 
         TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
             "class Foo { }\r\nclass Bar { }\r\n",
@@ -204,15 +205,16 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
             null,
             transformCreatedFile: (text, path) =>
             {
-                File.WriteAllText(path, "stale content written by someone else");
+                File.WriteAllText(foreignFile, "content written by someone else");
 
                 return "// created\r\n" + text;
             });
 
         string createdFile = result.CreatedFiles.Single();
-        Assert.AreEqual(Path.Combine(_tempDirectory, "Bar.cs"), createdFile);
+        Assert.AreEqual(Path.Combine(_tempDirectory, "Bar~1.cs"), createdFile);
         Assert.AreEqual("// created\r\nclass Bar { }\r\n", File.ReadAllText(createdFile));
-        Assert.AreSequenceEqual(new[] { createdFile }, Directory.GetFiles(_tempDirectory));
+        Assert.AreEqual("content written by someone else", File.ReadAllText(foreignFile));
+        Assert.AreSequenceEqual(new[] { foreignFile, createdFile }, Directory.GetFiles(_tempDirectory).OrderBy(x => x, StringComparer.Ordinal).ToArray());
     }
 
     [TestMethod]

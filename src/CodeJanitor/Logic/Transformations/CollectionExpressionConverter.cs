@@ -99,9 +99,13 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                     return TryConvertArrayCreation(declaredType, arrayCreation);
 
                 case ImplicitArrayCreationExpressionSyntax implicitArrayCreation:
+                    // The elements' best type may be a subtype of a reference element type (object[] a = new[] { "a" }
+                    // creates a string[]), so only element types without covariant subtypes are converted.
                     return declaredType is ArrayTypeSyntax declaredArrayType &&
                            declaredArrayType.RankSpecifiers[0].Rank == 1 &&
-                           implicitArrayCreation.Commas.Count == 0
+                           implicitArrayCreation.Commas.Count == 0 &&
+                           declaredArrayType.ElementType is PredefinedTypeSyntax elementType &&
+                           !elementType.Keyword.IsKind(SyntaxKind.ObjectKeyword)
                         ? BuildCollectionExpression(implicitArrayCreation.Initializer).WithTriviaFrom(implicitArrayCreation)
                         : null;
 

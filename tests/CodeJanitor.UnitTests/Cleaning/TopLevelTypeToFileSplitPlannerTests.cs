@@ -295,15 +295,30 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
     }
 
     [TestMethod]
-    [DataRow("namespace Demo;\n\n#region Types\nclass Foo { }\nclass Bar { }\n#endregion\n", DisplayName = "region around several types")]
-    [DataRow("namespace Demo;\n\nclass Foo { }\n\n#region Helpers\nclass Bar { }\n#endregion\n", DisplayName = "region around the moved type")]
-    [DataRow("#region Types\nclass Foo { }\n\nclass Bar { }\n#endregion\n", DisplayName = "region around types without a namespace")]
-    public void CreatePlan_RegionAroundTopLevelTypes_KeepsEveryFileCompilable(string source)
+    [DataRow("namespace Demo;\n\n#region Types\nclass Foo { }\nclass Bar { }\n#endregion\n", false, DisplayName = "region around several types")]
+    [DataRow("namespace Demo;\n\nclass Foo { }\n\n#region Helpers\nclass Bar { }\n#endregion\n", true, DisplayName = "region around the moved type")]
+    [DataRow("namespace Demo;\n\n#region Helpers\nclass Bar { }\n#endregion\n\nclass Foo { }\n", true, DisplayName = "region around a moved type followed by another type")]
+    [DataRow("namespace Demo\n{\n    class Foo { }\n\n    #region Helpers\n    class Bar { }\n    #endregion\n}\n", true, DisplayName = "region around the last type of a block namespace")]
+    [DataRow("namespace Demo;\n\n#region Main\nclass Foo { }\n#endregion\n\nclass Bar { }\n", true, DisplayName = "region around the kept type")]
+    [DataRow("#region Types\nclass Foo { }\n\nclass Bar { }\n#endregion\n", false, DisplayName = "region around types without a namespace")]
+    public void CreatePlan_RegionAroundTopLevelTypes_KeepsEveryFileCompilable(string source, bool expectSplit)
     {
         TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
 
+        Assert.AreEqual(expectSplit, plan.HasChanges);
         Document document = CompilingTestProject.CreateDocument(plan.UpdatedSource, plan.NewFiles.Select(x => x.Content).ToArray());
         Assert.IsEmpty(document.Project.GetCompilationAsync().Result.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error));
+    }
+
+    [TestMethod]
+    public void CreatePlan_RegionAroundOneMovedType_MovesTheWholeRegionWithThatType()
+    {
+        string source = "namespace Demo;\n\n#region Helpers\nclass Bar { }\n#endregion\n\nclass Foo { }\n";
+
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+
+        Assert.AreEqual("namespace Demo;\n\nclass Foo { }\n", plan.UpdatedSource);
+        Assert.AreEqual("namespace Demo;\n\n#region Helpers\nclass Bar { }\n#endregion\n", plan.NewFiles.Single().Content);
     }
 
     [TestMethod]

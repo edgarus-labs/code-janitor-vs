@@ -73,6 +73,7 @@ public sealed class DiagnosticCleanupModelTests
     [DataRow(UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors, false)]
     [DataRow(UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges, false)]
     [DataRow(UnresolvedDiagnosticReason.NotConverged, false)]
+    [DataRow(UnresolvedDiagnosticReason.FixProviderFailed, false)]
     public void Result_IsComplete_OnlyWhenNoUnresolvedDiagnosticBlocks(UnresolvedDiagnosticReason reason, bool expectComplete)
     {
         using AdhocWorkspace workspace = new AdhocWorkspace();
@@ -105,7 +106,18 @@ public sealed class DiagnosticCleanupModelTests
 
         Assert.AreEqual(string.Empty, withoutText.FilePath);
         Assert.AreEqual(string.Empty, withoutText.Message);
+        Assert.AreEqual(string.Empty, withoutText.Detail);
         Assert.AreEqual(@"C:\repo\Program.cs(12): Warning IDE0055 [Formatting] FixRejectedIntroducesCompilerErrors: Fix formatting", full.ToString());
+        UnresolvedDiagnostic failed = new UnresolvedDiagnostic(
+            "CJT0301",
+            DiagnosticCleanupCategory.AnalyzerFixes,
+            DiagnosticSeverity.Warning,
+            "A.cs",
+            3,
+            "Message",
+            UnresolvedDiagnosticReason.FixProviderFailed,
+            "BrokenFixer: Boom");
+        Assert.AreEqual("A.cs(3): Warning CJT0301 [AnalyzerFixes] FixProviderFailed: Message (BrokenFixer: Boom)", failed.ToString());
         Assert.AreEqual("diagnosticId", Assert.ThrowsExactly<ArgumentNullException>(
             () => new UnresolvedDiagnostic(null, DiagnosticCleanupCategory.Naming, DiagnosticSeverity.Info, "A.cs", 1, "M", UnresolvedDiagnosticReason.NotConverged)).ParamName);
     }

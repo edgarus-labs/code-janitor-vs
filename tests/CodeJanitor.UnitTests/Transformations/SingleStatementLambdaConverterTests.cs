@@ -261,6 +261,33 @@ public sealed class SingleStatementLambdaConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { void M() { var a = () => { Foo(); }; } int Foo() => 0; }", DisplayName = "var takes the lambda's natural type")]
+    [DataRow("class C { object o = () => { Foo(); }; static int Foo() => 0; }", DisplayName = "object target")]
+    [DataRow("class C { System.Delegate d = (int x) => { Foo(x); }; static int Foo(int x) => x; }", DisplayName = "Delegate target")]
+    [DataRow("class C { object _o; void M() { _o = () => { Foo(); }; } int Foo() => 0; }", DisplayName = "assignment to a member whose type is not visible")]
+    [DataRow("class C { System.Action a = true ? () => { Foo(); } : null; static int Foo() => 0; }", DisplayName = "conditional operator branch")]
+    [DataRow("class C { object M() { return () => { Foo(); }; } static int Foo() => 0; }", DisplayName = "return from a method returning object")]
+    public void LambdaWithoutAKnownDelegateTargetType_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { Action P { get; } = () => { F(); }; }", "class C { Action P { get; } = () => F(); }", DisplayName = "property initializer")]
+    [DataRow("class C { Action P => () => { F(); }; }", "class C { Action P => () => F(); }", DisplayName = "expression-bodied property")]
+    [DataRow("class C { Action P { get => () => { F(); }; } }", "class C { Action P { get => () => F(); } }", DisplayName = "expression-bodied getter")]
+    [DataRow("class C { Action M() { return () => { F(); }; } }", "class C { Action M() { return () => F(); } }", DisplayName = "return statement")]
+    [DataRow("class C { object o = (System.Action)(() => { F(); }); }", "class C { object o = (System.Action)(() => F()); }", DisplayName = "cast")]
+    [DataRow("class C { System.Linq.Expressions.Expression<Func<int, int>> e = x => { return x; }; }", "class C { System.Linq.Expressions.Expression<Func<int, int>> e = x => x; }", DisplayName = "expression tree")]
+    [DataRow("class C { Predicate<int>? p = x => { return x > 0; }; }", "class C { Predicate<int>? p = x => x > 0; }", DisplayName = "nullable Predicate")]
+    public void LambdaWithAKnownDelegateTargetType_BecomesExpressionBodied(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     [DataRow("class C { Func<int, int> f = x => { // keep\n return x; }; }", DisplayName = "comment after the open brace")]
     [DataRow("class C { Func<int, int> f = x => { return /* why */ x; }; }", DisplayName = "comment after return")]
     [DataRow("class C { Func<int, int> f = x => { return x; /* why */ }; }", DisplayName = "comment before the close brace")]

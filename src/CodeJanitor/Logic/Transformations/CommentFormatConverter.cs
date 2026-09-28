@@ -34,20 +34,8 @@ public sealed class CommentFormatConverter : ISourceTransformation
         }
 
         var text = SourceText.From(source);
-        var root = CSharpSyntaxTree.ParseText(text).GetRoot();
         var changes = new List<TextChange>();
-
-        foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
-        {
-            if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia))
-            {
-                AddSingleLineCommentChange(text, trivia, changes);
-            }
-            else if (trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
-            {
-                AddMultiLineCommentChanges(text, trivia, changes);
-            }
-        }
+        AddCommentChanges(text, CSharpSyntaxTree.ParseText(text).GetRoot(), 0, changes);
 
         if (changes.Count == 0)
         {
@@ -59,16 +47,42 @@ public sealed class CommentFormatConverter : ISourceTransformation
         return text.WithChanges(changes).ToString();
     }
 
-    private static void AddSingleLineCommentChange(SourceText text, SyntaxTrivia trivia, List<TextChange> changes)
+    /// <summary>
+    /// Adds the changes for the comments of <paramref name="root" />, whose text starts at
+    /// <paramref name="offset" /> in <paramref name="text" />.
+    /// </summary>
+    private static void AddCommentChanges(SourceText text, SyntaxNode root, int offset, List<TextChange> changes)
     {
-        var line = text.Lines.GetLineFromPosition(trivia.SpanStart);
-        if (!IsWhitespace(text, line.Start, trivia.SpanStart))
+        foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
+        {
+            var span = new TextSpan(offset + trivia.SpanStart, trivia.Span.Length);
+            if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia))
+            {
+                AddSingleLineCommentChange(text, span, changes);
+            }
+            else if (trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+            {
+                AddMultiLineCommentChanges(text, span, changes);
+            }
+            else if (trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+            {
+                // An inactive #if branch is kept as plain text; parsing it on its own finds its comments
+                // while its string literals stay strings.
+                AddCommentChanges(text, CSharpSyntaxTree.ParseText(trivia.ToString()).GetRoot(), span.Start, changes);
+            }
+        }
+    }
+
+    private static void AddSingleLineCommentChange(SourceText text, TextSpan span, List<TextChange> changes)
+    {
+        var line = text.Lines.GetLineFromPosition(span.Start);
+        if (!IsWhitespace(text, line.Start, span.Start))
         {
             // Trailing comments after code are left alone.
             return;
         }
 
-        var comment = trivia.ToString();
+        var comment = text.ToString(span);
         if (comment.StartsWith("///", StringComparison.Ordinal))
         {
             // Commented-out documentation comments and //// separators are not reformatted.
@@ -79,21 +93,21 @@ public sealed class CommentFormatConverter : ISourceTransformation
         var formatted = string.IsNullOrWhiteSpace(body) ? "//" : "// " + body.TrimStart();
         if (formatted != comment)
         {
-            changes.Add(new TextChange(trivia.Span, formatted));
+            changes.Add(new TextChange(span, formatted));
         }
     }
 
-    private static void AddMultiLineCommentChanges(SourceText text, SyntaxTrivia trivia, List<TextChange> changes)
+    private static void AddMultiLineCommentChanges(SourceText text, TextSpan span, List<TextChange> changes)
     {
-        var startLine = text.Lines.GetLineFromPosition(trivia.SpanStart);
-        if (!IsWhitespace(text, startLine.Start, trivia.SpanStart))
+        var startLine = text.Lines.GetLineFromPosition(span.Start);
+        if (!IsWhitespace(text, startLine.Start, span.Start))
         {
             // A block comment opened after code keeps its content as written.
             return;
         }
 
-        var baseIndentation = text.ToString(TextSpan.FromBounds(startLine.Start, trivia.SpanStart));
-        var closingLineNumber = text.Lines.GetLineFromPosition(trivia.Span.End).LineNumber;
+        var baseIndentation = text.ToString(TextSpan.FromBounds(startLine.Start, span.Start));
+        var closingLineNumber = text.Lines.GetLineFromPosition(span.End).LineNumber;
 
         // The opening and closing lines are kept as they are; only the lines in between are aligned.
         for (var lineNumber = startLine.LineNumber + 1; lineNumber < closingLineNumber; lineNumber++)

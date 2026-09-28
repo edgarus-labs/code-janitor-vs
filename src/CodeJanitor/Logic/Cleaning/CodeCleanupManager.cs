@@ -323,7 +323,7 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
+            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen);
             ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(projectItem));
 
             // Close the document if it was opened for cleanup.
@@ -441,7 +441,7 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace);
+            CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen);
             await RunXmlDocumentationDuringCleanupAsync(projectItem);
 
             // Close the document if it was opened for cleanup.
@@ -1386,7 +1386,7 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        CleanupDocument(document, usingsLeftInPlace: false);
+        CleanupDocument(document, usingsLeftInPlace: false, semanticStepsDone: false);
 
         // AI requests take seconds per file: they never run for the automatic cleanup on save.
         if (!_package.IsAutoSaveContext && document.ProjectItem is not null)
@@ -1403,7 +1403,11 @@ internal sealed class CodeCleanupManager
     /// True when the semantic using directive placement was already attempted for the file in this cleanup and left
     /// the using directives in place: it is not retried, since that would repeat the analysis and the warning.
     /// </param>
-    private void CleanupDocument(Document document, bool usingsLeftInPlace)
+    /// <param name="semanticStepsDone">
+    /// True when class sealing and null check conversion already ran for the closed file in this cleanup: they are
+    /// not repeated, since each attempt analyzes the semantic model of every project compiling the file.
+    /// </param>
+    private void CleanupDocument(Document document, bool usingsLeftInPlace, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -1443,7 +1447,7 @@ internal sealed class CodeCleanupManager
             usingsLeftInPlace = _usingDirectivePlacementLogic.PlaceUsingDirectives(document.GetTextDocument()) == UsingsMoveOutcome.LeftInPlace;
         }
 
-        if (splitsCSharpTypes)
+        if (splitsCSharpTypes && !semanticStepsDone)
         {
             _sealedClassLogic.SealWhenSafe(document.GetTextDocument(), settings);
             _nullCheckPatternMatchingLogic.ConvertWhenSafe(document.GetTextDocument(), settings);
@@ -1468,7 +1472,7 @@ internal sealed class CodeCleanupManager
         new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorCleanupFor0, document.Name)).Run(
             delegate
             {
-                var cleanupMethod = FindCodeCleanupMethod(document, settings, usingsLeftInPlace, semanticStepsDone: splitsCSharpTypes);
+                var cleanupMethod = FindCodeCleanupMethod(document, settings, usingsLeftInPlace, semanticStepsDone: semanticStepsDone || splitsCSharpTypes);
                 if (cleanupMethod is not null)
                 {
                     OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");

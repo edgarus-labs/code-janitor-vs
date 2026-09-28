@@ -405,6 +405,10 @@ class C
     [DataRow("class C { string A = \"x == null\"; string B = @\"x != null\"; string D = $\"{1} x == null\"; }", DisplayName = "code-like text in literals")]
     [DataRow("class C\r\n{\r\n    // if (x == null)\r\n    /// <remarks>x != null</remarks>\r\n    void M() { }\r\n}\r\n", DisplayName = "code-like text in comments")]
     [DataRow("class C\r\n{\r\n    bool M(object x)\r\n    {\r\n#if NEVER\r\n        return x == null;\r\n#endif\r\n        return false;\r\n    }\r\n}\r\n", DisplayName = "inactive preprocessor branch")]
+    [DataRow("class C { const string Mode = null; const bool B = Mode == null; const bool N = null != Mode; }", DisplayName = "constant declaration")]
+    [DataRow("class C { const string Mode = null; void M(bool b = Mode == null) { } }", DisplayName = "default parameter value")]
+    [DataRow("[System.Obsolete(null, C.Mode != null)] class C { public const string Mode = null; }", DisplayName = "attribute argument")]
+    [DataRow("class C { const string Mode = null; int M(bool b) { switch (b) { case Mode == null: return 1; default: return 0; } } }", DisplayName = "case label")]
     public async Task SourceWithoutConvertibleNullCheck_IsUnchanged(string input)
     {
         Assert.AreEqual(input, await ConvertAsync(input));
@@ -424,7 +428,7 @@ class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    [DataRow("class C { bool F = \"\" == null; }", "class C { bool F = \"\" is null; }", DisplayName = "field initializer")]
+    [DataRow("class C { static string S = \"\"; bool F = S == null; }", "class C { static string S = \"\"; bool F = S is null; }", DisplayName = "field initializer")]
     [DataRow("class C { C(object o) { if (o == null) { } } }", "class C { C(object o) { if (o is null) { } } }", DisplayName = "constructor")]
     [DataRow("class C { object _o; bool P { get { return _o != null; } } }", "class C { object _o; bool P { get { return _o is not null; } } }", DisplayName = "accessor")]
     [DataRow("class C { object _o; bool P => _o == null; }", "class C { object _o; bool P => _o is null; }", DisplayName = "expression-bodied property")]

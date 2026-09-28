@@ -299,4 +299,15 @@ public sealed class CommentFormatConverterTests
 
         Assert.AreEqual(source, _converter.Apply(source));
     }
+
+    [TestMethod]
+    [DataRow("#if DEBUG\r\n//a\r\n    //b\r\n#endif\r\n", "#if DEBUG\r\n// a\r\n    // b\r\n#endif\r\n", DisplayName = "single-line comments")]
+    [DataRow("#if DEBUG\r\n    /*\r\n    * a\r\n    */\r\n#endif\r\n", "#if DEBUG\r\n    /*\r\n     * a\r\n    */\r\n#endif\r\n", DisplayName = "block comment")]
+    [DataRow("#if DEBUG\r\n//a\r\n#else\r\n//b\r\n#endif\r\n", "#if DEBUG\r\n// a\r\n#else\r\n// b\r\n#endif\r\n", DisplayName = "disabled and active branch")]
+    [DataRow("#if DEBUG\r\nvar s = \"//x\";\r\nint y; //c\r\n//d\r\n#endif\r\n", "#if DEBUG\r\nvar s = \"//x\";\r\nint y; //c\r\n// d\r\n#endif\r\n", DisplayName = "string and trailing comment left alone")]
+    [DataRow("#if DEBUG\r\nvar s = @\"\r\n//x\r\n\";\r\n#endif\r\n", "#if DEBUG\r\nvar s = @\"\r\n//x\r\n\";\r\n#endif\r\n", DisplayName = "verbatim string left alone")]
+    public void CommentsInsideAnInactivePreprocessorBranch_AreFormatted(string source, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(source));
+    }
 }

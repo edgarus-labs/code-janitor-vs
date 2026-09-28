@@ -94,6 +94,9 @@ internal sealed class TopLevelTypeToFileSplitPlanner
             return new SplitPlan(source, Array.Empty<PlannedFile>(), TopLevelTypeSplitSkipReason.UnsupportedStructure);
         }
 
+        root = AttachTrailingEndRegions(root, members);
+        TryGetContainerMembers(root, out members);
+
         var eligibleMembers = members.Where(IsEligibleTopLevelType).ToList();
         if (eligibleMembers.Count <= 1)
         {
@@ -223,14 +226,85 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     }
 
     /// <summary>
-    /// Returns the member whose full span (including its trivia) contains the directive, or null.
+    /// Returns the member owning the directive: the member whose trailing #endregion it is (see
+    /// <see cref="TryGetTrailingEndRegion"/>), otherwise the member whose full span (including its trivia)
+    /// contains it, or null.
     /// </summary>
     /// <param name="members">The contained members.</param>
     /// <param name="directive">The directive.</param>
     /// <returns>The owning member, or null when the directive is outside every member.</returns>
     private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive)
     {
-        return members.FirstOrDefault(x => x.FullSpan.Contains(directive.SpanStart));
+        return members.FirstOrDefault(x => TryGetTrailingEndRegion(x, out var nextToken, out var triviaCount)
+                && nextToken.LeadingTrivia[triviaCount - 1].Span.Contains(directive.SpanStart))
+            ?? members.FirstOrDefault(x => x.FullSpan.Contains(directive.SpanStart));
+    }
+
+    /// <summary>
+    /// Finds the #endregion closing a region opened inside <paramref name="member"/> when it is the first directive
+    /// in the leading trivia of the token after the member (the next member, the closing brace of the namespace or
+    /// the end of the file), where the parser puts it although it belongs to the member.
+    /// </summary>
+    /// <param name="member">The member.</param>
+    /// <param name="nextToken">The token after the member.</param>
+    /// <param name="triviaCount">The number of leading trivia of <paramref name="nextToken"/> up to and including the #endregion.</param>
+    /// <returns>True when the member has such an #endregion.</returns>
+    private static bool TryGetTrailingEndRegion(MemberDeclarationSyntax member, out SyntaxToken nextToken, out int triviaCount)
+    {
+        nextToken = member.GetLastToken().GetNextToken(includeZeroWidth: true);
+        triviaCount = 0;
+        var leadingTrivia = nextToken.LeadingTrivia;
+        for (var i = 0; i < leadingTrivia.Count; i++)
+        {
+            if (!leadingTrivia[i].IsDirective)
+            {
+                continue;
+            }
+
+            if (!leadingTrivia[i].IsKind(SyntaxKind.EndRegionDirectiveTrivia))
+            {
+                return false;
+            }
+
+            var related = ((DirectiveTriviaSyntax)leadingTrivia[i].GetStructure()).GetRelatedDirectives();
+            if (related.Count != 2 || !member.FullSpan.Contains(related[0].SpanStart))
+            {
+                return false;
+            }
+
+            triviaCount = i + 1;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Moves every trailing #endregion of a member (see <see cref="TryGetTrailingEndRegion"/>), with the trivia
+    /// before it, into the trailing trivia of that member so it is kept or moved together with the member.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="members">The contained members.</param>
+    /// <returns>The root with the #endregion directives attached to their members.</returns>
+    private static CompilationUnitSyntax AttachTrailingEndRegions(CompilationUnitSyntax root, IReadOnlyList<MemberDeclarationSyntax> members)
+    {
+        var replacements = new Dictionary<SyntaxToken, SyntaxToken>();
+        foreach (var member in members)
+        {
+            if (!TryGetTrailingEndRegion(member, out var nextToken, out var triviaCount))
+            {
+                continue;
+            }
+
+            var lastToken = member.GetLastToken();
+            replacements[lastToken] = lastToken.WithTrailingTrivia(lastToken.TrailingTrivia.AddRange(nextToken.LeadingTrivia.Take(triviaCount)));
+            replacements[nextToken] = nextToken.WithLeadingTrivia(nextToken.LeadingTrivia.Skip(triviaCount));
+        }
+
+        return replacements.Count == 0
+            ? root
+            : root.ReplaceTokens(replacements.Keys, (original, _) => replacements[original]);
     }
 
     /// <summary>
@@ -364,7 +438,7 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="desiredFileName">The desired file name.</param>
     /// <param name="reservedFileNames">The reserved file names.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string MakeFileNameUnique(string desiredFileName, ISet<string> reservedFileNames)
+    internal static string MakeFileNameUnique(string desiredFileName, ISet<string> reservedFileNames)
     {
         if (!reservedFileNames.Contains(desiredFileName))
         {

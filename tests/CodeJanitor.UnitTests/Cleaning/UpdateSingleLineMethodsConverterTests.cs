@@ -165,6 +165,14 @@ public sealed class UpdateSingleLineMethodsConverterTests
         "class C { void M() { A(); } }",
         "class C { void M()\n{\n    A();\n} }",
         DisplayName = "file without line breaks")]
+    [DataRow(
+        "class C\r\n{\r\n    int M(int a,\r\n          int b) { return a; }\r\n}\r\n",
+        "class C\r\n{\r\n    int M(int a,\r\n          int b)\r\n    {\r\n        return a;\r\n    }\r\n}\r\n",
+        DisplayName = "parameters wrapped onto a continuation line")]
+    [DataRow(
+        "class C\r\n{\r\n    T M<T>()\r\n        where T : new() { return new T(); }\r\n}\r\n",
+        "class C\r\n{\r\n    T M<T>()\r\n        where T : new()\r\n    {\r\n        return new T();\r\n    }\r\n}\r\n",
+        DisplayName = "constraint clause on a continuation line")]
     public void SingleLineMethod_IsSpreadWithTheFileIndentationAndLineBreaks(string source, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(source));

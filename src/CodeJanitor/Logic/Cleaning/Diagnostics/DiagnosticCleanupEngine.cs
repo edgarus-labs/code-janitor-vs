@@ -242,8 +242,8 @@ public sealed class DiagnosticCleanupEngine
         private readonly ImmutableArray<DiagnosticAnalyzer> _analyzers;
         private readonly Lazy<ILookup<string, CodeFixProvider>> _providersByDiagnosticId;
 
-        private readonly Dictionary<(CodeFixProvider Provider, string EquivalenceKey), UnresolvedDiagnosticReason> _rejectedGroups =
-            new Dictionary<(CodeFixProvider Provider, string EquivalenceKey), UnresolvedDiagnosticReason>();
+        private readonly Dictionary<(CodeFixProvider Provider, string EquivalenceKey), (UnresolvedDiagnosticReason Reason, string Detail)> _rejectedGroups =
+            new Dictionary<(CodeFixProvider Provider, string EquivalenceKey), (UnresolvedDiagnosticReason Reason, string Detail)>();
 
         private readonly List<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider)> _appliedOrder =
             [];
@@ -420,7 +420,7 @@ public sealed class DiagnosticCleanupEngine
                 return FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.NoCodeFixProvider);
             }
 
-            var providerFailed = false;
+            string providerFailure = null;
             foreach (var provider in providers)
             {
                 (CodeAction Action, bool HasEquivalentAlternatives) chosen;
@@ -428,10 +428,13 @@ public sealed class DiagnosticCleanupEngine
                 {
                     chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                catch (Exception exception)
                 {
+                    // Canceling the cleanup wins over whatever the interrupted provider threw.
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     // A provider bug must not stop the cleanup of the file; the next provider may still offer a fix.
-                    providerFailed = true;
+                    providerFailure ??= DescribeProviderFailure(provider, exception);
 
                     continue;
                 }
@@ -442,8 +445,13 @@ public sealed class DiagnosticCleanupEngine
                 }
             }
 
-            return FixPlan.Unfixable(actionable, providerFailed ? UnresolvedDiagnosticReason.FixProviderFailed : UnresolvedDiagnosticReason.NoApplicableCodeAction);
+            return providerFailure is null
+                ? FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.NoApplicableCodeAction)
+                : FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.FixProviderFailed, providerFailure);
         }
+
+        private static string DescribeProviderFailure(CodeFixProvider provider, Exception exception) =>
+            $"{provider.GetType().Name} threw {exception.GetType().Name}: {exception.Message}";
 
         /// <summary>
         /// Gets the first top-level action registered by <paramref name="provider" /> that has no nested actions;
@@ -486,20 +494,10 @@ public sealed class DiagnosticCleanupEngine
                     continue;
                 }
 
-                FixAttempt attempt;
-                try
-                {
-                    attempt = await TryApplyGroupAsync(solution, document, group.ToImmutableArray(), cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception) when (!cancellationToken.IsCancellationRequested)
-                {
-                    // The provider (or its fix-all provider) threw while computing the fix: only this group is skipped.
-                    attempt = FixAttempt.Rejected(UnresolvedDiagnosticReason.FixProviderFailed);
-                }
-
+                var attempt = await TryApplyGroupAsync(solution, document, group.ToImmutableArray(), cancellationToken).ConfigureAwait(false);
                 if (attempt.Rejection.HasValue)
                 {
-                    _rejectedGroups.Add(group.Key, attempt.Rejection.Value);
+                    _rejectedGroups.Add(group.Key, (attempt.Rejection.Value, attempt.RejectionDetail));
                     continue;
                 }
 
@@ -520,28 +518,40 @@ public sealed class DiagnosticCleanupEngine
 
             var hasAlternatives = group.Any(plan => plan.HasEquivalentAlternatives);
             var fixAllProvider = hasAlternatives ? WellKnownFixAllProviders.BatchFixer : first.Provider.GetFixAllProvider();
-            if (fixAllProvider is not null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
+            ImmutableArray<CodeActionOperation> operations;
+            try
             {
-                var diagnostics = group.Select(plan => plan.Actionable.Diagnostic).ToImmutableArray();
-                var fixAllContext = new FixAllContext(
-                    document,
-                    hasAlternatives ? new ChosenActionCodeFixProvider(first.Provider, group) : first.Provider,
-                    FixAllScope.Document,
-                    first.Action.EquivalenceKey,
-                    diagnostics.Select(diagnostic => diagnostic.Id).Distinct(StringComparer.Ordinal),
-                    new GroupDiagnosticProvider(document.Id, diagnostics),
-                    cancellationToken);
-                var fixAllAction = await fixAllProvider.GetFixAsync(fixAllContext).ConfigureAwait(false);
-
-                // A fix-all provider may decline; the provider's own action for the first diagnostic still applies.
-                if (fixAllAction is not null)
+                if (fixAllProvider is not null && fixAllProvider.GetSupportedFixAllScopes().Contains(FixAllScope.Document))
                 {
-                    action = fixAllAction;
-                    fixedDiagnostics = group.Select(plan => plan.Actionable).ToImmutableArray();
+                    var diagnostics = group.Select(plan => plan.Actionable.Diagnostic).ToImmutableArray();
+                    var fixAllContext = new FixAllContext(
+                        document,
+                        hasAlternatives ? new ChosenActionCodeFixProvider(first.Provider, group) : first.Provider,
+                        FixAllScope.Document,
+                        first.Action.EquivalenceKey,
+                        diagnostics.Select(diagnostic => diagnostic.Id).Distinct(StringComparer.Ordinal),
+                        new GroupDiagnosticProvider(document.Id, diagnostics),
+                        cancellationToken);
+                    var fixAllAction = await fixAllProvider.GetFixAsync(fixAllContext).ConfigureAwait(false);
+
+                    // A fix-all provider may decline; the provider's own action for the first diagnostic still applies.
+                    if (fixAllAction is not null)
+                    {
+                        action = fixAllAction;
+                        fixedDiagnostics = group.Select(plan => plan.Actionable).ToImmutableArray();
+                    }
                 }
+
+                operations = await action.GetOperationsAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // The provider (or its fix-all provider) threw while computing the fix: only this group is skipped.
+                return FixAttempt.Rejected(UnresolvedDiagnosticReason.FixProviderFailed, DescribeProviderFailure(first.Provider, exception));
             }
 
-            var operations = await action.GetOperationsAsync(cancellationToken).ConfigureAwait(false);
             if (operations.IsDefaultOrEmpty)
             {
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.NoApplicableCodeAction);
@@ -730,7 +740,7 @@ public sealed class DiagnosticCleanupEngine
         private DiagnosticCleanupResult CreateResult(Solution originalSolution, Solution solution, ImmutableArray<FixPlan> remainingPlans)
         {
             var appliedFixes = _appliedOrder.Select(key => new AppliedDiagnosticFix(key.DiagnosticId, key.Category, key.Provider.GetType().Name, _appliedCounts[key]));
-            var unresolved = remainingPlans.Select(plan => CreateUnresolved(plan.Actionable, GetUnresolvedReason(plan)));
+            var unresolved = remainingPlans.Select(CreateUnresolved);
 
             return new DiagnosticCleanupResult(originalSolution, solution, appliedFixes, unresolved, _postApplyOperations);
         }
@@ -739,20 +749,22 @@ public sealed class DiagnosticCleanupEngine
         /// A remaining diagnostic without usable fix keeps its planning reason, one of a rejected group gets the
         /// rejection reason, and any other one was still fixable when the pass limit was reached.
         /// </summary>
-        private UnresolvedDiagnosticReason GetUnresolvedReason(FixPlan plan)
+        private (UnresolvedDiagnosticReason Reason, string Detail) GetUnresolvedReason(FixPlan plan)
         {
             if (plan.UnfixableReason.HasValue)
             {
-                return plan.UnfixableReason.Value;
+                return (plan.UnfixableReason.Value, plan.UnfixableDetail);
             }
 
-            return _rejectedGroups.TryGetValue(plan.GroupKey, out var rejection) ? rejection : UnresolvedDiagnosticReason.NotConverged;
+            return _rejectedGroups.TryGetValue(plan.GroupKey, out var rejection) ? rejection : (UnresolvedDiagnosticReason.NotConverged, null);
         }
 
-        private static UnresolvedDiagnostic CreateUnresolved(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason)
+        private UnresolvedDiagnostic CreateUnresolved(FixPlan plan)
         {
+            var actionable = plan.Actionable;
             var diagnostic = actionable.Diagnostic;
             var lineSpan = diagnostic.Location.GetLineSpan();
+            var (reason, detail) = GetUnresolvedReason(plan);
 
             return new UnresolvedDiagnostic(
                 diagnostic.Id,
@@ -761,7 +773,8 @@ public sealed class DiagnosticCleanupEngine
                 lineSpan.Path,
                 lineSpan.StartLinePosition.Line + 1,
                 diagnostic.GetMessage(CultureInfo.CurrentCulture),
-                reason);
+                reason,
+                detail);
         }
     }
 
@@ -812,13 +825,14 @@ public sealed class DiagnosticCleanupEngine
     /// </summary>
     private sealed class FixPlan
     {
-        private FixPlan(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives, UnresolvedDiagnosticReason? unfixableReason)
+        private FixPlan(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives, UnresolvedDiagnosticReason? unfixableReason, string unfixableDetail)
         {
             Actionable = actionable;
             Provider = provider;
             Action = action;
             HasEquivalentAlternatives = hasEquivalentAlternatives;
             UnfixableReason = unfixableReason;
+            UnfixableDetail = unfixableDetail;
         }
 
         public ActionableDiagnostic Actionable { get; }
@@ -835,15 +849,17 @@ public sealed class DiagnosticCleanupEngine
 
         public UnresolvedDiagnosticReason? UnfixableReason { get; }
 
+        public string UnfixableDetail { get; }
+
         public bool IsFixable => Action is not null;
 
         public (CodeFixProvider Provider, string EquivalenceKey) GroupKey => (Provider, Action?.EquivalenceKey);
 
         public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives) =>
-            new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null);
+            new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null, null);
 
-        public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason) =>
-            new FixPlan(actionable, null, null, false, reason);
+        public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason, string detail = null) =>
+            new FixPlan(actionable, null, null, false, reason, detail);
     }
 
     private sealed class FixAttempt
@@ -852,12 +868,14 @@ public sealed class DiagnosticCleanupEngine
             Solution solution,
             ImmutableArray<ActionableDiagnostic> fixedDiagnostics,
             ImmutableArray<CodeActionOperation> postApplyOperations,
-            UnresolvedDiagnosticReason? rejection)
+            UnresolvedDiagnosticReason? rejection,
+            string rejectionDetail)
         {
             Solution = solution;
             FixedDiagnostics = fixedDiagnostics;
             PostApplyOperations = postApplyOperations;
             Rejection = rejection;
+            RejectionDetail = rejectionDetail;
         }
 
         public Solution Solution { get; }
@@ -868,14 +886,16 @@ public sealed class DiagnosticCleanupEngine
 
         public UnresolvedDiagnosticReason? Rejection { get; }
 
+        public string RejectionDetail { get; }
+
         public static FixAttempt Accepted(
             Solution solution,
             ImmutableArray<ActionableDiagnostic> fixedDiagnostics,
             ImmutableArray<CodeActionOperation> postApplyOperations) =>
-            new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null);
+            new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null, null);
 
-        public static FixAttempt Rejected(UnresolvedDiagnosticReason reason) =>
-            new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason);
+        public static FixAttempt Rejected(UnresolvedDiagnosticReason reason, string detail = null) =>
+            new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason, detail);
     }
 
     /// <summary>

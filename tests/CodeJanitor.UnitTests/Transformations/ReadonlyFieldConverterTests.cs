@@ -761,6 +761,8 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("struct S { int _v; public void Bump() => _v++; } class C { private S _s; void M() { this._s.Bump(); } }", DisplayName = "mutable struct declared in the file")]
     [DataRow("class C { private Unknown _u; void M() { (_u).Reset(); } }", DisplayName = "type declared elsewhere")]
     [DataRow("class C<T> { private T _t; void M() { _t.ToString(); } }", DisplayName = "unconstrained type parameter")]
+    [DataRow("struct Timer { int _ticks; public void Tick() => _ticks++; } class C { private Timer _t; void M() => _t.Tick(); }", DisplayName = "mutable struct in the file named like a well-known class")]
+    [DataRow("record struct IPoint(int X) { public void Move() => X++; } class C { private IPoint _p; void M() => _p.Move(); }", DisplayName = "mutable record struct in the file named like an interface")]
     public void MethodCallOnFieldOfPossiblyMutableStructType_KeepsFieldMutable(string input)
     {
         Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));

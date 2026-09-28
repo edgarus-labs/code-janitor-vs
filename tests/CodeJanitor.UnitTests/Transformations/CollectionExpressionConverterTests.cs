@@ -156,6 +156,9 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("class C { void M() { object a = new[] { 1, 2 }; } }", DisplayName = "implicit array assigned to a non-array type")]
     [DataRow("class C { void M() { IEnumerable<int> a = new int[] { 1 }; } }", DisplayName = "array assigned to a non-array type")]
     [DataRow("class C { void M() { object[] a = new string[] { \"a\" }; } }", DisplayName = "covariant array")]
+    [DataRow("class C { void M() { object[] a = new[] { \"a\" }; } }", DisplayName = "covariant implicit array of object")]
+    [DataRow("class C { void M() { IEnumerable<int>[] a = new[] { new List<int>() }; } }", DisplayName = "covariant implicit array of an interface")]
+    [DataRow("class Base { } class Derived : Base { } class C { void M() { Base[] a = new[] { new Derived() }; } }", DisplayName = "covariant implicit array of a base class")]
     [DataRow("class C { void M() { int[] a = new int[n]; int[] b = new int[1]; } }", DisplayName = "non-zero or non-constant size")]
     [DataRow("class C { void M() { ArrayList x = new ArrayList(); } }", DisplayName = "non-generic type")]
     [DataRow("class C { void M() { Dictionary<int, int> x = new Dictionary<int, int>(); } }", DisplayName = "other generic type")]
@@ -182,6 +185,7 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("struct S { public S() { } int[] _a = new int[] { 1 }; }", "struct S { public S() { } int[] _a = [1]; }", DisplayName = "struct field")]
     [DataRow("class C<T> where T : struct { List<T> _items = new List<T>(); }", "class C<T> where T : struct { List<T> _items = []; }", DisplayName = "generic element type")]
     [DataRow("class C { string[] a = new string[] { \"new List<int>()\", @\"x\", $\"{1}\" }; }", "class C { string[] a = [\"new List<int>()\", @\"x\", $\"{1}\"]; }", DisplayName = "string literal elements")]
+    [DataRow("class C { string[] a = new[] { \"a\" }; double[] b = new[] { 1.5 }; }", "class C { string[] a = [\"a\"]; double[] b = [1.5]; }", DisplayName = "implicit array of a sealed predefined type")]
     public void ConvertibleInitializer_BecomesACollectionExpression(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));

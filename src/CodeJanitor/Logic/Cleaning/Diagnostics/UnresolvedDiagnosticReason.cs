@@ -35,8 +35,9 @@ public enum UnresolvedDiagnosticReason
     NotConverged,
 
     /// <summary>
-    /// Every code fix provider of the diagnostic threw while offering or computing its fix (a provider bug). Only the
-    /// fixes of that provider are skipped; the other fixes of the file still apply.
+    /// A code fix provider threw (a provider bug): either while offering fixes, when no other provider of the
+    /// diagnostic offered one, or while computing the chosen fix. Only that fix is skipped; the other fixes of the file
+    /// still apply. <see cref="UnresolvedDiagnostic.Detail" /> names the provider and its exception message.
     /// </summary>
     FixProviderFailed,
 }

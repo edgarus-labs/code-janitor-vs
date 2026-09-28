@@ -280,7 +280,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 return false;
             }
 
-            await CleanupBatchPartitioner.RunPerGroupAsync(parallelItems, workItem => workItem.ProjectKey, MaxParallelProjects, cancellationToken, async workItem =>
+            // The diagnostic pass runs one project at a time: the diagnostic cleanup of a closed file applies the fixes
+            // through the workspace, whose stale text of a file written by another project's cleanup would overwrite it.
+            await CleanupBatchPartitioner.RunPerGroupAsync(parallelItems, workItem => workItem.ProjectKey, maxParallelGroups: 1, cancellationToken, async workItem =>
             {
                 ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = Volatile.Read(ref completedCount), Total = totalCount });
 
@@ -359,7 +361,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 }
                 else
                 {
-                    await _dispatcher.InvokeAsync(() => CodeCleanupManager.Cleanup(item));
+                    // The document is converted to its static type first: a lambda over the dynamic item would bind the
+                    // Func<TResult> overload of InvokeAsync and fail at run time, since Cleanup returns void.
+                    EnvDTE.Document document = item;
+                    await _dispatcher.InvokeAsync(() => CodeCleanupManager.Cleanup(document));
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -407,6 +412,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         _batchStopwatch.Stop();
         ProcessedCount = CountTotal;
         UpdateExecutionSummary();
+
+        // Cancel also cancels the AI XML documentation run, which only BeginRun resets: without a fresh run the
+        // single-document cleanups after this batch would skip their XML documentation.
+        AiXmlDocumentationLogic.BeginRun();
 
         var stats = CodeCleanupManager.GetCleanupExecutionStats();
         var counts = $"headlessChanged={stats.HeadlessChangedItems}, headlessNoOp={stats.HeadlessNoOpItems}, editor={stats.EditorItems}, failed={stats.FailedItems}, splitOps={stats.SplitOperations}, splitFiles={stats.SplitCreatedFiles}, diagnosticChanged={stats.DiagnosticChangedItems}, diagnosticUnresolved={stats.DiagnosticUnresolvedItems}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}";

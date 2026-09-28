@@ -296,7 +296,7 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassDerivedFromInFileWithCompileErrors_StaysUnsealed()
+    public async Task ClassDerivedFromInFileWithCompileErrors_BaseStaysUnsealed_DerivedBecomesSealed()
     {
         string input = "public class Base { } public class Derived : Base { public void M() { int x = ; } }";
 
@@ -374,6 +374,51 @@ public sealed class ClassSealingConverterTests
             "public sealed class Settings { } public sealed class Consumer { Settings _s = new Settings(); System.Collections.Generic.List<Settings> _all; Settings Get() => (Settings)null; }",
             await SealAsync(
                 "public class Settings { } public class Consumer { Settings _s = new Settings(); System.Collections.Generic.List<Settings> _all; Settings Get() => (Settings)null; }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("object M(Foo foo) => (IBar)foo;", DisplayName = "cast to an interface")]
+    [DataRow("object M(Foo foo) => foo as IBar;", DisplayName = "as an interface")]
+    [DataRow("bool M(Foo foo) => foo is IBar;", DisplayName = "is an interface (CS0184 when sealed)")]
+    [DataRow("bool M(Foo foo) => foo is IBar bar;", DisplayName = "declaration pattern")]
+    [DataRow("int M(Foo foo) { switch (foo) { case IBar bar: return 1; default: return 0; } }", DisplayName = "case declaration pattern")]
+    [DataRow("int M(Foo foo) => foo switch { IBar bar => 1, _ => 0 };", DisplayName = "switch expression arm")]
+    [DataRow("bool M(Foo[] foos) => foos is IBar[];", DisplayName = "array of the class to array of an interface")]
+    [DataRow("object M(IBar bar) => (Foo)bar;", DisplayName = "cast from an interface")]
+    [DataRow("bool M(IBar bar) => bar is Foo foo;", DisplayName = "pattern from an interface")]
+    [DataRow("void M(Foo[] foos) { foreach (IBar bar in foos) { } }", DisplayName = "foreach with an interface iteration variable")]
+    public async Task ClassConvertedToAnInterfaceItDoesNotImplement_StaysUnsealed(string use)
+    {
+        string input = "public class Foo { }";
+
+        Assert.AreEqual(input, await SealAsync(input, "public interface IBar { } public static class Use { public static " + use + " }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassConvertedToAnInterfaceInAnotherProject_StaysUnsealed()
+    {
+        string input = "namespace Demo { public class Foo { } public interface IBar { } }";
+        Document consumerDocument = CompilingTestProject.CreateDocumentReferencingProject(
+            "namespace Consumer { public static class Use { public static object M(Demo.Foo foo) => (Demo.IBar)foo; } }",
+            new[] { input });
+        Document document = consumerDocument.Project.Solution.Projects
+            .Single(project => project.Name == "ReferencedProject")
+            .Documents.Single();
+
+        Assert.AreEqual(input, await SealAsync(document));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassConvertedToAnInterfaceItImplements_BecomesSealed()
+    {
+        Assert.AreEqual(
+            "public interface IBar { } public sealed class Foo : IBar { }",
+            await SealAsync(
+                "public interface IBar { } public class Foo : IBar { }",
+                "public static class Use { public static object M(Foo foo) => (IBar)foo; public static bool N(IBar bar) => bar is Foo foo; }"));
     }
 
     [TestMethod]
@@ -508,6 +553,39 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    public async Task ClassContainingAnInactivePreprocessorBranch_StaysUnsealed()
+    {
+        string input =
+            "public class Widget\r\n" +
+            "{\r\n" +
+            "#if LEGACY\r\n" +
+            "    public void Trace() { }\r\n" +
+            "#endif\r\n" +
+            "}\r\n";
+
+        Assert.AreEqual(input, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassNamedInInactiveCodeOfAnotherFile_StaysUnsealed()
+    {
+        string input = "public class Widget { }";
+
+        Assert.AreEqual(input, await SealAsync(input, "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\n"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task InactiveCodeNotNamingTheClass_DoesNotPreventSealing()
+    {
+        Assert.AreEqual(
+            "public sealed class Widget { }",
+            await SealAsync("public class Widget { }", "#if LEGACY\r\npublic class WidgetFactory { string _name = \"Widget\"; }\r\n#endif\r\n"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async Task ProtectedMemberInsideAnActivePreprocessorBranch_KeepsTheClassUnsealed()
     {
         string input =
@@ -532,7 +610,7 @@ public sealed class ClassSealingConverterTests
             new[] { solution.GetDocument(release.Id), solution.GetDocument(debug.Id) },
             CancellationToken.None);
 
-        Assert.AreEqual(input.Replace("public class Widget", "public sealed class Widget"), releaseOnly);
+        Assert.AreEqual(input, releaseOnly);
         Assert.AreEqual(input, both);
     }
 

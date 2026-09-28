@@ -875,12 +875,19 @@ public sealed class DiagnosticCleanupEngineTests
     [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixThatThrowsWhileComputed_IsRejectedAndTheOtherFixesOfTheFileAreApplied()
     {
-        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(("CJT0040", "Performance"), ("CJT0041", "Performance")));
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(
+            new LegacyFieldAnalyzer("old", ("CJT0040", "Performance")),
+            new HiddenLegacyFieldAnalyzer("CJT0041"));
         using (workspace)
         {
             workspace.ConfigureRuleSeverity("CJT0040", "warning");
             workspace.ConfigureRuleSeverity("CJT0041", "warning");
-            DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+            DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(
+                "class Settings",
+                "{",
+                "    public int oldValue;",
+                "    public int legacyValue;",
+                "}"));
             CustomOperationsLegacyFieldCodeFixProvider throwing = new CustomOperationsLegacyFieldCodeFixProvider(
                 "CJT0040",
                 (_, _, _) => throw new System.InvalidOperationException("Sequence contains no elements"));
@@ -891,6 +898,12 @@ public sealed class DiagnosticCleanupEngineTests
             Assert.IsTrue(result.HasChanges, "The fix of the other rule must still be applied.");
             Assert.AreEqual("CJT0041", result.AppliedFixes.Single().DiagnosticId);
             StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "renamedValue");
+            Assert.IsFalse(result.IsComplete);
+            UnresolvedDiagnostic unresolved = result.Unresolved.Single();
+            Assert.AreEqual("CJT0040", unresolved.DiagnosticId);
+            Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+            StringAssert.Contains(unresolved.Detail, nameof(CustomOperationsLegacyFieldCodeFixProvider));
+            StringAssert.Contains(unresolved.Detail, "Sequence contains no elements");
         }
     }
 
@@ -908,6 +921,23 @@ public sealed class DiagnosticCleanupEngineTests
         UnresolvedDiagnostic unresolved = result.Unresolved.Single();
         Assert.AreEqual("CJT0042", unresolved.DiagnosticId);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+        StringAssert.Contains(unresolved.Detail, nameof(ThrowingLegacyFieldCodeFixProvider));
+        StringAssert.Contains(unresolved.Detail, "Sequence contains no elements");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_ProviderThatCancelsTheCleanupAndThrows_PropagatesTheCancellation()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0043", out DocumentId documentId);
+        using CancellationTokenSource cancellation = new CancellationTokenSource();
+        DiagnosticCleanupEngine engine = new DiagnosticCleanupEngine(
+            new CodeFixProviderCatalog(new CodeFixProvider[] { new CancelingLegacyFieldCodeFixProvider("CJT0043", cancellation) }));
+
+        await Assert.ThrowsAsync<System.OperationCanceledException>(() => engine.CleanupAsync(
+            workspace.CreateSolution().GetDocument(documentId),
+            new DiagnosticCleanupOptions(new[] { DiagnosticCleanupCategory.AnalyzerFixes }),
+            cancellation.Token));
     }
 
     [TestMethod]

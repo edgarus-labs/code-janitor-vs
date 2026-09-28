@@ -585,7 +585,8 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         foreach (var unresolved in result.Unresolved)
         {
             OutputWindowHelper.WarningWriteLine(
-                $"Diagnostic cleanup left {unresolved.DiagnosticId} ({unresolved.Category}, {unresolved.Severity}) unresolved at '{unresolved.FilePath}' line {unresolved.Line}: {unresolved.Reason}. {unresolved.Message}");
+                $"Diagnostic cleanup left {unresolved.DiagnosticId} ({unresolved.Category}, {unresolved.Severity}) unresolved at '{unresolved.FilePath}' line {unresolved.Line}: {unresolved.Reason}. {unresolved.Message}"
+                + (unresolved.Detail.Length == 0 ? string.Empty : $" ({unresolved.Detail})"));
         }
 
         if (!result.IsComplete)

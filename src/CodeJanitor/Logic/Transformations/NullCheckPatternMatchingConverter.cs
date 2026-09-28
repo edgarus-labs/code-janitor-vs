@@ -124,11 +124,15 @@ public sealed class NullCheckPatternMatchingConverter
 
     /// <summary>
     /// Determines whether the check uses the built-in reference or nullable equality on an operand that the
-    /// <c>is null</c> pattern accepts.
+    /// <c>is null</c> pattern accepts, and is not a constant expression: an <c>is</c> pattern is never constant, so
+    /// it would not compile where a constant is required (const initializers, default parameter values, attribute
+    /// arguments, case labels).
     /// </summary>
     private static bool IsReferenceEqualityCheck(BinaryExpressionSyntax check, ExpressionSyntax operand, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
-        if (!(semanticModel.GetOperation(check, cancellationToken) is IBinaryOperation operation) || operation.OperatorMethod is not null)
+        if (!(semanticModel.GetOperation(check, cancellationToken) is IBinaryOperation operation) ||
+            operation.OperatorMethod is not null ||
+            semanticModel.GetConstantValue(check, cancellationToken).HasValue)
         {
             return false;
         }

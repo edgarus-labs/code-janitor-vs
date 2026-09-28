@@ -170,28 +170,168 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         }
 
         /// <summary>
-        /// Determines whether the lambda's delegate type is fixed regardless of its body's form. A lambda that is (or is
-        /// nested in) an argument or a collection initializer element takes its type from overload resolution, where
-        /// an expression body can pick another overload than a block body (for example <c>Func&lt;Task&gt;</c> instead
-        /// of <c>Action</c>, or an expression-tree overload of <c>IQueryable</c>), silently changing behavior.
+        /// Determines whether the lambda's delegate type is fixed regardless of its body's form: its target type is
+        /// written in the source and is a well-known delegate or expression tree type. A lambda that is (or is nested
+        /// in) an argument or a collection initializer element takes its type from overload resolution, where an
+        /// expression body can pick another overload than a block body (for example <c>Func&lt;Task&gt;</c> instead of
+        /// <c>Action</c>). A lambda assigned to <c>var</c>, <c>object</c> or <c>Delegate</c> takes its natural type,
+        /// which changes from <c>Action</c> to <c>Func&lt;T&gt;</c> when an expression body returns a value.
         /// </summary>
         private static bool HasFixedTargetType(ExpressionSyntax lambda)
         {
-            foreach (var ancestor in lambda.Ancestors())
+            var targetType = GetTargetType(lambda);
+
+            return targetType is not null && IsKnownDelegateType(targetType);
+        }
+
+        /// <summary>
+        /// Gets the type written in the source that the lambda converts to: the declared type of the variable or
+        /// property it initializes, the type of a cast, the return type of the member whose body returns it, or the
+        /// result type of the enclosing <c>Func</c> lambda that returns it. Returns <see langword="null" /> when the
+        /// target type is not visible in the syntax.
+        /// </summary>
+        private static TypeSyntax GetTargetType(ExpressionSyntax lambda)
+        {
+            SyntaxNode node = lambda;
+            while (node.Parent is ParenthesizedExpressionSyntax)
             {
-                switch (ancestor)
-                {
-                    case ArgumentSyntax _:
-                        return false;
-                    case InitializerExpressionSyntax initializer when !initializer.IsKind(SyntaxKind.ObjectInitializerExpression):
-                        return false;
-                    case StatementSyntax _:
-                    case MemberDeclarationSyntax _:
-                        return true;
-                }
+                node = node.Parent;
             }
 
-            return true;
+            switch (node.Parent)
+            {
+                case EqualsValueClauseSyntax equalsValue:
+                    switch (equalsValue.Parent)
+                    {
+                        case VariableDeclaratorSyntax declarator when declarator.Parent is VariableDeclarationSyntax declaration:
+                            return declaration.Type;
+                        case PropertyDeclarationSyntax property:
+                            return property.Type;
+                        default:
+                            return null;
+                    }
+
+                case CastExpressionSyntax cast:
+                    return cast.Type;
+
+                case ArrowExpressionClauseSyntax arrow:
+                    return GetReturnType(arrow.Parent);
+
+                case ReturnStatementSyntax returnStatement:
+                    return GetReturnType(returnStatement.Ancestors().FirstOrDefault(IsFunction));
+
+                case AnonymousFunctionExpressionSyntax outerLambda when outerLambda.ExpressionBody == node:
+                    return GetReturnType(outerLambda);
+
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the node declares a function body that a <c>return</c> statement returns from.
+        /// </summary>
+        private static bool IsFunction(SyntaxNode node) =>
+            node is BaseMethodDeclarationSyntax ||
+            node is LocalFunctionStatementSyntax ||
+            node is AccessorDeclarationSyntax ||
+            node is AnonymousFunctionExpressionSyntax;
+
+        /// <summary>
+        /// Gets the declared return type of a synchronous method, operator, local function, property or indexer
+        /// getter, or the result type of a lambda whose own target type is a <c>Func</c>; <see langword="null" />
+        /// otherwise.
+        /// </summary>
+        private static TypeSyntax GetReturnType(SyntaxNode function)
+        {
+            switch (function)
+            {
+                case MethodDeclarationSyntax method when !method.Modifiers.Any(SyntaxKind.AsyncKeyword):
+                    return method.ReturnType;
+                case LocalFunctionStatementSyntax localFunction when !localFunction.Modifiers.Any(SyntaxKind.AsyncKeyword):
+                    return localFunction.ReturnType;
+                case OperatorDeclarationSyntax @operator:
+                    return @operator.ReturnType;
+                case ConversionOperatorDeclarationSyntax conversion:
+                    return conversion.Type;
+                case BasePropertyDeclarationSyntax property when property is PropertyDeclarationSyntax || property is IndexerDeclarationSyntax:
+                    return property.Type;
+                case AccessorDeclarationSyntax accessor when accessor.IsKind(SyntaxKind.GetAccessorDeclaration):
+                    return GetReturnType(accessor.Parent?.Parent);
+                case AnonymousFunctionExpressionSyntax outerLambda when !outerLambda.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword):
+                    var outerTarget = UnwrapTypeName(GetTargetType(outerLambda), out _);
+                    return outerTarget is GenericNameSyntax func && func.Identifier.ValueText == "Func"
+                        ? func.TypeArgumentList.Arguments.Last()
+                        : null;
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the type is syntactically a well-known delegate type (<c>Action</c>, <c>Func</c>,
+        /// <c>Predicate</c>, <c>Comparison</c>, <c>Converter</c>, <c>EventHandler</c>) or an expression tree type
+        /// (<c>Expression&lt;TDelegate&gt;</c>), optionally qualified or nullable.
+        /// </summary>
+        private static bool IsKnownDelegateType(TypeSyntax type)
+        {
+            var name = UnwrapTypeName(type, out var arity);
+            if (name is null)
+            {
+                return false;
+            }
+
+            switch (name.Identifier.ValueText)
+            {
+                case "Action":
+                case "EventHandler":
+                    return true;
+                case "Func":
+                case "Predicate":
+                case "Comparison":
+                case "Converter":
+                    return arity > 0;
+                case "Expression":
+                    return arity == 1;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the simple name of a possibly nullable, qualified or alias-qualified type name, and its number of
+        /// type arguments; <see langword="null" /> for other types (predefined types, arrays, tuples, <c>var</c>).
+        /// </summary>
+        private static SimpleNameSyntax UnwrapTypeName(TypeSyntax type, out int arity)
+        {
+            arity = 0;
+            if (type is NullableTypeSyntax nullable)
+            {
+                type = nullable.ElementType;
+            }
+
+            SimpleNameSyntax name;
+            switch (type)
+            {
+                case QualifiedNameSyntax qualified:
+                    name = qualified.Right;
+                    break;
+                case AliasQualifiedNameSyntax aliasQualified:
+                    name = aliasQualified.Name;
+                    break;
+                case SimpleNameSyntax simple:
+                    name = simple;
+                    break;
+                default:
+                    return null;
+            }
+
+            if (name is GenericNameSyntax generic)
+            {
+                arity = generic.TypeArgumentList.Arguments.Count;
+            }
+
+            return name;
         }
 
         /// <summary>

@@ -19,14 +19,15 @@ using Microsoft.CodeAnalysis.Text;
 namespace CodeJanitor.UnitTests.Cleaning.Diagnostics;
 
 /// <summary>
-/// Test analyzer reporting every source field whose name starts with <c>legacy</c>, once per configured rule. The
-/// diagnostic ids and descriptor categories are chosen per test so classification and provider lookup are exercised
-/// without depending on any built-in analyzer.
+/// Test analyzer reporting every source field whose name starts with <c>legacy</c> (or a prefix chosen by the test),
+/// once per configured rule. The diagnostic ids and descriptor categories are chosen per test so classification and
+/// provider lookup are exercised without depending on any built-in analyzer.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
 {
     private readonly ImmutableArray<DiagnosticDescriptor> _descriptors;
+    private readonly string _namePrefix;
 
     public LegacyFieldAnalyzer()
         : this("CJT0000", "Style")
@@ -39,7 +40,13 @@ internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
     }
 
     public LegacyFieldAnalyzer(params (string DiagnosticId, string Category)[] rules)
+        : this("legacy", rules)
     {
+    }
+
+    public LegacyFieldAnalyzer(string namePrefix, params (string DiagnosticId, string Category)[] rules)
+    {
+        _namePrefix = namePrefix;
         _descriptors = rules
             .Select(rule => new DiagnosticDescriptor(
                 rule.DiagnosticId,
@@ -60,7 +67,7 @@ internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolAction(
             symbolContext =>
             {
-                if (symbolContext.Symbol.Name.StartsWith("legacy", System.StringComparison.Ordinal))
+                if (symbolContext.Symbol.Name.StartsWith(_namePrefix, System.StringComparison.Ordinal))
                 {
                     foreach (DiagnosticDescriptor descriptor in _descriptors)
                     {
@@ -242,6 +249,27 @@ internal sealed class ThrowingLegacyFieldCodeFixProvider : LegacyFieldCodeFixPro
     }
 
     public override Task RegisterCodeFixesAsync(CodeFixContext context) => throw new InvalidOperationException("Sequence contains no elements");
+}
+
+/// <summary>
+/// Cancels the cleanup and then throws while registering its fixes, like a provider interrupted by the user.
+/// </summary>
+internal sealed class CancelingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly CancellationTokenSource _cancellation;
+
+    public CancelingLegacyFieldCodeFixProvider(string diagnosticId, CancellationTokenSource cancellation)
+        : base(diagnosticId)
+    {
+        _cancellation = cancellation;
+    }
+
+    public override Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        _cancellation.Cancel();
+
+        throw new InvalidOperationException("Provider interrupted");
+    }
 }
 
 /// <summary>

@@ -188,7 +188,8 @@ public class C
     [DataRow("class C { string M(int x) => string.Format(System.Globalization.CultureInfo.InvariantCulture, \"{0}\", x); }", DisplayName = "format provider overload")]
     [DataRow("class C { string M(int x) => string.Format($\"{x}{{0}}\", x); }", DisplayName = "interpolated format string")]
     [DataRow("class C { string M(int x) => string.Format(\"{99999999999}\", x); }", DisplayName = "index that overflows int")]
-    [DataRow("class C { string M(int x) => string.Format(\"{0 }\", x); }", DisplayName = "placeholder with trailing space")]
+    [DataRow("class C { string M(int a, int b) => string.Format(\"{0} { 1}\", a, b); }", DisplayName = "placeholder with leading space, invalid for .NET")]
+    [DataRow("class C { string M(int a) => string.Format(\"{0} } {x}\", a); }", DisplayName = "unescaped braces next to a placeholder")]
     [DataRow("class C { string M(int x) => string.Format(\"{0}{1}\", x); }", DisplayName = "one placeholder out of range")]
     [DataRow("class C { string M(object[] a) => string.Format(\"{0}{1}\", a); }", DisplayName = "params array")]
     [DataRow("class C { string M(int x) => System.Text.StringBuilder.Format(\"{0}\", x); }", DisplayName = "qualified non-string receiver")]
@@ -211,6 +212,10 @@ public class C
     [DataRow("class C { string M(int a) => string.Format(\"é {0} ✓\", a); }", "class C { string M(int a) => $\"é {a} ✓\"; }", DisplayName = "non-ASCII text")]
     [DataRow("class C { System.Func<int, string> F = x => string.Format(\"{0}\", x); }", "class C { System.Func<int, string> F = x => $\"{x}\"; }", DisplayName = "inside lambda")]
     [DataRow("record R(int X) { public override string ToString() => string.Format(\"R({0})\", X); }", "record R(int X) { public override string ToString() => $\"R({X})\"; }", DisplayName = "record")]
+    [DataRow("class C { string M(int a, int b) => string.Format(\"{0}: {1, 10}\", a, b); }", "class C { string M(int a, int b) => $\"{a}: {b,10}\"; }", DisplayName = "space after the alignment comma")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0 }\", x); }", "class C { string M(int x) => $\"{x}\"; }", DisplayName = "placeholder with trailing space")]
+    [DataRow("class C { string M(int a) => string.Format(\"[{0:}]\", a); }", "class C { string M(int a) => $\"[{a}]\"; }", DisplayName = "empty format")]
+    [DataRow("class C { string M(double a) => string.Format(\"{0 ,5}|{0, -5 :N2}\", a); }", "class C { string M(double a) => $\"{a,5}|{a,-5:N2}\"; }", DisplayName = "spaces around the alignment")]
     public void FormatCallWithLiteralFormat_BecomesAnInterpolatedString(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));

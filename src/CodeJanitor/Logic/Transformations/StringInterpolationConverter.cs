@@ -12,7 +12,9 @@ namespace CodeJanitor.Logic.Transformations;
 public sealed class StringInterpolationConverter : ISourceTransformation
 {
     // An escaped brace pair ("{{" or "}}") is matched first so that a placeholder-like text inside it stays literal.
-    private static readonly Regex PlaceholderRegex = new Regex(@"\{\{|\}\}|\{(\d+)(?:,(-?\d+))?(?::([^}]+))?\}", RegexOptions.Compiled);
+    // A placeholder follows the .NET composite format grammar: the index, optional spaces, an optional alignment
+    // (spaces allowed around it) and an optional, possibly empty, format.
+    private static readonly Regex PlaceholderRegex = new Regex(@"\{\{|\}\}|\{(\d+) *(?:, *(-?\d+) *)?(?::([^{}]*))?\}", RegexOptions.Compiled);
 
     private static readonly char[] LineBreakCharacters = { '\r', '\n' };
 
@@ -137,13 +139,18 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                 if (match.Index > lastIndex)
                 {
                     var textSegment = formatString.Substring(lastIndex, match.Index - lastIndex);
+                    if (ContainsUnescapedBrace(textSegment))
+                    {
+                        return visited; // a brace the placeholder grammar does not accept would become an interpolation hole
+                    }
+
                     builder.Append(EscapeForInterpolatedString(textSegment));
                 }
 
                 var argIndex = int.Parse(match.Groups[1].Value);
                 var argExpr = formatArgs[argIndex].ToString();
                 var alignment = match.Groups[2].Success ? "," + match.Groups[2].Value : string.Empty;
-                var formatSpecifier = match.Groups[3].Success ? ":" + EscapeForInterpolatedString(match.Groups[3].Value) : string.Empty;
+                var formatSpecifier = match.Groups[3].Length > 0 ? ":" + EscapeForInterpolatedString(match.Groups[3].Value) : string.Empty;
 
                 // A top-level ':' in a hole starts the format clause, so a conditional expression or an alias-qualified
                 // name (global::X) must be parenthesized.
@@ -165,6 +172,11 @@ public sealed class StringInterpolationConverter : ISourceTransformation
             if (lastIndex < formatString.Length)
             {
                 var textSegment = formatString.Substring(lastIndex);
+                if (ContainsUnescapedBrace(textSegment))
+                {
+                    return visited;
+                }
+
                 builder.Append(EscapeForInterpolatedString(textSegment));
             }
 
@@ -182,6 +194,34 @@ public sealed class StringInterpolationConverter : ISourceTransformation
             return parsedExpr
                 .WithLeadingTrivia(visited.GetLeadingTrivia())
                 .WithTrailingTrivia(visited.GetTrailingTrivia());
+        }
+
+        /// <summary>
+        /// Determines whether the literal text contains a brace that is not part of an escaped pair (<c>{{</c> or
+        /// <c>}}</c>).
+        /// </summary>
+        /// <param name="text">The literal text between placeholders.</param>
+        /// <returns><see langword="true" /> when an unescaped brace is present.</returns>
+        private static bool ContainsUnescapedBrace(string text)
+        {
+            for (var i = 0; i < text.Length; i++)
+            {
+                var c = text[i];
+                if (c != '{' && c != '}')
+                {
+                    continue;
+                }
+
+                if (i + 1 < text.Length && text[i + 1] == c)
+                {
+                    i++;
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
