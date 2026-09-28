@@ -277,8 +277,9 @@ public sealed class ClassSealingConverterTests
         SealAsync(CompilingTestProject.CreateDocument(input, librarySources));
 
     /// <summary>
-    /// Seals <paramref name="document" /> and, when it changed, asserts that the result still compiles without errors
-    /// and without CS0628.
+    /// Seals <paramref name="document" /> and, when it changed, asserts that sealing added no compile error and no
+    /// CS0628 to those the input already has (the test project references only mscorlib, so for example records lack
+    /// <c>IsExternalInit</c> on .NET Framework).
     /// </summary>
     private static async Task<string> SealAsync(Document document)
     {
@@ -287,15 +288,25 @@ public sealed class ClassSealingConverterTests
 
         if (result != input)
         {
-            Compilation compilation = await document.WithText(SourceText.From(result)).Project.GetCompilationAsync();
-            List<string> problems = compilation.GetDiagnostics()
-                .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error || diagnostic.Id == "CS0628")
-                .Where(diagnostic => diagnostic.Id != "CS0246")
-                .Select(diagnostic => diagnostic.ToString())
-                .ToList();
-            Assert.IsEmpty(problems, string.Join("\r\n", problems));
+            List<string> added = await GetProblemsAsync(document, result);
+            foreach (string existing in await GetProblemsAsync(document, input))
+            {
+                added.Remove(existing);
+            }
+
+            Assert.IsEmpty(added, string.Join("\r\n", added));
         }
 
         return result;
+    }
+
+    private static async Task<List<string>> GetProblemsAsync(Document document, string text)
+    {
+        Compilation compilation = await document.WithText(SourceText.From(text)).Project.GetCompilationAsync();
+
+        return compilation.GetDiagnostics()
+            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error || diagnostic.Id == "CS0628")
+            .Select(diagnostic => $"{diagnostic.Id}: {diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}")
+            .ToList();
     }
 }
