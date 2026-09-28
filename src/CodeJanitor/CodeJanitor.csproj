@@ -799,8 +799,7 @@
     <Compile Include="Logic\Transformations\VarWhenApparentConverter.cs" />
     <Compile Include="Logic\Transformations\IFieldMutabilityConverter.cs" />
     <Compile Include="Logic\Transformations\ReadonlyFieldConverter.cs" />
-    <Compile Include="Logic\Transformations\IClassSealingConverter.cs" />
-    <Compile Include="Logic\Transformations\SealedClassConverter.cs" />
+    <Compile Include="Logic\Transformations\ClassSealingConverter.cs" />
     <Compile Include="Logic\Transformations\IUsingDirectiveOrganizer.cs" />
     <Compile Include="Logic\Transformations\UsingDirectiveOrganizer.cs" />
     <Compile Include="Logic\Transformations\ISourceTransformation.cs" />

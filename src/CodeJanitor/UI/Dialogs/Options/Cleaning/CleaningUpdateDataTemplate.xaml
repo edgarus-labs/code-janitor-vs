@@ -28,7 +28,7 @@
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas]}" />
 					<CheckBox Content="Add 'readonly' to fields never written outside their constructor" IsChecked="{Binding MakeFieldsReadonlyWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe]}" />
-					<CheckBox Content="Add 'sealed' to classes not derived from in the same file (single-file heuristic)" IsChecked="{Binding SealClassesWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+					<CheckBox Content="Add 'sealed' to classes with no virtual or protected members that no class in the solution derives from" IsChecked="{Binding SealClassesWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
 					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe]}" />
 					<CheckBox
 						Content="{x:Static p:Resources.ConvertToPatternMatchingNullChecks}"

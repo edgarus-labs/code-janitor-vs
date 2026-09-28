@@ -123,63 +123,6 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesVirtualMemberClassUnsealed()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = true;
-
-        string filePath = Path.Combine(_tempDirectory, "VirtualClass.cs");
-        string content = "namespace Demo;\r\n\r\npublic class Foo\r\n{\r\n    public virtual string Name { get; set; }\r\n}\r\n";
-        File.WriteAllText(filePath, content);
-
-        CodeCleanupManager.ParallelCleanupResult result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { filePath });
-
-        Assert.AreEqual(0, result.FailedFiles);
-        string text = File.ReadAllText(filePath);
-        Assert.DoesNotContain("sealed class Foo", text, "Class with virtual property must not be sealed.");
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
-    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesBaseClassUnsealed_WhenGenericConstraintOrDerivedTypeInAnotherFile()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = true;
-
-        string baseFile = Path.Combine(_tempDirectory, "Result.cs");
-        string derivedFile = Path.Combine(_tempDirectory, "ResultOfT.cs");
-        string handlerFile = Path.Combine(_tempDirectory, "Handler.cs");
-
-        File.WriteAllText(baseFile, "namespace Demo;\r\n\r\npublic class Result\r\n{\r\n    public bool Success { get; set; }\r\n}\r\n");
-        File.WriteAllText(derivedFile, "namespace Demo;\r\n\r\npublic class Result<T> : Result\r\n{\r\n    public T Value { get; set; }\r\n}\r\n");
-        File.WriteAllText(handlerFile, "namespace Demo;\r\n\r\npublic class Handler<T> where T : Result\r\n{\r\n}\r\n");
-
-        CodeCleanupManager.ParallelCleanupResult result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { baseFile, derivedFile, handlerFile });
-
-        Assert.AreEqual(0, result.FailedFiles);
-        string baseText = File.ReadAllText(baseFile);
-        Assert.IsFalse(baseText.Contains("sealed class Result\r\n") || baseText.Contains("sealed class Result\n"), "Base class used in generic constraint or derived type in another file must not be sealed.");
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
-    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesBaseClassUnsealed_WhenNullableGenericConstraintInAnotherFile()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = true;
-
-        string baseFile = Path.Combine(_tempDirectory, "Result.cs");
-        string handlerFile = Path.Combine(_tempDirectory, "Handler.cs");
-
-        File.WriteAllText(baseFile, "namespace Demo;\r\n\r\npublic class Result\r\n{\r\n    public bool Success { get; set; }\r\n}\r\n");
-        File.WriteAllText(handlerFile, "namespace Demo;\r\n\r\npublic class Handler<T> where T : Result?\r\n{\r\n}\r\n");
-
-        CodeCleanupManager.ParallelCleanupResult result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { baseFile, handlerFile });
-
-        Assert.AreEqual(0, result.FailedFiles);
-        string baseText = File.ReadAllText(baseFile);
-        Assert.IsFalse(baseText.Contains("sealed class Result\r\n") || baseText.Contains("sealed class Result\n"), "Base class used in a nullable generic constraint in another file must not be sealed.");
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformationsToFiles_LeavesInterlockedFieldMutable_InNestedType()
     {
         Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = true;

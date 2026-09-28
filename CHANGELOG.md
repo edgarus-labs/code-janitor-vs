@@ -102,6 +102,12 @@ This file records changes made in Code Janitor after the project became an indep
 
 ### Fixed
 
+- Fixed "Seal Classes" cleanup sealing classes designed for inheritance, such as classes with a `protected`
+	constructor (#43) or other `protected`, `protected internal` or `private protected` members (`CS0628`). Class
+	sealing now runs on the Visual Studio Roslyn workspace: it seals a class only when it has no virtual or protected
+	members, no class of the solution derives from it and no generic constraint names it, in every project compiling
+	the file, including cleanup-on-save of a single file. It replaces the name-based disqualified type discovery;
+	the cleanup preview no longer includes class sealing.
 - Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
 	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
 - Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.

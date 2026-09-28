@@ -59,8 +59,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         _package = package;
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
-        CodeCleanupManager.SetCurrentBatchDisqualifiedTypes(
-            CodeCleanupManager.DiscoverSolutionDisqualifiedTypes(package));
         _batchStopwatch = Stopwatch.StartNew();
 
         var cleanupItems = items.ToList();
@@ -148,12 +146,12 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
-            // The semantic using directive placement needs the Visual Studio workspace (UI thread), so it runs one file
-            // at a time before the parallel headless pass; the headless steps (header, using organization, type
-            // splitting) then see the placed directives. A file is counted as changed as soon as it is rewritten, so it
-            // is counted even when the batch is canceled before its headless cleanup. The set is only read during the
-            // parallel pass, which does not count these files again.
-            var filesWithMovedUsings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // The semantic steps (using directive placement, class sealing) need the Visual Studio workspace (UI
+            // thread), so they run one file at a time before the parallel headless pass; the headless steps (header,
+            // using organization, type splitting) then see their result. A file is counted as changed as soon as it is
+            // rewritten, so it is counted even when the batch is canceled before its headless cleanup. The set is only
+            // read during the parallel pass, which does not count these files again.
+            var filesChangedBySemanticSteps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var workItem in parallelItems)
             {
                 if (bw.CancellationPending)
@@ -170,9 +168,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        if (await CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken))
+                        var usingsMoved = await CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken);
+                        var classesSealed = await CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken);
+                        if ((usingsMoved || classesSealed) && filesChangedBySemanticSteps.Add(workItem.FilePath))
                         {
-                            filesWithMovedUsings.Add(workItem.FilePath);
                             CodeCleanupManager.IncrementHeadlessChanged();
                         }
                     }
@@ -204,10 +203,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
 
                     try
                     {
-                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(workItem.FilePath, CodeCleanupManager.GetCurrentBatchDisqualifiedTypes());
+                        var outcome = CodeCleanupManager.TryRunHeadlessPreCleanupForCSharpCore(workItem.FilePath);
 
-                        // Files rewritten by the using directive placement were already counted as changed.
-                        if (!filesWithMovedUsings.Contains(workItem.FilePath))
+                        // Files rewritten by the semantic steps were already counted as changed.
+                        if (!filesChangedBySemanticSteps.Contains(workItem.FilePath))
                         {
                             if (outcome.Result == CodeCleanupManager.HeadlessCleanupResult.Changed)
                             {
@@ -402,11 +401,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// </param>
     private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
-        // Clear the batch-scoped solution-wide disqualified types first, before any other
-        // logic that could throw, so a later standalone single-document cleanup (e.g.
-        // cleanup-on-save) never reuses a stale set from this completed batch.
-        CodeCleanupManager.SetCurrentBatchDisqualifiedTypes(null);
-
         _batchStopwatch.Stop();
         ProcessedCount = CountTotal;
         UpdateExecutionSummary();

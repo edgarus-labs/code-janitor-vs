@@ -139,7 +139,7 @@
     <Compile Include="Transformations\UsingDirectivePlacementConverterOutwardTests.cs" />
     <Compile Include="Transformations\VarWhenApparentConverterTests.cs" />
     <Compile Include="Transformations\ReadonlyFieldConverterTests.cs" />
-    <Compile Include="Transformations\SealedClassConverterTests.cs" />
+    <Compile Include="Transformations\ClassSealingConverterTests.cs" />
     <Compile Include="Transformations\UsingDirectiveOrganizerTests.cs" />
     <Compile Include="Transformations\TabToSpaceConverterTests.cs" />
     <Compile Include="Transformations\SourceTransformationPipelineTests.cs" />
