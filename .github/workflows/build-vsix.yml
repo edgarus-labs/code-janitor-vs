@@ -69,7 +69,7 @@ jobs:
 
           foreach ($file in $manifestFiles) {
             $content = Get-Content -Path $file -Raw
-            $content = $content -replace '(<Identity\b[^>]*\bVersion=")[^"]+("[^>]*>)', "`${1}$env:VSIX_VERSION`${2}"
+            $content = $content -replace '(<Identity\b[^>]*\bVersion=")[^"]+("[^>]*>)', "`$1$env:VSIX_VERSION`$2"
             Set-Content -Path $file -Value $content -NoNewline
           }
 
@@ -171,11 +171,3 @@ jobs:
                 data: fs.readFileSync(assetPath)
               });
             }
-
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              draft: false,
-              prerelease: context.ref.includes('-')
-            });
