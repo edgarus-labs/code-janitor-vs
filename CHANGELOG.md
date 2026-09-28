@@ -91,6 +91,9 @@ This file records changes made in Code Janitor after the project became an indep
 	as diagnostic fixes in the cleanup summary.
 - Splitting top-level types into their own files now also moves structs (and record structs); classes,
 	interfaces, records, enums and delegates were already split. Partial types stay in place.
+- Cleanup skip reasons and informational messages (batch completed/canceled, build verification passed) are
+	written to the output pane only in Diagnostics Mode.
+- A code fix provider that fails during diagnostic cleanup is now named in the output pane, with its error message.
 
 ### Removed
 
@@ -110,6 +113,31 @@ This file records changes made in Code Janitor after the project became an indep
 	the cleanup preview no longer includes class sealing.
 - Fixed "Seal Classes" not sealing a class that the cleanup of an open document moved to its own file
 	("Move top-level types to separate files"); it was sealed only by the next cleanup of the created file.
+- Fixed "Seal Classes" sealing a class that code elsewhere in the solution casts, `as`-converts or pattern-matches
+	to or from an interface it does not implement (`CS0030`, `CS0039`, `CS8121`), or that code in an inactive `#if`
+	branch derives from, overrides or names.
+- Fixed "Cleanup Open Code" failing every open document with a `RuntimeBinderException` in sequential cleanup.
+- Fixed single-document cleanups skipping AI XML documentation after a canceled cleanup batch.
+- Fixed the diagnostic cleanup of one project overwriting closed files another project's cleanup had just written;
+	the diagnostic pass now runs one project at a time.
+- Fixed class sealing and null-check conversion analyzing a closed file twice when editor cleanup also runs.
+- Fixed pattern-matching null checks rewriting constant null checks (`const` initializers, default parameter values,
+	attribute arguments, `case` labels), where `is null` does not compile.
+- Fixed string interpolation copying placeholders with spaces or an empty format (`{1, 10}`, `{0 }`, `{0:}`) as
+	literal text; they are now converted, and a format with a brace it cannot convert is left unchanged.
+- Fixed single-statement lambda simplification changing a lambda's natural type (`Action` to `Func<T>`); only lambdas
+	whose target is a written delegate or expression type (`Action`, `Func<>`, `Predicate<>`, `Expression<>`, ...) are
+	simplified.
+- Fixed "Make Fields Readonly" trusting a well-known class name or `I` + upper-case name when the same file declares
+	a mutable struct with that name.
+- Fixed collection expressions replacing implicitly typed arrays whose declared element type could be a covariant
+	base (`object[] a = new[] { "a" }`), which changed the runtime array type.
+- Fixed comment formatting skipping comments inside inactive `#if` branches.
+- Fixed single-line method spreading indenting the body from a wrapped parameter or `where` line.
+- Fixed a `#region` around a single top-level type blocking the split into separate files; the region now moves
+	with the type.
+- Fixed type splitting overwriting a file that appeared after the split was planned; the new file gets the next
+	free name (`Name~1.cs`).
 - Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
 	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
 - Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.
