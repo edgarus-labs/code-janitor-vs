@@ -1693,6 +1693,18 @@ namespace CodeJanitor.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Cleaning_CodeStyleRules {
+            get {
+                return ((string)(this["Cleaning_CodeStyleRules"]));
+            }
+            set {
+                this["Cleaning_CodeStyleRules"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool Collapsing_CollapseSolutionWhenOpened {
             get {

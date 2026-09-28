@@ -171,10 +171,10 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         var workspace = _workspace.GetWorkspace();
         var engine = _engine ?? (_engine = new DiagnosticCleanupEngine(new CodeFixProviderCatalog(GetMefCodeFixProviders())));
-        var options = new DiagnosticCleanupOptions(AllCategories);
         var cancellationToken = _package.DisposalToken;
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(filePath);
+        var options = new DiagnosticCleanupOptions(AllCategories, analyzerConfigOverrides: settings.AnalyzerConfigOverrides);
         bool removeAndSortUsings = isClosedFile &&
             settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)) &&
             !(_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave)));

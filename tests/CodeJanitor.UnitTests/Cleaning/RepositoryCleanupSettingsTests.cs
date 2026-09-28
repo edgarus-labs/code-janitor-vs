@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis.CSharp;
@@ -204,6 +206,49 @@ public sealed class RepositoryCleanupSettingsTests
         {
             Settings.Default.Cleaning_ConvertToVarWhenApparent = original;
         }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void BuildJson_ExportsEnabledCodeStyleRules_ThatParseBack()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=when_multiline;csharp_preferred_modifier_order=public,static";
+
+        RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(RepositoryCleanupSettings.BuildJson(Settings.Default));
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string>
+            {
+                ["csharp_preferred_modifier_order"] = "public,static",
+                ["csharp_prefer_braces"] = "when_multiline",
+            },
+            overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ApplyToSettings_MergesCodeStyleRules_EnablingAndDisablingThem()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true;dotnet_style_null_propagation=true";
+        RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
+            "{ \"cleanup\": { \"codeStyle\": { \"csharp_prefer_braces\": \"false\", \"dotnet_style_null_propagation\": null, \"csharp_style_throw_expression\": \"true\", \"unknown_rule\": \"true\" } } }");
+
+        int applied = RepositoryCleanupSettings.ApplyToSettings(overrides, Settings.Default);
+
+        Assert.AreEqual(3, applied);
+        Assert.AreEqual("csharp_prefer_braces=false;csharp_style_throw_expression=true", Settings.Default.Cleaning_CodeStyleRules);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void Parse_CodeStyleValues_IgnoreCase_AndAreNormalized()
+    {
+        RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
+            "{ \"cleanup\": { \"codeStyle\": { \"csharp_prefer_braces\": \"True\", \"dotnet_style_null_propagation\": \"sometimes\" } } }");
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" },
+            overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value));
     }
 
     [TestMethod]

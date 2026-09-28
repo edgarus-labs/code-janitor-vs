@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -1139,6 +1140,106 @@ public sealed class DiagnosticCleanupEngineTests
             CounterClass("Probe").Replace("count", "m_Count"),
             await DiagnosticCleanupTestWorkspace.GetTextAsync(workspace.Workspace.CurrentSolution, documentId));
     }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_AnalyzerConfigOverridesWithoutEditorConfig_ApplyTheRuleAndLeaveNoConfigurationInTheResult()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        DocumentId documentId = workspace.AddDocument("Gate.cs", UnbracedGate());
+        Solution solution = workspace.CreateSolution();
+
+        DiagnosticCleanupResult result = await CleanupWithOverridesAsync(solution, documentId, BracesOverrides);
+
+        Assert.AreEqual(BracedGate(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        Assert.AreSame(solution, result.OriginalSolution);
+        Assert.IsFalse(result.ChangedSolution.GetChanges(solution).GetProjectChanges().Any(changes =>
+            changes.GetAddedAnalyzerConfigDocuments().Any() || changes.GetChangedAnalyzerConfigDocuments().Any()));
+        Assert.IsTrue(workspace.Workspace.TryApplyChanges(result.ChangedSolution));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_AnalyzerConfigOverrides_BeatASilentEditorConfigEntryInTheDocumentDirectoryWithoutChangingIt()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        string editorConfig = EditorConfig("csharp_prefer_braces = false:silent");
+        workspace.AddEditorConfig(string.Empty, editorConfig);
+        DocumentId documentId = workspace.AddDocument("Gate.cs", UnbracedGate());
+        Solution solution = workspace.CreateSolution();
+
+        DiagnosticCleanupResult result = await CleanupWithOverridesAsync(solution, documentId, BracesOverrides);
+
+        Assert.AreEqual(BracedGate(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        AnalyzerConfigDocument config = result.ChangedSolution.GetDocument(documentId).Project.AnalyzerConfigDocuments.Single();
+        Assert.AreEqual(editorConfig, (await config.GetTextAsync()).ToString());
+        Assert.IsTrue(workspace.Workspace.TryApplyChanges(result.ChangedSolution));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_AnalyzerConfigOverrides_BeatAParentEditorConfig()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        workspace.AddEditorConfig(string.Empty, EditorConfig("csharp_prefer_braces = false:silent", "dotnet_diagnostic.IDE0011.severity = none"));
+        DocumentId documentId = workspace.AddDocument("Gates/Gate.cs", UnbracedGate());
+
+        DiagnosticCleanupResult result = await CleanupWithOverridesAsync(workspace.CreateSolution(), documentId, BracesOverrides);
+
+        Assert.AreEqual(BracedGate(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_NoApplicableOverride_ReturnsTheOriginalSolution()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        DocumentId documentId = workspace.AddDocument("Gate.cs", BracedGate());
+        Solution solution = workspace.CreateSolution();
+
+        DiagnosticCleanupResult result = await CleanupWithOverridesAsync(solution, documentId, BracesOverrides);
+
+        Assert.IsFalse(result.HasChanges);
+        Assert.AreSame(solution, result.ChangedSolution);
+    }
+
+    private static readonly IReadOnlyDictionary<string, string> BracesOverrides = new Dictionary<string, string>
+    {
+        ["end_of_line"] = "lf",
+        ["csharp_prefer_braces"] = "true:suggestion",
+        ["dotnet_diagnostic.IDE0011.severity"] = "suggestion",
+    };
+
+    private static Task<DiagnosticCleanupResult> CleanupWithOverridesAsync(Solution solution, DocumentId documentId, IReadOnlyDictionary<string, string> overrides)
+        => new DiagnosticCleanupEngine(Catalog).CleanupAsync(
+            solution.GetDocument(documentId),
+            new DiagnosticCleanupOptions(new[] { DiagnosticCleanupCategory.CodeStyle }, analyzerConfigOverrides: overrides),
+            CancellationToken.None);
+
+    private static string UnbracedGate() => Lines(
+        "class Gate",
+        "{",
+        "    int Check(bool open)",
+        "    {",
+        "        if (open)",
+        "            return 1;",
+        "        return 0;",
+        "    }",
+        "}");
+
+    private static string BracedGate() => Lines(
+        "class Gate",
+        "{",
+        "    int Check(bool open)",
+        "    {",
+        "        if (open)",
+        "        {",
+        "            return 1;",
+        "        }",
+        "",
+        "        return 0;",
+        "    }",
+        "}");
 
     private static async Task AssertExplicitTypeRuleOutcomeAsync(string[] editorConfigProperties, bool expectChange)
     {

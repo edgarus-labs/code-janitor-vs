@@ -6,9 +6,11 @@
 	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Cleaning">
 	<DataTemplate DataType="{x:Type local:CleaningVisualStudioViewModel}">
 		<StackPanel>
-			<CheckBox Content="{x:Static p:Resources.RunFormatDocument}" IsChecked="{Binding RunVisualStudioFormatDocument}" />
+			<CheckBox Content="{x:Static p:Resources.RunFormatDocument}" IsChecked="{Binding RunVisualStudioFormatDocument}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioFormatDocumentCommand], Converter={x:Static cnv:NullToBooleanConverter.IsNull}}" />
+			<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioFormatDocumentCommand]}" />
 
-			<CheckBox Content="{x:Static p:Resources.RunRemoveAndSortUsingStatements}" IsChecked="{Binding RunVisualStudioRemoveAndSortUsingStatements}" />
+			<CheckBox Content="{x:Static p:Resources.RunRemoveAndSortUsingStatements}" IsChecked="{Binding RunVisualStudioRemoveAndSortUsingStatements}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioRemoveAndSortUsingStatements], Converter={x:Static cnv:NullToBooleanConverter.IsNull}}" />
+			<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioRemoveAndSortUsingStatements]}" />
 			<CheckBox
 				Margin="35,5,5,5"
 				Content="{x:Static p:Resources.SkipDuringAutomaticCleanupOnSave}"

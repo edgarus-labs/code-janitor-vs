@@ -118,7 +118,7 @@ public sealed class EffectiveCleanupSettingsTests
     public void NamespaceDeclarations_FileScopedInEditorConfig_OverridesDisabledUserSetting()
     {
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = false;
-        WriteRootEditorConfig("csharp_style_namespace_declarations = file_scoped:silent");
+        WriteRootEditorConfig("csharp_style_namespace_declarations = file_scoped:suggestion");
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
@@ -333,7 +333,7 @@ public sealed class EffectiveCleanupSettingsTests
     [DataRow("always", true)]
     [DataRow("for_non_interface_members:warning", true)]
     [DataRow("never", false)]
-    [DataRow("omit_if_default:silent", false)]
+    [DataRow("omit_if_default:suggestion", false)]
     public void GetBoolean_RequireAccessibilityModifiers_DrivesEveryExplicitAccessModifierSetting(string option, bool expected)
     {
         foreach (string settingName in ExplicitAccessModifierSettings)
@@ -409,8 +409,6 @@ public sealed class EffectiveCleanupSettingsTests
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow("", DisplayName = "no suffix")]
-    [DataRow(":silent")]
-    [DataRow(":refactoring")]
     [DataRow(":suggestion")]
     [DataRow(":warning")]
     [DataRow(":error")]
@@ -422,6 +420,331 @@ public sealed class EffectiveCleanupSettingsTests
 
         Assert.IsFalse(EffectiveCleanupSettings.For(_filePath).GetBoolean("Cleaning_InlineOutVariableDeclarations"));
     }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(":none")]
+    [DataRow(":silent")]
+    [DataRow(":refactoring")]
+    [DataRow(" : Silent", DisplayName = "spaced mixed-case silent")]
+    public void NonEnforcingSeverity_IgnoresTheValue_SoTheUserSettingDecides(string suffix)
+    {
+        Settings.Default.Cleaning_InlineOutVariableDeclarations = true;
+        WriteRootEditorConfig($"csharp_style_inlined_variable_declaration = false{suffix}");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.IsTrue(settings.GetBoolean("Cleaning_InlineOutVariableDeclarations"));
+        Assert.IsFalse(settings.EditorConfigKeys.ContainsKey("Cleaning_InlineOutVariableDeclarations"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("csharp_style_expression_bodied_lambdas = false:warning", "Cleaning_SimplifySingleStatementLambdas", false, "csharp_style_expression_bodied_lambdas")]
+    [DataRow("csharp_style_expression_bodied_lambdas = when_on_single_line:suggestion", "Cleaning_SimplifySingleStatementLambdas", true, "csharp_style_expression_bodied_lambdas")]
+    [DataRow("dotnet_diagnostic.IDE0053.severity = warning", "Cleaning_SimplifySingleStatementLambdas", true, "dotnet_diagnostic.ide0053.severity")]
+    [DataRow("csharp_style_prefer_null_check_over_type_check = false:warning", "Cleaning_ConvertToPatternMatchingNullChecks", false, "csharp_style_prefer_null_check_over_type_check")]
+    [DataRow("dotnet_style_prefer_is_null_check_over_reference_equality_method = true:error", "Cleaning_ConvertToPatternMatchingNullChecks", true, "dotnet_style_prefer_is_null_check_over_reference_equality_method")]
+    [DataRow("dotnet_diagnostic.CA1852.severity = warning", "Cleaning_SealClassesWhenSafe", true, "dotnet_diagnostic.ca1852.severity")]
+    [DataRow("dotnet_diagnostic.CA1507.severity = suggestion", "Cleaning_ConvertToStringNameOf", true, "dotnet_diagnostic.ca1507.severity")]
+    [DataRow("dotnet_diagnostic.CA1869.severity = error", "Cleaning_ReuseJsonSerializerOptionsForCA1869", true, "dotnet_diagnostic.ca1869.severity")]
+    [DataRow("dotnet_style_allow_multiple_blank_lines_experimental = false:warning", "Cleaning_RemoveMultipleConsecutiveBlankLines", true, "dotnet_style_allow_multiple_blank_lines_experimental")]
+    [DataRow("dotnet_style_allow_multiple_blank_lines_experimental = true:warning", "Cleaning_RemoveMultipleConsecutiveBlankLines", false, "dotnet_style_allow_multiple_blank_lines_experimental")]
+    [DataRow("dotnet_diagnostic.IDE2000.severity = warning", "Cleaning_RemoveMultipleConsecutiveBlankLines", false, "dotnet_diagnostic.ide2000.severity")]
+    [DataRow("csharp_style_allow_blank_lines_between_consecutive_braces_experimental = false:warning", "Cleaning_RemoveBlankLinesAfterOpeningBrace", true, "csharp_style_allow_blank_lines_between_consecutive_braces_experimental")]
+    [DataRow("csharp_style_allow_blank_lines_between_consecutive_braces_experimental = false:warning", "Cleaning_RemoveBlankLinesBeforeClosingBrace", true, "csharp_style_allow_blank_lines_between_consecutive_braces_experimental")]
+    [DataRow("csharp_style_allow_blank_lines_between_consecutive_braces_experimental = true:error", "Cleaning_RemoveBlankLinesBeforeClosingBrace", false, "csharp_style_allow_blank_lines_between_consecutive_braces_experimental")]
+    [DataRow("dotnet_diagnostic.IDE0005.severity = warning", "Cleaning_RunVisualStudioRemoveAndSortUsingStatements", true, "dotnet_diagnostic.ide0005.severity")]
+    [DataRow("dotnet_diagnostic.IDE0055.severity = warning", "Cleaning_RunVisualStudioFormatDocumentCommand", true, "dotnet_diagnostic.ide0055.severity")]
+    public void LinkedOption_EnforcedByEditorConfig_BeatsPolicyAndUserSetting(string option, string settingName, bool expected, string expectedKey)
+    {
+        Settings.Default[settingName] = !expected;
+        WritePolicy($"\"{char.ToLowerInvariant(settingName["Cleaning_".Length])}{settingName.Substring("Cleaning_".Length + 1)}\": {(expected ? "false" : "true")}");
+        WriteRootEditorConfig(option);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(expected, settings.GetBoolean(settingName));
+        Assert.AreEqual(expectedKey, settings.EditorConfigKeys[settingName]);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("dotnet_diagnostic.CA1852.severity = silent")]
+    [DataRow("dotnet_diagnostic.CA1852.severity = none")]
+    [DataRow(null, DisplayName = "not configured")]
+    public void LinkedOption_NotEnforcedByEditorConfig_UsesThePolicy(string option)
+    {
+        Settings.Default.Cleaning_SealClassesWhenSafe = false;
+        WritePolicy("\"sealClassesWhenSafe\": true");
+        WriteRootEditorConfig(option);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.IsTrue(settings.GetBoolean("Cleaning_SealClassesWhenSafe"));
+        Assert.IsFalse(settings.EditorConfigKeys.ContainsKey("Cleaning_SealClassesWhenSafe"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void LinkedOption_DiagnosticSeverityNone_BeatsTheOptionSuffix()
+    {
+        Settings.Default.Cleaning_SimplifySingleStatementLambdas = true;
+        WriteRootEditorConfig("csharp_style_expression_bodied_lambdas = false:warning", "dotnet_diagnostic.IDE0053.severity = none");
+
+        Assert.IsTrue(EffectiveCleanupSettings.For(_filePath).GetBoolean("Cleaning_SimplifySingleStatementLambdas"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void LinkedOption_TwoKeysEnforced_ConvertsNullChecksOnlyWhenBothAllowIt()
+    {
+        Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
+        WriteRootEditorConfig(
+            "csharp_style_prefer_null_check_over_type_check = true:warning",
+            "dotnet_style_prefer_is_null_check_over_reference_equality_method = false:warning");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToPatternMatchingNullChecks"));
+        Assert.AreEqual("dotnet_style_prefer_is_null_check_over_reference_equality_method", settings.EditorConfigKeys["Cleaning_ConvertToPatternMatchingNullChecks"]);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(null, true, DisplayName = "missing")]
+    [DataRow("csharp_prefer_braces = false:none", true)]
+    [DataRow("csharp_prefer_braces = false:silent", true)]
+    [DataRow("csharp_prefer_braces = false:suggestion", false)]
+    [DataRow("csharp_prefer_braces = false:warning", false)]
+    [DataRow("csharp_prefer_braces = false:error", false)]
+    [DataRow("csharp_prefer_braces = false", false, DisplayName = "no suffix")]
+    [DataRow("dotnet_diagnostic.IDE0011.severity = warning", false, DisplayName = "severity only")]
+    [DataRow("dotnet_diagnostic.IDE0011.severity = silent", true, DisplayName = "severity silent only")]
+    public void CodeStyleRule_AppliesOnlyWhenEditorConfigDoesNotEnforceIt(string option, bool applied)
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=when_multiline";
+        WriteRootEditorConfig(option);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(applied, settings.CodeStyleValues.ContainsKey("csharp_prefer_braces"));
+        Assert.AreEqual(!applied, settings.CodeStyleEditorConfigKeys.ContainsKey("csharp_prefer_braces"));
+        Assert.AreEqual(applied ? "when_multiline:suggestion" : null, settings.AnalyzerConfigOverrides.TryGetValue("csharp_prefer_braces", out string value) ? value : null);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CodeStyleRule_DiagnosticSeverityNone_BeatsAnEnforcingOptionSuffix()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true";
+        WriteRootEditorConfig("csharp_prefer_braces = false:warning", "dotnet_diagnostic.IDE0011.severity = none");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual("true", settings.CodeStyleValues["csharp_prefer_braces"]);
+        Assert.AreEqual("suggestion", settings.AnalyzerConfigOverrides["dotnet_diagnostic.IDE0011.severity"]);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CodeStyleRule_EnforcedThroughTheDiagnosticSeverity_NamesTheSeverityKey()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true";
+        WriteRootEditorConfig("dotnet_diagnostic.IDE0011.severity = error");
+
+        Assert.AreEqual("dotnet_diagnostic.ide0011.severity", EffectiveCleanupSettings.For(_filePath).CodeStyleEditorConfigKeys["csharp_prefer_braces"]);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CodeStyleRule_DiagnosticSeverityNoneOnOneId_TheOtherIdFollowsTheOptionSuffix()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "dotnet_style_qualification_for_field=true";
+        WriteRootEditorConfig("dotnet_style_qualification_for_field = false:warning", "dotnet_diagnostic.IDE0009.severity = none");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual("dotnet_style_qualification_for_field", settings.CodeStyleEditorConfigKeys["dotnet_style_qualification_for_field"]);
+        Assert.IsFalse(settings.CodeStyleValues.ContainsKey("dotnet_style_qualification_for_field"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void NamespaceDeclarations_DiagnosticSeverityEnforcesASilentOption()
+    {
+        Settings.Default.Cleaning_ConvertToFileScopedNamespace = false;
+        WriteRootEditorConfig("csharp_style_namespace_declarations = file_scoped:silent", "dotnet_diagnostic.IDE0161.severity = warning");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
+        Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
+        Assert.AreEqual("csharp_style_namespace_declarations", settings.EditorConfigKeys["Cleaning_ConvertToFileScopedNamespace"]);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("dotnet_analyzer_diagnostic.category-Style.severity = warning", "dotnet_analyzer_diagnostic.category-style.severity", DisplayName = "category severity")]
+    [DataRow("dotnet_analyzer_diagnostic.severity = suggestion", "dotnet_analyzer_diagnostic.severity", DisplayName = "global severity")]
+    public void BulkSeverity_EnforcesCodeStyleRulesAndIdeSteps_WithRoslynDefaults(string option, string expectedKey)
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=when_multiline";
+        Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements = false;
+        Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = false;
+        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
+        WriteRootEditorConfig(option);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(expectedKey, settings.CodeStyleEditorConfigKeys["csharp_prefer_braces"]);
+        Assert.IsEmpty(settings.CodeStyleValues);
+        Assert.IsEmpty(settings.AnalyzerConfigOverrides);
+        Assert.IsTrue(settings.GetBoolean("Cleaning_RunVisualStudioRemoveAndSortUsingStatements"));
+        Assert.AreEqual(expectedKey, settings.EditorConfigKeys["Cleaning_RunVisualStudioRemoveAndSortUsingStatements"]);
+        Assert.IsTrue(settings.GetBoolean("Cleaning_MakeFieldsReadonlyWhenSafe"), "Roslyn default of dotnet_style_readonly_field");
+        Assert.AreEqual(NamespaceDeclarationPreference.BlockScoped, settings.NamespaceDeclarations, "Roslyn default of csharp_style_namespace_declarations");
+        Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CategorySeverity_OnlyAppliesToEnabledByDefaultDiagnosticsOfThatCategory()
+    {
+        Settings.Default.Cleaning_SealClassesWhenSafe = false;
+        Settings.Default.Cleaning_ReuseJsonSerializerOptionsForCA1869 = false;
+        Settings.Default.Cleaning_ConvertToStringNameOf = false;
+        WriteRootEditorConfig("dotnet_analyzer_diagnostic.category-Performance.severity = warning");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.IsTrue(settings.GetBoolean("Cleaning_ReuseJsonSerializerOptionsForCA1869"), "CA1869 is an enabled Performance rule");
+        Assert.IsFalse(settings.GetBoolean("Cleaning_SealClassesWhenSafe"), "CA1852 is disabled by default, so bulk severities do not enable it");
+        Assert.IsFalse(settings.EditorConfigKeys.ContainsKey("Cleaning_SealClassesWhenSafe"));
+        Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToStringNameOf"), "CA1507 is a Maintainability rule");
+        Assert.IsFalse(settings.CodeStyleEditorConfigKeys.ContainsKey("csharp_prefer_braces"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(null, DisplayName = "category none only")]
+    [DataRow("csharp_prefer_braces = false:warning", DisplayName = "category none beats an enforcing suffix")]
+    [DataRow("csharp_prefer_braces = false", DisplayName = "category none beats an option without suffix")]
+    public void CategorySeverityNone_DoesNotEnforce_SoTheUserSettingDecides(string option)
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true";
+        Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements = false;
+        WriteRootEditorConfig("dotnet_analyzer_diagnostic.category-Style.severity = none", option);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual("true", settings.CodeStyleValues["csharp_prefer_braces"]);
+        Assert.IsFalse(settings.CodeStyleEditorConfigKeys.ContainsKey("csharp_prefer_braces"));
+        Assert.IsFalse(settings.GetBoolean("Cleaning_RunVisualStudioRemoveAndSortUsingStatements"));
+        Assert.IsFalse(settings.EditorConfigKeys.ContainsKey("Cleaning_RunVisualStudioRemoveAndSortUsingStatements"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("dotnet_diagnostic.IDE0011.severity = warning", DisplayName = "diagnostic severity")]
+    [DataRow("dotnet_analyzer_diagnostic.category-Style.severity = warning", DisplayName = "category severity")]
+    public void NoneSuffix_StopsTheRule_WhateverSeverityIsConfigured(string severity)
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=when_multiline";
+        WriteRootEditorConfig("csharp_prefer_braces = true:none", severity);
+
+        Assert.AreEqual("when_multiline", EffectiveCleanupSettings.For(_filePath).CodeStyleValues["csharp_prefer_braces"]);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("csharp_style_var_when_type_is_apparent = true:silent", "dotnet_diagnostic.IDE0007.severity = warning", "Cleaning_ConvertToVarWhenApparent", true, "csharp_style_var_when_type_is_apparent")]
+    [DataRow(null, "dotnet_diagnostic.IDE0008.severity = warning", "Cleaning_ConvertToVarWhenApparent", false, "dotnet_diagnostic.ide0008.severity")]
+    [DataRow("csharp_style_inlined_variable_declaration = false:warning", "dotnet_diagnostic.IDE0018.severity = none", "Cleaning_InlineOutVariableDeclarations", true, null)]
+    [DataRow(null, "dotnet_diagnostic.IDE0018.severity = warning", "Cleaning_InlineOutVariableDeclarations", true, "dotnet_diagnostic.ide0018.severity")]
+    [DataRow(null, "dotnet_diagnostic.IDE0044.severity = error", "Cleaning_MakeFieldsReadonlyWhenSafe", true, "dotnet_diagnostic.ide0044.severity")]
+    [DataRow("dotnet_style_readonly_field = true:warning", "dotnet_diagnostic.IDE0044.severity = silent", "Cleaning_MakeFieldsReadonlyWhenSafe", false, null)]
+    [DataRow(null, "dotnet_diagnostic.IDE0040.severity = warning", "Cleaning_InsertExplicitAccessModifiersOnClasses", true, "dotnet_diagnostic.ide0040.severity")]
+    [DataRow("dotnet_style_prefer_collection_expression = never:silent", "dotnet_diagnostic.IDE0305.severity = warning", "Cleaning_ConvertToCollectionExpressions", false, "dotnet_style_prefer_collection_expression")]
+    [DataRow(null, "dotnet_diagnostic.IDE0300.severity = suggestion", "Cleaning_ConvertToCollectionExpressions", true, "dotnet_diagnostic.ide0300.severity")]
+    public void LegacyOption_ResolvedPerDiagnostic(string option, string severity, string settingName, bool expected, string expectedKey)
+    {
+        // A locked setting must beat the opposite user setting; an unlocked one must keep the user setting.
+        Settings.Default[settingName] = expectedKey is null ? expected : !expected;
+        WriteRootEditorConfig(option, severity);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(expected, settings.GetBoolean(settingName));
+        Assert.AreEqual(expectedKey, settings.EditorConfigKeys.TryGetValue(settingName, out string key) ? key : null);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("csharp_using_directive_placement = inside_namespace:warning", "dotnet_diagnostic.IDE0065.severity = none", UsingDirectivePlacementPreference.OutsideNamespace, false)]
+    [DataRow("csharp_using_directive_placement = inside_namespace:silent", "dotnet_diagnostic.IDE0065.severity = warning", UsingDirectivePlacementPreference.InsideNamespace, true)]
+    [DataRow(null, "dotnet_diagnostic.IDE0065.severity = warning", UsingDirectivePlacementPreference.OutsideNamespace, true)]
+    public void UsingDirectivePlacement_ResolvedWithTheDiagnosticSeverity(string option, string severity, object expected, bool locked)
+    {
+        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = true;
+        WriteRootEditorConfig(option, severity);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(expected, settings.UsingDirectivePlacement);
+        Assert.AreEqual(locked, settings.EditorConfigKeys.ContainsKey("Cleaning_MoveUsingsOutsideNamespace"));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CodeStyleRule_Policy_BeatsUserSetting_AndNullDisablesTheRule()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true;dotnet_style_null_propagation=true;csharp_prefer_simple_using_statement=true";
+        WritePolicy("\"codeStyle\": { \"csharp_prefer_braces\": \"when_multiline\", \"dotnet_style_null_propagation\": null, \"csharp_style_throw_expression\": \"false\" }");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string>
+            {
+                ["csharp_prefer_braces"] = "when_multiline",
+                ["csharp_style_throw_expression"] = "false",
+                ["csharp_prefer_simple_using_statement"] = "true",
+            },
+            settings.CodeStyleValues.ToDictionary(entry => entry.Key, entry => entry.Value));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void AnalyzerConfigOverrides_SilenceOtherRulesOfTheSameDiagnostic_ThatCodeJanitorDoesNotApply()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "dotnet_style_qualification_for_field=true";
+        WriteRootEditorConfig("dotnet_style_qualification_for_method = true:silent", "dotnet_style_qualification_for_event = false:warning");
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string>
+            {
+                ["dotnet_style_qualification_for_field"] = "true:suggestion",
+                ["dotnet_diagnostic.IDE0003.severity"] = "suggestion",
+                ["dotnet_diagnostic.IDE0009.severity"] = "suggestion",
+                ["dotnet_style_qualification_for_property"] = "false:none",
+                ["dotnet_style_qualification_for_method"] = "true:none",
+            },
+            settings.AnalyzerConfigOverrides.ToDictionary(entry => entry.Key, entry => entry.Value));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CodeStyleRule_InvalidValues_AreIgnored()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=sometimes;unknown_key=true;csharp_preferred_modifier_order=public,loud";
+        WritePolicy("\"codeStyle\": { \"dotnet_style_null_propagation\": true }");
+
+        Assert.IsEmpty(EffectiveCleanupSettings.For(_filePath).CodeStyleValues);
+    }
+
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]

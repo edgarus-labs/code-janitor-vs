@@ -37,9 +37,12 @@ public sealed class EditorConfigOverrideNotes
     }
 
     /// <summary>
-    /// Gets the note for the specified setting, naming the overriding .editorconfig key and file.
+    /// Gets the note for the specified setting or code-style rule, naming the overriding .editorconfig key and file.
     /// </summary>
-    /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_ConvertToVarWhenApparent</c>.</param>
+    /// <param name="settingName">
+    /// The Visual Studio setting property name, for example <c>Cleaning_ConvertToVarWhenApparent</c>, or the
+    /// .editorconfig option name of a code-style rule, for example <c>csharp_prefer_braces</c>.
+    /// </param>
     /// <returns>The note, or null when .editorconfig does not override the setting.</returns>
     public string this[string settingName] =>
         settingName is not null && _notes.TryGetValue(settingName, out var note) ? note : null;
@@ -86,7 +89,9 @@ public sealed class EditorConfigOverrideNotes
             return None;
         }
 
-        var keys = EffectiveCleanupSettings.For(probePath).EditorConfigKeys;
+        // Setting names (Cleaning_*) and code-style rule keys (.editorconfig option names) never collide.
+        var settings = EffectiveCleanupSettings.For(probePath);
+        var keys = settings.EditorConfigKeys.Concat(settings.CodeStyleEditorConfigKeys).ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         var keyNotes = keys.Values.Distinct(StringComparer.Ordinal).ToDictionary(
             key => key,
             key => findDefiningConfigPath(probePath, key) is string definingPath

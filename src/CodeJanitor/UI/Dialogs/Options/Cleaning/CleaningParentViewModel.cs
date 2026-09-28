@@ -21,6 +21,7 @@ public sealed class CleaningParentViewModel : CompositeOptionsPageViewModel
             new CleaningInsertViewModel(package, activeSettings),
             new CleaningRemoveViewModel(package, activeSettings),
             new CleaningUpdateViewModel(package, activeSettings),
+            new CleaningCodeStyleViewModel(package, activeSettings),
         })
     {
     }

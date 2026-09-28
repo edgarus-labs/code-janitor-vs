@@ -62,12 +62,17 @@ public sealed class EditorConfigOverrideNotesTests
     [DataRow("csharp_style_var_when_type_is_apparent = false:warning", "Cleaning_ConvertToVarWhenApparent", "csharp_style_var_when_type_is_apparent")]
     [DataRow("csharp_style_inlined_variable_declaration = true:suggestion", "Cleaning_InlineOutVariableDeclarations", "csharp_style_inlined_variable_declaration")]
     [DataRow("dotnet_style_prefer_collection_expression = when_types_loosely_match", "Cleaning_ConvertToCollectionExpressions", "dotnet_style_prefer_collection_expression")]
-    [DataRow("dotnet_style_readonly_field = true:silent", "Cleaning_MakeFieldsReadonlyWhenSafe", "dotnet_style_readonly_field")]
+    [DataRow("dotnet_style_readonly_field = true:suggestion", "Cleaning_MakeFieldsReadonlyWhenSafe", "dotnet_style_readonly_field")]
     [DataRow("csharp_style_namespace_declarations = file_scoped:warning", "Cleaning_ConvertToFileScopedNamespace", "csharp_style_namespace_declarations")]
     [DataRow("csharp_using_directive_placement = inside_namespace", "Cleaning_MoveUsingsOutsideNamespace", "csharp_using_directive_placement")]
     [DataRow("file_header_template = Copyright (c) Contoso", "Cleaning_UpdateFileHeaderCSharp", "file_header_template")]
     [DataRow("insert_final_newline = true", "Cleaning_InsertEndOfFileTrailingNewLine", "insert_final_newline")]
     [DataRow("insert_final_newline = false", "Cleaning_RemoveEndOfFileTrailingNewLine", "insert_final_newline")]
+    [DataRow("csharp_style_expression_bodied_lambdas = false:warning", "Cleaning_SimplifySingleStatementLambdas", "csharp_style_expression_bodied_lambdas")]
+    [DataRow("dotnet_diagnostic.CA1852.severity = warning", "Cleaning_SealClassesWhenSafe", "dotnet_diagnostic.ca1852.severity")]
+    [DataRow("dotnet_diagnostic.IDE0055.severity = warning", "Cleaning_RunVisualStudioFormatDocumentCommand", "dotnet_diagnostic.ide0055.severity")]
+    [DataRow("csharp_prefer_braces = when_multiline:warning", "csharp_prefer_braces", "csharp_prefer_braces")]
+    [DataRow("dotnet_diagnostic.IDE0003.severity = error", "dotnet_style_qualification_for_event", "dotnet_diagnostic.ide0003.severity")]
     public void Indexer_EnforcedEditorConfigKey_NamesKeyAndDefiningFile(string option, string settingName, string key)
     {
         string configPath = WriteEditorConfig(_solutionDirectory, isRoot: false, option);
@@ -143,6 +148,7 @@ public sealed class EditorConfigOverrideNotesTests
     [TestMethod]
     [TestCategory("UI UnitTests")]
     [DataRow("csharp_style_var_when_type_is_apparent = true:none", DisplayName = "severity none")]
+    [DataRow("csharp_style_var_when_type_is_apparent = true:silent", DisplayName = "severity silent")]
     [DataRow("csharp_style_var_when_type_is_apparent = maybe", DisplayName = "unrecognized value")]
     [DataRow("csharp_style_var_when_type_is_apparent = true:loud", DisplayName = "unrecognized severity")]
     public void Indexer_KeyNotEnforced_HasNoNote(string option)

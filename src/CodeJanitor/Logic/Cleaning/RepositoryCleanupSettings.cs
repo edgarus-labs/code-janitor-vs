@@ -3,6 +3,7 @@ using CodeJanitor.UI.Enumerations;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
 
@@ -221,6 +222,7 @@ internal static class RepositoryCleanupSettings
         }
 
         var values = new Dictionary<string, object>(StringComparer.Ordinal);
+        var codeStyle = new Dictionary<string, string>(StringComparer.Ordinal);
         bool? removeRegions = null;
         bool? organizeUsings = null;
 
@@ -263,6 +265,14 @@ internal static class RepositoryCleanupSettings
                         "replace", (int)HeaderUpdateMode.Replace,
                         "insert", (int)HeaderUpdateMode.Insert);
                     continue;
+
+                case "codeStyle":
+                    if (pair.Value is Dictionary<string, object> rules)
+                    {
+                        AddCodeStyleRules(codeStyle, rules);
+                    }
+
+                    continue;
             }
 
             var settingName = ResolveSettingName(pair.Key);
@@ -291,7 +301,33 @@ internal static class RepositoryCleanupSettings
             }
         }
 
-        return new RepositoryCleanupOverrides(values, removeRegions, organizeUsings);
+        return new RepositoryCleanupOverrides(values, removeRegions, organizeUsings, codeStyle);
+    }
+
+    /// <summary>
+    /// Adds the rules of the <c>codeStyle</c> object, keyed by .editorconfig option name: a valid string value
+    /// enables the rule with that value and null disables it. Unknown rules and other values are ignored.
+    /// </summary>
+    /// <param name="codeStyle">The rules being accumulated.</param>
+    /// <param name="rules">The parsed <c>codeStyle</c> object.</param>
+    private static void AddCodeStyleRules(IDictionary<string, string> codeStyle, IReadOnlyDictionary<string, object> rules)
+    {
+        foreach (var rule in rules)
+        {
+            if (!CodeStyleRules.TryGet(rule.Key, out var codeStyleRule))
+            {
+                continue;
+            }
+
+            if (rule.Value is null)
+            {
+                codeStyle[rule.Key] = null;
+            }
+            else if (rule.Value is string value && codeStyleRule.IsValidValue(value.Trim()))
+            {
+                codeStyle[rule.Key] = codeStyleRule.Normalize(value);
+            }
+        }
     }
 
     /// <summary>
@@ -338,6 +374,13 @@ internal static class RepositoryCleanupSettings
         entries.Add($"    \"fileHeaderPosition\": \"{(settings.Cleaning_UpdateFileHeader_HeaderPosition == (int)HeaderPosition.AfterUsings ? "afterUsings" : "documentStart")}\"");
         entries.Add($"    \"fileHeaderUpdateMode\": \"{(settings.Cleaning_UpdateFileHeader_HeaderUpdateMode == (int)HeaderUpdateMode.Replace ? "replace" : "insert")}\"");
 
+        var codeStyle = CodeStyleRules.ParseSetting(settings.Cleaning_CodeStyleRules)
+            .Select(rule => $"      \"{rule.Key}\": \"{EscapeJsonString(rule.Value)}\"")
+            .ToList();
+        entries.Add(codeStyle.Count == 0
+            ? "    \"codeStyle\": {}"
+            : "    \"codeStyle\": {" + Environment.NewLine + string.Join("," + Environment.NewLine, codeStyle) + Environment.NewLine + "    }");
+
         builder.AppendLine(string.Join("," + Environment.NewLine, entries));
         builder.AppendLine("  }");
         builder.AppendLine("}");
@@ -347,11 +390,12 @@ internal static class RepositoryCleanupSettings
 
     /// <summary>
     /// Applies repository cleanup overrides to the specified settings instance. Policy-only entries
-    /// without a Visual Studio user setting are skipped. The caller is responsible for saving.
+    /// without a Visual Studio user setting are skipped; the policy's code-style rules are merged into the enabled
+    /// rules (a null value disables the rule). The caller is responsible for saving.
     /// </summary>
     /// <param name="overrides">The overrides to apply.</param>
     /// <param name="settings">The settings instance to update.</param>
-    /// <returns>The number of applied settings.</returns>
+    /// <returns>The number of applied settings and code-style rules.</returns>
     internal static int ApplyToSettings(RepositoryCleanupOverrides overrides, Settings settings)
     {
         var applied = 0;
@@ -365,6 +409,26 @@ internal static class RepositoryCleanupSettings
 
             settings[pair.Key] = pair.Value;
             applied++;
+        }
+
+        if (overrides.CodeStyle.Count > 0)
+        {
+            var codeStyle = CodeStyleRules.ParseSetting(settings.Cleaning_CodeStyleRules).ToDictionary(rule => rule.Key, rule => rule.Value, StringComparer.Ordinal);
+            foreach (var rule in overrides.CodeStyle)
+            {
+                if (rule.Value is null)
+                {
+                    codeStyle.Remove(rule.Key);
+                }
+                else
+                {
+                    codeStyle[rule.Key] = rule.Value;
+                }
+
+                applied++;
+            }
+
+            settings.Cleaning_CodeStyleRules = CodeStyleRules.FormatSetting(codeStyle);
         }
 
         return applied;

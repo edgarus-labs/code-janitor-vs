@@ -135,7 +135,7 @@ public sealed class UsingDirectivePlacementLogicTests
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow("inside_namespace", DisplayName = "no severity")]
-    [DataRow("inside_namespace:silent", DisplayName = "silent")]
+    [DataRow("inside_namespace:suggestion", DisplayName = "suggestion")]
     [DataRow("inside_namespace:warning", DisplayName = "warning")]
     public async Task EditorConfigInsideNamespace_MovesFileLevelUsingsInside_OverTheUserSetting(string placement)
     {
