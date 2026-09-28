@@ -65,4 +65,14 @@ public sealed class ByteOrderMarkConverterTests
 
         Assert.AreEqual(string.Empty, result);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string s = \"\uFEFF\"; }", "class C { string s = \"\uFEFF\"; }", DisplayName = "BOM character inside the file is kept")]
+    [DataRow("\uFEFF\uFEFFclass C { }", "\uFEFFclass C { }", DisplayName = "only the leading BOM is removed")]
+    [DataRow("\uFEFF// header\r\nConsole.WriteLine();\r\n", "// header\r\nConsole.WriteLine();\r\n", DisplayName = "top-level statements file")]
+    public void OnlyTheLeadingByteOrderMarkIsRemoved(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
 }

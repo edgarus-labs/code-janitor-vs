@@ -22,7 +22,7 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     public void ConvertsDirectOptionsAllocationInJsonSerializerCall()
     {
         string input = "using System.Text.Json; class C { string M(object value) { return JsonSerializer.Serialize(value, new JsonSerializerOptions()); } }";
-        string expected = "using System.Text.Json; class C { string M(object value) { return JsonSerializer.Serialize(value, null); } }";
+        string expected = "using System.Text.Json; class C { string M(object value) { return JsonSerializer.Serialize(value, options: null); } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -42,8 +42,17 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     public void ConvertsFullyQualifiedJsonSerializerCall()
     {
         string input = "class C { string M(object value) { return System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions()); } }";
-        string expected = "class C { string M(object value) { return System.Text.Json.JsonSerializer.Serialize(value, null); } }";
+        string expected = "class C { string M(object value) { return System.Text.Json.JsonSerializer.Serialize(value, options: null); } }";
 
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, new JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, options: null); }", DisplayName = "generic deserialize")]
+    [DataRow("using System.Text.Json; class C { object M(string s) => JsonSerializer.Deserialize(s, typeof(C), new JsonSerializerOptions()); }", "using System.Text.Json; class C { object M(string s) => JsonSerializer.Deserialize(s, typeof(C), options: null); }", DisplayName = "deserialize with type")]
+    public void PositionalOptions_BecomeNamedNull(string input, string expected)
+    {
         Assert.AreEqual(expected, _converter.Apply(input));
     }
 
@@ -81,5 +90,85 @@ public sealed class JsonSerializerOptionsReuseConverterTests
         Assert.AreEqual("CA1869 JsonSerializerOptions Reuse", _converter.Name);
         Assert.IsNull(_converter.Apply(null));
         Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("  \r\n\t", DisplayName = "whitespace only")]
+    [DataRow("class C { void M() { JsonSerializer.Serialize(); } }", DisplayName = "call without arguments")]
+    [DataRow("using static System.Text.Json.JsonSerializer; class C { string M(object v) => Serialize(v, options: new JsonSerializerOptions()); }", DisplayName = "unqualified call through using static")]
+    [DataRow("class C { string M(object v) => Json.JsonSerializer.Serialize(v, options: new JsonSerializerOptions()); }", DisplayName = "partially qualified receiver")]
+    [DataRow("class C { string M(object v) => JsonSerializer.Serialize(v, options: new()); }", DisplayName = "target-typed new")]
+    [DataRow("class C { string M(object v) => JsonSerializer.Serialize(v, options: new JsonSerializerOptions() { }); }", DisplayName = "empty initializer")]
+    [DataRow("class C { string M(object v, JsonSerializerOptions o) => JsonSerializer.Serialize(v, options: new JsonSerializerOptions(o)); }", DisplayName = "copy constructor")]
+    [DataRow("class C { string M(object v) => JsonSerializer.Serialize(v, options: new Json.JsonSerializerOptions()); }", DisplayName = "partially qualified options type")]
+    [DataRow("class C { object M(object v) => JsonSerializer.Serialize(v, new JsonWriterOptions()); }", DisplayName = "other options type")]
+    [DataRow("class C { string M(object v, JsonSerializerOptions o) => JsonSerializer.Serialize(v, o); }", DisplayName = "options variable")]
+    [DataRow("class C { static readonly JsonSerializerOptions O = new JsonSerializerOptions(); }", DisplayName = "allocation outside a call")]
+    [DataRow("class C\r\n{\r\n    // JsonSerializer.Serialize(v, new JsonSerializerOptions())\r\n    string S = \"JsonSerializer.Serialize(v, new JsonSerializerOptions())\";\r\n}\r\n", DisplayName = "code-like text in comment and literal")]
+    public void CallOrArgumentThatIsNotAPlainOptionsAllocation_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M(object v) => global::System.Text.Json.JsonSerializer.Serialize(v, options: new global::System.Text.Json.JsonSerializerOptions()); }", "class C { string M(object v) => global::System.Text.Json.JsonSerializer.Serialize(v, options: null); }", DisplayName = "global qualified")]
+    [DataRow("using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, options: new System.Text.Json.JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, options: null); }", DisplayName = "generic deserialize with qualified options")]
+    [DataRow("using System.Text.Json; class C { T M<T>(object v) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, options: new JsonSerializerOptions()), options: new JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(object v) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, options: null), options: null); }", DisplayName = "nested calls")]
+    [DataRow("using System.Text.Json; class C { System.Func<object, string> F = v => JsonSerializer.Serialize(v, options: new JsonSerializerOptions()); }", "using System.Text.Json; class C { System.Func<object, string> F = v => JsonSerializer.Serialize(v, options: null); }", DisplayName = "inside lambda")]
+    [DataRow("using System.Text.Json; class C { async System.Threading.Tasks.Task M(System.IO.Stream s, object v) => await JsonSerializer.SerializeAsync(s, v, options: new JsonSerializerOptions()); }", "using System.Text.Json; class C { async System.Threading.Tasks.Task M(System.IO.Stream s, object v) => await JsonSerializer.SerializeAsync(s, v, options: null); }", DisplayName = "async stream overload")]
+    public void PlainOptionsAllocationInJsonSerializerCall_BecomesNull(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFile_ConvertsStatementsLocalFunctionsAndTypes()
+    {
+        string input =
+            "using System.Text.Json;\r\n" +
+            "\r\n" +
+            "var json = JsonSerializer.Serialize(args, options: new JsonSerializerOptions());\r\n" +
+            "\r\n" +
+            "static string[] Read(string text) => JsonSerializer.Deserialize<string[]>(text, options: new JsonSerializerOptions());\r\n" +
+            "\r\n" +
+            "class Store\r\n" +
+            "{\r\n" +
+            "    public string Save(object value) => JsonSerializer.Serialize(value, options: new JsonSerializerOptions());\r\n" +
+            "}\r\n";
+        string expected = input.Replace("options: new JsonSerializerOptions()", "options: null");
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("\r\n", DisplayName = "CRLF")]
+    [DataRow("\n", DisplayName = "LF")]
+    public void TriviaAroundTheAllocation_IsPreserved(string newLine)
+    {
+        string input =
+            "using System.Text.Json;" + newLine +
+            "class C" + newLine +
+            "{" + newLine +
+            "\tstring M(object value) => JsonSerializer.Serialize(" + newLine +
+            "\t\tvalue," + newLine +
+            "\t\toptions: /* default */ new JsonSerializerOptions() /* end */); // trailing" + newLine +
+            "}" + newLine;
+        string expected = input.Replace("/* default */ new JsonSerializerOptions() /* end */", "/* default */ null /* end */");
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileWithSyntaxErrors_ConvertsTheValidCallAndKeepsTheRestVerbatim()
+    {
+        string input = "using System.Text.Json; class C { string M(object v) => JsonSerializer.Serialize(v, options: new JsonSerializerOptions()); void N( { int y = ; } }";
+        string expected = "using System.Text.Json; class C { string M(object v) => JsonSerializer.Serialize(v, options: null); void N( { int y = ; } }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
     }
 }

@@ -78,6 +78,27 @@ directives outside their single namespace (a type, a delegate, top-level stateme
 assembly attribute such as `[assembly: InternalsVisibleTo(...)]`), are left unchanged without
 analysis, so no reason is written to the output pane for them.
 
+### Pattern-matching null checks (C#)
+
+With **Convert null checks to pattern matching** enabled, `x == null` becomes `x is null` and
+`x != null` becomes `x is not null`, only where the Roslyn semantic model proves the result means
+the same. A check is left unchanged when:
+
+- `==`/`!=` binds to a user-defined operator, declared in the same file, another file, another
+  project or a referenced assembly (for example `UnityEngine.Object`), including a lifted
+  operator of a nullable struct and an operator reached through a type parameter's constraint;
+- the compared operand is not known to be a reference type, `Nullable<T>` or a type parameter
+  not constrained to a value type (non-nullable value types, `dynamic`, unresolved types);
+- the project's C# version does not allow it: `is null` needs C# 7.0, `is not null` needs C# 9;
+- it is in an expression-bodied lambda or a query clause, which may become an expression tree;
+- it compares an equality (`a == b == null`) or has comments between the operands with `null` on
+  the left.
+
+A file compiled by several projects or target frameworks is converted only where the
+conversion is safe in every one of them. The step needs the Visual Studio Roslyn workspace and
+runs for open documents and closed files alike, before the type split. It is not part of the C#
+text cleanup preview.
+
 ### C# text cleanup preview
 
 The selected-scope cleanup options dialog includes **Preview C# Text Changes**.

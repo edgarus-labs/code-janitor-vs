@@ -146,11 +146,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
-            // The semantic steps (using directive placement, class sealing) need the Visual Studio workspace (UI
-            // thread), so they run one file at a time before the parallel headless pass; the headless steps (header,
-            // using organization, type splitting) then see their result. A file is counted as changed as soon as it is
-            // rewritten, so it is counted even when the batch is canceled before its headless cleanup. The set is only
-            // read during the parallel pass, which does not count these files again.
+            // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
+            // Studio workspace (UI thread), so they run one file at a time before the parallel headless pass; the headless
+            // steps (header, using organization, type splitting) then see their result. A file is counted as changed as
+            // soon as it is rewritten, so it is counted even when the batch is canceled before its headless cleanup. The
+            // set is only read during the parallel pass, which does not count these files again.
             var filesChangedBySemanticSteps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var workItem in parallelItems)
             {
@@ -168,12 +168,20 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                     try
                     {
-                        var usingsMoved = await CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken);
-                        var classesSealed = await CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken);
-                        if ((usingsMoved || classesSealed) && filesChangedBySemanticSteps.Add(workItem.FilePath))
-                        {
-                            CodeCleanupManager.IncrementHeadlessChanged();
-                        }
+                        await RunSemanticStepsAsync(
+                            new Func<Task<bool>>[]
+                            {
+                                () => CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken),
+                                () => CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken),
+                                () => CodeCleanupManager.ConvertNullChecksWhenSafeAsync(workItem.ProjectItem, cancellationToken),
+                            },
+                            () =>
+                            {
+                                if (filesChangedBySemanticSteps.Add(workItem.FilePath))
+                                {
+                                    CodeCleanupManager.IncrementHeadlessChanged();
+                                }
+                            });
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
@@ -499,6 +507,24 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         public string FilePath { get; }
 
         public bool IsOpen { get; }
+    }
+
+    /// <summary>
+    /// Runs the semantic steps of one file in order and calls <paramref name="onFileChanged" /> as soon as a step
+    /// rewrote it, so the file is counted as changed even when a later step throws (the exception propagates).
+    /// <paramref name="onFileChanged" /> may be called once per rewriting step; the caller counts each file once.
+    /// </summary>
+    /// <param name="steps">The steps; each returns true when it rewrote the file.</param>
+    /// <param name="onFileChanged">Records the file as changed.</param>
+    internal static async Task RunSemanticStepsAsync(IReadOnlyList<Func<Task<bool>>> steps, Action onFileChanged)
+    {
+        foreach (var step in steps)
+        {
+            if (await step())
+            {
+                onFileChanged();
+            }
+        }
     }
 
     /// <summary>

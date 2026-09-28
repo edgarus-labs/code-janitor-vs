@@ -21,7 +21,6 @@ public sealed class ParallelHeadlessCleanupTests
     public void TestInitialize()
     {
         Settings.Default.Reset();
-        Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
         Settings.Default.Cleaning_ConvertStringFormatToInterpolation = true;
         Settings.Default.Cleaning_RemoveByteOrderMark = true;
 
@@ -46,13 +45,31 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async System.Threading.Tasks.Task RunSemanticStepsAsync_LaterStepThrows_FileRewrittenByAnEarlierStepIsStillCountedAndTheErrorPropagates()
+    {
+        int changedCount = 0;
+        var steps = new Func<System.Threading.Tasks.Task<bool>>[]
+        {
+            () => System.Threading.Tasks.Task.FromResult(true),
+            () => throw new IOException("sealing failed"),
+        };
+
+        IOException error = await Assert.ThrowsExactlyAsync<IOException>(
+            () => CodeJanitor.UI.Dialogs.CleanupProgress.CleanupProgressViewModel.RunSemanticStepsAsync(steps, () => changedCount++));
+
+        Assert.AreEqual("sealing failed", error.Message);
+        Assert.AreEqual(1, changedCount, "The file rewritten by the first step must be counted as changed.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformationsToFiles_CleansMultipleFilesConcurrently()
     {
         List<string> filePaths = [];
         for (int i = 0; i < 10; i++)
         {
             string filePath = Path.Combine(_tempDirectory, $"Sample_{i}.cs");
-            string content = $"namespace Demo;\r\n\r\npublic class C{i} {{ public void M(object x) {{ if (x != null) {{ }} }} }}\r\n";
+            string content = $"namespace Demo;\r\n\r\npublic class C{i} {{ public string M(string n) {{ return string.Format(\"Hello {{0}}\", n); }} }}\r\n";
             File.WriteAllText(filePath, content);
             filePaths.Add(filePath);
         }
@@ -66,7 +83,7 @@ public sealed class ParallelHeadlessCleanupTests
         foreach (string filePath in filePaths)
         {
             string cleanedContent = File.ReadAllText(filePath);
-            Assert.Contains("if (x is not null)", cleanedContent, $"File {filePath} was not transformed.");
+            Assert.Contains("return $\"Hello {n}\";", cleanedContent, $"File {filePath} was not transformed.");
         }
     }
 

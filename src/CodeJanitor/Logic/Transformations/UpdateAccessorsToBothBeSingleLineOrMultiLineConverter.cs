@@ -3,6 +3,8 @@ using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -10,6 +12,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// Updates property and event accessors to either both be single-line or both be multi-line,
 /// ensuring consistency and readability.
 /// </summary>
+/// <remarks>
+/// Only trivia is rewritten. Expanding follows the indentation of the accessor's line (one extra
+/// tab or four spaces for the statements) and uses the line break ending that line (or the first
+/// one of the file). Compressing is skipped when the body holds comments or directives, or its
+/// statement spans several lines, because a single line cannot keep that layout.
+/// </remarks>
 public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISourceTransformation
 {
     private readonly EffectiveCleanupSettings _settings;
@@ -42,7 +50,7 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
 
         var tree = CSharpSyntaxTree.ParseText(source);
         var root = tree.GetRoot();
-        var rewriter = new AccessorFormatRewriter();
+        var rewriter = new AccessorFormatRewriter(tree.GetText());
         var newRoot = rewriter.Visit(root);
 
         return newRoot.ToFullString();
@@ -53,6 +61,16 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
     /// </summary>
     private sealed class AccessorFormatRewriter : CSharpSyntaxRewriter
     {
+        private readonly SourceText _text;
+
+        /// <summary>
+        /// Initializes a rewriter for the given source text, which supplies indentation and line breaks.
+        /// </summary>
+        public AccessorFormatRewriter(SourceText text)
+        {
+            _text = text;
+        }
+
         /// <summary>
         /// Overrides property declaration visiting to normalize accessor formatting only for properties with at least two body-bearing accessors, otherwise returning the visited node unchanged.
         /// </summary>
@@ -206,7 +224,7 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         }
 
         /// <summary>
-        /// Formats an accessor&apos;s body by expanding it to a multi-line layout when makeMultiLine is true, or compressing it to a single line only when it has exactly one statement, otherwise returning the original syntax node with fallback to the original body on parse failure and no thrown exceptions.
+        /// Expands the accessor body to a multi-line layout when makeMultiLine is true, otherwise compresses it to a single line when that is safe; accessors without a block body are returned unchanged.
         /// </summary>
         /// <param name="accessor">The accessor.</param>
         /// <param name="makeMultiLine">The make multi line.</param>
@@ -216,47 +234,132 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
             if (accessor.Body is null)
                 return accessor;
 
-            if (makeMultiLine)
+            return makeMultiLine ? Expand(accessor) : Compress(accessor);
+        }
+
+        /// <summary>
+        /// Puts the opening brace, every statement and the closing brace of the accessor body on their
+        /// own lines by rewriting only the whitespace trivia between them.
+        /// </summary>
+        private AccessorDeclarationSyntax Expand(AccessorDeclarationSyntax accessor)
+        {
+            var body = accessor.Body;
+            var line = _text.Lines.GetLineFromPosition(body.OpenBraceToken.SpanStart);
+            var newline = SyntaxFactory.EndOfLine(GetLineBreak(line));
+            var indentText = GetIndentation(line);
+            var indent = SyntaxFactory.Whitespace(indentText);
+            var statementIndent = SyntaxFactory.Whitespace(indentText + (indentText.Length > 0 && indentText[0] == '\t' ? "\t" : "    "));
+
+            var openBrace = body.OpenBraceToken;
+            var previous = openBrace.GetPreviousToken();
+            var braceIsOnHeaderLine = !previous.TrailingTrivia.Any(SyntaxKind.EndOfLineTrivia)
+                && !openBrace.LeadingTrivia.Any(SyntaxKind.EndOfLineTrivia);
+
+            if (braceIsOnHeaderLine)
             {
-                // Expand to multi-line format
-                var newline = "\r\n";
-                var bodyStatements = new System.Collections.Generic.List<string> { "{" };
-
-                foreach (var statement in accessor.Body.Statements)
-                {
-                    bodyStatements.Add("    " + statement.ToString().Trim());
-                }
-
-                bodyStatements.Add("}");
-                var formattedBody = string.Join(newline, bodyStatements);
-
-                var newBodySyntax = SyntaxFactory.ParseStatement(formattedBody) as BlockSyntax;
-
-                return accessor.WithBody(newBodySyntax ?? accessor.Body);
+                openBrace = openBrace.WithLeadingTrivia(openBrace.LeadingTrivia.Insert(0, indent));
             }
-            else
+
+            var statements = body.Statements.Select(statement => statement
+                .WithLeadingTrivia(statement.GetLeadingTrivia().Insert(0, statementIndent))
+                .WithTrailingTrivia(TrimEnd(statement.GetTrailingTrivia()).Add(newline)));
+
+            var newBody = body
+                .WithOpenBraceToken(openBrace.WithTrailingTrivia(TrimEnd(openBrace.TrailingTrivia).Add(newline)))
+                .WithStatements(SyntaxFactory.List(statements))
+                .WithCloseBraceToken(body.CloseBraceToken.WithLeadingTrivia(body.CloseBraceToken.LeadingTrivia.Insert(0, indent)));
+
+            if (braceIsOnHeaderLine)
             {
-                // Compress to single-line format
-                var statements = accessor.Body.Statements;
-                if (statements.Count != 1)
-                    return accessor;
+                accessor = accessor.ReplaceToken(previous, previous.WithTrailingTrivia(TrimEnd(previous.TrailingTrivia).Add(newline)));
+            }
 
-                var statement = statements[0];
-                var statementText = statement.ToString().Trim();
+            return accessor.WithBody(newBody);
+        }
 
-                // Create single-line body: { statement; } or similar
-                var singleLineBody = $"{{ {statementText} }}";
-                try
+        /// <summary>
+        /// Puts an accessor with a single one-line statement on one line (<c>set { statement; }</c>)
+        /// by replacing the whitespace and line breaks between its tokens with single spaces; leaves
+        /// it unchanged when that would lose comments, directives or the statement's own layout.
+        /// </summary>
+        private static AccessorDeclarationSyntax Compress(AccessorDeclarationSyntax accessor)
+        {
+            var body = accessor.Body;
+            if (body.Statements.Count != 1)
+                return accessor;
+
+            var statement = body.Statements[0];
+            var previous = body.OpenBraceToken.GetPreviousToken();
+            var layoutTrivia = previous.TrailingTrivia
+                .Concat(body.OpenBraceToken.LeadingTrivia)
+                .Concat(body.OpenBraceToken.TrailingTrivia)
+                .Concat(statement.DescendantTrivia(descendIntoTrivia: true))
+                .Concat(body.CloseBraceToken.LeadingTrivia);
+
+            if (layoutTrivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia))
+                || statement.ToString().IndexOfAny(new[] { '\r', '\n' }) >= 0)
+            {
+                return accessor;
+            }
+
+            var space = SyntaxFactory.TriviaList(SyntaxFactory.Space);
+            var newBody = body
+                .WithOpenBraceToken(body.OpenBraceToken.WithLeadingTrivia().WithTrailingTrivia(space))
+                .WithStatements(SyntaxFactory.SingletonList(statement.WithLeadingTrivia().WithTrailingTrivia(space)))
+                .WithCloseBraceToken(body.CloseBraceToken.WithLeadingTrivia());
+
+            return accessor
+                .ReplaceToken(previous, previous.WithTrailingTrivia(space))
+                .WithBody(newBody);
+        }
+
+        /// <summary>
+        /// Returns the line break ending <paramref name="line" />, or the first line break of the
+        /// file when the line has none, or <c>\n</c> for a file without line breaks.
+        /// </summary>
+        private string GetLineBreak(TextLine line)
+        {
+            if (line.EndIncludingLineBreak > line.End)
+            {
+                return _text.ToString(TextSpan.FromBounds(line.End, line.EndIncludingLineBreak));
+            }
+
+            foreach (var other in _text.Lines)
+            {
+                if (other.EndIncludingLineBreak > other.End)
                 {
-                    var newBodySyntax = SyntaxFactory.ParseStatement(singleLineBody) as BlockSyntax;
-
-                    return accessor.WithBody(newBodySyntax ?? accessor.Body);
-                }
-                catch
-                {
-                    return accessor;
+                    return _text.ToString(TextSpan.FromBounds(other.End, other.EndIncludingLineBreak));
                 }
             }
+
+            return "\n";
+        }
+
+        /// <summary>
+        /// Returns the leading spaces and tabs of <paramref name="line" />.
+        /// </summary>
+        private string GetIndentation(TextLine line)
+        {
+            int end = line.Start;
+            while (end < line.End && (_text[end] == ' ' || _text[end] == '\t'))
+            {
+                end++;
+            }
+
+            return _text.ToString(TextSpan.FromBounds(line.Start, end));
+        }
+
+        /// <summary>
+        /// Removes the whitespace trivia at the end of <paramref name="trivia" />.
+        /// </summary>
+        private static SyntaxTriviaList TrimEnd(SyntaxTriviaList trivia)
+        {
+            while (trivia.Count > 0 && trivia[trivia.Count - 1].IsKind(SyntaxKind.WhitespaceTrivia))
+            {
+                trivia = trivia.RemoveAt(trivia.Count - 1);
+            }
+
+            return trivia;
         }
     }
 }

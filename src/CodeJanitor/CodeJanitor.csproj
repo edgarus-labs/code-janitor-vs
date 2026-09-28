@@ -745,7 +745,9 @@
     <Compile Include="Logic\Cleaning\ReadonlyFieldLogic.cs" />
     <Compile Include="Logic\Cleaning\RazorFormatterLogic.cs" />
     <Compile Include="Logic\Cleaning\ReturnThrowBlankLinePaddingLogic.cs" />
+    <Compile Include="Logic\Cleaning\NullCheckPatternMatchingLogic.cs" />
     <Compile Include="Logic\Cleaning\SealedClassLogic.cs" />
+    <Compile Include="Logic\Cleaning\SemanticFileRewriter.cs" />
     <Compile Include="Logic\Cleaning\VarWhenApparentLogic.cs" />
     <Compile Include="Logic\Cleaning\InsertBlankLinePaddingLogic.cs" />
     <Compile Include="Logic\Cleaning\InsertExplicitAccessModifierLogic.cs" />

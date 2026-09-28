@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -44,9 +45,11 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node)
         {
+            var canConvert = HasFixedTargetType(node) &&
+                             (node.ParameterList is not null || InitializesParameterlessDelegate(node));
             node = (AnonymousMethodExpressionSyntax)base.VisitAnonymousMethodExpression(node);
 
-            var expression = TryExtractSingleExpression(node.Block);
+            var expression = canConvert ? TryExtractSingleExpression(node.Block) : null;
             if (expression is null)
             {
                 return node;
@@ -85,9 +88,10 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node)
         {
+            var hasFixedTargetType = HasFixedTargetType(node);
             node = (SimpleLambdaExpressionSyntax)base.VisitSimpleLambdaExpression(node);
 
-            return TrySimplifySimpleLambda(node);
+            return hasFixedTargetType ? TrySimplifySimpleLambda(node) : node;
         }
 
         /// <summary>
@@ -97,9 +101,10 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node)
         {
+            var hasFixedTargetType = HasFixedTargetType(node);
             node = (ParenthesizedLambdaExpressionSyntax)base.VisitParenthesizedLambdaExpression(node);
 
-            return TrySimplifyParenthesizedLambda(node);
+            return hasFixedTargetType ? TrySimplifyParenthesizedLambda(node) : node;
         }
 
         /// <summary>
@@ -138,17 +143,87 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                 return null;
             }
 
+            ExpressionSyntax expression;
             var statement = block.Statements[0];
             switch (statement)
             {
                 case ExpressionStatementSyntax expressionStatement:
-                    return expressionStatement.Expression;
+                    expression = expressionStatement.Expression;
+                    break;
 
                 case ReturnStatementSyntax returnStatement when returnStatement.Expression is not null:
-                    return returnStatement.Expression;
+                    expression = returnStatement.Expression;
+                    break;
 
                 default:
                     return null;
+            }
+
+            // Comments and preprocessor directives between the braces but outside the kept expression would be lost.
+            var losesTrivia = block.DescendantTrivia().Any(trivia =>
+                block.Span.Contains(trivia.Span) &&
+                !expression.Span.Contains(trivia.Span) &&
+                !trivia.IsKind(SyntaxKind.WhitespaceTrivia) &&
+                !trivia.IsKind(SyntaxKind.EndOfLineTrivia));
+
+            return losesTrivia ? null : expression;
+        }
+
+        /// <summary>
+        /// Determines whether the lambda's delegate type is fixed regardless of its body's form. A lambda that is (or is
+        /// nested in) an argument or a collection initializer element takes its type from overload resolution, where
+        /// an expression body can pick another overload than a block body (for example <c>Func&lt;Task&gt;</c> instead
+        /// of <c>Action</c>, or an expression-tree overload of <c>IQueryable</c>), silently changing behavior.
+        /// </summary>
+        private static bool HasFixedTargetType(ExpressionSyntax lambda)
+        {
+            foreach (var ancestor in lambda.Ancestors())
+            {
+                switch (ancestor)
+                {
+                    case ArgumentSyntax _:
+                        return false;
+                    case InitializerExpressionSyntax initializer when !initializer.IsKind(SyntaxKind.ObjectInitializerExpression):
+                        return false;
+                    case StatementSyntax _:
+                    case MemberDeclarationSyntax _:
+                        return true;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether an anonymous method without a parameter list (which converts to a delegate type with any
+        /// parameters) initializes a variable whose declared type is a delegate without parameters (<c>Action</c> or
+        /// <c>Func&lt;TResult&gt;</c>), so that the equivalent <c>() =&gt;</c> lambda converts to it as well.
+        /// </summary>
+        private static bool InitializesParameterlessDelegate(AnonymousMethodExpressionSyntax node)
+        {
+            if (!(node.Parent is EqualsValueClauseSyntax equalsValue) ||
+                !(equalsValue.Parent is VariableDeclaratorSyntax declarator) ||
+                !(declarator.Parent is VariableDeclarationSyntax declaration))
+            {
+                return false;
+            }
+
+            var type = declaration.Type;
+            if (type is QualifiedNameSyntax qualified &&
+                qualified.Left is IdentifierNameSyntax left &&
+                left.Identifier.ValueText == "System")
+            {
+                type = qualified.Right;
+            }
+
+            switch (type)
+            {
+                case IdentifierNameSyntax identifier:
+                    return identifier.Identifier.ValueText == "Action";
+                case GenericNameSyntax generic:
+                    return generic.Identifier.ValueText == "Func" && generic.TypeArgumentList.Arguments.Count == 1;
+                default:
+                    return false;
             }
         }
     }

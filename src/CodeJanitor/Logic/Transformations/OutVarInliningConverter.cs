@@ -56,12 +56,15 @@ public sealed class OutVarInliningConverter : ISourceTransformation
                     {
                         var varName = variable.Identifier.Text;
                         var nextStatement = statements[i + 1];
+                        var leakingPart = GetPartWhoseVariablesLeakToTheBlock(nextStatement);
 
-                        var outArg = nextStatement.DescendantNodes()
-                            .OfType<ArgumentSyntax>()
-                            .FirstOrDefault(a => a.RefOrOutKeyword.IsKind(SyntaxKind.OutKeyword) &&
-                                                 a.Expression is IdentifierNameSyntax id &&
-                                                 id.Identifier.Text == varName);
+                        var outArg = leakingPart is null || HasDirective(nextStatement.GetLeadingTrivia())
+                            ? null
+                            : leakingPart.DescendantNodesAndSelf(n => !StartsOwnVariableScope(n))
+                                .OfType<ArgumentSyntax>()
+                                .FirstOrDefault(a => a.RefOrOutKeyword.IsKind(SyntaxKind.OutKeyword) &&
+                                                     a.Expression is IdentifierNameSyntax id &&
+                                                     id.Identifier.Text == varName);
 
                         if (outArg is not null)
                         {
@@ -86,7 +89,7 @@ public sealed class OutVarInliningConverter : ISourceTransformation
 
                                 var newOutArg = outArg.WithExpression(declExpr);
                                 var updatedNextStatement = nextStatement.ReplaceNode(outArg, newOutArg)
-                                    .WithLeadingTrivia(localDecl.GetLeadingTrivia());
+                                    .WithLeadingTrivia(MergeLeadingTrivia(localDecl, nextStatement));
 
                                 statements.RemoveAt(i);
                                 statements[i] = updatedNextStatement;
@@ -100,5 +103,76 @@ public sealed class OutVarInliningConverter : ISourceTransformation
 
             return changed ? visitedBlock.WithStatements(SyntaxFactory.List(statements)) : visitedBlock;
         }
+
+        /// <summary>
+        /// Returns the part of a statement whose expression variables are scoped to the enclosing block (so an
+        /// <c>out var</c> declared there stays visible to the statements that follow), or <see langword="null" /> when
+        /// the statement's expression variables would be scoped to the statement itself (loops, <c>using</c>,
+        /// <c>lock</c>, ...).
+        /// </summary>
+        private static SyntaxNode GetPartWhoseVariablesLeakToTheBlock(StatementSyntax statement)
+        {
+            switch (statement)
+            {
+                case ExpressionStatementSyntax expressionStatement:
+                    return expressionStatement.Expression;
+                case LocalDeclarationStatementSyntax localDeclaration:
+                    return localDeclaration.Declaration;
+                case ReturnStatementSyntax returnStatement:
+                    return returnStatement.Expression;
+                case IfStatementSyntax ifStatement:
+                    return ifStatement.Condition;
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Determines whether expression variables declared inside the node are scoped to the node itself rather than to
+        /// the enclosing statement.
+        /// </summary>
+        private static bool StartsOwnVariableScope(SyntaxNode node) =>
+            node is AnonymousFunctionExpressionSyntax ||
+            node is QueryExpressionSyntax ||
+            node is SwitchExpressionArmSyntax;
+
+        /// <summary>
+        /// Determines whether the trivia contains a preprocessor directive (or code a directive disabled).
+        /// </summary>
+        private static bool HasDirective(SyntaxTriviaList trivia) =>
+            trivia.Any(t => t.IsDirective || t.IsKind(SyntaxKind.DisabledTextTrivia));
+
+        /// <summary>
+        /// Builds the leading trivia of the call that replaces the removed declaration: the declaration's own leading
+        /// trivia, followed by any comments that trailed the declaration or led the call, with the call's indentation.
+        /// </summary>
+        private static SyntaxTriviaList MergeLeadingTrivia(LocalDeclarationStatementSyntax declaration, StatementSyntax call)
+        {
+            var declarationTrailing = declaration.GetTrailingTrivia();
+            var callLeading = call.GetLeadingTrivia();
+            var merged = declaration.GetLeadingTrivia();
+
+            if (declarationTrailing.Any(IsComment))
+            {
+                merged = merged.AddRange(declarationTrailing.SkipWhile(t => t.IsKind(SyntaxKind.WhitespaceTrivia)));
+                return merged.AddRange(callLeading);
+            }
+
+            if (callLeading.Any(IsComment))
+            {
+                return merged.AddRange(callLeading.SkipWhile(t => t.IsKind(SyntaxKind.WhitespaceTrivia)));
+            }
+
+            return merged;
+        }
+
+        /// <summary>
+        /// Determines whether the trivia is a comment.
+        /// </summary>
+        private static bool IsComment(SyntaxTrivia trivia) =>
+            trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+            trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+            trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+            trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
     }
 }

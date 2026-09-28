@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using System.Collections.Generic;
+using System.Text;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -10,12 +10,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// block for BL-018). Pure and unit-testable without Visual Studio.
 /// </summary>
 /// <remarks>
-/// Works on syntax trivia: it drops a <see cref="SyntaxKind.WhitespaceTrivia" /> only when it is
-/// immediately followed by an end-of-line (or is the final trailing whitespace of the file), so
-/// indentation is preserved and trailing spaces that are part of a verbatim/raw string literal
-/// token are never removed. Trailing whitespace on a final line that has no line break is only
-/// removed reliably when that whitespace lands in the end-of-file token; combine with
-/// <see cref="EnsureFinalNewlineConverter" /> for that edge case.
+/// Works line by line on the source text and uses the syntax tree only to decide whether a line's
+/// trailing whitespace belongs to a token (a verbatim/raw/interpolated string literal spanning
+/// lines), in which case it is kept. Whitespace in trivia (code indentation, comments, documentation
+/// comments, preprocessor directives) and on a final line without a line break is removed. Disabled
+/// preprocessor text is left untouched because it cannot be proven to be outside a string literal.
+/// Line breaks are never changed.
 /// </remarks>
 public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
 {
@@ -38,69 +38,52 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
             return source;
         }
 
-        var root = CSharpSyntaxTree.ParseText(source).GetRoot();
-        var newRoot = new TrailingWhitespaceRewriter().Visit(root);
+        var tree = CSharpSyntaxTree.ParseText(source);
+        var root = tree.GetRoot();
 
-        var result = newRoot.ToFullString();
+        StringBuilder result = null;
+        int copied = 0;
 
-        return result == source ? source : result;
+        foreach (var line in tree.GetText().Lines)
+        {
+            int end = line.End;
+            int start = end;
+            while (start > line.Start && char.IsWhiteSpace(source[start - 1]))
+            {
+                start--;
+            }
+
+            if (start == end || IsProtected(root, start))
+            {
+                continue;
+            }
+
+            result ??= new StringBuilder(source.Length);
+            result.Append(source, copied, start - copied);
+            copied = end;
+        }
+
+        if (result == null)
+        {
+            return source;
+        }
+
+        result.Append(source, copied, source.Length - copied);
+
+        return result.ToString();
     }
 
     /// <summary>
-    /// ilingWhitespaceRewriter is a class that removes trailing whitespace from tokens before the end of a line.
+    /// Returns whether the whitespace starting at <paramref name="position" /> must be kept: it is
+    /// part of a token (a multi-line string literal) or of disabled preprocessor text.
     /// </summary>
-    private sealed class TrailingWhitespaceRewriter : CSharpSyntaxRewriter
+    private static bool IsProtected(SyntaxNode root, int position)
     {
-        /// <summary>
-        /// Overrides VisitToken to strip trivia before end-of-line from a token&apos;s leading and trailing trivia, additionally removing trailing whitespace from the end-of-file token&apos;s leading trivia, and returns the token with those modified trivia collections.
-        /// </summary>
-        /// <param name="token">The token.</param>
-        /// <returns>A SyntaxToken value produced by this method.</returns>
-        public override SyntaxToken VisitToken(SyntaxToken token)
+        if (root.FindToken(position).Span.Contains(position))
         {
-            var leading = StripBeforeEndOfLine(token.LeadingTrivia);
-            var trailing = StripBeforeEndOfLine(token.TrailingTrivia);
-
-            // Whitespace at the very end of the file (no trailing newline) can land in the
-            // end-of-file token's leading trivia; strip it too.
-            if (token.IsKind(SyntaxKind.EndOfFileToken)
-                && leading.Count > 0
-                && leading[leading.Count - 1].IsKind(SyntaxKind.WhitespaceTrivia))
-            {
-                leading = leading.RemoveAt(leading.Count - 1);
-            }
-
-            return token
-                .WithLeadingTrivia(leading)
-                .WithTrailingTrivia(trailing);
+            return true;
         }
 
-        /// <summary>
-        /// Removes whitespace trivia that directly precedes an end-of-line trivia from the given list, returning a new list without mutating the original, and returns the original list if it is empty.
-        /// </summary>
-        /// <param name="trivia">The trivia.</param>
-        /// <returns>A SyntaxTriviaList value produced by this method.</returns>
-        private static SyntaxTriviaList StripBeforeEndOfLine(SyntaxTriviaList trivia)
-        {
-            if (trivia.Count == 0)
-            {
-                return trivia;
-            }
-
-            var kept = new List<SyntaxTrivia>(trivia.Count);
-            for (int i = 0; i < trivia.Count; i++)
-            {
-                if (trivia[i].IsKind(SyntaxKind.WhitespaceTrivia)
-                    && i + 1 < trivia.Count
-                    && trivia[i + 1].IsKind(SyntaxKind.EndOfLineTrivia))
-                {
-                    continue;
-                }
-
-                kept.Add(trivia[i]);
-            }
-
-            return SyntaxFactory.TriviaList(kept);
-        }
+        return root.FindTrivia(position).IsKind(SyntaxKind.DisabledTextTrivia);
     }
 }

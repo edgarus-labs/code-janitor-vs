@@ -503,9 +503,149 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [DataRow("using System;\r\n\r\nConsole.WriteLine();\r\n\r\nnamespace N\r\n{\r\n}\r\n", false, DisplayName = "top-level statement beside the namespace")]
     [DataRow("using System.Reflection;\r\n\r\n[assembly: AssemblyVersion(\"1.0\")]\r\n\r\nnamespace N\r\n{\r\n}\r\n", false, DisplayName = "assembly attribute beside the namespace")]
     [DataRow("#if DEBUG\r\nusing System;\r\n#endif\r\n\r\nenum E { }\r\n\r\nnamespace N\r\n{\r\n}\r\n", false, DisplayName = "#if block in front of an enum beside the namespace")]
+    [DataRow("#region File\r\nnamespace N\r\n{\r\n}\r\n#endregion\r\n", false, DisplayName = "#region in front of a namespace without file-level usings")]
+    [DataRow("namespace N\r\n{\r\n#if DEBUG\r\n    class D { }\r\n#endif\r\n}\r\n", false, DisplayName = "#if block inside the namespace only")]
+    [DataRow("#if DEBUG\r\n#endif\r\nnamespace N;\r\n\r\nclass C { }\r\n", true, DisplayName = "empty #if block in front of the namespace")]
+    [DataRow("   \r\n", false, DisplayName = "whitespace-only file")]
     public void HasUsingsOutsideNamespace_CountsOnlyLayoutsTheInwardMoveSupports(string source, bool expected)
     {
         Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsOutsideNamespace(source));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task NullDocument_Throws()
+    {
+        ArgumentNullException exception = await Assert.ThrowsExactlyAsync<ArgumentNullException>(() => MoveAsync(null));
+
+        Assert.AreEqual("document", exception.ParamName);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task TopLevelStatementsFileWithoutNamespace_IsSkipped_AndItsUsingsStay()
+    {
+        string input = "using System;\r\nusing System.Text;\r\n\r\nConsole.WriteLine(new StringBuilder());\r\n\r\nstatic int Twice(int x) => x * 2;\r\n\r\nrecord R(int X);\r\n";
+
+        UsingDirectivePlacementResult result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
+        Assert.IsNull(result.Text);
+        Assert.AreEqual("the file declares no namespace to move them into", result.Reason);
+        Assert.IsFalse(UsingDirectivePlacementConverter.HasUsingsOutsideNamespace(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task TopLevelStatementsThatNeedAFileLevelUsing_KeepIt_WhenTheFileAlsoDeclaresANamespace()
+    {
+        // Moving 'using System.Text;' into the namespace would leave the top-level statement without it.
+        string input = "using System.Text;\r\n\r\nSystem.Console.WriteLine(new StringBuilder());\r\n\r\nnamespace Company.App\r\n{\r\n    class C { StringBuilder b; }\r\n}\r\n";
+
+        UsingDirectivePlacementResult result = await MoveAsync(CompilingTestProject.CreateDocument(input, Library));
+
+        Assert.AreEqual(UsingDirectivePlacementStatus.Skipped, result.Status, result.Text);
+        Assert.IsNull(result.Text);
+        Assert.StartsWith("moving them would introduce 1 new compile error(s): CS0246", result.Reason);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task UnresolvableUsingAlreadyInTheNamespace_KeepsItsErrorAndPlace()
+    {
+        string input = "using System.Text;\r\n\r\nnamespace Company.App\r\n{\r\n    using Missing;\r\n\r\n    class C { StringBuilder b; }\r\n}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, Library);
+        IReadOnlyList<string> before = await CompilingTestProject.GetCompileErrorsAsync(document, input);
+
+        UsingDirectivePlacementResult result = await MoveAsync(document);
+
+        Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
+        Assert.AreEqual("namespace Company.App\r\n{\r\n    using System.Text;\r\n    using Missing;\r\n\r\n    class C { StringBuilder b; }\r\n}\r\n", result.Text);
+        CollectionAssert.AreEquivalent((System.Collections.ICollection)before, (System.Collections.ICollection)await CompilingTestProject.GetCompileErrorsAsync(document, result.Text));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        "using System; // file level\r\n\r\nnamespace Company.App;\r\nusing System;\r\n\r\nclass C { Action a; }\r\n",
+        "namespace Company.App;\r\nusing System; // file level\r\n\r\nclass C { Action a; }\r\n",
+        DisplayName = "duplicate directly below the file-scoped namespace")]
+    [DataRow(
+        "// header\r\nusing System;\r\n/* again */ using System;\r\n\r\nnamespace Company.App;\r\n\r\nusing System;\r\n\r\nclass C { Action a; }\r\n",
+        "// header\r\nnamespace Company.App;\r\n\r\n/* again */ using System;\r\n\r\nclass C { Action a; }\r\n",
+        DisplayName = "duplicates below a blank line of the file-scoped namespace")]
+    public async Task CommentsOfDuplicatesDroppedForADirectiveAlreadyInTheNamespace_GoToIt(string input, string expected)
+    {
+        string result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual(expected, result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        "using System.Text;\r\nnamespace Company.App { class C { StringBuilder b; } }\r\n",
+        "namespace Company.App {\r\n    using System.Text;\r\n",
+        DisplayName = "single-line namespace at column zero")]
+    [DataRow(
+        "using System.Text;\r\n\r\nnamespace Company.App { class C { StringBuilder b; } }\r\n",
+        "namespace Company.App {\r\n    using System.Text;\r\n",
+        DisplayName = "single-line namespace after a blank line")]
+    [DataRow(
+        "using System.Text;\r\n  namespace Company.App { class C { StringBuilder b; } }\r\n",
+        "  namespace Company.App {\r\n      using System.Text;\r\n",
+        DisplayName = "indented single-line namespace")]
+    [DataRow(
+        "using System.Text;\r\n\r\n\tnamespace Company.App { class C { StringBuilder b; } }\r\n",
+        "\tnamespace Company.App {\r\n\t    using System.Text;\r\n",
+        DisplayName = "tab-indented single-line namespace after a blank line")]
+    [DataRow(
+        "using System.Text;\r\n/* app */ namespace Company.App { class C { StringBuilder b; } }\r\n",
+        "/* app */ namespace Company.App {\r\n    using System.Text;\r\n",
+        DisplayName = "comment in front of the namespace keyword")]
+    [DataRow(
+        "using System.Text;\r\n\r\nnamespace Company.App\r\n{\r\n}\r\n",
+        "namespace Company.App\r\n{\r\n    using System.Text;\r\n}\r\n",
+        DisplayName = "empty namespace")]
+    [DataRow(
+        "using System.Text;\r\n\r\nnamespace Company.App\r\n{ // the app\r\n    class C { StringBuilder b; }\r\n}\r\n",
+        "namespace Company.App\r\n{ // the app\r\n    using System.Text;\r\n\r\n    class C { StringBuilder b; }\r\n}\r\n",
+        DisplayName = "comment after the opening brace")]
+    public async Task MovedUsings_AreIndentedOneLevelDeeperThanTheNamespaceLine_WhenNoBodyLineShowsTheIndentation(string input, string expectedStart)
+    {
+        string result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.StartsWith(expectedStart, result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task SeveralCommentsOnTheLinesOfMovedUsings_AreKeptAndIndented()
+    {
+        string input =
+            "using System; /* a */ /* b */\r\n/* c */ /* d */ using Company.App.Services;\r\n/// doc\r\n/* e */ using Shared;\r\n\r\nnamespace Company.App\r\n{\r\n    class C { Svc s; Util u; Action a; }\r\n}\r\n";
+
+        string result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual(
+            "namespace Company.App\r\n{\r\n    using System; /* a */ /* b */\r\n    /* c */ /* d */ using Company.App.Services;\r\n    /// doc\r\n    /* e */ using global::Shared;\r\n\r\n    class C { Svc s; Util u; Action a; }\r\n}\r\n",
+            result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task GlobalUsingsAliasesStaticAndUnsafeUsings_OnlyNonGlobalOnesMove()
+    {
+        string input =
+            "global using System;\r\nusing static System.Math;\r\nusing unsafe Ptr = System.Int32*;\r\nusing Arr = System.Int32[];\r\nusing Pair = (int Left, int Right);\r\n\r\n" +
+            "namespace Company.App;\r\n\r\nunsafe class C { Ptr p; Arr a; Pair q; double d = Abs(-1); Action x; }\r\n";
+
+        string result = await AssertMovedAndCompilesAsync(input);
+
+        Assert.AreEqual(
+            "global using System;\r\n\r\nnamespace Company.App;\r\n\r\nusing static System.Math;\r\nusing unsafe Ptr = System.Int32*;\r\nusing Arr = System.Int32[];\r\nusing Pair = (int Left, int Right);\r\n\r\n" +
+            "unsafe class C { Ptr p; Arr a; Pair q; double d = Abs(-1); Action x; }\r\n",
+            result);
     }
 
     private static Task<UsingDirectivePlacementResult> MoveAsync(Microsoft.CodeAnalysis.Document document)

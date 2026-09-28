@@ -110,6 +110,89 @@ public sealed class RoslynDocumentCleanupTests
         Assert.AreEqual(SourceWithUnusedUsing, output);
     }
 
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_WithoutAKeepList_RemovesEveryUnnecessaryUsing()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        DocumentId documentId = workspace.AddDocument("Sample.cs", SourceWithUnusedUsing);
+
+        Document cleaned = await RoslynDocumentCleanup.ApplyAsync(workspace.CreateSolution().GetDocument(documentId), true, false, null, CancellationToken.None);
+
+        Assert.StartsWith("using System;\r\nusing System.Collections.Generic;\r\n\r\nnamespace Demo;", (await cleaned.GetTextAsync()).ToString());
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_UnusedUsingsSeparatedByAUsedOne_AreAllRemoved()
+    {
+        string source = "using System.Text;\nusing System;\nusing System.Collections.Generic;\n\nnamespace Demo;\n\npublic class C { public Type T; }\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual("using System;\n\nnamespace Demo;\n\npublic class C { public Type T; }\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_KeepsAnUnusedUsingPrecededByACommentOnItsLine()
+    {
+        string source = "/* keep */ using System.Text;\nusing System;\n\nnamespace Demo;\n\npublic class C { public Type T; }\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.Contains("/* keep */ using System.Text;", output);
+        Assert.Contains("using System;\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_TopLevelStatementsFile_KeepsTheUsingsTheStatementsNeed()
+    {
+        string source =
+            "using System.Text;\nusing System;\nusing System.Collections.Generic;\n\nvar builder = new StringBuilder();\nbuilder.Append(Math.Max(1, Local()));\n\nstatic int Local() => 1;\n\nclass Greeter\n{\n    public static string Greet() => \"using System.Collections.Generic;\";\n}\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual(
+            "using System;\nusing System.Text;\n\nvar builder = new StringBuilder();\nbuilder.Append(Math.Max(1, Local()));\n\nstatic int Local() => 1;\n\nclass Greeter\n{\n    public static string Greet() => \"using System.Collections.Generic;\";\n}\n",
+            output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_UsingsInsideABlockNamespace_AreCleanedInPlace()
+    {
+        string source = "namespace Demo\n{\n    using System.Text;\n    using System;\n\n    public class C { public Type T; }\n}\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual("namespace Demo\n{\n    using System;\n\n    public class C { public Type T; }\n}\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RemoveAndSortUsings_FileWithSyntaxErrors_StillOnlyRemovesTheUnusedUsing()
+    {
+        string source = "using System.Text;\nusing System;\n\nnamespace Demo;\n\npublic class C { public Type T\n";
+
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual("using System;\n\nnamespace Demo;\n\npublic class C { public Type T\n", output);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("")]
+    [DataRow("  \n\t\n")]
+    [DataRow("// only a comment\n")]
+    public async Task RemoveAndSortUsings_FileWithoutUsings_IsUnchanged(string source)
+    {
+        string output = await CleanupAsync(source, removeAndSortUsings: true, format: false);
+
+        Assert.AreEqual(source, output);
+    }
+
     private static Task<string> CleanupAsync(string source, bool removeAndSortUsings, bool format, params string[] usingsToKeep)
         => CleanupAsync(source, removeAndSortUsings, format, editorConfig: null, usingsToKeep);
 

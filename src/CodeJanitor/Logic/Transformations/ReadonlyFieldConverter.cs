@@ -14,8 +14,11 @@ namespace CodeJanitor.Logic.Transformations;
 /// Scope is intentionally conservative: only <c>private</c> fields of non-partial types with a
 /// single declarator are considered, and only when every write to the field occurs directly in
 /// the declaring type's own constructor (instance fields) or static constructor (static
-/// fields) - never in a regular method, accessor, local function, or nested lambda, since those
-/// could execute after construction. Pure logic, unit-testable without Visual Studio.
+/// fields) through the instance under construction - never in a regular method, accessor, local
+/// function, or nested lambda, since those could execute after construction. Fields named in
+/// code excluded by a preprocessor directive, fixed-size buffers, and fields with a method call on
+/// them whose type may be a mutable struct are left alone. Pure logic, unit-testable without
+/// Visual Studio.
 /// </remarks>
 public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
 {
@@ -90,7 +93,8 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         var modifiers = fieldDecl.Modifiers;
         if (modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword) ||
                                 m.IsKind(SyntaxKind.ConstKeyword) ||
-                                m.IsKind(SyntaxKind.VolatileKeyword)))
+                                m.IsKind(SyntaxKind.VolatileKeyword) ||
+                                m.IsKind(SyntaxKind.FixedKeyword)))
         {
             return false;
         }
@@ -139,43 +143,67 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
             }
         }
 
-        var writeNodes = new List<SyntaxNode>();
+        var writes = new List<KeyValuePair<SyntaxNode, List<ExpressionSyntax>>>();
+
+        void AddWrite(SyntaxNode writeNode, ExpressionSyntax target)
+        {
+            var targets = new List<ExpressionSyntax>();
+            CollectWrittenTargets(target, fieldName, declaringTypeName, targets);
+            if (targets.Count > 0)
+            {
+                writes.Add(new KeyValuePair<SyntaxNode, List<ExpressionSyntax>>(writeNode, targets));
+            }
+        }
 
         foreach (var assignment in scopeNodes.OfType<AssignmentExpressionSyntax>())
         {
-            if (GetFieldAccessKind(assignment.Left, fieldName, declaringTypeName) != FieldAccessKind.None)
-            {
-                writeNodes.Add(assignment);
-            }
+            AddWrite(assignment, assignment.Left);
+        }
+
+        foreach (var forEach in scopeNodes.OfType<ForEachVariableStatementSyntax>())
+        {
+            AddWrite(forEach, forEach.Variable);
         }
 
         foreach (var unary in scopeNodes.OfType<PostfixUnaryExpressionSyntax>())
         {
-            if ((unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression)) &&
-                GetFieldAccessKind(unary.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
+            if (unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression))
             {
-                writeNodes.Add(unary);
+                AddWrite(unary, unary.Operand);
             }
         }
 
         foreach (var unary in scopeNodes.OfType<PrefixUnaryExpressionSyntax>())
         {
-            if ((unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression)) &&
-                GetFieldAccessKind(unary.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
+            if (unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression))
             {
-                writeNodes.Add(unary);
+                AddWrite(unary, unary.Operand);
             }
         }
 
-        foreach (var writeNode in writeNodes)
+        foreach (var write in writes)
         {
-            if (!IsWriteInMatchingConstructor(writeNode, typeDecl, isStatic))
+            if (!IsWriteInMatchingConstructor(write.Key, write.Value, fieldName, typeDecl, isStatic))
             {
                 return false;
             }
         }
 
-        return true;
+        // A method called on a readonly field of a mutable struct type runs on a defensive copy, silently dropping the
+        // mutation, so calls are only accepted when the field's type is known not to be a mutable struct.
+        if (!IsKnownNotMutableStruct(fieldDecl.Declaration.Type, typeDecl.SyntaxTree.GetRoot()))
+        {
+            foreach (var invocation in scopeNodes.OfType<InvocationExpressionSyntax>())
+            {
+                if (invocation.Expression is MemberAccessExpressionSyntax calledMember &&
+                    GetFieldAccessKind(calledMember.Expression, fieldName, declaringTypeName) != FieldAccessKind.None)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return !IsMentionedInInactiveCode(typeDecl, fieldName);
     }
 
     /// <summary>
@@ -255,13 +283,15 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     }
 
     /// <summary>
-    /// Determines whether a write occurs inside a constructor of the given type with matching staticness by walking ancestor nodes, returning false if any non-constructor member boundary or type boundary is reached first.
+    /// Determines whether a write occurs inside a constructor of the given type with matching staticness, through the instance under construction, by walking ancestor nodes, returning false if any non-constructor member boundary or type boundary is reached first.
     /// </summary>
     /// <param name="writeNode">The write node.</param>
+    /// <param name="writtenTargets">The accesses of the field written by the node.</param>
+    /// <param name="fieldName">The field name.</param>
     /// <param name="typeDecl">The type decl.</param>
     /// <param name="isStatic">The is static.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool IsWriteInMatchingConstructor(SyntaxNode writeNode, TypeDeclarationSyntax typeDecl, bool isStatic)
+    private static bool IsWriteInMatchingConstructor(SyntaxNode writeNode, IReadOnlyList<ExpressionSyntax> writtenTargets, string fieldName, TypeDeclarationSyntax typeDecl, bool isStatic)
     {
         foreach (var ancestor in writeNode.Ancestors())
         {
@@ -280,7 +310,8 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
 
                 case ConstructorDeclarationSyntax constructor:
                     var constructorIsStatic = constructor.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-                    return ReferenceEquals(constructor.Parent, typeDecl) && constructorIsStatic == isStatic;
+                    return ReferenceEquals(constructor.Parent, typeDecl) && constructorIsStatic == isStatic &&
+                           writtenTargets.All(target => IsAccessThroughOwnInstance(target, fieldName, typeDecl.Identifier.Text, isStatic));
 
                 case TypeDeclarationSyntax _:
                     // Reached the type boundary (e.g. a field initializer) without finding a
@@ -301,6 +332,160 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     {
         var readonlyToken = SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword).WithTrailingTrivia(SyntaxFactory.Space);
 
+        if (fieldDecl.Modifiers.Count == 0)
+        {
+            // The indentation (and anything else leading the declaration after its attributes) belongs to the type;
+            // move it in front of the new first token so the layout is kept.
+            var type = fieldDecl.Declaration.Type;
+            readonlyToken = readonlyToken.WithLeadingTrivia(type.GetLeadingTrivia());
+            var newDeclaration = fieldDecl.Declaration.WithType(type.WithLeadingTrivia(SyntaxTriviaList.Empty));
+
+            return fieldDecl.WithDeclaration(newDeclaration).WithModifiers(SyntaxFactory.TokenList(readonlyToken));
+        }
+
         return fieldDecl.WithModifiers(fieldDecl.Modifiers.Add(readonlyToken));
+    }
+
+    /// <summary>
+    /// Determines whether a written field access (possibly a sub-member or element of the field) reaches the field
+    /// through the instance under construction: a bare name, <c>this.</c>, or (for a static field) the declaring
+    /// type's name. Writes through any other receiver, including object and <c>with</c> initializers, target another
+    /// object, which a readonly field forbids even in a constructor.
+    /// </summary>
+    private static bool IsAccessThroughOwnInstance(ExpressionSyntax expression, string fieldName, string declaringTypeName, bool isStatic)
+    {
+        expression = UnwrapParentheses(expression);
+        switch (expression)
+        {
+            case IdentifierNameSyntax identifier when identifier.Identifier.Text == fieldName:
+                return !(identifier.Parent is AssignmentExpressionSyntax assignment &&
+                         assignment.Left == identifier &&
+                         assignment.Parent is InitializerExpressionSyntax);
+
+            case MemberAccessExpressionSyntax memberAccess when memberAccess.Name.Identifier.Text == fieldName:
+                var receiver = UnwrapParentheses(memberAccess.Expression);
+                return isStatic
+                    ? receiver is IdentifierNameSyntax typeName && typeName.Identifier.Text == declaringTypeName
+                    : receiver is ThisExpressionSyntax;
+
+            case MemberAccessExpressionSyntax memberAccess:
+                return IsAccessThroughOwnInstance(memberAccess.Expression, fieldName, declaringTypeName, isStatic);
+
+            case ElementAccessExpressionSyntax elementAccess:
+                return IsAccessThroughOwnInstance(elementAccess.Expression, fieldName, declaringTypeName, isStatic);
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Collects the field accesses written by the target of an assignment or a deconstruction (including nested
+    /// tuples) into <paramref name="targets" />.
+    /// </summary>
+    private static void CollectWrittenTargets(ExpressionSyntax target, string fieldName, string declaringTypeName, List<ExpressionSyntax> targets)
+    {
+        target = UnwrapParentheses(target);
+        if (target is TupleExpressionSyntax tuple)
+        {
+            foreach (var argument in tuple.Arguments)
+            {
+                CollectWrittenTargets(argument.Expression, fieldName, declaringTypeName, targets);
+            }
+
+            return;
+        }
+
+        if (GetFieldAccessKind(target, fieldName, declaringTypeName) != FieldAccessKind.None)
+        {
+            targets.Add(target);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the field name occurs as an identifier in code excluded by a preprocessor directive
+    /// (<c>#if</c>/<c>#elif</c>/<c>#else</c> branches inactive without symbols). Such code is compiled in other build
+    /// configurations (for example <c>DEBUG</c>) and may write the field there.
+    /// </summary>
+    private static bool IsMentionedInInactiveCode(SyntaxNode scope, string fieldName)
+    {
+        foreach (var trivia in scope.DescendantTrivia(descendIntoTrivia: true))
+        {
+            if (!trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+            {
+                continue;
+            }
+
+            if (SyntaxFactory.ParseTokens(trivia.ToString()).Any(t => t.IsKind(SyntaxKind.IdentifierToken) && t.ValueText == fieldName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Well-known framework reference types whose instance methods are commonly called on fields. A method call on a
+    /// readonly field of a mutable struct type runs on a defensive copy, so calls are only accepted on types known not
+    /// to be mutable structs.
+    /// </summary>
+    private static readonly HashSet<string> KnownReferenceTypeNames = new HashSet<string>(System.StringComparer.Ordinal)
+    {
+        "Object", "String", "Array", "Delegate", "Action", "Func", "EventHandler", "Task", "Lazy", "Random", "Type",
+        "List", "Dictionary", "HashSet", "SortedSet", "SortedList", "SortedDictionary", "LinkedList", "Queue", "Stack",
+        "ConcurrentDictionary", "ConcurrentQueue", "ConcurrentStack", "ConcurrentBag", "BlockingCollection",
+        "StringBuilder", "Stream", "MemoryStream", "StreamReader", "StreamWriter", "TextReader", "TextWriter",
+        "Stopwatch", "Timer", "CancellationTokenSource", "SemaphoreSlim", "ManualResetEventSlim", "HttpClient",
+    };
+
+    /// <summary>
+    /// Determines whether the declared type is syntactically known not to be a mutable struct: a predefined type, an
+    /// array or pointer, a nullable value, a well-known framework reference type, a type declared in this file as a
+    /// class, interface, record class, delegate, enum or <c>readonly struct</c>, or a name following the interface
+    /// naming convention (<c>I</c> followed by an upper-case letter).
+    /// </summary>
+    private static bool IsKnownNotMutableStruct(TypeSyntax type, SyntaxNode root)
+    {
+        switch (type)
+        {
+            case PredefinedTypeSyntax _:
+            case ArrayTypeSyntax _:
+            case PointerTypeSyntax _:
+            case NullableTypeSyntax _:
+                return true;
+        }
+
+        SimpleNameSyntax name;
+        switch (type)
+        {
+            case SimpleNameSyntax simple:
+                name = simple;
+                break;
+            case QualifiedNameSyntax qualified:
+                name = qualified.Right;
+                break;
+            case AliasQualifiedNameSyntax aliasQualified:
+                name = aliasQualified.Name;
+                break;
+            default:
+                return false;
+        }
+
+        var text = name.Identifier.ValueText;
+        if (KnownReferenceTypeNames.Contains(text) ||
+            (text.Length > 1 && text[0] == 'I' && char.IsUpper(text[1])))
+        {
+            return true;
+        }
+
+        var declarations = root.DescendantNodes(n => !(n is BlockSyntax))
+            .Where(n => n is BaseTypeDeclarationSyntax || n is DelegateDeclarationSyntax)
+            .Where(n => (n is BaseTypeDeclarationSyntax t ? t.Identifier : ((DelegateDeclarationSyntax)n).Identifier).ValueText == text)
+            .ToList();
+
+        return declarations.Count > 0 && declarations.All(declaration =>
+            !(declaration is StructDeclarationSyntax || declaration.IsKind(SyntaxKind.RecordStructDeclaration)) ||
+            ((TypeDeclarationSyntax)declaration).Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword)));
     }
 }

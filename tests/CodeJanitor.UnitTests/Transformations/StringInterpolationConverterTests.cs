@@ -179,4 +179,172 @@ public class C
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("  \r\n\t", DisplayName = "whitespace only")]
+    [DataRow("using static System.String; class C { string M(int x) => Format(\"{0}\", x); }", DisplayName = "unqualified Format through using static")]
+    [DataRow("class C { string M(int x) => string.Concat(\"{0}\", x); }", DisplayName = "other string method")]
+    [DataRow("class C { string M(int x) => string.Format(System.Globalization.CultureInfo.InvariantCulture, \"{0}\", x); }", DisplayName = "format provider overload")]
+    [DataRow("class C { string M(int x) => string.Format($\"{x}{{0}}\", x); }", DisplayName = "interpolated format string")]
+    [DataRow("class C { string M(int x) => string.Format(\"{99999999999}\", x); }", DisplayName = "index that overflows int")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0 }\", x); }", DisplayName = "placeholder with trailing space")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0}{1}\", x); }", DisplayName = "one placeholder out of range")]
+    [DataRow("class C { string M(object[] a) => string.Format(\"{0}{1}\", a); }", DisplayName = "params array")]
+    [DataRow("class C { string M(int x) => System.Text.StringBuilder.Format(\"{0}\", x); }", DisplayName = "qualified non-string receiver")]
+    [DataRow("class C\r\n{\r\n    // string.Format(\"{0}\", x)\r\n    string A = \"string.Format(\\\"{0}\\\", x)\";\r\n}\r\n", DisplayName = "code-like text in comment and literal")]
+    public void CallThatCannotBecomeAnInterpolatedString_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M(int a, int b) => string.Format(\"{1} before {0}\", a, b); }", "class C { string M(int a, int b) => $\"{b} before {a}\"; }", DisplayName = "reordered placeholders")]
+    [DataRow("class C { string M(int a) => string.Format(\"{0}-{0}\", a); }", "class C { string M(int a) => $\"{a}-{a}\"; }", DisplayName = "repeated placeholder")]
+    [DataRow("class C { string M(double a) => string.Format(\"[{0,-10:N2}]\", a); }", "class C { string M(double a) => $\"[{a,-10:N2}]\"; }", DisplayName = "alignment and format")]
+    [DataRow("class C { string M(System.DateTime d) => string.Format(\"{0:yyyy-MM-dd HH:mm}\", d); }", "class C { string M(System.DateTime d) => $\"{d:yyyy-MM-dd HH:mm}\"; }", DisplayName = "format with colon and space")]
+    [DataRow("class C { string M(int a) => string.Format(\"{{{0}}}\", a); }", "class C { string M(int a) => $\"{{{a}}}\"; }", DisplayName = "placeholder inside escaped braces")]
+    [DataRow("class C { string M(int a) => string.Format(@\"Value \"\"{0}\"\"\", a); }", "class C { string M(int a) => $\"Value \\\"{a}\\\"\"; }", DisplayName = "verbatim format with quotes")]
+    [DataRow("class C { string M(Item i, int[] a) => string.Format(\"{0} {1} {2} {3}\", i.Name, i?.Name, a[0], (object)i); }", "class C { string M(Item i, int[] a) => $\"{i.Name} {i?.Name} {a[0]} {(object)i}\"; }", DisplayName = "argument shapes")]
+    [DataRow("class C { string M(int a) => string.Format(\"{0}\", string.Format(\"<{0}>\", a)); }", "class C { string M(int a) => $\"{$\"<{a}>\"}\"; }", DisplayName = "nested string.Format")]
+    [DataRow("class C { string M(int a) => string.Format(\"é {0} ✓\", a); }", "class C { string M(int a) => $\"é {a} ✓\"; }", DisplayName = "non-ASCII text")]
+    [DataRow("class C { System.Func<int, string> F = x => string.Format(\"{0}\", x); }", "class C { System.Func<int, string> F = x => $\"{x}\"; }", DisplayName = "inside lambda")]
+    [DataRow("record R(int X) { public override string ToString() => string.Format(\"R({0})\", X); }", "record R(int X) { public override string ToString() => $\"R({X})\"; }", DisplayName = "record")]
+    public void FormatCallWithLiteralFormat_BecomesAnInterpolatedString(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFile_ConvertsStatementsLocalFunctionsAndTypes()
+    {
+        string input =
+            "using System;\r\n" +
+            "\r\n" +
+            "Console.WriteLine(string.Format(\"Hello {0}\", args.Length));\r\n" +
+            "\r\n" +
+            "static string Describe(int n) => String.Format(\"n={0}\", n);\r\n" +
+            "\r\n" +
+            "class Printer\r\n" +
+            "{\r\n" +
+            "    public string Print(int n) => System.String.Format(\"[{0}]\", n);\r\n" +
+            "}\r\n";
+        string expected = input
+            .Replace("string.Format(\"Hello {0}\", args.Length)", "$\"Hello {args.Length}\"")
+            .Replace("String.Format(\"n={0}\", n)", "$\"n={n}\"")
+            .Replace("System.String.Format(\"[{0}]\", n)", "$\"[{n}]\"");
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("\r\n", DisplayName = "CRLF")]
+    [DataRow("\n", DisplayName = "LF")]
+    public void TriviaAroundTheCall_IsPreserved(string newLine)
+    {
+        string input =
+            "class C" + newLine +
+            "{" + newLine +
+            "\t/// <summary>Formats.</summary>" + newLine +
+            "\tstring M(int x)" + newLine +
+            "\t{" + newLine +
+            "\t\t// build it" + newLine +
+            "\t\treturn /*a*/ string.Format(\"x={0}\", x) /*b*/; // trailing" + newLine +
+            "\t}" + newLine +
+            "#if NEVER" + newLine +
+            "\tstring N(int x) => string.Format(\"{0}\", x);" + newLine +
+            "#endif" + newLine +
+            "}" + newLine;
+        string expected = input.Replace("/*a*/ string.Format(\"x={0}\", x) /*b*/", "/*a*/ $\"x={x}\" /*b*/");
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileWithSyntaxErrors_ConvertsTheValidCallAndKeepsTheRestVerbatim()
+    {
+        string input = "class C { string M(int x) => string.Format(\"{0}\", x); void N( { int y = ; } }";
+        string expected = "class C { string M(int x) => $\"{x}\"; void N( { int y = ; } }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M(string n) => string.Format(\"C:\\\\temp\\\\{0}\", n); }", DisplayName = "regular literal")]
+    [DataRow("class C { string M(string n) => string.Format(@\"C:\\temp\\{0}\", n); }", DisplayName = "verbatim literal")]
+    public void BackslashInFormat_IsEscaped(string input)
+    {
+        string expected = "class C { string M(string n) => $\"C:\\\\temp\\\\{n}\"; }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void BackslashInFormatSpecifier_IsEscaped()
+    {
+        string input = "class C { string M(System.TimeSpan t) => string.Format(\"{0:hh\\\\:mm}\", t); }";
+        string expected = "class C { string M(System.TimeSpan t) => $\"{t:hh\\\\:mm}\"; }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M(bool f) => string.Format(\"{0}\", f ? \"y\" : \"n\"); }", "class C { string M(bool f) => $\"{(f ? \"y\" : \"n\")}\"; }", DisplayName = "conditional operator")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0}\", global::System.Math.Abs(x)); }", "class C { string M(int x) => $\"{(global::System.Math.Abs(x))}\"; }", DisplayName = "alias-qualified name")]
+    public void ArgumentWithTopLevelColon_IsParenthesized(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M(int x) => string.Format(\"{{0}} {0}\", x); }", "class C { string M(int x) => $\"{{0}} {x}\"; }", DisplayName = "escaped braces around a digit")]
+    [DataRow("class C { string M(int x) => string.Format(\"{{{0}}}\", x); }", "class C { string M(int x) => $\"{{{x}}}\"; }", DisplayName = "placeholder inside escaped braces")]
+    public void EscapedBracesAroundDigit_StayLiteral(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void OnlyEscapedBraces_IsUnchanged()
+    {
+        string input = "class C { string M(int x) => string.Format(\"{{0}}\", x); }";
+
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async System.Threading.Tasks.Task ConvertedCalls_CompileWithoutNewErrors()
+    {
+        string input =
+            "using System;\r\n" +
+            "class Item { public string Name; }\r\n" +
+            "class C\r\n" +
+            "{\r\n" +
+            "    public string A(Item i, int n) => string.Format(\"{0} has {1,5:N0} items\", i?.Name, n);\r\n" +
+            "    public string B(int n) => String.Format(\"{{{0}}} \\\"quoted\\\"\", n);\r\n" +
+            "    public string D(int n) => string.Format(\"{0}\", string.Format(\"<{0}>\", n));\r\n" +
+            "    public string E(string s) => string.Format(\"{0}!\", \"text\" + s);\r\n" +
+            "}\r\n";
+        Microsoft.CodeAnalysis.Document document = CompilingTestProject.CreateDocument(input);
+        string expected = input
+            .Replace("string.Format(\"{0} has {1,5:N0} items\", i?.Name, n)", "$\"{i?.Name} has {n,5:N0} items\"")
+            .Replace("String.Format(\"{{{0}}} \\\"quoted\\\"\", n)", "$\"{{{n}}} \\\"quoted\\\"\"")
+            .Replace("string.Format(\"{0}\", string.Format(\"<{0}>\", n))", "$\"{$\"<{n}>\"}\"")
+            .Replace("string.Format(\"{0}!\", \"text\" + s)", "$\"{\"text\" + s}!\"");
+
+        string output = _converter.Apply(input);
+
+        Assert.AreEqual(expected, output);
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, output));
+    }
 }

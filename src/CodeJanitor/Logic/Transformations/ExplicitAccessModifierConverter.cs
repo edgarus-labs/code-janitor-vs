@@ -76,6 +76,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             var visited = (ClassDeclarationSyntax)base.VisitClassDeclaration(node);
+            if (IsNestedInInterface(node)) return visited;
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
@@ -93,6 +94,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitStructDeclaration(StructDeclarationSyntax node)
         {
             var visited = (StructDeclarationSyntax)base.VisitStructDeclaration(node);
+            if (IsNestedInInterface(node)) return visited;
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
@@ -110,6 +112,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
             var visited = (InterfaceDeclarationSyntax)base.VisitInterfaceDeclaration(node);
+            if (IsNestedInInterface(node)) return visited;
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
@@ -127,6 +130,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
             var visited = (EnumDeclarationSyntax)base.VisitEnumDeclaration(node);
+            if (IsNestedInInterface(node)) return visited;
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.EnumKeyword);
@@ -143,6 +147,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             var visited = (RecordDeclarationSyntax)base.VisitRecordDeclaration(node);
+            if (IsNestedInInterface(node)) return visited;
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
@@ -160,6 +165,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
             var visited = (DelegateDeclarationSyntax)base.VisitDelegateDeclaration(node);
+            if (IsNestedInInterface(node)) return visited;
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates))) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.DelegateKeyword);
@@ -180,6 +186,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
             var visited = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax)) return visited;
+            if (IsNestedInInterface(node)) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.FixedKeyword)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Declaration.Type);
@@ -296,7 +303,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         // ── Helpers ────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Returns true if the given modifier token list contains any access modifier keyword (public, internal, protected, or private), otherwise false, with no side effects.
+        /// Returns true if the given modifier token list contains any access modifier keyword (public, internal, protected, or private) or the file keyword, which excludes one, otherwise false, with no side effects.
         /// </summary>
         /// <param name="modifiers">The modifiers.</param>
         /// <returns>A bool value produced by this method.</returns>
@@ -306,7 +313,17 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
                 m.IsKind(SyntaxKind.PublicKeyword) ||
                 m.IsKind(SyntaxKind.InternalKeyword) ||
                 m.IsKind(SyntaxKind.ProtectedKeyword) ||
-                m.IsKind(SyntaxKind.PrivateKeyword));
+                m.IsKind(SyntaxKind.PrivateKeyword) ||
+                m.IsKind(SyntaxKind.FileKeyword));
+        }
+
+        /// <summary>
+        /// Returns whether the declaration is a member of an interface, where types and fields are implicitly public
+        /// (and <c>private</c> is not allowed before C# 8), so no private default applies.
+        /// </summary>
+        private static bool IsNestedInInterface(MemberDeclarationSyntax node)
+        {
+            return node.Parent is InterfaceDeclarationSyntax;
         }
 
         /// <summary>

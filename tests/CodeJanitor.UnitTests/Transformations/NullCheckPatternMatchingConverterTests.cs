@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -14,19 +17,56 @@ namespace CodeJanitor.UnitTests.Transformations;
 [TestClass]
 public sealed class NullCheckPatternMatchingConverterTests
 {
-    private NullCheckPatternMatchingConverter _converter;
+    /// <summary>A class with user-defined equality operators that give <c>null</c> a meaning of their own.</summary>
+    private const string HandleWithEqualityOperators =
+        "public class H\r\n{\r\n" +
+        "    public static bool operator ==(H a, H b) => true;\r\n" +
+        "    public static bool operator !=(H a, H b) => false;\r\n" +
+        "    public override bool Equals(object o) => true;\r\n" +
+        "    public override int GetHashCode() => 0;\r\n" +
+        "}\r\n";
 
-    [TestInitialize]
-    public void TestInitialize()
+    /// <summary>A struct with user-defined equality operators, which C# lifts to <c>S?</c>.</summary>
+    private const string StructWithEqualityOperators =
+        "public struct S\r\n{\r\n" +
+        "    public static bool operator ==(S a, S b) => true;\r\n" +
+        "    public static bool operator !=(S a, S b) => false;\r\n" +
+        "    public override bool Equals(object o) => true;\r\n" +
+        "    public override int GetHashCode() => 0;\r\n" +
+        "}\r\n";
+
+    private static readonly MetadataReference SystemCoreReference = MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location);
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { bool M(object x) => x /*why*/ == /*b*/ null; }", "class C { bool M(object x) => x /*why*/ is /*b*/ null; }", DisplayName = "equality")]
+    [DataRow("class C { bool M(object x) => x /*why*/ != /*b*/ null; }", "class C { bool M(object x) => x /*why*/ is not /*b*/ null; }", DisplayName = "inequality")]
+    [DataRow("class C { bool M(object x) => x // why\n == null; }", "class C { bool M(object x) => x // why\n is null; }", DisplayName = "line comment before operator")]
+    [DataRow("class C { bool M(object x) => null /*why*/ == x; }", "class C { bool M(object x) => null /*why*/ == x; }", DisplayName = "comment with null on the left is left alone")]
+    public async Task CommentsInsideNullCheck_AreKept(string input, string expected)
     {
-        _converter = new NullCheckPatternMatchingConverter();
+        Assert.AreEqual(expected, await ConvertAsync(input));
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Name_IsNotEmpty()
+    [DataRow("class C { bool M(object a, object b) => a == b == null; }", DisplayName = "equality operand")]
+    [DataRow("class C { bool M(object a, object b) => a != b != null; }", DisplayName = "inequality operand")]
+    public async Task EqualityOperand_IsUnchanged(string input)
     {
-        Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
+        // `a == b is null` parses as `a == (b is null)`, and `(a == b) is null` does not compile for a bool operand (CS0037).
+        Assert.AreEqual(input, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileDeclaringEqualityOperator_IsUnchanged()
+    {
+        string input =
+            "class H { public static bool operator ==(H a, H b) => true; public static bool operator !=(H a, H b) => false; }\n" +
+            "class C { bool M(H h) => h == null; bool N(H h) => h != null; }\n";
+
+        Assert.AreEqual(input, await ConvertAsync(input));
     }
 
     [TestMethod]
@@ -45,12 +85,9 @@ public sealed class NullCheckPatternMatchingConverterTests
             "    Func<Item, bool> Block => item => { return item.Name != null; };\r\n" +
             "    bool Method(Item item) => item.Name == null;\r\n" +
             "}\r\n";
-        Document document = CompilingTestProject.CreateDocument(
-            input,
-            LanguageVersion.CSharp9,
-            new[] { MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location) });
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.CSharp9, new[] { SystemCoreReference });
 
-        string output = _converter.Apply(input);
+        string output = await ConvertAsync(document);
 
         IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(document, output);
         Assert.IsEmpty(errors, output + "\r\n" + string.Join("\r\n", errors));
@@ -64,12 +101,12 @@ public sealed class NullCheckPatternMatchingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_NotEqualsNull_ConvertsToIsNotNull()
+    public async Task Apply_NotEqualsNull_ConvertsToIsNotNull()
     {
         string input = @"
 public class C
 {
-    public void M(object x)
+    public async Task M(object x)
     {
         if (x != null)
         {
@@ -80,7 +117,7 @@ public class C
         string expected = @"
 public class C
 {
-    public void M(object x)
+    public async Task M(object x)
     {
         if (x is not null)
         {
@@ -89,19 +126,19 @@ public class C
     }
 }";
 
-        string result = _converter.Apply(input);
+        string result = await ConvertAsync(input);
 
         Assert.AreEqual(expected, result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_EqualsEqualsNull_ConvertsToIsNull()
+    public async Task Apply_EqualsEqualsNull_ConvertsToIsNull()
     {
         string input = @"
 public class C
 {
-    public void M(object x)
+    public async Task M(object x)
     {
         if (x == null)
         {
@@ -112,7 +149,7 @@ public class C
         string expected = @"
 public class C
 {
-    public void M(object x)
+    public async Task M(object x)
     {
         if (x is null)
         {
@@ -121,19 +158,19 @@ public class C
     }
 }";
 
-        string result = _converter.Apply(input);
+        string result = await ConvertAsync(input);
 
         Assert.AreEqual(expected, result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_ReversedNullChecks_ConvertsProperly()
+    public async Task Apply_ReversedNullChecks_ConvertsProperly()
     {
         string input = @"
 public class C
 {
-    public void M(object a, object b)
+    public async Task M(object a, object b)
     {
         if (null != a && null == b)
         {
@@ -144,7 +181,7 @@ public class C
         string expected = @"
 public class C
 {
-    public void M(object a, object b)
+    public async Task M(object a, object b)
     {
         if (a is not null && b is null)
         {
@@ -153,14 +190,14 @@ public class C
     }
 }";
 
-        string result = _converter.Apply(input);
+        string result = await ConvertAsync(input);
 
         Assert.AreEqual(expected, result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_TernaryAndReturnExpressions_ConvertsProperly()
+    public async Task Apply_TernaryAndReturnExpressions_ConvertsProperly()
     {
         string input = @"
 public class C
@@ -181,22 +218,41 @@ public class C
     }
 }";
 
-        string result = _converter.Apply(input);
+        string result = await ConvertAsync(input);
 
         Assert.AreEqual(expected, result);
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_NullOrEmpty_ReturnsOriginal()
+    public async Task EmptyFile_IsUnchanged()
     {
-        Assert.IsNull(_converter.Apply(null));
-        Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
+        Assert.AreEqual(string.Empty, await ConvertAsync(string.Empty));
     }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_EqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
+    public async Task NullDocumentList_Throws()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => new NullCheckPatternMatchingConverter().ConvertAsync(null, CancellationToken.None));
+
+        Assert.AreEqual("documents", exception.ParamName);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task EmptyDocumentList_Throws()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => new NullCheckPatternMatchingConverter().ConvertAsync(new Document[0], CancellationToken.None));
+
+        Assert.AreEqual("documents", exception.ParamName);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task Apply_EqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
     {
         string input = @"
 using System.Collections.Generic;
@@ -210,7 +266,7 @@ class C
     }
 }";
 
-        string actual = _converter.Apply(input);
+        string actual = await ConvertAsync(input);
 
         // Deliberately conservative: this lambda has no semantic model to confirm its delegate type,
         // so it could still be bound to Expression<Func<T, bool>> (e.g. IQueryable .Where/.Any), which
@@ -221,7 +277,7 @@ class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_NotEqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
+    public async Task Apply_NotEqualsNullInsideExpressionBodiedLambda_LeavesUnchanged()
     {
         string input = @"
 using System.Collections.Generic;
@@ -235,7 +291,7 @@ class C
     }
 }";
 
-        string actual = _converter.Apply(input);
+        string actual = await ConvertAsync(input);
 
         Assert.Contains("x != null", actual);
         Assert.DoesNotContain("is not null", actual);
@@ -243,7 +299,7 @@ class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_EqualsNullInsideBlockBodiedLambda_ConvertsToIsNull()
+    public async Task Apply_EqualsNullInsideBlockBodiedLambda_ConvertsToIsNull()
     {
         string input = @"
 using System.Collections.Generic;
@@ -260,7 +316,7 @@ class C
     }
 }";
 
-        string actual = _converter.Apply(input);
+        string actual = await ConvertAsync(input);
 
         // A block-bodied lambda can never be compiled to an expression tree (CS0834), so this is
         // always safe to convert.
@@ -270,7 +326,7 @@ class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_EqualsNullInsideAsyncLambda_ConvertsToIsNull()
+    public async Task Apply_EqualsNullInsideAsyncLambda_ConvertsToIsNull()
     {
         string input = @"
 using System;
@@ -284,7 +340,7 @@ class C
     }
 }";
 
-        string actual = _converter.Apply(input);
+        string actual = await ConvertAsync(input);
 
         // An async lambda can never be compiled to an expression tree (CS1989), so this is always
         // safe to convert.
@@ -293,7 +349,7 @@ class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_EqualsNullInsideAnonymousMethod_ConvertsToIsNull()
+    public async Task Apply_EqualsNullInsideAnonymousMethod_ConvertsToIsNull()
     {
         string input = @"
 using System;
@@ -309,7 +365,7 @@ class C
     }
 }";
 
-        string actual = _converter.Apply(input);
+        string actual = await ConvertAsync(input);
 
         // An anonymous method can never be compiled to an expression tree (CS1946), so this is
         // always safe to convert.
@@ -318,7 +374,7 @@ class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_EqualsNullInQueryWhereClause_LeavesUnchanged()
+    public async Task Apply_EqualsNullInQueryWhereClause_LeavesUnchanged()
     {
         string input = @"
 using System.Collections.Generic;
@@ -332,11 +388,313 @@ class C
     }
 }";
 
-        string actual = _converter.Apply(input);
+        string actual = await ConvertAsync(input);
 
         // Deliberately conservative: a query clause's condition cannot rule out an IQueryable
         // source being translated to an expression tree, so it is never rewritten.
         Assert.Contains("x == null", actual);
         Assert.DoesNotContain("x is null", actual);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("  \r\n\t", DisplayName = "whitespace only")]
+    [DataRow("class C { bool M(object a, object b) => a == b || a != b; }", DisplayName = "no null operand")]
+    [DataRow("class C { bool M(int? a) => a > null; }", DisplayName = "relational operator with null")]
+    [DataRow("class C { object M(object a) => a ?? null; }", DisplayName = "coalescing with null")]
+    [DataRow("class C { string A = \"x == null\"; string B = @\"x != null\"; string D = $\"{1} x == null\"; }", DisplayName = "code-like text in literals")]
+    [DataRow("class C\r\n{\r\n    // if (x == null)\r\n    /// <remarks>x != null</remarks>\r\n    void M() { }\r\n}\r\n", DisplayName = "code-like text in comments")]
+    [DataRow("class C\r\n{\r\n    bool M(object x)\r\n    {\r\n#if NEVER\r\n        return x == null;\r\n#endif\r\n        return false;\r\n    }\r\n}\r\n", DisplayName = "inactive preprocessor branch")]
+    public async Task SourceWithoutConvertibleNullCheck_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(LanguageVersion.CSharp7, DisplayName = "C# 7.0")]
+    [DataRow(LanguageVersion.CSharp8, DisplayName = "C# 8")]
+    public async Task BeforeCSharp9_ConvertsOnlyEqualityChecks(LanguageVersion languageVersion)
+    {
+        string input = "class C { bool M(object a, object b) => a == null && b != null && null != a && null == b; }";
+        string expected = "class C { bool M(object a, object b) => a is null && b != null && null != a && b is null; }";
+
+        Assert.AreEqual(expected, await ConvertAsync(input, languageVersion));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { bool F = \"\" == null; }", "class C { bool F = \"\" is null; }", DisplayName = "field initializer")]
+    [DataRow("class C { C(object o) { if (o == null) { } } }", "class C { C(object o) { if (o is null) { } } }", DisplayName = "constructor")]
+    [DataRow("class C { object _o; bool P { get { return _o != null; } } }", "class C { object _o; bool P { get { return _o is not null; } } }", DisplayName = "accessor")]
+    [DataRow("class C { object _o; bool P => _o == null; }", "class C { object _o; bool P => _o is null; }", DisplayName = "expression-bodied property")]
+    [DataRow("class C { bool this[object o] => o == null; }", "class C { bool this[object o] => o is null; }", DisplayName = "expression-bodied indexer")]
+    [DataRow("class C { public static bool operator !(C c) => c == null; }", "class C { public static bool operator !(C c) => c is null; }", DisplayName = "operator")]
+    [DataRow("class C { void M() { bool L(object o) => o != null; } }", "class C { void M() { bool L(object o) => o is not null; } }", DisplayName = "local function")]
+    [DataRow("class C { System.Func<object, bool> F = delegate (object o) { return o == null; }; }", "class C { System.Func<object, bool> F = delegate (object o) { return o is null; }; }", DisplayName = "anonymous method")]
+    [DataRow("class C { System.Func<object, System.Threading.Tasks.Task<bool>> F = async o => o == null; }", "class C { System.Func<object, System.Threading.Tasks.Task<bool>> F = async o => o is null; }", DisplayName = "async expression lambda")]
+    [DataRow("class C { System.Func<object, bool> F = (o) => { return o != null; }; }", "class C { System.Func<object, bool> F = (o) => { return o is not null; }; }", DisplayName = "parenthesized block lambda")]
+    [DataRow("record R(string Name) { public bool Unnamed => Name == null; }", "record R(string Name) { public bool Unnamed => Name is null; }", DisplayName = "record")]
+    [DataRow("class C<T> { bool M(T value) => value == null; }", "class C<T> { bool M(T value) => value is null; }", DisplayName = "unconstrained generic")]
+    [DataRow("class C { bool M(int? i) => i != null; }", "class C { bool M(int? i) => i is not null; }", DisplayName = "nullable value type")]
+    public async Task NullCheckOutsideExpressionLambdasAndQueries_IsConverted(string input, string expected)
+    {
+        Assert.AreEqual(expected, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { bool M(C a) => (a) == null; }", "class C { bool M(C a) => (a) is null; }", DisplayName = "parenthesized operand")]
+    [DataRow("class C { C Next; bool M(C a) => a?.Next == null; }", "class C { C Next; bool M(C a) => a?.Next is null; }", DisplayName = "conditional access")]
+    [DataRow("class C { bool M(object o) => (string)o != null; }", "class C { bool M(object o) => (string)o is not null; }", DisplayName = "cast")]
+    [DataRow("class C { bool M(object o) => o as string == null; }", "class C { bool M(object o) => o as string is null; }", DisplayName = "as expression")]
+    [DataRow("class C { bool M(object[] a) => a[0] == null; }", "class C { bool M(object[] a) => a[0] is null; }", DisplayName = "element access")]
+    [DataRow("class C { async System.Threading.Tasks.Task<bool> M(System.Threading.Tasks.Task<object> t) => await t == null; }", "class C { async System.Threading.Tasks.Task<bool> M(System.Threading.Tasks.Task<object> t) => await t is null; }", DisplayName = "await")]
+    [DataRow("class C { string M(object o) => $\"{o == null}\"; }", "class C { string M(object o) => $\"{o is null}\"; }", DisplayName = "interpolation hole")]
+    [DataRow("class C { int M(object o) { switch (o) { case string s when s != null: return 1; default: return 0; } } }", "class C { int M(object o) { switch (o) { case string s when s is not null: return 1; default: return 0; } } }", DisplayName = "case guard")]
+    [DataRow("class C { bool M(object a, object b) => a == null ? b != null : false; }", "class C { bool M(object a, object b) => a is null ? b is not null : false; }", DisplayName = "conditional operator")]
+    [DataRow("class C { bool M(object a) => !(a == null); }", "class C { bool M(object a) => !(a is null); }", DisplayName = "negated")]
+    public async Task OperandShapes_AreConvertedWithoutParenthesesChanges(string input, string expected)
+    {
+        Assert.AreEqual(expected, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { System.Func<object, bool> F => o => o == null; }", DisplayName = "expression lambda in expression-bodied property")]
+    [DataRow("class C { void M() { System.Action a = () => { System.Func<object, bool> f = y => y != null; }; } }", DisplayName = "expression lambda inside block lambda")]
+    [DataRow("class C { void M() { System.Func<object, System.Func<object, bool>> f = x => y => x == y || y == null; } }", DisplayName = "nested expression lambdas")]
+    [DataRow("class C { object M(int[] xs) => from x in xs let y = (object)x == null select y; }", DisplayName = "let clause")]
+    [DataRow("class C { object M(object[] xs) => from x in xs select x == null; }", DisplayName = "select clause")]
+    [DataRow("class C { object M(object[] xs) => from x in xs orderby x != null select x; }", DisplayName = "orderby clause")]
+    [DataRow("class C { object M(object[] xs) => from x in xs group x by x == null; }", DisplayName = "group clause")]
+    public async Task NullCheckThatMayEndUpInAnExpressionTree_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task TopLevelStatementsFile_ConvertsStatementsLocalFunctionsAndTypes()
+    {
+        string input =
+            "using System;\r\n" +
+            "\r\n" +
+            "if (args == null)\r\n" +
+            "{\r\n" +
+            "    return;\r\n" +
+            "}\r\n" +
+            "\r\n" +
+            "Console.WriteLine(Check(args[0]));\r\n" +
+            "\r\n" +
+            "static bool Check(string value) => value != null;\r\n" +
+            "\r\n" +
+            "class Helper\r\n" +
+            "{\r\n" +
+            "    Func<string, bool> _tree = s => s == null;\r\n" +
+            "    bool M(string s) => s == null;\r\n" +
+            "}\r\n";
+        string expected = input
+            .Replace("if (args == null)", "if (args is null)")
+            .Replace("value != null;", "value is not null;")
+            .Replace("bool M(string s) => s == null;", "bool M(string s) => s is null;");
+
+        Assert.AreEqual(expected, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("\r\n", DisplayName = "CRLF")]
+    [DataRow("\n", DisplayName = "LF")]
+    public async Task TriviaAroundTheNullCheck_IsPreserved(string newLine)
+    {
+        string input =
+            "namespace N" + newLine +
+            "{" + newLine +
+            "\tclass C" + newLine +
+            "\t{" + newLine +
+            "\t\tbool M(object x, object y)" + newLine +
+            "\t\t{" + newLine +
+            "\t\t\t// leading comment" + newLine +
+            "\t\t\treturn /*a*/x == null/*b*/ && y != null; // trailing" + newLine +
+            "\t\t}" + newLine +
+            "\t}" + newLine +
+            "}" + newLine;
+        string expected = input.Replace("/*a*/x == null/*b*/ && y != null;", "/*a*/x is null/*b*/ && y is not null;");
+
+        Assert.AreEqual(expected, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileWithSyntaxErrors_ConvertsTheValidNullCheckAndKeepsTheRestVerbatim()
+    {
+        string input = "class C { bool M(object x) { return x == null; } void N( { int y = ; } }";
+        string expected = "class C { bool M(object x) { return x is null; } void N( { int y = ; } }";
+
+        Assert.AreEqual(expected, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(LanguageVersion.CSharp9, DisplayName = "C# 9 with inequality checks")]
+    [DataRow(LanguageVersion.CSharp7_3, DisplayName = "C# 7.3 without inequality checks")]
+    public async Task ConvertedNullChecks_CompileForTheirLanguageVersion(LanguageVersion languageVersion)
+    {
+        string input =
+            "using System;\r\n" +
+            "using System.Threading.Tasks;\r\n" +
+            "class Node<T> where T : class\r\n" +
+            "{\r\n" +
+            "    public Node<T> Next;\r\n" +
+            "    public T Value;\r\n" +
+            "    public int? Count;\r\n" +
+            "    public bool IsLast => Next == null;\r\n" +
+            "    public bool HasValue { get { return Value != null; } }\r\n" +
+            "    public Func<object, bool> Filter = o => o == null;\r\n" +
+            "    public Func<object, bool> Block = o => { return o != null; };\r\n" +
+            "    public async Task<bool> WaitAsync(Task<object> t) => await t == null;\r\n" +
+            "    public int Length()\r\n" +
+            "    {\r\n" +
+            "        int length = 0;\r\n" +
+            "        for (Node<T> node = this; node != null; node = node.Next) { length++; }\r\n" +
+            "        return Count == null ? length : Count.Value;\r\n" +
+            "    }\r\n" +
+            "}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, languageVersion, new MetadataReference[0]);
+        string inequality = languageVersion >= LanguageVersion.CSharp9 ? "is not null" : "!= null";
+        string expected = input
+            .Replace("Next == null;", "Next is null;")
+            .Replace("Value != null;", "Value " + inequality + ";")
+            .Replace("o => { return o != null; }", "o => { return o " + inequality + "; }")
+            .Replace("await t == null;", "await t is null;")
+            .Replace("node != null;", "node " + inequality + ";")
+            .Replace("Count == null ?", "Count is null ?");
+
+        string output = await ConvertAsync(document);
+
+        Assert.AreEqual(expected, output);
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, output));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task UserDefinedOperatorInAnotherDocument_IsUnchanged()
+    {
+        string input = "class C { bool M(H h) => h == null; bool N(H h) => h != null; bool O(H h) => null == h; }";
+
+        Assert.AreEqual(input, await ConvertAsync(input, HandleWithEqualityOperators));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task UserDefinedOperatorInReferencedProject_IsUnchanged()
+    {
+        // For example UnityEngine.Object, whose == reports a destroyed object as equal to null.
+        string input = "class C { bool M(H h) => h == null; bool N(H h) => h != null; }";
+        Document document = CompilingTestProject.CreateDocumentReferencingProject(input, new[] { HandleWithEqualityOperators });
+
+        Assert.AreEqual(input, await ConvertAsync(document));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task LiftedUserDefinedOperatorOnNullableStruct_IsUnchanged()
+    {
+        string input = "class C { bool M(S? s) => s == null; bool N(S? s) => s != null; }";
+
+        Assert.AreEqual(input, await ConvertAsync(input, StructWithEqualityOperators));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task TypeParameterConstrainedToClassWithUserDefinedOperator_IsUnchanged()
+    {
+        string input = "class C<T> where T : H { bool M(T t) => t == null; bool N(T t) => t != null; }";
+
+        Assert.AreEqual(input, await ConvertAsync(input, HandleWithEqualityOperators));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { bool M(int i) => i == null; bool N(int i) => i != null; }", DisplayName = "non-nullable value type")]
+    [DataRow("class C { bool M(System.DateTime d) => null == d; }", DisplayName = "non-nullable struct, null on the left")]
+    [DataRow("class C { bool M(dynamic d) => d == null; bool N(dynamic d) => d != null; }", DisplayName = "dynamic")]
+    [DataRow("class C { bool M(Unknown u) => u == null; }", DisplayName = "unknown type")]
+    public async Task OperandWhoseNullComparisonIsNotAReferenceCheck_IsUnchanged(string input)
+    {
+        // 'is null' on a non-nullable value type does not compile (CS0037); dynamic and unknown types may bind to a
+        // user-defined operator.
+        Assert.AreEqual(input, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileCompiledByTwoProjects_IsConvertedOnlyWhenNoProjectSeesAUserDefinedOperator()
+    {
+        string input = "class C { bool M(H h) => h == null; }";
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document plain = AddProject(ref solution, "Plain", input, LanguageVersion.Latest, "public class H { }");
+        Document plainToo = AddProject(ref solution, "PlainToo", input, LanguageVersion.Latest, "public class H { }");
+        Document withOperator = AddProject(ref solution, "WithOperator", input, LanguageVersion.Latest, HandleWithEqualityOperators);
+
+        string safeInBoth = await ConvertAsync(solution, plain, plainToo);
+        string unsafeInOne = await ConvertAsync(solution, plain, withOperator);
+
+        Assert.AreEqual("class C { bool M(H h) => h is null; }", safeInBoth);
+        Assert.AreEqual(input, unsafeInOne);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileCompiledWithCSharp8AndCSharp9_ConvertsOnlyEqualityChecks()
+    {
+        // A project multi-targeting net48 and net8.0 can compile the file with two language versions.
+        string input = "class C { bool M(object a, object b) => a == null && b != null; }";
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document modern = AddProject(ref solution, "Modern", input, LanguageVersion.CSharp9);
+        Document legacy = AddProject(ref solution, "Legacy", input, LanguageVersion.CSharp8);
+
+        Assert.AreEqual("class C { bool M(object a, object b) => a is null && b != null; }", await ConvertAsync(solution, modern, legacy));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task BeforeCSharp7_IsUnchanged()
+    {
+        string input = "class C { bool M(object a, object b) => a == null && b != null; }";
+
+        Assert.AreEqual(input, await ConvertAsync(input, LanguageVersion.CSharp6));
+    }
+
+    private static Task<string> ConvertAsync(string input, params string[] librarySources) =>
+        ConvertAsync(input, LanguageVersion.Latest, librarySources);
+
+    private static Task<string> ConvertAsync(string input, LanguageVersion languageVersion, params string[] librarySources) =>
+        ConvertAsync(CompilingTestProject.CreateDocument(input, languageVersion, new[] { SystemCoreReference }, librarySources));
+
+    private static Task<string> ConvertAsync(Document document) =>
+        new NullCheckPatternMatchingConverter().ConvertAsync(new[] { document }, CancellationToken.None);
+
+    private static Task<string> ConvertAsync(Solution solution, params Document[] documents) =>
+        new NullCheckPatternMatchingConverter().ConvertAsync(documents.Select(document => solution.GetDocument(document.Id)).ToList(), CancellationToken.None);
+
+    private static Document AddProject(ref Solution solution, string name, string targetSource, LanguageVersion languageVersion, params string[] librarySources)
+    {
+        Project project = solution
+            .AddProject(name, name, LanguageNames.CSharp)
+            .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            .WithParseOptions(new CSharpParseOptions(languageVersion))
+            .AddMetadataReference(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+
+        for (int index = 0; index < librarySources.Length; index++)
+        {
+            project = project.AddDocument($"Library{index}.cs", SourceText.From(librarySources[index])).Project;
+        }
+
+        Document target = project.AddDocument("Target.cs", SourceText.From(targetSource));
+        solution = target.Project.Solution;
+
+        return target;
     }
 }

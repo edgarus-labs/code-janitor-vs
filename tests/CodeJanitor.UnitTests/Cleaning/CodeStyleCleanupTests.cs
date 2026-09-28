@@ -162,6 +162,222 @@ public sealed class CodeStyleCleanupTests
         Assert.AreEqual("csharp_prefer_braces=false", CodeStyleRules.FormatSetting(new Dictionary<string, string> { ["csharp_prefer_braces"] = "FALSE" }));
     }
 
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(null, DisplayName = "null setting")]
+    [DataRow("", DisplayName = "empty setting")]
+    [DataRow(";;  ;", DisplayName = "separators only")]
+    [DataRow("=true", DisplayName = "missing key")]
+    [DataRow("csharp_prefer_braces", DisplayName = "missing separator")]
+    [DataRow("csharp_prefer_braces=", DisplayName = "missing value")]
+    [DataRow("csharp_prefer_braces=true=false", DisplayName = "second separator in the value")]
+    [DataRow("CSharp_Prefer_Braces=true", DisplayName = "keys are case-sensitive")]
+    [DataRow("csharp_prefer_braces=true:warning", DisplayName = "severity suffix")]
+    [DataRow("dotnet_naming_rule.x.severity=warning", DisplayName = "naming rule")]
+    [DataRow("csharp_preferred_modifier_order=public,public", DisplayName = "duplicate modifier")]
+    [DataRow("csharp_preferred_modifier_order=public,Static", DisplayName = "modifiers are case-sensitive")]
+    [DataRow("csharp_preferred_modifier_order=public,,static", DisplayName = "empty modifier")]
+    public void ParseSetting_MalformedEntries_EnableNoRule(string setting)
+    {
+        Assert.IsEmpty(CodeStyleRules.ParseSetting(setting));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void ParseSetting_TrimsEntries_AndTheLastEntryOfARepeatedKeyWins()
+    {
+        IReadOnlyDictionary<string, string> values = CodeStyleRules.ParseSetting(
+            " csharp_prefer_braces = true ;csharp_prefer_braces=When_Multiline;; csharp_preferred_modifier_order = public , static,readonly ;csharp_prefer_braces=bogus");
+
+        CollectionAssert.AreEquivalent(
+            new Dictionary<string, string>
+            {
+                ["csharp_prefer_braces"] = "when_multiline",
+                ["csharp_preferred_modifier_order"] = "public , static,readonly",
+            },
+            values.ToDictionary(entry => entry.Key, entry => entry.Value));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void FormatSetting_WritesValidRulesInCatalogOrder_AndDropsUnknownOrInvalidOnes()
+    {
+        string setting = CodeStyleRules.FormatSetting(new Dictionary<string, string>
+        {
+            ["dotnet_style_parentheses_in_other_operators"] = "NEVER_IF_UNNECESSARY",
+            ["csharp_prefer_braces"] = "maybe",
+            ["unknown_rule"] = "true",
+            ["csharp_style_expression_bodied_methods"] = "When_On_Single_Line",
+            ["csharp_preferred_modifier_order"] = "static,public",
+            ["dotnet_style_null_propagation"] = null,
+        });
+
+        Assert.AreEqual(
+            "csharp_preferred_modifier_order=static,public;csharp_style_expression_bodied_methods=when_on_single_line;dotnet_style_parentheses_in_other_operators=never_if_unnecessary",
+            setting);
+        Assert.AreEqual(string.Empty, CodeStyleRules.FormatSetting(new Dictionary<string, string>()));
+        Assert.AreEqual(setting, CodeStyleRules.FormatSetting(CodeStyleRules.ParseSetting(setting)), "Formatting a parsed setting must round-trip.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void TryGet_FindsOnlyCatalogKeys_Exactly()
+    {
+        Assert.IsTrue(CodeStyleRules.TryGet("csharp_prefer_braces", out CodeStyleRule rule));
+        Assert.AreEqual("csharp_prefer_braces", rule.Key);
+        CollectionAssert.AreEqual(new[] { "IDE0011" }, rule.DiagnosticIds.ToArray());
+
+        Assert.IsFalse(CodeStyleRules.TryGet(null, out rule));
+        Assert.IsNull(rule);
+        Assert.IsFalse(CodeStyleRules.TryGet("CSHARP_PREFER_BRACES", out rule));
+        Assert.IsFalse(CodeStyleRules.TryGet("csharp_style_namespace_declarations", out rule), "Rules Code Janitor maps to its own steps are not code-style rules.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void Rule_NullValue_IsInvalid_AndNormalizesToNull()
+    {
+        CodeStyleRules.TryGet("csharp_prefer_braces", out CodeStyleRule enumerated);
+        CodeStyleRules.TryGet("csharp_preferred_modifier_order", out CodeStyleRule freeText);
+
+        Assert.IsFalse(enumerated.IsValidValue(null));
+        Assert.IsFalse(freeText.IsValidValue(null));
+        Assert.IsNull(enumerated.Normalize(null));
+        Assert.IsNull(freeText.Normalize(null));
+        Assert.AreEqual("when_multiline", enumerated.Normalize("  WHEN_MULTILINE "));
+        Assert.AreEqual("unknown", enumerated.Normalize(" unknown "), "A value outside the list is only trimmed.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void Catalog_GroupsAreContiguous_AndDescriptionsAreDistinctWithinAGroup()
+    {
+        List<string> groupOrder = new List<string>();
+        foreach (CodeStyleRule rule in CodeStyleRules.All)
+        {
+            if (groupOrder.Count == 0 || groupOrder[groupOrder.Count - 1] != rule.Group)
+            {
+                Assert.DoesNotContain(rule.Group, groupOrder, $"Group '{rule.Group}' is split in Options by '{rule.Key}'.");
+                groupOrder.Add(rule.Group);
+            }
+        }
+
+        foreach (IGrouping<string, CodeStyleRule> group in CodeStyleRules.All.GroupBy(rule => rule.Group))
+        {
+            List<string> descriptions = group.Select(rule => rule.Description).ToList();
+            CollectionAssert.AllItemsAreUnique(descriptions, group.Key);
+        }
+
+        CollectionAssert.AllItemsAreUnique(CodeStyleRules.All.Select(rule => rule.Key).ToList());
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task Rule_AlreadySatisfied_LeavesTheFileUnchanged()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true;csharp_style_expression_bodied_methods=false";
+        string input =
+            "using System;\n\n" +
+            "namespace Demo;\n\n" +
+            "/// <summary>Doc with code: if (x) return;</summary>\n" +
+            "public sealed record Probe<T>(T Value) where T : class\n" +
+            "{\n" +
+            "#if DEBUG\n" +
+            "    // if (debug) return 1;\n" +
+            "#endif\n" +
+            "    public int Get(bool open)\n" +
+            "    {\n" +
+            "        const string Text = @\"if (open) return 1;\";\n" +
+            "        if (open)\n" +
+            "        {\n" +
+            "            return Text.Length;\n" +
+            "        }\n\n" +
+            "        return 0;\n" +
+            "    }\n" +
+            "}\n";
+
+        Assert.AreEqual(input, await CleanupAsync(input, editorConfig: null));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task BracesRule_AddsOnlyBraces_InAFileWithCommentsConditionalsAndLiterals()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true";
+        string input =
+            "namespace Demo\n" +
+            "{\n" +
+            "    internal static class Probe\n" +
+            "    {\n" +
+            "        /// <summary>Returns 1 when open.</summary>\n" +
+            "        internal static int Get(bool open)\n" +
+            "        {\n" +
+            "            // leading comment\n" +
+            "            if (open)\n" +
+            "                return \"if (open) return 1;\".Length; // trailing comment\n" +
+            "#if DEBUG\n" +
+            "            return -1;\n" +
+            "#else\n" +
+            "            return 0;\n" +
+            "#endif\n" +
+            "        }\n" +
+            "    }\n" +
+            "}\n";
+        string expected =
+            "namespace Demo\n" +
+            "{\n" +
+            "    internal static class Probe\n" +
+            "    {\n" +
+            "        /// <summary>Returns 1 when open.</summary>\n" +
+            "        internal static int Get(bool open)\n" +
+            "        {\n" +
+            "            // leading comment\n" +
+            "            if (open)\n" +
+            "            {\n" +
+            "                return \"if (open) return 1;\".Length; // trailing comment\n" +
+            "            }\n" +
+            "#if DEBUG\n" +
+            "            return -1;\n" +
+            "#else\n" +
+            "            return 0;\n" +
+            "#endif\n" +
+            "        }\n" +
+            "    }\n" +
+            "}\n";
+
+        Assert.AreEqual(expected, await CleanupAsync(input, editorConfig: null));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task Rules_InATopLevelStatementsFile_ChangeOnlyTheTargetedStatements()
+    {
+        Settings.Default.Cleaning_CodeStyleRules = "csharp_prefer_braces=true;csharp_style_expression_bodied_local_functions=true";
+        string input =
+            "using System;\n\n" +
+            "// Entry point\n" +
+            "var open = args.Length > 0;\n" +
+            "if (open)\n" +
+            "    Console.WriteLine(Get());\n\n" +
+            "int Get()\n" +
+            "{\n" +
+            "    return 1;\n" +
+            "}\n\n" +
+            "record Person(string Name);\n";
+        string expected =
+            "using System;\n\n" +
+            "// Entry point\n" +
+            "var open = args.Length > 0;\n" +
+            "if (open)\n" +
+            "{\n" +
+            "    Console.WriteLine(Get());\n" +
+            "}\n\n" +
+            "int Get() => 1;\n\n" +
+            "record Person(string Name);\n";
+
+        Assert.AreEqual(expected, await CleanupAsync(input, editorConfig: null));
+    }
+
     /// <summary>
     /// Cleans <paramref name="input" /> as <c>Probe.cs</c> in the test directory. The .editorconfig, when given, is
     /// written to disk (read by <see cref="EffectiveCleanupSettings" />) and added to the project (read by Roslyn).

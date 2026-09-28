@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -48,6 +49,12 @@ public sealed class VarWhenApparentConverter : ITypeStyleConverter, ISourceTrans
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
         {
+            // `const var` is not allowed (CS0822).
+            if (node.IsConst)
+            {
+                return base.VisitLocalDeclarationStatement(node);
+            }
+
             var declaration = node.Declaration;
             if (declaration.Variables.Count != 1)
             {
@@ -96,7 +103,9 @@ public sealed class VarWhenApparentConverter : ITypeStyleConverter, ISourceTrans
 
                 case ArrayCreationExpressionSyntax arrayCreation:
                     return declaredType is ArrayTypeSyntax declaredArray
-                        && declaredArray.ElementType.ToString() == arrayCreation.Type.ElementType.ToString();
+                        && declaredArray.ElementType.ToString() == arrayCreation.Type.ElementType.ToString()
+                        && declaredArray.RankSpecifiers.Select(r => r.Rank)
+                            .SequenceEqual(arrayCreation.Type.RankSpecifiers.Select(r => r.Rank));
 
                 default:
                     return false;

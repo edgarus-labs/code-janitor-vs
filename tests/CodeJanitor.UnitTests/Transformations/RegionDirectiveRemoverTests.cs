@@ -50,4 +50,46 @@ public class C
         string result = _remover.Apply(input);
         Assert.AreEqual(expected, result);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        "using System;\r\n\r\n#region Startup\r\nConsole.WriteLine(\"#region\");\r\n#endregion\r\n\r\nstatic void Local() { }\r\n",
+        "using System;\r\n\r\nConsole.WriteLine(\"#region\");\r\n\r\nstatic void Local() { }\r\n",
+        DisplayName = "top-level statements file")]
+    [DataRow(
+        "namespace N;\n\n\t#region Fields\n\tclass C { }\n\t#endregion Fields\n",
+        "namespace N;\n\n\tclass C { }\n",
+        DisplayName = "tabs and line feeds")]
+    [DataRow(
+        "class C\r\n{\r\n#if DEBUG\r\n    #region Debug\r\n    void M() { }\r\n    #endregion\r\n#endif\r\n#pragma warning disable CS0169\r\n    int _x;\r\n}\r\n#endregion",
+        "class C\r\n{\r\n#if DEBUG\r\n    void M() { }\r\n#endif\r\n#pragma warning disable CS0169\r\n    int _x;\r\n}\r\n",
+        DisplayName = "other directives kept, last line without line break")]
+    [DataRow(
+        "class C\r\n{\r\n    // #region not a directive\r\n    string s = \"#endregion\";\r\n    #regionless\r\n}\r\n",
+        "class C\r\n{\r\n    // #region not a directive\r\n    string s = \"#endregion\";\r\n    #regionless\r\n}\r\n",
+        DisplayName = "region text that is not a directive line")]
+    [DataRow("   \r\n", "   \r\n", DisplayName = "whitespace-only file")]
+    public void Apply_RemovesOnlyRegionDirectiveLines(string input, string expected)
+    {
+        Assert.AreEqual(expected, _remover.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C\n{\n    string s = @\"\n#region keep me\n\";\n}\n", DisplayName = "verbatim string")]
+    [DataRow("class C\n{\n    string s = \"\"\"\n        #endregion keep me\n        \"\"\";\n}\n", DisplayName = "raw string")]
+    [DataRow("class C\n{\n    string s = $@\"\n#region {1}\n\";\n}\n", DisplayName = "interpolated verbatim string")]
+    [DataRow("class C\n{\n    /*\n    #region keep me\n    */\n}\n", DisplayName = "multi-line comment")]
+    public void Apply_DoesNotRemoveLinesInsideStringLiteralsOrComments(string input)
+    {
+        Assert.AreEqual(input, _remover.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Apply_CarriageReturnOnlyLineEndings_RemovesTheDirectiveLines()
+    {
+        Assert.AreEqual("class C { }\r", _remover.Apply("#region A\rclass C { }\r#endregion\r"));
+    }
 }

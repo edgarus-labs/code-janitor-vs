@@ -1,6 +1,7 @@
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
+using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,7 +12,9 @@ namespace CodeJanitor.Logic.Transformations;
 /// by at least one other statement within the same block (i.e. the block contains more
 /// instructions than just this return/throw), visually separating the exit/failure path from
 /// the preceding logic. Idempotent - does nothing when a blank line already precedes it, or
-/// when the return/throw is the first (or only) statement in its block.
+/// when the return/throw is the first (or only) statement in its block. Comments directly above the
+/// return/throw stay attached to it (the blank line goes above them), and a return/throw that does not
+/// start its own line is left alone.
 /// </summary>
 /// <remarks>
 /// This is a pure text transformation with no dependency on Visual Studio / EnvDTE,
@@ -31,10 +34,8 @@ public sealed class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
         }
 
         var tree = CSharpSyntaxTree.ParseText(source);
+        var text = tree.GetText();
         var root = tree.GetRoot();
-
-        var newline = source.Contains("\r\n") ? "\r\n" : "\n";
-        var lines = source.Split(new[] { newline }, StringSplitOptions.None).ToList();
 
         var candidateLineIndexes = new SortedSet<int>();
 
@@ -58,33 +59,68 @@ public sealed class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
                 continue;
             }
 
-            var lineIndex = tree.GetLineSpan(statement.Span).StartLinePosition.Line;
-            candidateLineIndexes.Add(lineIndex);
-        }
-
-        if (candidateLineIndexes.Count == 0)
-        {
-            return source;
-        }
-
-        // Insert from the bottom of the file upward so earlier line indexes stay valid.
-        foreach (var lineIndex in candidateLineIndexes.OrderByDescending(i => i))
-        {
-            if (lineIndex <= 0 || lineIndex > lines.Count - 1)
+            var startPosition = GetStartIncludingAttachedComments(statement, text);
+            var startLine = text.Lines.GetLineFromPosition(startPosition);
+            var previousStatementEndLine = text.Lines.GetLineFromPosition(block.Statements[index - 1].Span.End).LineNumber;
+            if (previousStatementEndLine >= startLine.LineNumber ||
+                !string.IsNullOrWhiteSpace(text.ToString(TextSpan.FromBounds(startLine.Start, startPosition))))
             {
+                // Shares its line with the previous statement (for example a single-line method body)
+                // or with the end of a comment: there is no line of its own to separate.
                 continue;
             }
 
-            var previousLine = lines[lineIndex - 1];
-            if (string.IsNullOrWhiteSpace(previousLine))
+            candidateLineIndexes.Add(startLine.LineNumber);
+        }
+
+        var changes = new List<TextChange>();
+        foreach (var lineIndex in candidateLineIndexes)
+        {
+            var previousLine = text.Lines[lineIndex - 1];
+            if (string.IsNullOrWhiteSpace(text.ToString(previousLine.Span)))
             {
                 // Already has a blank line before it.
                 continue;
             }
 
-            lines.Insert(lineIndex, string.Empty);
+            // The blank line reuses the line break of the line above, so the file's line endings are kept.
+            var lineBreak = text.ToString(TextSpan.FromBounds(previousLine.End, previousLine.EndIncludingLineBreak));
+            changes.Add(new TextChange(new TextSpan(text.Lines[lineIndex].Start, 0), lineBreak));
         }
 
-        return string.Join(newline, lines);
+        return changes.Count == 0 ? source : text.WithChanges(changes).ToString();
+    }
+
+    /// <summary>
+    /// The start of the statement, moved up over the comments directly above it (no blank line in between).
+    /// </summary>
+    private static int GetStartIncludingAttachedComments(StatementSyntax statement, SourceText text)
+    {
+        var start = statement.SpanStart;
+        var leadingTrivia = statement.GetLeadingTrivia();
+
+        for (var i = leadingTrivia.Count - 1; i >= 0; i--)
+        {
+            var trivia = leadingTrivia[i];
+            if (trivia.IsKind(SyntaxKind.WhitespaceTrivia) || trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+            {
+                continue;
+            }
+
+            if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) && !trivia.IsKind(SyntaxKind.MultiLineCommentTrivia))
+            {
+                break;
+            }
+
+            var commentEndLine = text.Lines.GetLineFromPosition(trivia.Span.End).LineNumber;
+            if (commentEndLine < text.Lines.GetLineFromPosition(start).LineNumber - 1)
+            {
+                break;
+            }
+
+            start = trivia.SpanStart;
+        }
+
+        return start;
     }
 }

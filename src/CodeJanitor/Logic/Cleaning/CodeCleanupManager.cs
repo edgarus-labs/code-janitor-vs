@@ -171,6 +171,7 @@ internal sealed class CodeCleanupManager
     private readonly ReadonlyFieldLogic _readonlyFieldLogic;
     private readonly RazorFormatterLogic _razorFormatterLogic;
     private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
+    private readonly NullCheckPatternMatchingLogic _nullCheckPatternMatchingLogic;
     private readonly SealedClassLogic _sealedClassLogic;
     private readonly SingleStatementLambdaLogic _singleStatementLambdaLogic;
     private readonly RemoveRegionLogic _removeRegionLogic;
@@ -235,6 +236,7 @@ internal sealed class CodeCleanupManager
         _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
         _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
         _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
+        _nullCheckPatternMatchingLogic = NullCheckPatternMatchingLogic.GetInstance(_package);
         _sealedClassLogic = SealedClassLogic.GetInstance(_package);
         _singleStatementLambdaLogic = SingleStatementLambdaLogic.GetInstance(_package);
         _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
@@ -267,12 +269,14 @@ internal sealed class CodeCleanupManager
         var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
         if (!wasOpen)
         {
-            // The semantic steps (using directive placement, class sealing) need the Visual Studio workspace and run
-            // first, so the headless steps (header, using organization, type splitting) see their result.
+            // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
+            // Studio workspace and run first, so the headless steps (header, using organization, type splitting) see
+            // their result.
             usingsMoveOutcome = ThreadHelper.JoinableTaskFactory.Run(() => _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem));
             var classesSealed = ThreadHelper.JoinableTaskFactory.Run(() => _sealedClassLogic.SealWhenSafeAsync(projectItem));
+            var nullChecksConverted = ThreadHelper.JoinableTaskFactory.Run(() => _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem));
             headlessResult = TryRunHeadlessPreCleanupForCSharp(projectItem);
-            if ((usingsMoveOutcome == UsingsMoveOutcome.Moved || classesSealed) && headlessResult == HeadlessCleanupResult.NoChanges)
+            if ((usingsMoveOutcome == UsingsMoveOutcome.Moved || classesSealed || nullChecksConverted) && headlessResult == HeadlessCleanupResult.NoChanges)
             {
                 headlessResult = HeadlessCleanupResult.Changed;
             }
@@ -366,10 +370,12 @@ internal sealed class CodeCleanupManager
 
         if (!wasOpen)
         {
-            // The semantic steps (using directive placement, class sealing) need the Visual Studio workspace and run
-            // first, so the headless steps (header, using organization, type splitting) see their result.
+            // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
+            // Studio workspace and run first, so the headless steps (header, using organization, type splitting) see
+            // their result.
             usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
             var classesSealed = await _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
+            var nullChecksConverted = await _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
 
             // Run the COM-free portion (file read/write, Roslyn transforms, and any AI HTTP
             // calls) on a background thread so the main thread's message pump keeps running
@@ -378,7 +384,7 @@ internal sealed class CodeCleanupManager
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            headlessResult = (usingsMoveOutcome == UsingsMoveOutcome.Moved || classesSealed) && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
+            headlessResult = (usingsMoveOutcome == UsingsMoveOutcome.Moved || classesSealed || nullChecksConverted) && outcome.Result == HeadlessCleanupResult.NoChanges ? HeadlessCleanupResult.Changed : outcome.Result;
 
             if (outcome.SplitOperationOccurred)
             {
@@ -871,20 +877,6 @@ internal sealed class CodeCleanupManager
         if (IsEnabled(nameof(Settings.Cleaning_SimplifySingleStatementLambdas)))
         {
             transformations.Add(new SingleStatementLambdaConverter());
-        }
-
-        if (IsEnabled(nameof(Settings.Cleaning_ConvertToPatternMatchingNullChecks)))
-        {
-            // 'is null' needs C# 7.0 and is always emitted; 'is not null' needs C# 9.
-            if (languageVersion.Supports(CSharpLanguageVersionSupport.NotNullPatterns, out var skipMessage))
-            {
-                transformations.Add(new NullCheckPatternMatchingConverter());
-            }
-            else
-            {
-                transformations.Add(new NullCheckPatternMatchingConverter(convertInequalityChecks: false));
-                transformations.Add(CreateSkippedTransformation(new NullCheckPatternMatchingConverter(), skipMessage));
-            }
         }
 
         if (IsEnabled(nameof(Settings.Cleaning_ConvertStringFormatToInterpolation)))
@@ -1428,9 +1420,20 @@ internal sealed class CodeCleanupManager
         // so the created files inherit the placed directives. It is then its own undo unit, like the split, and the
         // calls in the cleanup undo transaction (RunCodeCleanupCSharp) find nothing left to move. Once a placement left
         // the directives in place (including the closed-file placement of this cleanup), no later step retries it.
-        if (!usingsLeftInPlace && settings.GetBoolean(nameof(Settings.Cleaning_MoveTopLevelTypesToSeparateFiles)) && document.GetCodeLanguage() == CodeLanguage.CSharp)
+        // Class sealing and null check conversion also run before the split, for the same reason: a type moved to a
+        // created file is no longer in this document when the cleanup steps below run, and the created file is not
+        // cleaned in this pass. They are then not repeated in RunCodeCleanupCSharp, since each attempt analyzes the
+        // semantic model of every project compiling the file.
+        var splitsCSharpTypes = settings.GetBoolean(nameof(Settings.Cleaning_MoveTopLevelTypesToSeparateFiles)) && document.GetCodeLanguage() == CodeLanguage.CSharp;
+        if (!usingsLeftInPlace && splitsCSharpTypes)
         {
             usingsLeftInPlace = _usingDirectivePlacementLogic.PlaceUsingDirectives(document.GetTextDocument()) == UsingsMoveOutcome.LeftInPlace;
+        }
+
+        if (splitsCSharpTypes)
+        {
+            _sealedClassLogic.SealWhenSafe(document.GetTextDocument(), settings);
+            _nullCheckPatternMatchingLogic.ConvertWhenSafe(document.GetTextDocument(), settings);
         }
 
         TrySplitTopLevelTypesToSeparateFiles(document, settings);
@@ -1452,7 +1455,7 @@ internal sealed class CodeCleanupManager
         new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorCleanupFor0, document.Name)).Run(
             delegate
             {
-                var cleanupMethod = FindCodeCleanupMethod(document, settings, usingsLeftInPlace);
+                var cleanupMethod = FindCodeCleanupMethod(document, settings, usingsLeftInPlace, semanticStepsDone: splitsCSharpTypes);
                 if (cleanupMethod is not null)
                 {
                     OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");
@@ -1525,6 +1528,18 @@ internal sealed class CodeCleanupManager
         _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
 
     /// <summary>
+    /// Converts the null checks of a closed C# project item that are safe to convert to pattern matching, when its
+    /// effective settings enable it. Must run before the headless cleanup of the item (see
+    /// <see cref="NullCheckPatternMatchingLogic" />).
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
+    /// <returns>True when the file was rewritten with converted null checks.</returns>
+    /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
+    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
+        _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
+
+    /// <summary>
     /// Runs .editorconfig/Roslyn diagnostic cleanup for a C# project item after its Janitor cleanup
     /// and records the outcome in the execution statistics. Does nothing when no diagnostic cleanup
     /// category is enabled for the item.
@@ -1593,15 +1608,16 @@ internal sealed class CodeCleanupManager
     /// <param name="usingsLeftInPlace">
     /// True when the semantic using directive placement already left the using directives in place in this cleanup.
     /// </param>
+    /// <param name="semanticStepsDone">True when class sealing and null check conversion already ran for the document in this cleanup.</param>
     /// <returns>The code cleanup method, otherwise null.</returns>
-    private Action<Document> FindCodeCleanupMethod(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace)
+    private Action<Document> FindCodeCleanupMethod(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         switch (document.GetCodeLanguage())
         {
             case CodeLanguage.CSharp:
-                return csharpDocument => RunCodeCleanupCSharp(csharpDocument, settings, usingsLeftInPlace);
+                return csharpDocument => RunCodeCleanupCSharp(csharpDocument, settings, usingsLeftInPlace, semanticStepsDone);
 
             case CodeLanguage.VisualBasic:
                 return vbDocument => RunCodeCleanupVB(vbDocument, settings);
@@ -1774,7 +1790,8 @@ internal sealed class CodeCleanupManager
     /// True when the semantic using directive placement already left the using directives in place in this cleanup;
     /// it is then not retried.
     /// </param>
-    private void RunCodeCleanupCSharp(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace)
+    /// <param name="semanticStepsDone">True when class sealing and null check conversion already ran for the document in this cleanup.</param>
+    private void RunCodeCleanupCSharp(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -1797,8 +1814,13 @@ internal sealed class CodeCleanupManager
         // Add 'readonly' to fields provably never written outside their constructor, when enabled.
         _readonlyFieldLogic.AddReadonlyWhenSafe(textDocument, settings);
 
-        // Add 'sealed' to classes proven safe to seal across the solution, when enabled.
-        _sealedClassLogic.SealWhenSafe(textDocument, settings);
+        // Add 'sealed' to classes proven safe to seal across the solution, and convert the null checks proven safe to
+        // pattern matching, when enabled and not already done.
+        if (!semanticStepsDone)
+        {
+            _sealedClassLogic.SealWhenSafe(textDocument, settings);
+            _nullCheckPatternMatchingLogic.ConvertWhenSafe(textDocument, settings);
+        }
 
         // Insert a blank line before return/throw statements that end a block, when enabled.
         _returnThrowBlankLinePaddingLogic.InsertPaddingBeforeReturnAndThrowStatements(textDocument, settings);

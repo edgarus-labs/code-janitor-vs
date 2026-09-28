@@ -98,4 +98,26 @@ public sealed class EnsureFinalNewlineConverterTests
         Assert.AreEqual("class C\n{\n}\n", transformation.Apply("class C\n{\n}"));
         Assert.AreEqual("Ensure final newline", transformation.Name);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("Console.WriteLine();\r\n// end", "Console.WriteLine();\r\n// end\r\n", DisplayName = "top-level statements file ending with a comment")]
+    [DataRow("#region R\r\n#endregion", "#region R\r\n#endregion\r\n", DisplayName = "file ending with a directive")]
+    [DataRow("class C { }\n   ", "class C { }\n   \n", DisplayName = "whitespace-only last line is kept")]
+    [DataRow("\r\n\r\n", "\r\n", DisplayName = "file of blank lines")]
+    [DataRow("a\nb\r\n\n", "a\nb\r\n", DisplayName = "mixed line breaks use CRLF")]
+    public void FinalLineBreak_IsExactlyOne(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { }\r", "class C { }\r", DisplayName = "CR-only file already ending with a line break")]
+    [DataRow("class C\r{ }", "class C\r{ }\r", DisplayName = "CR-only file missing the final line break")]
+    [DataRow("class C { }\r\r\r", "class C { }\r", DisplayName = "CR-only file with several final line breaks")]
+    public void CarriageReturnOnlyFile_KeepsItsLineBreakStyle(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
 }

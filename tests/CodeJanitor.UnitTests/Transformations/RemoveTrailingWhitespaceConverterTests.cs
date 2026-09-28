@@ -101,4 +101,62 @@ public sealed class RemoveTrailingWhitespaceConverterTests
         Assert.AreEqual(expected, transformation.Apply(input));
         Assert.AreEqual("Remove trailing whitespace", transformation.Name);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void WhitespaceAfterTheFinalLineBreak_Removed()
+    {
+        Assert.AreEqual("class C { }\r\n", _converter.Convert("class C { }\r\n   \t"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileEndingWithACommentWithoutLineBreak_Unchanged()
+    {
+        string input = "class C { }\r\n// end";
+
+        Assert.AreEqual(input, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFile_TrailingWhitespaceRemovedFromEveryCodeLine()
+    {
+        string input = "using System;   \r\n  \r\nConsole.WriteLine(1);\t\r\nstatic void L() { }  \r\nrecord R(int X); \r\n";
+        string expected = "using System;\r\n\r\nConsole.WriteLine(1);\r\nstatic void L() { }\r\nrecord R(int X);\r\n";
+
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TrailingWhitespaceInsideRawAndInterpolatedStrings_Preserved()
+    {
+        string input = "var s = \"\"\"\r\n  a   \r\n  \"\"\";   \r\nvar i = $@\"x  \r\n{s}  \";\r\n";
+        string expected = "var s = \"\"\"\r\n  a   \r\n  \"\"\";\r\nvar i = $@\"x  \r\n{s}  \";\r\n";
+
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("// hi   \r\nclass C { }\r\n", "// hi\r\nclass C { }\r\n", DisplayName = "single-line comment")]
+    [DataRow("#region X   \r\nclass C { }\r\n#endregion \t\r\n", "#region X\r\nclass C { }\r\n#endregion\r\n", DisplayName = "region directives")]
+    [DataRow("/// <summary>  \n/// Doc\t\n/// </summary>\nclass C { }\n", "/// <summary>\n/// Doc\n/// </summary>\nclass C { }\n", DisplayName = "documentation comment")]
+    [DataRow("/* a   \n   b  */\nclass C { }\n", "/* a\n   b  */\nclass C { }\n", DisplayName = "block comment inner line")]
+    [DataRow("class C { }   ", "class C { }", DisplayName = "last line without line break")]
+    [DataRow("class C { }\r\n// end  ", "class C { }\r\n// end", DisplayName = "last comment line without line break")]
+    public void TrailingWhitespaceInTriviaAndOnTheLastLine_Removed(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TrailingWhitespaceInsideDisabledText_Preserved()
+    {
+        string input = "#if NEVER_DEFINED\nstring s = @\"a   \nb\";\n#endif\n";
+
+        Assert.AreEqual(input, _converter.Convert(input));
+    }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -118,6 +119,9 @@ public sealed class ClassSealingConverterTests
     [DataRow("public class Example { protected event System.EventHandler Changed; }", DisplayName = "protected event")]
     [DataRow("public class Example { protected class Nested { } }", DisplayName = "protected nested type")]
     [DataRow("public class Example { protected const int Value = 1; }", DisplayName = "protected constant")]
+    [DataRow("public class Example { protected static void M() { } }", DisplayName = "protected static method")]
+    [DataRow("public class Example { protected static int _count; }", DisplayName = "protected static field")]
+    [DataRow("public class Example { public int this[int i] { get => i; protected set { } } }", DisplayName = "protected indexer setter")]
     [DataRow("public record Example(string Name) { protected Example(Example original) { Name = original.Name; } }", DisplayName = "protected record copy constructor")]
     public async Task ClassWithProtectedMember_StaysUnsealed(string input)
     {
@@ -225,6 +229,82 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    public async Task ClassUsedInGenericConstraintInAnotherProject_StaysUnsealed()
+    {
+        string input = "namespace Demo { public class Result { } }";
+        Document constrainingDocument = CompilingTestProject.CreateDocumentReferencingProject(
+            "namespace Consumer { public class Handler<T> where T : Demo.Result { } }",
+            new[] { input });
+        Document document = constrainingDocument.Project.Solution.Projects
+            .Single(project => project.Name == "ReferencedProject")
+            .Documents.Single();
+
+        Assert.AreEqual(input, await SealAsync(document));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task GenericClassUsedInConstraintThroughClosedConstruction_StaysUnsealed()
+    {
+        Assert.AreEqual(
+            "public class Box<T> { } public sealed class Handler<T> where T : Box<int> { }",
+            await SealAsync("public class Box<T> { } public class Handler<T> where T : Box<int> { }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task GenericClassWithOwnConstraints_BecomesSealed()
+    {
+        Assert.AreEqual(
+            "public sealed class Repository<T> where T : class, new() { public T Create() => new T(); }",
+            await SealAsync("public class Repository<T> where T : class, new() { public T Create() => new T(); }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileLocalClass_BecomesSealed()
+    {
+        Assert.AreEqual("file sealed class Helper { }", await SealAsync("file class Helper { }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task FileLocalClassWithDerivedFileLocalClass_BaseStaysUnsealed()
+    {
+        Assert.AreEqual(
+            "file class Base { } file sealed class Derived : Base { }",
+            await SealAsync("file class Base { } file class Derived : Base { }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassInFileWithCompileErrors_IsSealedWithoutAddingErrors()
+    {
+        Assert.AreEqual(
+            "public sealed class Foo { public void M() { int x = ; } }",
+            await SealAsync("public class Foo { public void M() { int x = ; } }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassWithProtectedMemberInFileWithCompileErrors_StaysUnsealed()
+    {
+        string input = "public class Foo { protected Foo() { } public void M() { UnknownType x = null; } }";
+
+        Assert.AreEqual(input, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassDerivedFromInFileWithCompileErrors_StaysUnsealed()
+    {
+        string input = "public class Base { } public class Derived : Base { public void M() { int x = ; } }";
+
+        Assert.AreEqual("public class Base { } public sealed class Derived : Base { public void M() { int x = ; } }", await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async Task FileCompiledByTwoProjects_IsSealedOnlyWhenSafeInBoth()
     {
         string input = "namespace Demo { public class Result { } }";
@@ -253,6 +333,207 @@ public sealed class ClassSealingConverterTests
             CancellationToken.None);
 
         Assert.AreEqual("namespace Demo { public sealed class Result { } }", result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task NullDocumentList_Throws()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => new ClassSealingConverter().SealWhenSafeAsync(null, CancellationToken.None));
+
+        Assert.AreEqual("documents", exception.ParamName);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task EmptyDocumentList_Throws()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => new ClassSealingConverter().SealWhenSafeAsync(new Document[0], CancellationToken.None));
+
+        Assert.AreEqual("documents", exception.ParamName);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("", DisplayName = "empty file")]
+    [DataRow("  \r\n\t\r\n", DisplayName = "whitespace only")]
+    [DataRow("// just a comment\r\n", DisplayName = "comment only")]
+    [DataRow("namespace Demo { public enum Kind { A } public delegate void Handler(); }", DisplayName = "no class")]
+    public async Task FileWithoutCandidates_IsReturnedUnchanged(string input)
+    {
+        Assert.AreEqual(input, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassReferencedOutsideConstraints_BecomesSealed()
+    {
+        Assert.AreEqual(
+            "public sealed class Settings { } public sealed class Consumer { Settings _s = new Settings(); System.Collections.Generic.List<Settings> _all; Settings Get() => (Settings)null; }",
+            await SealAsync(
+                "public class Settings { } public class Consumer { Settings _s = new Settings(); System.Collections.Generic.List<Settings> _all; Settings Get() => (Settings)null; }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassDerivedFromByItsOwnNestedClass_StaysUnsealed()
+    {
+        string input = "public class Shape { private sealed class Circle : Shape { } }";
+
+        Assert.AreEqual(input, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task VirtualMemberOfANestedType_DoesNotPreventSealingTheOuterClass()
+    {
+        Assert.AreEqual(
+            "public sealed class Outer { public class Inner { public virtual void M() { } } }",
+            await SealAsync("public class Outer { public class Inner { public virtual void M() { } } }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("public class Foo { } ", "public class Foo { }", DisplayName = "duplicate declaration")]
+    [DataRow("public class Foo { } ", "public abstract class Foo { }", DisplayName = "duplicate abstract declaration")]
+    [DataRow("public class Foo { } ", "public sealed class Foo { }", DisplayName = "duplicate sealed declaration")]
+    [DataRow("public class Foo { } ", "public static class Foo { }", DisplayName = "duplicate static declaration")]
+    public async Task ClassDeclaredTwiceInTheProject_StaysUnsealed(string input, string otherDeclaration)
+    {
+        Assert.AreEqual(input, await SealAsync(input, otherDeclaration));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ExceptionWithProtectedSerializationConstructor_StaysUnsealed()
+    {
+        string input =
+            "using System;\r\n" +
+            "using System.Runtime.Serialization;\r\n" +
+            "public class ParseException : Exception\r\n" +
+            "{\r\n" +
+            "    public ParseException(string message) : base(message) { }\r\n" +
+            "    protected ParseException(SerializationInfo info, StreamingContext context) : base(info, context) { }\r\n" +
+            "}\r\n";
+
+        Assert.AreEqual(input, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassImplementingAnInterfaceWithADefaultMember_BecomesSealed()
+    {
+        Assert.AreEqual(
+            "public interface IGreeter { string Name { get; } string Greet() => \"Hi \" + Name; } public sealed class Greeter : IGreeter { public string Name => \"x\"; }",
+            await SealAsync("public interface IGreeter { string Name { get; } string Greet() => \"Hi \" + Name; } public class Greeter : IGreeter { public string Name => \"x\"; }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassWithOnlyStaticMembersAndSealedOverrides_BecomesSealed()
+    {
+        Assert.AreEqual(
+            "public sealed class Tools { public static int Count; public static void Run() { } public sealed override string ToString() => \"t\"; }",
+            await SealAsync("public class Tools { public static int Count; public static void Run() { } public sealed override string ToString() => \"t\"; }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task TopLevelStatementsFile_SealsTheClassesDeclaredAfterTheStatements()
+    {
+        string input =
+            "using System;\r\n" +
+            "\r\n" +
+            "var greeter = new Greeter();\r\n" +
+            "Console.WriteLine(greeter.Greet(Name()));\r\n" +
+            "\r\n" +
+            "static string Name() => \"world\";\r\n" +
+            "\r\n" +
+            "class Greeter\r\n" +
+            "{\r\n" +
+            "    public string Greet(string name) => \"Hello \" + name;\r\n" +
+            "}\r\n" +
+            "\r\n" +
+            "record Person(string Name);\r\n" +
+            "\r\n" +
+            "abstract class Animal { }\r\n" +
+            "\r\n" +
+            "class Dog : Animal { }\r\n";
+        string expected = input
+            .Replace("class Greeter\r\n", "sealed class Greeter\r\n")
+            .Replace("record Person(", "sealed record Person(")
+            .Replace("class Dog :", "sealed class Dog :");
+        Document document = CompilingTestProject.CreateDocument(
+            input,
+            new CSharpParseOptions(LanguageVersion.Latest),
+            new MetadataReference[0]);
+        Document executable = document.Project
+            .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication))
+            .GetDocument(document.Id);
+
+        Assert.AreEqual(expected, await SealAsync(executable));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("\r\n", DisplayName = "CRLF")]
+    [DataRow("\n", DisplayName = "LF")]
+    public async Task DocCommentsAttributesAndIndentation_StayInFrontOfTheSealedModifier(string newLine)
+    {
+        string input =
+            "namespace Demo" + newLine +
+            "{" + newLine +
+            "\t/// <summary>A value.</summary>" + newLine +
+            "\t[System.Serializable]" + newLine +
+            "\tclass Value" + newLine +
+            "\t{" + newLine +
+            "\t}" + newLine +
+            newLine +
+            "\t// Public one." + newLine +
+            "\tpublic /* note */ class Other { }" + newLine +
+            newLine +
+            "\t#region Records" + newLine +
+            "\tinternal record Item(int Id);" + newLine +
+            "\t#endregion" + newLine +
+            "}" + newLine;
+        string expected = input
+            .Replace("\tclass Value", "\tsealed class Value")
+            .Replace("public /* note */ class Other", "public /* note */ sealed class Other")
+            .Replace("internal record Item", "internal sealed record Item");
+
+        Assert.AreEqual(expected, await SealAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ProtectedMemberInsideAnActivePreprocessorBranch_KeepsTheClassUnsealed()
+    {
+        string input =
+            "public class Widget\r\n" +
+            "{\r\n" +
+            "#if DEBUG\r\n" +
+            "    protected virtual void Trace() { }\r\n" +
+            "#endif\r\n" +
+            "}\r\n";
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document release = AddProject(ref solution, "Release", input);
+        Project debugProject = solution
+            .AddProject("Debug", "Debug", LanguageNames.CSharp)
+            .WithParseOptions(new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: new[] { "DEBUG" }))
+            .WithCompilationOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            .AddMetadataReference(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+        Document debug = debugProject.AddDocument("Target.cs", SourceText.From(input));
+        solution = debug.Project.Solution;
+
+        string releaseOnly = await new ClassSealingConverter().SealWhenSafeAsync(new[] { solution.GetDocument(release.Id) }, CancellationToken.None);
+        string both = await new ClassSealingConverter().SealWhenSafeAsync(
+            new[] { solution.GetDocument(release.Id), solution.GetDocument(debug.Id) },
+            CancellationToken.None);
+
+        Assert.AreEqual(input.Replace("public class Widget", "public sealed class Widget"), releaseOnly);
+        Assert.AreEqual(input, both);
     }
 
     private static Document AddProject(ref Solution solution, string name, string targetSource, params string[] librarySources)

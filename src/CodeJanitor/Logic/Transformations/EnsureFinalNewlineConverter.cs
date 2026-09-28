@@ -6,7 +6,8 @@ namespace CodeJanitor.Logic.Transformations;
 /// Ensures C# source ends with exactly one line break (the <c>insert_final_newline</c> convention).
 /// </summary>
 /// <remarks>
-/// The line-break style (<c>\r\n</c> vs <c>\n</c>) matches the style already used in the file.
+/// The line-break style (<c>\r\n</c>, <c>\n</c> or <c>\r</c>) matches the style already used in the
+/// file; a file without any line break gets <c>\n</c>.
 /// </remarks>
 public sealed class EnsureFinalNewlineConverter : ISourceTransformation
 {
@@ -29,7 +30,7 @@ public sealed class EnsureFinalNewlineConverter : ISourceTransformation
             return source;
         }
 
-        var newline = source.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
+        var newline = DetectNewline(source);
         var trimmed = source;
 
         while (trimmed.EndsWith("\r\n", StringComparison.Ordinal))
@@ -43,5 +44,24 @@ public sealed class EnsureFinalNewlineConverter : ISourceTransformation
         }
 
         return trimmed + newline;
+    }
+
+    /// <summary>
+    /// Returns CRLF when the source contains one, otherwise LF when it contains one, otherwise CR
+    /// when it contains one, and LF for a source without line breaks.
+    /// </summary>
+    private static string DetectNewline(string source)
+    {
+        if (source.IndexOf("\r\n", StringComparison.Ordinal) >= 0)
+        {
+            return "\r\n";
+        }
+
+        if (source.IndexOf('\n') >= 0 || source.IndexOf('\r') < 0)
+        {
+            return "\n";
+        }
+
+        return "\r";
     }
 }

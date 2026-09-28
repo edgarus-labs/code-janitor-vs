@@ -22,11 +22,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// </summary>
     internal static readonly SyntaxRequirement CollectionExpressions = new SyntaxRequirement("collection expressions", LanguageVersion.CSharp12);
 
-    /// <summary>
-    /// The negated null pattern (<c>is not null</c>); the null pattern (<c>is null</c>) only needs C# 7.0.
-    /// </summary>
-    internal static readonly SyntaxRequirement NotNullPatterns = new SyntaxRequirement("'is not null' patterns", LanguageVersion.CSharp9);
-
     private static Func<string, IReadOnlyList<LanguageVersion>> _languageVersionResolver;
 
     private readonly string _filePath;

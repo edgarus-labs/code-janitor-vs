@@ -62,9 +62,19 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
                     continue;
                 }
 
+                // A positional null is ambiguous between the JsonSerializerOptions and JsonTypeInfo/JsonSerializerContext
+                // overloads (CS0121); naming the argument keeps the options overload selected.
                 var replacement = argument.WithExpression(
                     SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)
                                  .WithTriviaFrom(argument.Expression));
+                if (argument.NameColon is null)
+                {
+                    replacement = replacement
+                        .WithNameColon(SyntaxFactory.NameColon(SyntaxFactory.IdentifierName("options"))
+                                                    .WithLeadingTrivia(argument.Expression.GetLeadingTrivia())
+                                                    .WithTrailingTrivia(SyntaxFactory.Space))
+                        .WithExpression(replacement.Expression.WithoutLeadingTrivia());
+                }
 
                 updatedArgumentList = updatedArgumentList.WithArguments(
                     updatedArgumentList.Arguments.Replace(argument, replacement));

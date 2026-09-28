@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using CodeJanitor.Logic.Cleaning;
+using CodeJanitor.Properties;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
@@ -24,6 +25,8 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     [TestCleanup]
     public void TestCleanup()
     {
+        Settings.Default.Reset();
+
         if (Directory.Exists(_tempDirectory))
         {
             Directory.Delete(_tempDirectory, true);
@@ -132,5 +135,122 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
         Assert.IsTrue(result.Changed);
         string[] tempArtifacts = Directory.GetFiles(_tempDirectory, "*.codejanitor.tmp.*", SearchOption.TopDirectoryOnly);
         Assert.IsEmpty(tempArtifacts);
+    }
+
+    [TestMethod]
+    [DataRow("namespace Demo;\r\n\r\nclass Foo { }\r\n", "NotMultipleEligibleTypes")]
+    [DataRow("using System;\r\n\r\nConsole.WriteLine();\r\nclass Foo { }\r\nclass Bar { }\r\n", "UnsupportedStructure")]
+    [DataRow("", "EmptySource")]
+    public void Apply_WhenNotSplit_ReportsWhyAndNeverCallsTheTransform(string source, string expectedReason)
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        int transformCalls = 0;
+
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
+            source,
+            filePath,
+            Encoding.UTF8,
+            (text, path) =>
+            {
+                transformCalls++;
+
+                return text;
+            });
+
+        Assert.IsFalse(result.Changed);
+        Assert.AreEqual(expectedReason, result.SkipReason.ToString());
+        Assert.AreEqual(source, result.UpdatedSource);
+        Assert.AreEqual(0, transformCalls);
+        Assert.IsEmpty(Directory.GetFiles(_tempDirectory));
+    }
+
+    [TestMethod]
+    public void Apply_WhenSplit_ReportsNoSkipReason()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply("class Foo { }\r\nclass Bar { }\r\n", filePath, Encoding.UTF8, null);
+
+        Assert.AreEqual(TopLevelTypeSplitSkipReason.None, result.SkipReason);
+        Assert.AreEqual("class Foo { }\r\n", result.UpdatedSource);
+        Assert.AreEqual("class Bar { }\r\n", File.ReadAllText(Path.Combine(_tempDirectory, "Bar.cs")));
+    }
+
+    [TestMethod]
+    [DataRow(true, false)]
+    [DataRow(false, true)]
+    public void Apply_ByteOrderMarkOfCreatedFiles_FollowsTheRemoveByteOrderMarkSetting(bool removeByteOrderMark, bool expectByteOrderMark)
+    {
+        Settings.Default.Cleaning_RemoveByteOrderMark = removeByteOrderMark;
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+        _processor.Apply("class Foo { }\r\nclass Bar { }\r\n", filePath, new UTF8Encoding(true), null);
+
+        byte[] bytes = File.ReadAllBytes(Path.Combine(_tempDirectory, "Bar.cs"));
+        bool hasByteOrderMark = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+        Assert.AreEqual(expectByteOrderMark, hasByteOrderMark);
+        Assert.AreEqual("class Bar { }\r\n", File.ReadAllText(Path.Combine(_tempDirectory, "Bar.cs")));
+    }
+
+    [TestMethod]
+    public void Apply_TargetFileAppearingAfterPlanning_IsReplacedWithoutLeavingTemporaryFiles()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
+            "class Foo { }\r\nclass Bar { }\r\n",
+            filePath,
+            Encoding.UTF8,
+            null,
+            transformCreatedFile: (text, path) =>
+            {
+                File.WriteAllText(path, "stale content written by someone else");
+
+                return "// created\r\n" + text;
+            });
+
+        string createdFile = result.CreatedFiles.Single();
+        Assert.AreEqual(Path.Combine(_tempDirectory, "Bar.cs"), createdFile);
+        Assert.AreEqual("// created\r\nclass Bar { }\r\n", File.ReadAllText(createdFile));
+        Assert.AreSequenceEqual(new[] { createdFile }, Directory.GetFiles(_tempDirectory));
+    }
+
+    [TestMethod]
+    public void Apply_TargetPathOccupiedByADirectory_ThrowsAndRemovesTheTemporaryFile()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string occupiedPath = Path.Combine(_tempDirectory, "Bar.cs");
+
+        Exception exception = Assert.Throws<Exception>(() => _processor.Apply(
+            "class Foo { }\r\nclass Bar { }\r\n",
+            filePath,
+            Encoding.UTF8,
+            null,
+            transformCreatedFile: (text, path) =>
+            {
+                Directory.CreateDirectory(path);
+
+                return text;
+            }));
+
+        Assert.IsTrue(exception is IOException || exception is UnauthorizedAccessException, exception.ToString());
+        Assert.IsTrue(Directory.Exists(occupiedPath));
+        Assert.IsEmpty(Directory.GetFiles(_tempDirectory));
+    }
+
+    [TestMethod]
+    public void Apply_WhenTheTemporaryFileCannotBeWritten_ThrowsWithoutCreatingAnyFile()
+    {
+        // The target name fits the file system limit, the temporary name next to it does not.
+        string longName = "Bar" + new string('x', 220);
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+        Assert.Throws<IOException>(() => _processor.Apply(
+            "class Foo { }\r\nclass " + longName + " { }\r\n",
+            filePath,
+            Encoding.UTF8,
+            null));
+
+        Assert.IsEmpty(Directory.GetFileSystemEntries(_tempDirectory));
     }
 }

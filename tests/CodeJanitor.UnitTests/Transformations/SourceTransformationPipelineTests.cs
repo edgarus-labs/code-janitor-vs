@@ -260,6 +260,75 @@ public sealed class SourceTransformationPipelineTests
         Assert.IsTrue(preview.Steps.All(step => !step.Included));
     }
 
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NullTransformationSequence_Throws()
+    {
+        Assert.ThrowsExactly<System.ArgumentNullException>(() => new SourceTransformationPipeline((IEnumerable<ISourceTransformation>)null));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void BlockReturningNull_LeavesTheTextOfThePreviousBlockForTheNextOne()
+    {
+        SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
+            new TabToSpaceConverter(), new NullResultTransformation(), new EnsureFinalNewlineConverter());
+
+        SourceTransformationPipeline.PreviewResult preview = pipeline.Preview("\tclass C {}");
+
+        Assert.AreEqual("    class C {}\n", preview.UpdatedSource);
+        Assert.IsFalse(preview.Steps[1].Changed);
+        Assert.IsTrue(preview.Steps[1].Included);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Preview_ApplyWithChangesButNoWriter_Throws()
+    {
+        string source = "\tclass C {}";
+        SourceTransformationPipeline.PreviewResult preview = new SourceTransformationPipeline(new TabToSpaceConverter()).Preview(source);
+
+        Assert.ThrowsExactly<System.ArgumentNullException>(() => preview.TryApply(source, null));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void WhitespaceFlowOverATopLevelStatementsFile_ProducesCleanOutputWithoutAddedComments()
+    {
+        string input =
+            "\uFEFFusing System;  \r\n\r\n\r\n\r\n//Entry point\r\nConsole.WriteLine(\"hi\");\t\r\nreturn Run();\r\n\r\n" +
+            "static int Run()\r\n{\r\n\tvar x = 1;\r\n\treturn x;\r\n}";
+        string expected =
+            "using System;\r\n\r\n// Entry point\r\nConsole.WriteLine(\"hi\");\r\nreturn Run();\r\n\r\n" +
+            "static int Run()\r\n{\r\n    var x = 1;\r\n\r\n    return x;\r\n}\r\n";
+        SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
+            new ByteOrderMarkConverter(),
+            new RemoveTrailingWhitespaceConverter(),
+            new ReturnThrowBlankLinePaddingConverter(),
+            new CommentFormatConverter(),
+            new TabToSpaceConverter(),
+            new NormalizeBlankLinesConverter(),
+            new EnsureFinalNewlineConverter());
+        bool commentFormatting = CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup;
+        CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup = true;
+
+        try
+        {
+            Assert.AreEqual(expected, pipeline.Run(input));
+        }
+        finally
+        {
+            CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup = commentFormatting;
+        }
+    }
+
+    private sealed class NullResultTransformation : ISourceTransformation
+    {
+        public string Name => "Returns null";
+
+        public string Apply(string source) => null;
+    }
+
     private static string repr(string s)
     {
         return "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";

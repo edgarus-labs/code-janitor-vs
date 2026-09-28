@@ -11,9 +11,12 @@ namespace CodeJanitor.Logic.Transformations;
 /// BL-018). Pure and unit-testable without Visual Studio.
 /// </summary>
 /// <remarks>
-/// Only <see cref="SyntaxKind.WhitespaceTrivia" /> is rewritten, so tabs inside string literals
-/// are preserved exactly. Each tab is expanded to a fixed number of spaces (<see cref="TabSize" />);
-/// this is a simple fixed-width expansion, not column-aware elastic-tab alignment.
+/// Only <see cref="SyntaxKind.WhitespaceTrivia" /> and the indentation in front of the
+/// <c>///</c> / <c>*</c> of documentation comment continuation lines
+/// (<see cref="SyntaxKind.DocumentationCommentExteriorTrivia" />) are rewritten, so tabs inside
+/// string literals and comment text are preserved exactly. Each tab is expanded to a fixed number
+/// of spaces (<see cref="TabSize" />); this is a simple fixed-width expansion, not column-aware
+/// elastic-tab alignment.
 /// </remarks>
 public sealed class TabToSpaceConverter : ISourceTransformation
 {
@@ -75,7 +78,8 @@ public sealed class TabToSpaceConverter : ISourceTransformation
 
         var tabbedTrivia = root
             .DescendantTrivia(descendIntoTrivia: true)
-            .Where(t => t.IsKind(SyntaxKind.WhitespaceTrivia) && t.ToString().IndexOf('\t') >= 0)
+            .Where(t => (t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.DocumentationCommentExteriorTrivia))
+                && t.ToString().IndexOf('\t') >= 0)
             .ToList();
 
         if (tabbedTrivia.Count == 0)
@@ -83,10 +87,31 @@ public sealed class TabToSpaceConverter : ISourceTransformation
             return source;
         }
 
-        var newRoot = root.ReplaceTrivia(
-            tabbedTrivia,
-            (original, rewritten) => SyntaxFactory.Whitespace(original.ToString().Replace("\t", _replacement)));
+        var newRoot = root.ReplaceTrivia(tabbedTrivia, (original, rewritten) => ExpandTabs(original));
 
         return newRoot.ToFullString();
+    }
+
+    /// <summary>
+    /// Expands the tabs of whitespace trivia, or of the indentation in front of a documentation
+    /// comment exterior (leaving the tabs after <c>///</c> / <c>*</c> alone).
+    /// </summary>
+    private SyntaxTrivia ExpandTabs(SyntaxTrivia trivia)
+    {
+        var text = trivia.ToString();
+        if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
+        {
+            return SyntaxFactory.Whitespace(text.Replace("\t", _replacement));
+        }
+
+        int indentLength = 0;
+        while (indentLength < text.Length && (text[indentLength] == ' ' || text[indentLength] == '\t'))
+        {
+            indentLength++;
+        }
+
+        var indent = text.Substring(0, indentLength).Replace("\t", _replacement);
+
+        return SyntaxFactory.DocumentationCommentExterior(indent + text.Substring(indentLength));
     }
 }

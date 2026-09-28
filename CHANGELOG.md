@@ -108,10 +108,13 @@ This file records changes made in Code Janitor after the project became an indep
 	members, no class of the solution derives from it and no generic constraint names it, in every project compiling
 	the file, including cleanup-on-save of a single file. It replaces the name-based disqualified type discovery;
 	the cleanup preview no longer includes class sealing.
+- Fixed "Seal Classes" not sealing a class that the cleanup of an open document moved to its own file
+	("Move top-level types to separate files"); it was sealed only by the next cleanup of the created file.
 - Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
 	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
 - Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.
-- Fixed "Seal Classes" cleanup breaking compilation on classes declaring `virtual` members (`CS0549`), classes used as generic type constraints (`where T : ThatType`, `CS0701`), or classes with subclasses across the solution (`CS0509`). Added solution-wide disqualified type discovery before applying class sealing.
+- Fixed a batch cleanup not counting a file as changed when a semantic step (using placement, class sealing,
+	null checks) rewrote it and a later step on the same file failed.
 - Fixed "Make Fields Readonly" cleanup adding `readonly` to private fields mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)` and `Interlocked.Decrement(ref field)`) or writes inside nested types, or fields whose address is taken directly (`&field`, `CS0192`).
 - Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.
 - Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
@@ -139,17 +142,64 @@ This file records changes made in Code Janitor after the project became an indep
 	file-scoped namespace, where they keep compiling. For files not compiled in a loaded C# project, the
 	directives are left in place.
 - Fixed cleanup emitting syntax the project's C# version does not support: conversion to file-scoped
-	namespaces (C# 10, `CS8370`), to collection expressions (C# 12) and to `is not null` (C# 9) now run only
-	when every project and target framework that compiles the file uses that version or newer, as read from the
-	Visual Studio Roslyn workspace. Otherwise, or when the version cannot be determined, the code is left as it
-	is (`== null` still becomes `is null`) and the reason is written to the output pane. This applies to the
-	editor cleanup, the closed-file cleanup and the preview. String-format-to-interpolation no longer moves a
-	multi-line argument into an interpolation hole, which needs C# 11.
+	namespaces (C# 10, `CS8370`) and to collection expressions (C# 12) now run only when every project and
+	target framework that compiles the file uses that version or newer, as read from the Visual Studio Roslyn
+	workspace. Otherwise, or when the version cannot be determined, the code is left as it is and the reason is
+	written to the output pane. This applies to the editor cleanup, the closed-file cleanup and the preview.
+	String-format-to-interpolation no longer moves a multi-line argument into an interpolation hole, which
+	needs C# 11.
 - Fixed "Convert block-scoped namespace to file-scoped" changing the content of multi-line verbatim, raw and
 	interpolated string literals and of `#if`-disabled code by removing their indentation, and dropping
 	everything after the namespace's closing brace (a trailing `#endif`, `#endregion` or comment). The
 	conversion also leaves the file unchanged when `#if`-disabled code before the namespace declares types or
 	namespaces, which would break the build configurations that enable it (`CS8956`, `CS8955`).
+- Fixed "Make Fields Readonly" cleanup breaking compilation or behavior: it no longer makes a field
+	`readonly` when a constructor writes it through another instance (`other.field = ...`, object or `with`
+	initializers), when it is written through a deconstruction, when code excluded by `#if` mentions it, when it
+	is a `fixed` buffer, or when a method is called on it and its type may be a mutable struct (the call would
+	run on a defensive copy). The field's indentation is kept when `readonly` is its first modifier.
+- Fixed "Inline `out` variable declarations" moving a declaration into a statement that scopes the variable to
+	itself (loops, `using`, `lock`, lambdas, queries), which broke later uses, and dropping comments between the
+	declaration and the call.
+- Fixed "Simplify single-statement lambdas" changing the chosen overload (for example `Func<Task>` instead of
+	`Action`, or an `IQueryable` expression-tree overload) for lambdas passed as arguments or collection
+	elements, converting parameterless anonymous methods whose target needs a parameter list, and dropping
+	comments or directives inside the body.
+- Fixed "Convert to collection expressions" converting multi-dimensional and jagged arrays of another shape
+	and dropping comments or preprocessor directives between the initializer braces.
+- Fixed "Convert to `var` when the type is apparent" producing `const var` (`CS0822`) and converting arrays
+	whose rank differs from the declared type.
+- Fixed string-format-to-interpolation treating escaped braces (`{{`, `}}`) as placeholders, not escaping
+	braces in format specifiers, and not parenthesizing conditional expressions and `global::` names in holes.
+- Fixed pattern-matching null checks changing behavior or breaking compilation: the conversion now runs on
+	the Visual Studio Roslyn workspace and changes a check only when `==`/`!=` binds to the built-in operator
+	(no user-defined or lifted operator from any file, project or referenced assembly, e.g.
+	`UnityEngine.Object`), the operand is a reference type, `Nullable<T>` or a type parameter not constrained
+	to a value type, and the C# version allows it (`is null` C# 7.0, `is not null` C# 9), in every project and
+	target framework compiling the file. It also runs for open documents now, and is no longer part of the
+	text cleanup preview. `a == b == null` (`CS0037`) and comments between the operands are handled.
+- Fixed "Reuse `JsonSerializerOptions`" replacing an argument with a positional `null` that is ambiguous
+	between overloads (`CS0121`); the argument is now named `options:`.
+- Fixed explicit access modifier insertion adding `private` to types and fields nested in interfaces and
+	adding an access modifier to `file`-scoped types.
+- Fixed region removal and "Update `#endregion` directives" changing lines inside multi-line string literals
+	and comments, and `#endregion` updates skipping nameless regions and changing the file's line endings.
+- Fixed splitting top-level types into files breaking compilation when a `#region` spans several types
+	(`CS1028`) or a type is `file`-scoped, and moving the file header away with the first type.
+- Fixed blank-line padding: blank lines went between a declaration or `return`/`throw` and the comments
+	above it, file headers were attached to the first declaration, `case` padding and `//` comment padding
+	were applied inside string literals, and inserted blank lines used a different line ending than the file.
+	A `return` or `throw` that shares its line with other code is left alone.
+- Fixed comment formatting changing string literals, `///` documentation comments, `////` separators and
+	trailing comments after code, and changing the file's line endings.
+- Fixed "Remove trailing whitespace" leaving whitespace on a final line without a line break and in some
+	comments and directives. Whitespace inside multi-line string literals and `#if`-disabled code is kept.
+- Fixed multiple-blank-line removal collapsing blank lines inside multi-line string literals and missing
+	blank lines at the start of the file.
+- Fixed tab-to-space conversion skipping the indentation of documentation comment continuation lines.
+- Fixed "Ensure final newline" adding `\n` to files that use `\r` line breaks.
+- Fixed single-line method and accessor updates hard-coding CRLF line endings and four-space indentation,
+	dropping comments, and compressing accessor bodies that hold comments, directives or multi-line statements.
 
 ## CodeMaid history
 

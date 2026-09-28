@@ -230,8 +230,10 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_AppliesPatternMatchingNullChecks_WhenEnabled()
+    public void ApplyHeadlessCSharpTransformations_LeavesNullChecks_WhenPatternMatchingNullChecksAreEnabled()
     {
+        // The conversion needs the semantic model (a user-defined == may give null a meaning of its own), so it runs
+        // against the Visual Studio workspace (NullCheckPatternMatchingLogic), not in the headless text pipeline.
         Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
 
         string filePath = Path.Combine(_tempDirectory, "SampleNullChecks.cs");
@@ -239,7 +241,7 @@ public sealed class HeadlessCSharpCleanupTests
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.Contains("if (x is not null)", output);
+        Assert.Contains("if (x != null)", output);
     }
 
     [TestMethod]

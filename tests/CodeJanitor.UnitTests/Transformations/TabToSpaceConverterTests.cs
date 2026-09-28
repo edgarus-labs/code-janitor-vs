@@ -109,4 +109,72 @@ public sealed class TabToSpaceConverterTests
             // Expected
         }
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TabSize_ReportsTheConfiguredWidth()
+    {
+        Assert.AreEqual(4, new TabToSpaceConverter().TabSize);
+        Assert.AreEqual(2, new TabToSpaceConverter(2).TabSize);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFile_TabsInCommentsAndStringLiteralsAreKept()
+    {
+        string input =
+            "using System;\n\nConsole.WriteLine(\"a\tb\");\nstatic void Local()\n{\n" +
+            "\t// comment\twith tab\n\tvar s = @\"x\ty\";\n\tvar i = $\"{s}\t!\";\n\tvar r = \"\"\"\n\t\traw\ttab\n\t\t\"\"\";\n}\n";
+        string expected =
+            "using System;\n\nConsole.WriteLine(\"a\tb\");\nstatic void Local()\n{\n" +
+            "    // comment\twith tab\n    var s = @\"x\ty\";\n    var i = $\"{s}\t!\";\n    var r = \"\"\"\n\t\traw\ttab\n\t\t\"\"\";\n}\n";
+
+        Assert.AreEqual(expected, new TabToSpaceConverter().Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void DirectivesSingleLineDocumentationCommentsAndTrailingTabs_AreExpanded()
+    {
+        string input = "class C\r\n{\r\n\t#region R\r\n\t/// <summary>Doc</summary>\r\n\tint x;\t// trailing\r\n\t#endregion\r\n}\r\n";
+        string expected = "class C\r\n{\r\n    #region R\r\n    /// <summary>Doc</summary>\r\n    int x;    // trailing\r\n    #endregion\r\n}\r\n";
+
+        Assert.AreEqual(expected, new TabToSpaceConverter().Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void DisabledPreprocessorText_IsKept()
+    {
+        string input = "#if NEVER_DEFINED\n\tint x;\n#endif\n";
+
+        Assert.AreEqual(input, new TabToSpaceConverter().Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileWithSyntaxErrors_IndentationIsStillExpanded()
+    {
+        Assert.AreEqual("class C {\r\n    void M( {\r\n", new TabToSpaceConverter().Convert("class C {\r\n\tvoid M( {\r\n"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TabIndentationOfDocumentationCommentContinuationLines_IsExpanded()
+    {
+        string input = "class C\r\n{\r\n\t/// <summary>\r\n\t/// Doc\there\r\n\t/// </summary>\r\n\tint x;\r\n}\r\n";
+        string expected = "class C\r\n{\r\n    /// <summary>\r\n    /// Doc\there\r\n    /// </summary>\r\n    int x;\r\n}\r\n";
+
+        Assert.AreEqual(expected, new TabToSpaceConverter().Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TabIndentationOfMultiLineDocumentationCommentContinuationLines_IsExpanded()
+    {
+        string input = "class C\n{\n\t/**\n\t * <summary>Doc</summary>\n\t */\n\tint x;\n}\n";
+        string expected = "class C\n{\n    /**\n     * <summary>Doc</summary>\n     */\n    int x;\n}\n";
+
+        Assert.AreEqual(expected, new TabToSpaceConverter().Convert(input));
+    }
 }

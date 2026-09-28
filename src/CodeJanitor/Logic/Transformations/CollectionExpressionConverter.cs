@@ -99,8 +99,10 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                     return TryConvertArrayCreation(declaredType, arrayCreation);
 
                 case ImplicitArrayCreationExpressionSyntax implicitArrayCreation:
-                    return declaredType is ArrayTypeSyntax
-                        ? BuildCollectionExpression(implicitArrayCreation.Initializer.Expressions).WithTriviaFrom(implicitArrayCreation)
+                    return declaredType is ArrayTypeSyntax declaredArrayType &&
+                           declaredArrayType.RankSpecifiers[0].Rank == 1 &&
+                           implicitArrayCreation.Commas.Count == 0
+                        ? BuildCollectionExpression(implicitArrayCreation.Initializer).WithTriviaFrom(implicitArrayCreation)
                         : null;
 
                 default:
@@ -128,9 +130,7 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                 return null;
             }
 
-            var elements = objectCreation.Initializer?.Expressions ?? default;
-
-            return BuildCollectionExpression(elements).WithTriviaFrom(objectCreation);
+            return BuildCollectionExpression(objectCreation.Initializer).WithTriviaFrom(objectCreation);
         }
 
         /// <summary>
@@ -142,14 +142,15 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         private static ExpressionSyntax TryConvertArrayCreation(TypeSyntax declaredType, ArrayCreationExpressionSyntax arrayCreation)
         {
             if (!(declaredType is ArrayTypeSyntax declaredArrayType)
-                || declaredArrayType.ElementType.ToString() != arrayCreation.Type.ElementType.ToString())
+                || declaredArrayType.ElementType.ToString() != arrayCreation.Type.ElementType.ToString()
+                || !IsSingleDimensionalArrayOfSameShape(declaredArrayType, arrayCreation.Type))
             {
                 return null;
             }
 
             if (arrayCreation.Initializer is not null)
             {
-                return BuildCollectionExpression(arrayCreation.Initializer.Expressions).WithTriviaFrom(arrayCreation);
+                return BuildCollectionExpression(arrayCreation.Initializer).WithTriviaFrom(arrayCreation);
             }
 
             // No initializer - only safe to convert an explicitly zero-length array (e.g.
@@ -157,7 +158,7 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
             var rankSize = arrayCreation.Type.RankSpecifiers.FirstOrDefault()?.Sizes.FirstOrDefault();
 
             return rankSize is LiteralExpressionSyntax literal && literal.Token.ValueText == "0"
-                ? BuildCollectionExpression(default).WithTriviaFrom(arrayCreation)
+                ? BuildCollectionExpression(null).WithTriviaFrom(arrayCreation)
                 : null;
         }
 
@@ -170,15 +171,42 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                     type is GenericNameSyntax genericName && genericName.Identifier.ValueText == "List";
 
         /// <summary>
-        /// Builds a collection expression string from the element expressions&apos; text and returns the parsed SyntaxFactory expression, with no side effects.
+        /// Builds a collection expression from the initializer's elements (an empty one for <see langword="null" />).
+        /// When comments or preprocessor directives appear between the braces, the braces become brackets and every
+        /// token and trivia in between is kept; otherwise the elements are joined on one line.
         /// </summary>
-        /// <param name="elements">The elements.</param>
-        /// <returns>A ExpressionSyntax value produced by this method.</returns>
-        private static ExpressionSyntax BuildCollectionExpression(SeparatedSyntaxList<ExpressionSyntax> elements)
+        /// <param name="initializer">The initializer, or <see langword="null" /> for an empty collection.</param>
+        /// <returns>The collection expression.</returns>
+        private static ExpressionSyntax BuildCollectionExpression(InitializerExpressionSyntax initializer)
         {
+            var elements = initializer?.Expressions ?? default;
+
+            if (initializer is not null && initializer.DescendantTrivia().Any(trivia =>
+                    initializer.Span.Contains(trivia.Span) &&
+                    !trivia.IsKind(SyntaxKind.WhitespaceTrivia) &&
+                    !trivia.IsKind(SyntaxKind.EndOfLineTrivia)))
+            {
+                var elementsWithSeparators = elements.GetWithSeparators().Select(item => item.IsNode
+                    ? (SyntaxNodeOrToken)SyntaxFactory.ExpressionElement((ExpressionSyntax)item.AsNode())
+                    : item);
+
+                return SyntaxFactory.CollectionExpression(
+                    SyntaxFactory.Token(SyntaxKind.OpenBracketToken).WithTrailingTrivia(initializer.OpenBraceToken.TrailingTrivia),
+                    SyntaxFactory.SeparatedList<CollectionElementSyntax>(elementsWithSeparators),
+                    SyntaxFactory.Token(SyntaxKind.CloseBracketToken).WithLeadingTrivia(initializer.CloseBraceToken.LeadingTrivia));
+            }
+
             var elementsText = string.Join(", ", elements.Select(e => e.ToString()));
 
             return SyntaxFactory.ParseExpression("[" + elementsText + "]");
         }
+
+        /// <summary>
+        /// Determines whether the declared array type can be the target of a collection expression built from the
+        /// created array: a single-dimensional array whose ranks (including those of jagged element arrays) match.
+        /// </summary>
+        private static bool IsSingleDimensionalArrayOfSameShape(ArrayTypeSyntax declaredArrayType, ArrayTypeSyntax createdArrayType) =>
+            declaredArrayType.RankSpecifiers[0].Rank == 1 &&
+            declaredArrayType.RankSpecifiers.Select(r => r.Rank).SequenceEqual(createdArrayType.RankSpecifiers.Select(r => r.Rank));
     }
 }

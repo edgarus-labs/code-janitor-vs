@@ -102,4 +102,171 @@ public sealed class SingleStatementLambdaConverterTests
 
         Assert.AreEqual(input, _converter.Apply(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("  \r\n\t", DisplayName = "whitespace only")]
+    [DataRow("class C { Func<int, int> f = x => x + 1; Action a = () => DoWork(); }", DisplayName = "already expression-bodied")]
+    [DataRow("class C { Action a = () => { }; Action b = delegate { }; }", DisplayName = "empty block")]
+    [DataRow("class C { Action a = () => { throw new Exception(); }; }", DisplayName = "throw statement")]
+    [DataRow("class C { Action<int> a = x => { if (x > 0) DoWork(); }; }", DisplayName = "if statement")]
+    [DataRow("class C { Action a = () => { int y = 1; }; }", DisplayName = "local declaration")]
+    [DataRow("class C { Action a = () => { { DoWork(); } }; }", DisplayName = "nested block only")]
+    [DataRow("class C { Action a = delegate { return; }; }", DisplayName = "anonymous method with bare return")]
+    [DataRow("class C { void M() { DoWork(); } int P { get { return 1; } } }", DisplayName = "method and accessor blocks")]
+    [DataRow("class C { void M() { void L() { DoWork(); } } }", DisplayName = "local function block")]
+    [DataRow("class C { string S = \"() => { return 1; }\"; }", DisplayName = "code-like text in literal")]
+    public void BodyThatIsNotASingleExpression_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { int _total; Action<int> a = x => { _total = x; }; }", "class C { int _total; Action<int> a = x => _total = x; }", DisplayName = "assignment statement")]
+    [DataRow("class C { int _n; Action a = () => { _n++; }; }", "class C { int _n; Action a = () => _n++; }", DisplayName = "increment statement")]
+    [DataRow("class C { Func<int, int, int> f = (int a, int b) => { return a * b; }; }", "class C { Func<int, int, int> f = (int a, int b) => a * b; }", DisplayName = "explicitly typed parameters")]
+    [DataRow("class C { Func<int, int, int> f = (_, _) => { return 0; }; }", "class C { Func<int, int, int> f = (_, _) => 0; }", DisplayName = "discard parameters")]
+    [DataRow("class C { Func<int, int> f = static x => { return x; }; }", "class C { Func<int, int> f = static x => x; }", DisplayName = "static lambda")]
+    [DataRow("class C { Func<Task> f = async () => { await Task.Delay(1); }; }", "class C { Func<Task> f = async () => await Task.Delay(1); }", DisplayName = "async parenthesized lambda")]
+    [DataRow("class C { Func<int, Task<int>> f = async x => { return await Task.FromResult(x); }; }", "class C { Func<int, Task<int>> f = async x => await Task.FromResult(x); }", DisplayName = "async simple lambda")]
+    [DataRow("class C { Func<int, Func<int, int>> f = x => { return y => { return x + y; }; }; }", "class C { Func<int, Func<int, int>> f = x => y => x + y; }", DisplayName = "nested lambdas")]
+    [DataRow("class C { Func<int, int, int> f = delegate (int a, int b) { return a - b; }; }", "class C { Func<int, int, int> f = (int a, int b) => a - b; }", DisplayName = "anonymous method with parameters")]
+    [DataRow("class C { Func<int, string> f = x => { return $\"{x} => {{ }}\"; }; }", "class C { Func<int, string> f = x => $\"{x} => {{ }}\"; }", DisplayName = "interpolated string with braces")]
+    [DataRow("class C { Func<object, bool> f = o => { return o is string { Length: > 0 }; }; }", "class C { Func<object, bool> f = o => o is string { Length: > 0 }; }", DisplayName = "property pattern")]
+    public void SingleExpressionBody_BecomesExpressionBodied(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFile_SimplifiesLambdasWithAFixedTargetType()
+    {
+        string input =
+            "using System;\r\n" +
+            "\r\n" +
+            "Func<int, int> twice = x => { return x * 2; };\r\n" +
+            "Console.WriteLine(Apply(3, n => { return n + 1; }));\r\n" +
+            "\r\n" +
+            "static int Apply(int value, Func<int, int> f) => f(value);\r\n" +
+            "\r\n" +
+            "class Handlers\r\n" +
+            "{\r\n" +
+            "    public Action Log = () => { Console.WriteLine(); };\r\n" +
+            "}\r\n";
+        // The lambda passed to Apply is left alone: an argument's target type depends on overload resolution.
+        string expected = input
+            .Replace("x => { return x * 2; }", "x => x * 2")
+            .Replace("() => { Console.WriteLine(); }", "() => Console.WriteLine()");
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("\r\n", DisplayName = "CRLF")]
+    [DataRow("\n", DisplayName = "LF")]
+    public void TriviaOutsideTheLambda_IsPreserved(string newLine)
+    {
+        string input =
+            "class C" + newLine +
+            "{" + newLine +
+            "\t/// <summary>Doubles.</summary>" + newLine +
+            "\tFunc<int, int> f = /*a*/ x => { return x * 2; } /*b*/; // trailing" + newLine +
+            "#if NEVER" + newLine +
+            "\tFunc<int, int> g = x => { return x; };" + newLine +
+            "#endif" + newLine +
+            "}" + newLine;
+        string expected = input.Replace("/*a*/ x => { return x * 2; } /*b*/", "/*a*/ x => x * 2 /*b*/");
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileWithSyntaxErrors_SimplifiesTheValidLambdaAndKeepsTheRestVerbatim()
+    {
+        string input = "class C { Func<int, int> f = x => { return x; }; void N( { int y = ; } }";
+        string expected = "class C { Func<int, int> f = x => x; void N( { int y = ; } }";
+
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async System.Threading.Tasks.Task SimplifiedLambdas_CompileWithoutNewErrors()
+    {
+        string input =
+            "using System;\r\n" +
+            "using System.Threading.Tasks;\r\n" +
+            "class C\r\n" +
+            "{\r\n" +
+            "    private int _count;\r\n" +
+            "    public Func<int, int> Twice = x => { return x * 2; };\r\n" +
+            "    public Func<int, Task<int>> Async = async x => { return await Task.FromResult(x); };\r\n" +
+            "    public Func<int, int, int> Sub = delegate (int a, int b) { return a - b; };\r\n" +
+            "    public Func<int> One = delegate { return 1; };\r\n" +
+            "    public EventHandler Handler = delegate { GC.Collect(); };\r\n" +
+            "    public Task Run() => Task.Run(() => { Twice(1); });\r\n" +
+            "    public Action Increment() => () => { _count++; };\r\n" +
+            "    public Action<int> Set() => value => { _count = value; };\r\n" +
+            "}\r\n";
+        Microsoft.CodeAnalysis.Document document = CompilingTestProject.CreateDocument(input);
+        string expected = input
+            .Replace("x => { return x * 2; }", "x => x * 2")
+            .Replace("async x => { return await Task.FromResult(x); }", "async x => await Task.FromResult(x)")
+            .Replace("delegate (int a, int b) { return a - b; }", "(int a, int b) => a - b")
+            .Replace("delegate { return 1; }", "() => 1")
+            .Replace("() => { _count++; }", "() => _count++")
+            .Replace("value => { _count = value; }", "value => _count = value");
+
+        string output = _converter.Apply(input);
+
+        Assert.AreEqual(expected, output);
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, output));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { System.EventHandler h = delegate { System.Console.WriteLine(); }; }", DisplayName = "delegate type with parameters")]
+    [DataRow("class C { void M(Button b) { b.Click += delegate { Log(); }; } }", DisplayName = "event subscription")]
+    [DataRow("class C { System.Func<int, int> f = delegate { return 1; }; }", DisplayName = "Func with a parameter")]
+    [DataRow("class C { MyHandler h = delegate { Log(); }; }", DisplayName = "unknown delegate type")]
+    public void ParameterlessAnonymousMethodWhoseDelegateMayTakeParameters_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { System.Action a = delegate { Log(); }; }", "class C { System.Action a = () => Log(); }", DisplayName = "qualified Action")]
+    [DataRow("class C { void M() { Func<int> f = delegate { return 1; }; } }", "class C { void M() { Func<int> f = () => 1; } }", DisplayName = "local Func without parameters")]
+    public void ParameterlessAnonymousMethodForAParameterlessDelegate_BecomesLambda(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("using System.Threading.Tasks; class C { void M() { Task.Run(() => { F(); }); } }", DisplayName = "overload may switch from Action to Func<Task>")]
+    [DataRow("class C { void M(System.Linq.IQueryable<int> q) { var r = q.Where(x => { return x > 1; }); } }", DisplayName = "overload may switch to an expression tree")]
+    [DataRow("class C { object M() => new Holder(x => { return x; }); }", DisplayName = "constructor argument")]
+    [DataRow("class C { void M() { Run(() => () => { return 1; }); } }", DisplayName = "lambda inside a lambda argument")]
+    [DataRow("class C { System.Collections.Generic.List<System.Action> L = new System.Collections.Generic.List<System.Action> { () => { F(); } }; }", DisplayName = "collection initializer element")]
+    public void LambdaWhoseTargetTypeDependsOnOverloadResolution_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { Func<int, int> f = x => { // keep\n return x; }; }", DisplayName = "comment after the open brace")]
+    [DataRow("class C { Func<int, int> f = x => { return /* why */ x; }; }", DisplayName = "comment after return")]
+    [DataRow("class C { Func<int, int> f = x => { return x; /* why */ }; }", DisplayName = "comment before the close brace")]
+    [DataRow("class C { Action a = () => {\n#if !NEVER\n Log();\n#endif\n}; }", DisplayName = "preprocessor directives")]
+    public void BodyWithCommentsOrDirectives_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
 }

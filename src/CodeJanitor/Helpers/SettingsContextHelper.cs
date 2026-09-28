@@ -60,11 +60,21 @@ internal sealed class SettingsContextHelper
     }
 
     /// <summary>
+    /// Gets or sets the directory holding the user settings file instead of the default
+    /// <c>%LOCALAPPDATA%\CodeJanitor</c>. Null uses the default. Tests set it so they never read or write the
+    /// settings of the developer running them.
+    /// </summary>
+    internal static string UserSettingsDirectoryOverride { get; set; }
+
+    /// <summary>
     /// Gets the path to the user settings file.
     /// </summary>
     internal static string GetUserSettingsPath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodeJanitor", SettingsFilename);
+        var directory = UserSettingsDirectoryOverride ??
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodeJanitor");
+
+        return Path.Combine(directory, SettingsFilename);
     }
 
     /// <summary>

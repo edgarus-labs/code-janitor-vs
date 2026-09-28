@@ -87,7 +87,9 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         var root = CSharpSyntaxTree.ParseText(source).GetCompilationUnitRoot();
         if (HasUnsupportedStructure(root) ||
             !TryGetContainerMembers(root, out var members) ||
-            members.Any(x => x is BaseNamespaceDeclarationSyntax || x is GlobalStatementSyntax))
+            members.Any(x => x is BaseNamespaceDeclarationSyntax || x is GlobalStatementSyntax) ||
+            members.Any(x => x.Modifiers.Any(SyntaxKind.FileKeyword)) ||
+            HasRegionAcrossMembers(root, members))
         {
             return new SplitPlan(source, Array.Empty<PlannedFile>(), TopLevelTypeSplitSkipReason.UnsupportedStructure);
         }
@@ -106,6 +108,11 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         }
 
         var updatedMembers = members.Where(x => !movedMembers.Contains(x)).ToList();
+        if (movedMembers.Contains(members[0]) && members[0].FullSpan.Start == 0)
+        {
+            updatedMembers[0] = WithFileHeaderOf(members[0], updatedMembers[0]);
+        }
+
         var updatedRoot = ReplaceContainedMembers(root, updatedMembers);
 
         var directoryPath = Path.GetDirectoryName(filePath) ?? string.Empty;
@@ -190,6 +197,88 @@ internal sealed class TopLevelTypeToFileSplitPlanner
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Returns true when a #region/#endregion pair is not owned by a single contained member (or by none of them),
+    /// e.g. a region around several types: splitting the members would separate the two directives (CS1028).
+    /// Unpaired region directives also return true.
+    /// </summary>
+    /// <param name="root">The root.</param>
+    /// <param name="members">The contained members.</param>
+    /// <returns>True when splitting could separate a region pair.</returns>
+    private static bool HasRegionAcrossMembers(CompilationUnitSyntax root, IReadOnlyList<MemberDeclarationSyntax> members)
+    {
+        foreach (var region in root.DescendantTrivia(descendIntoTrivia: true)
+            .Where(x => x.IsKind(SyntaxKind.RegionDirectiveTrivia) || x.IsKind(SyntaxKind.EndRegionDirectiveTrivia)))
+        {
+            var related = ((DirectiveTriviaSyntax)region.GetStructure()).GetRelatedDirectives();
+            if (related.Count != 2 || FindOwner(members, related[0]) != FindOwner(members, related[1]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the member whose full span (including its trivia) contains the directive, or null.
+    /// </summary>
+    /// <param name="members">The contained members.</param>
+    /// <param name="directive">The directive.</param>
+    /// <returns>The owning member, or null when the directive is outside every member.</returns>
+    private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive)
+    {
+        return members.FirstOrDefault(x => x.FullSpan.Contains(directive.SpanStart));
+    }
+
+    /// <summary>
+    /// Gives <paramref name="keptMember"/> the file header (the comments and blank lines ending with a blank line at
+    /// the start of the leading trivia) of <paramref name="movedFirstMember"/>, the first thing in the file, so the
+    /// header stays in the original file; the kept member's own leading blank lines are dropped.
+    /// </summary>
+    /// <param name="movedFirstMember">The moved member that starts the file.</param>
+    /// <param name="keptMember">The member that becomes the first member of the original file.</param>
+    /// <returns>The kept member, with the header when there is one.</returns>
+    private static MemberDeclarationSyntax WithFileHeaderOf(MemberDeclarationSyntax movedFirstMember, MemberDeclarationSyntax keptMember)
+    {
+        var trivia = movedFirstMember.GetLeadingTrivia();
+        var headerLength = 0;
+        var hasComment = false;
+        var lineIsBlank = true;
+        for (var i = 0; i < trivia.Count; i++)
+        {
+            var kind = trivia[i].Kind();
+            if (kind == SyntaxKind.SingleLineCommentTrivia || kind == SyntaxKind.MultiLineCommentTrivia)
+            {
+                hasComment = true;
+                lineIsBlank = false;
+            }
+            else if (kind == SyntaxKind.EndOfLineTrivia)
+            {
+                if (lineIsBlank && hasComment)
+                {
+                    headerLength = i + 1;
+                }
+
+                lineIsBlank = true;
+            }
+            else if (kind != SyntaxKind.WhitespaceTrivia)
+            {
+                break;
+            }
+        }
+
+        if (headerLength == 0)
+        {
+            return keptMember;
+        }
+
+        var ownTrivia = keptMember.GetLeadingTrivia()
+            .SkipWhile(x => x.IsKind(SyntaxKind.WhitespaceTrivia) || x.IsKind(SyntaxKind.EndOfLineTrivia));
+
+        return keptMember.WithLeadingTrivia(trivia.Take(headerLength).Concat(ownTrivia));
     }
 
     /// <summary>
