@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.CleanupProgress;
@@ -209,6 +210,33 @@ public sealed class CleanupBatchPartitionerTests
         }
     }
 
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void XmlDocProgressViewModel_CanceledBatch_DoesNotLeaveLaterCleanupsWithACanceledXmlDocumentationRun()
+    {
+        try
+        {
+            RunOnVisualStudioUIThread(() =>
+            {
+                CodeJanitorPackage package = CreatePackage(Substitute.For<DTE2>());
+                List<string> errors = new List<string>();
+
+                // Errors are recorded instead of shown in a modal message box, which would block the test run.
+                XmlDocProgressViewModel viewModel = new XmlDocProgressViewModel(package, Array.Empty<EnvDTE.ProjectItem>(), errors.Add);
+                viewModel.CancelCommand.Execute(null);
+                WaitForBatch(viewModel);
+
+                Assert.IsEmpty(errors, "The canceled batch must not fail.");
+                Assert.IsTrue(viewModel.DialogResult == true, "The canceled batch must complete.");
+                Assert.IsFalse(AiXmlDocumentationLogic.RunToken.IsCancellationRequested, "A canceled XML documentation batch must not cancel the XML documentation of later cleanups.");
+            });
+        }
+        finally
+        {
+            AiXmlDocumentationLogic.BeginRun();
+        }
+    }
+
     /// <summary>
     /// Runs the test on an STA thread that the Visual Studio <see cref="ThreadHelper" /> treats as its UI thread, and
     /// restores the <see cref="ThreadHelper" /> state afterwards.
@@ -301,7 +329,7 @@ public sealed class CleanupBatchPartitionerTests
     /// <summary>
     /// Pumps the dispatcher of this thread, where the batch completes, until the dialog result is set.
     /// </summary>
-    private static void WaitForBatch(CleanupProgressViewModel viewModel)
+    private static void WaitForBatch(BaseProgressViewModel viewModel)
     {
         DispatcherFrame frame = new DispatcherFrame();
         DispatcherTimer poll = new DispatcherTimer(TimeSpan.FromMilliseconds(20), DispatcherPriority.Background, (_, _) => frame.Continue = viewModel.DialogResult is null, Dispatcher.CurrentDispatcher);
