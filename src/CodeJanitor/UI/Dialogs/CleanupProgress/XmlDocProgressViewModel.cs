@@ -236,6 +236,10 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
         _batchStopwatch.Stop();
         UpdateExecutionSummary();
 
+        // Cancel also cancels the process-wide AI XML documentation run, which only BeginRun resets: without a fresh
+        // run every later "run during cleanup" XML documentation would be skipped.
+        AiXmlDocumentationLogic.BeginRun();
+
         // Close the progress dialog immediately so the UI window is never stuck open
         DialogResult = true;
 

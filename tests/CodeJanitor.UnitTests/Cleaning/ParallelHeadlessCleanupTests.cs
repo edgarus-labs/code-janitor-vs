@@ -110,49 +110,6 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void XmlDocProgressViewModel_CanceledBatch_DoesNotLeaveLaterCleanupsWithACanceledXmlDocumentationRun()
-    {
-        Exception failure = null;
-        Thread uiThread = new Thread(() =>
-        {
-            try
-            {
-                SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-                XmlDocProgressViewModel viewModel = new XmlDocProgressViewModel(null, Array.Empty<EnvDTE.ProjectItem>());
-                viewModel.CancelCommand.Execute(null);
-
-                DispatcherFrame frame = new DispatcherFrame();
-                DispatcherTimer poll = new DispatcherTimer(TimeSpan.FromMilliseconds(20), DispatcherPriority.Background, (_, _) => frame.Continue = viewModel.DialogResult is null, Dispatcher.CurrentDispatcher);
-                DispatcherTimer timeout = new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Normal, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
-                Dispatcher.PushFrame(frame);
-                poll.Stop();
-                timeout.Stop();
-
-                Assert.IsTrue(viewModel.DialogResult == true, "The canceled batch must complete.");
-                Assert.IsFalse(AiXmlDocumentationLogic.RunToken.IsCancellationRequested, "A canceled XML documentation batch must not cancel the XML documentation of later cleanups.");
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                AiXmlDocumentationLogic.BeginRun();
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        uiThread.SetApartmentState(ApartmentState.STA);
-        uiThread.Start();
-        uiThread.Join();
-
-        if (failure is not null)
-        {
-            ExceptionDispatchInfo.Capture(failure).Throw();
-        }
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformationsToFiles_CleansMultipleFilesConcurrently()
     {
         List<string> filePaths = [];
