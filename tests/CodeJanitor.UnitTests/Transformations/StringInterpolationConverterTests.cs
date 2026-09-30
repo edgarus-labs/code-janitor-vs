@@ -191,12 +191,50 @@ public class C
     [DataRow("class C { string M(int a, int b) => string.Format(\"{0} { 1}\", a, b); }", DisplayName = "placeholder with leading space, invalid for .NET")]
     [DataRow("class C { string M(int a) => string.Format(\"{0} } {x}\", a); }", DisplayName = "unescaped braces next to a placeholder")]
     [DataRow("class C { string M(int x) => string.Format(\"{0}{1}\", x); }", DisplayName = "one placeholder out of range")]
-    [DataRow("class C { string M(object[] a) => string.Format(\"{0}{1}\", a); }", DisplayName = "params array")]
+    [DataRow("class C { string M(object[] a) => string.Format(\"{0}{1}\", a); }", DisplayName = "second placeholder out of range with an array argument")]
     [DataRow("class C { string M(int x) => System.Text.StringBuilder.Format(\"{0}\", x); }", DisplayName = "qualified non-string receiver")]
     [DataRow("class C\r\n{\r\n    // string.Format(\"{0}\", x)\r\n    string A = \"string.Format(\\\"{0}\\\", x)\";\r\n}\r\n", DisplayName = "code-like text in comment and literal")]
     public void CallThatCannotBecomeAnInterpolatedString_IsUnchanged(string input)
     {
         Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M() => string.Format(\"{0}-{0}\", Next()); int Next() => 0; }", DisplayName = "repeated call argument")]
+    [DataRow("class C { string M() => string.Format(\"{1}{0}\", A(), B()); int A() => 0; int B() => 0; }", DisplayName = "reordered call arguments")]
+    [DataRow("class C { string M() => string.Format(\"{0}\", A(), Log()); int A() => 0; int Log() => 0; }", DisplayName = "unused call argument")]
+    [DataRow("class C { string M(int x) => string.Format(\"{1}{0}\", x++, x++); }", DisplayName = "reordered increment")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0}{0}\", x++); }", DisplayName = "repeated increment")]
+    [DataRow("class C { string M() => string.Format(\"{0} {0}\", System.DateTime.Now); }", DisplayName = "repeated property read that can change between reads")]
+    [DataRow("class C { string M(C c) => string.Format(\"{0}-{0}\", c.Name.Length); string Name; }", DisplayName = "repeated member access chain")]
+    [DataRow("class C { string M(C c, C d) => string.Format(\"{1} before {0}\", c.Name, d.Name); string Name; }", DisplayName = "reordered member access chains")]
+    [DataRow("class C { string M(C c, int b) => string.Format(\"{0}\", b, c.Name); string Name; }", DisplayName = "unused member access chain")]
+    [DataRow("class C { string M(int i) => string.Format(\"{1} {0}\", i, i++); }", DisplayName = "variable read moved after its own increment")]
+    [DataRow("class C { string M(int i) => string.Format(\"{0} {1} {0}\", i, i++); }", DisplayName = "variable read again after its own increment")]
+    [DataRow("class C { string M(int i, int j) => string.Format(\"{1} {0}\", i, i = j); }", DisplayName = "variable read moved after its own assignment")]
+    [DataRow("class C { string M(int i) => string.Format(\"{1} {0}\", i, Read(out i)); int Read(out int v) { v = 1; return v; } }", DisplayName = "variable read moved after its own out argument")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0}\", x, Log()); int Log() => 0; }", DisplayName = "unused call after a used identifier")]
+    [DataRow("class C { string M(int x) => string.Format(/* keep */ \"{0}\", x); }", DisplayName = "comment before the format string")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0}\", /* keep */ x); }", DisplayName = "comment before an argument")]
+    [DataRow("class C { string M(int x, int y) => string.Format(\"{0}\", x /* keep */, y); }", DisplayName = "comment after an unused argument")]
+    [DataRow("class C { string M(int x) => string.Format(\"{0}\", x /* keep */); }", DisplayName = "comment before the closing parenthesis")]
+    public void FormatCallWhoseConversionWouldChangeSideEffectsOrDropComments_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { string M() => string.Format(\"{0}-{0}\", 5); }", "class C { string M() => $\"{5}-{5}\"; }", DisplayName = "repeated literal")]
+    [DataRow("class C { string M(int a, int b) => string.Format(\"{0}\", a, b); }", "class C { string M(int a, int b) => $\"{a}\"; }", DisplayName = "unused side-effect-free argument")]
+    [DataRow("class C { string M(int a) => string.Format(\"{1}-{0}-{1}\", Next(), a); int Next() => 0; }", "class C { string M(int a) => $\"{a}-{Next()}-{a}\"; int Next() => 0; }", DisplayName = "repeated side-effect-free argument beside a single call")]
+    [DataRow("class C { string M(int i, int j) => string.Format(\"{0} {1}\", i, i++); }", "class C { string M(int i, int j) => $\"{i} {i++}\"; }", DisplayName = "variable read before its own increment, in argument order")]
+    [DataRow("class C { string M(int i) => string.Format(\"{0} {1}\", i++, i); }", "class C { string M(int i) => $\"{i++} {i}\"; }", DisplayName = "variable read after its own increment, in argument order")]
+    [DataRow("class C { string M(int i, int j) => string.Format(\"{1} {0}\", i, j++); }", "class C { string M(int i, int j) => $\"{j++} {i}\"; }", DisplayName = "variable read moved around an unrelated increment")]
+    public void FormatCallWhoseEvaluationIsPreserved_BecomesAnInterpolatedString(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
     }
 
     [TestMethod]

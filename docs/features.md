@@ -78,6 +78,33 @@ directives outside their single namespace (a type, a delegate, top-level stateme
 assembly attribute such as `[assembly: InternalsVisibleTo(...)]`), are left unchanged without
 analysis, so no reason is written to the output pane for them.
 
+### Class sealing (C#)
+
+With **Seal Classes** enabled (CA1852), a class gets the `sealed` modifier only where the Roslyn
+semantic model shows that nothing depends on it staying open, in every project that compiles the
+file. A class is left unchanged when:
+
+- it is abstract, static, already sealed or declared in several parts, or declares a virtual or abstract member or a
+  non-overriding protected member (`protected`, `protected internal`, `private protected`),
+  including a protected constructor;
+- any class in the solution derives from it, or a generic constraint names it;
+- code elsewhere in the solution casts, `as`-converts, pattern-matches, uses as a `case` type label or `foreach`
+  element type, or compares with `==`/`!=` to or from an interface the class does not implement, including
+  through arrays, tuple elements, covariant delegate type arguments and generic collection interfaces (sealing
+  would turn these into compile errors);
+- its declaration contains code excluded by a preprocessor directive, or code in an inactive `#if` branch anywhere
+  in the solution derives from, overrides or names it;
+- a project written in another language than C# references its project (only C# is analyzed).
+
+Documents produced by source generators are analyzed like written files. The step is skipped for a file, with
+a warning in the output pane, while the solution is loading or a project is unloaded or failed to load, because
+such a project could contain a class that derives from the sealed one. The analysis cannot see runtime uses: a
+class that a test project mocks or proxies (`Mock<Foo>`, `Substitute.For<Foo>()`) compiles once sealed but fails
+at run time, so turn **Seal Classes** off for such projects.
+
+The step needs the Visual Studio Roslyn workspace and runs for open documents and closed files
+alike, before the type split. It is not part of the C# text cleanup preview.
+
 ### Pattern-matching null checks (C#)
 
 With **Convert null checks to pattern matching** enabled, `x == null` becomes `x is null` and
@@ -90,7 +117,7 @@ the same. A check is left unchanged when:
 - the compared operand is not known to be a reference type, `Nullable<T>` or a type parameter
   not constrained to a value type (non-nullable value types, `dynamic`, unresolved types);
 - the project's C# version does not allow it: `is null` needs C# 7.0, `is not null` needs C# 9;
-- it is in an expression-bodied lambda or a query clause, which may become an expression tree;
+- it is in a non-async expression-bodied lambda or a query clause, which may become an expression tree;
 - it compares an equality (`a == b == null`) or has comments between the operands with `null` on
   the left.
 

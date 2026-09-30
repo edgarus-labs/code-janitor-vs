@@ -68,6 +68,7 @@
     </Compile>
     <Compile Include="UI\AboutVersionTests.cs" />
     <Compile Include="UI\EditorConfigOverrideNotesTests.cs" />
+    <Compile Include="UI\ProgressViewModelTests.cs" />
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
     <Compile Include="Cleaning\CodeStyleCleanupTests.cs" />
@@ -83,6 +84,7 @@
     <Compile Include="Cleaning\RepositoryCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\CleanupBatchPartitionerTests.cs" />
     <Compile Include="Cleaning\ClosedFileWriteTests.cs" />
+    <Compile Include="Cleaning\SemanticFileRewriterTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\RemoveXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />

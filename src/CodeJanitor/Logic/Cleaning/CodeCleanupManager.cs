@@ -381,8 +381,10 @@ internal sealed class CodeCleanupManager
         {
             // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
             // Studio workspace and run first, so the headless steps (header, using organization, type splitting) see
-            // their result. The file is counted as changed as soon as a step rewrites it, so it is counted even when
-            // a later step fails.
+            // their result. A file that only the headless-only branch below finishes is counted as changed as soon as a
+            // step rewrites it, so it is counted even when a later step fails. When editor cleanup is required the file
+            // is counted as an editor item by CleanupDocument instead, and must not be counted as changed as well.
+            var countedWhenRewritten = !RequiresEditorCleanupForCSharp();
             await CleanupProgressViewModel.RunSemanticStepsAsync(
                 new Func<Task<bool>>[]
                 {
@@ -400,7 +402,10 @@ internal sealed class CodeCleanupManager
                     if (!changedBySemanticSteps)
                     {
                         changedBySemanticSteps = true;
-                        IncrementHeadlessChanged();
+                        if (countedWhenRewritten)
+                        {
+                            IncrementHeadlessChanged();
+                        }
                     }
                 });
 
@@ -605,8 +610,15 @@ internal sealed class CodeCleanupManager
         }
         catch (Exception ex)
         {
+            // The original file was not persisted, so it still declares the moved types: the files created for them
+            // would duplicate their declarations (CS0101).
+            var removedFileCount = createdFiles.Count;
+            TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(createdFiles);
+            createdFiles.Clear();
+
             OutputWindowHelper.WarningWriteLine(
-                $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}");
+                $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}" +
+                (removedFileCount > 0 ? $" The {removedFileCount} file(s) created by the top-level type split were removed." : string.Empty));
 
             return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
         }
@@ -1787,6 +1799,20 @@ internal sealed class CodeCleanupManager
             return;
         }
 
+        // The original must drop the moved types before anything else depends on the new files: if replacing its
+        // text fails, the new files would duplicate the declarations that stay in the original (CS0101).
+        try
+        {
+            var endPoint = textDocument.EndPoint.CreateEditPoint();
+            startPoint.ReplaceText(endPoint, splitResult.UpdatedSource, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+        }
+        catch
+        {
+            TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(splitResult.CreatedFiles);
+
+            throw;
+        }
+
         foreach (var createdFile in splitResult.CreatedFiles)
         {
             AddGeneratedFileToProject(projectItem, createdFile);
@@ -1797,9 +1823,6 @@ internal sealed class CodeCleanupManager
 
         OutputWindowHelper.DiagnosticWriteLine(
             $"Top-level type split for '{filePath}' created {splitResult.CreatedFiles.Count} file(s).");
-
-        var endPoint = textDocument.EndPoint.CreateEditPoint();
-        startPoint.ReplaceText(endPoint, splitResult.UpdatedSource, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
 
     /// <summary>

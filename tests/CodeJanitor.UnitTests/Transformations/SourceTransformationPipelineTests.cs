@@ -295,11 +295,13 @@ public sealed class SourceTransformationPipelineTests
     [TestCategory("Transformations UnitTests")]
     public void WhitespaceFlowOverATopLevelStatementsFile_ProducesCleanOutputWithoutAddedComments()
     {
+        // The top-level part deliberately has no return: padding only applies to returns inside braced blocks
+        // (see ReturnThrowBlankLinePaddingConverterTests), which this test does not want to pin a second time.
         string input =
-            "\uFEFFusing System;  \r\n\r\n\r\n\r\n//Entry point\r\nConsole.WriteLine(\"hi\");\t\r\nreturn Run();\r\n\r\n" +
+            "\uFEFFusing System;  \r\n\r\n\r\n\r\n//Entry point\r\nConsole.WriteLine(\"hi\");\t\r\nRun();\r\n\r\n" +
             "static int Run()\r\n{\r\n\tvar x = 1;\r\n\treturn x;\r\n}";
         string expected =
-            "using System;\r\n\r\n// Entry point\r\nConsole.WriteLine(\"hi\");\r\nreturn Run();\r\n\r\n" +
+            "using System;\r\n\r\n// Entry point\r\nConsole.WriteLine(\"hi\");\r\nRun();\r\n\r\n" +
             "static int Run()\r\n{\r\n    var x = 1;\r\n\r\n    return x;\r\n}\r\n";
         SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
             new ByteOrderMarkConverter(),

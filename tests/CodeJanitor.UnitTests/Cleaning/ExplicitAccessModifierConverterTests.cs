@@ -339,6 +339,26 @@ public sealed class ExplicitAccessModifierConverterTests
     }
 
     [TestMethod]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "internal record struct P;", DisplayName = "classes disabled: the record struct is still a struct")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "record struct P;", DisplayName = "structs disabled: the record struct stays as it is")]
+    public void RecordStruct_FollowsTheStructSetting(string disabledSetting, string expected)
+    {
+        Settings.Default[disabledSetting] = false;
+
+        Assert.AreEqual(expected, _converter.Apply("record struct P;"));
+    }
+
+    [TestMethod]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "record R;", DisplayName = "classes disabled: the record class stays as it is")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "internal record R;", DisplayName = "structs disabled: the record class is still a class")]
+    public void RecordClass_FollowsTheClassSetting(string disabledSetting, string expected)
+    {
+        Settings.Default[disabledSetting] = false;
+
+        Assert.AreEqual(expected, _converter.Apply("record R;"));
+    }
+
+    [TestMethod]
     public void GenericMethodWithAttributeOnTypeParameter_InsertsModifierWithoutCorruption()
     {
         // No explicit access modifier, so PrependModifier must actually run for both methods -
@@ -370,14 +390,14 @@ public sealed class ExplicitAccessModifierConverterTests
     }
 
     [TestMethod]
-    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "class C { } record R; record struct P;", DisplayName = "classes and records")]
-    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "struct S { }", DisplayName = "structs")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "class C { } record R;", DisplayName = "classes and records")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "struct S { } record struct P;", DisplayName = "structs and record structs")]
     [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces), "interface I { }", DisplayName = "interfaces")]
     [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations), "enum E { A }", DisplayName = "enumerations")]
     [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates), "delegate void D();", DisplayName = "delegates")]
     [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields), "public class C { int _x; }", DisplayName = "fields")]
     [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods), "public class C { void M() { } C() { } }", DisplayName = "methods and constructors")]
-    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties), "public class C { int P { get; set; } }", DisplayName = "properties")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties), "public class C { int P { get; set; } int this[int i] => i; }", DisplayName = "properties and indexers")]
     [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents), "public class C { event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "events")]
     public void DisabledKind_IsLeftWithoutModifier(string settingName, string source)
     {
@@ -422,9 +442,9 @@ public sealed class ExplicitAccessModifierConverterTests
     [DataRow("partial record R;", DisplayName = "partial record")]
     [DataRow("public partial class C { partial void M(); }", DisplayName = "partial method")]
     [DataRow("public class C { static C() { } ~C() { } }", DisplayName = "static constructor and finalizer")]
-    [DataRow("public class C : I { void I.M() { } int I.P => 1; event System.Action I.E { add { } remove { } } }", DisplayName = "explicit interface implementations")]
-    [DataRow("public interface I { void M(); int P { get; } event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "interface members")]
-    [DataRow("public class C { public static C operator +(C a, C b) => a; int this[int i] => i; }", DisplayName = "operators and indexers")]
+    [DataRow("public class C : I { void I.M() { } int I.P => 1; int I.this[int i] => i; event System.Action I.E { add { } remove { } } }", DisplayName = "explicit interface implementations")]
+    [DataRow("public interface I { void M(); int P { get; } int this[int i] { get; } event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "interface members")]
+    [DataRow("public class C { public static C operator +(C a, C b) => a; }", DisplayName = "operators")]
     [DataRow("namespace N { int x; void M() { } int P { get; set; } event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "members directly in a namespace")]
     [DataRow("namespace N { N() { } }", DisplayName = "constructor-like member directly in a namespace")]
     [DataRow("using System;\r\nConsole.WriteLine(1);\r\nstatic void Local() { }\r\nint value = 2;\r\n", DisplayName = "top-level statements and local functions")]
@@ -445,6 +465,9 @@ public sealed class ExplicitAccessModifierConverterTests
     [DataRow("public class C { static void M() { } async System.Threading.Tasks.Task N() { } }", "public class C { private static void M() { } private async System.Threading.Tasks.Task N() { } }", DisplayName = "static and async methods")]
     [DataRow("public unsafe class C { unsafe C(int* p) { } }", "public unsafe class C { private unsafe C(int* p) { } }", DisplayName = "unsafe constructor")]
     [DataRow("public class C { static int P { get; } }", "public class C { private static int P { get; } }", DisplayName = "static property")]
+    [DataRow("public class C { int this[int i] => i; }", "public class C { private int this[int i] => i; }", DisplayName = "indexer")]
+    [DataRow("public struct S { int this[int i] { get { return i; } } }", "public struct S { private int this[int i] { get { return i; } } }", DisplayName = "indexer in a struct")]
+    [DataRow("public unsafe class C { unsafe int this[int i] => i; }", "public unsafe class C { private unsafe int this[int i] => i; }", DisplayName = "unsafe indexer")]
     [DataRow("public class C { static event System.Action E; static event System.Action F { add { } remove { } } }", "public class C { private static event System.Action E; private static event System.Action F { add { } remove { } } }", DisplayName = "static events")]
     [DataRow("public class C { interface I { } struct S { } delegate void D(); record struct P; }", "public class C { private interface I { } private struct S { } private delegate void D(); private record struct P; }", DisplayName = "nested type kinds")]
     [DataRow("public struct S { int _x; void M() { } int P => 1; class N { } }", "public struct S { private int _x; private void M() { } private int P => 1; private class N { } }", DisplayName = "struct members")]

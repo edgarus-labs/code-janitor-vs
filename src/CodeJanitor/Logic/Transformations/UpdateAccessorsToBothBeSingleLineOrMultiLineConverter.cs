@@ -261,13 +261,13 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
             }
 
             var statements = body.Statements.Select(statement => statement
-                .WithLeadingTrivia(statement.GetLeadingTrivia().Insert(0, statementIndent))
-                .WithTrailingTrivia(TrimEnd(statement.GetTrailingTrivia()).Add(newline)));
+                .WithLeadingTrivia(TrimStart(statement.GetLeadingTrivia()).Insert(0, statementIndent))
+                .WithTrailingTrivia(EndWithLineBreak(statement.GetTrailingTrivia(), newline)));
 
             var newBody = body
-                .WithOpenBraceToken(openBrace.WithTrailingTrivia(TrimEnd(openBrace.TrailingTrivia).Add(newline)))
+                .WithOpenBraceToken(openBrace.WithTrailingTrivia(EndWithLineBreak(openBrace.TrailingTrivia, newline)))
                 .WithStatements(SyntaxFactory.List(statements))
-                .WithCloseBraceToken(body.CloseBraceToken.WithLeadingTrivia(body.CloseBraceToken.LeadingTrivia.Insert(0, indent)));
+                .WithCloseBraceToken(body.CloseBraceToken.WithLeadingTrivia(TrimStart(body.CloseBraceToken.LeadingTrivia).Insert(0, indent)));
 
             if (braceIsOnHeaderLine)
             {
@@ -360,6 +360,31 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
             }
 
             return trivia;
+        }
+
+        /// <summary>
+        /// Removes the whitespace trivia at the start of <paramref name="trivia" />, the indentation that
+        /// the expanded layout replaces.
+        /// </summary>
+        private static SyntaxTriviaList TrimStart(SyntaxTriviaList trivia)
+        {
+            while (trivia.Count > 0 && trivia[0].IsKind(SyntaxKind.WhitespaceTrivia))
+            {
+                trivia = trivia.RemoveAt(0);
+            }
+
+            return trivia;
+        }
+
+        /// <summary>
+        /// Removes the trailing whitespace of <paramref name="trivia" /> and ends it with one line break,
+        /// adding <paramref name="lineBreak" /> only when the trivia does not end its line already.
+        /// </summary>
+        private static SyntaxTriviaList EndWithLineBreak(SyntaxTriviaList trivia, SyntaxTrivia lineBreak)
+        {
+            trivia = TrimEnd(trivia);
+
+            return trivia.Count > 0 && trivia[trivia.Count - 1].IsKind(SyntaxKind.EndOfLineTrivia) ? trivia : trivia.Add(lineBreak);
         }
     }
 }

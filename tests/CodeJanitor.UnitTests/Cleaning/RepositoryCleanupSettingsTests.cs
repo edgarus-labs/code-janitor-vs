@@ -442,13 +442,31 @@ public sealed class RepositoryCleanupSettingsTests
         RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
             "{ \"cleanup\": { \"insertExplicitAccessModifiers\": true, \"insertBlankLinePadding\": true } }");
 
-        foreach (string member in new[] { "Classes", "Delegates", "Enumerations", "Events", "Fields", "Interfaces", "Methods", "Properties", "Structs" })
+        string[] accessModifierMembers = { "Classes", "Delegates", "Enumerations", "Events", "Fields", "Interfaces", "Methods", "Properties", "Structs" };
+        foreach (string member in accessModifierMembers)
         {
             Assert.IsTrue(overrides.TryGetBoolean("Cleaning_InsertExplicitAccessModifiersOn" + member, false), member);
         }
 
-        Assert.IsTrue(overrides.TryGetBoolean("Cleaning_InsertBlankLinePaddingBeforeCaseStatements", false));
-        Assert.AreEqual(9 + 27, overrides.Count, "Single-line fields/properties and single-line comments are not part of the alias.");
+        // The alias covers every Before/After padding setting except the single-line fields/properties and single-line
+        // comments; the "Between" setting for property accessors is a separate switch.
+        string[] notInTheAlias =
+        {
+            "Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine", "Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine",
+            "Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine", "Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine",
+            "Cleaning_InsertBlankLinePaddingBeforeSingleLineComments",
+        };
+        string[] expectedPadding = Settings.Default.Properties.Cast<System.Configuration.SettingsProperty>()
+            .Select(property => property.Name)
+            .Where(name => (name.StartsWith("Cleaning_InsertBlankLinePaddingBefore", System.StringComparison.Ordinal)
+                    || name.StartsWith("Cleaning_InsertBlankLinePaddingAfter", System.StringComparison.Ordinal))
+                && !notInTheAlias.Contains(name))
+            .ToArray();
+
+        CollectionAssert.AreEquivalent(
+            accessModifierMembers.Select(member => "Cleaning_InsertExplicitAccessModifiersOn" + member).Concat(expectedPadding).ToArray(),
+            overrides.Values.Keys.ToArray());
+        Assert.IsTrue(overrides.Values.Values.All(value => value is bool flag && flag));
     }
 
     [TestMethod]

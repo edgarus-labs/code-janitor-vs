@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -11,14 +10,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// </summary>
 public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
 {
-    private static readonly Regex RegionDirectiveRegex = new Regex(
-        @"^[ \t]*#region\b[ \t]*(.*)$",
-        RegexOptions.Multiline | RegexOptions.Compiled);
-
-    private static readonly Regex EndRegionDirectiveRegex = new Regex(
-        @"^[ \t]*#endregion\b[ \t]*(.*)$",
-        RegexOptions.Multiline | RegexOptions.Compiled);
-
     /// <summary>
     /// Gets the name.
     /// </summary>
@@ -46,31 +37,38 @@ public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
         while (lineStart < source.Length)
         {
             int contentEnd = RegionDirectiveRemover.FindLineEnd(source, lineStart, out int nextLineStart);
-            string line = source.Substring(lineStart, contentEnd - lineStart);
-            Match regionMatch = RegionDirectiveRegex.Match(line);
-            bool isEndRegion = !regionMatch.Success && regionStack.Count > 0 && EndRegionDirectiveRegex.IsMatch(line);
-            bool isCode = (regionMatch.Success || isEndRegion) && !RegionDirectiveRemover.StartsInside(protectedSpans, lineStart);
+            bool isRegion = RegionDirectiveRemover.IsDirectiveLine(source, lineStart, contentEnd, "region", out int afterRegion);
+            bool isEndRegion = !isRegion && regionStack.Count > 0
+                && RegionDirectiveRemover.IsDirectiveLine(source, lineStart, contentEnd, "endregion", out _);
+            bool isCode = (isRegion || isEndRegion) && !RegionDirectiveRemover.StartsInside(protectedSpans, lineStart);
 
-            if (regionMatch.Success && isCode)
+            if (isRegion && isCode)
             {
-                regionStack.Push(regionMatch.Groups[1].Value.Trim());
-                result.Append(line);
+                regionStack.Push(source.Substring(afterRegion, contentEnd - afterRegion).Trim());
+                result.Append(source, lineStart, contentEnd - lineStart);
             }
             else if (isEndRegion && isCode)
             {
                 string matchingRegionName = regionStack.Pop();
 
-                // Build the new #endregion directive: "#endregion" + optional space + region name
-                string newDirective = string.IsNullOrEmpty(matchingRegionName) ?
-                    "#endregion" :
-                    $"#endregion {matchingRegionName}";
+                // Keep the indentation, then build the new #endregion directive: "#endregion" + optional space + region name
+                int indentationEnd = lineStart;
+                while (source[indentationEnd] == ' ' || source[indentationEnd] == '\t')
+                {
+                    indentationEnd++;
+                }
 
-                result.Append(GetIndentation(line)).Append(newDirective);
+                result.Append(source, lineStart, indentationEnd - lineStart);
+                result.Append("#endregion");
+                if (!string.IsNullOrEmpty(matchingRegionName))
+                {
+                    result.Append(' ').Append(matchingRegionName);
+                }
             }
             else
             {
                 // Not a directive, or an #endregion without a matching #region: keep the line as-is
-                result.Append(line);
+                result.Append(source, lineStart, contentEnd - lineStart);
             }
 
             result.Append(source, contentEnd, nextLineStart - contentEnd);
@@ -78,24 +76,5 @@ public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
         }
 
         return result.ToString();
-    }
-
-    /// <summary>
-    /// Returns the leading whitespace (spaces and tabs) from the input line by counting consecutive whitespace characters until the first non-whitespace character, then extracting that substring with no side effects or thrown exceptions.
-    /// </summary>
-    /// <param name="line">The line.</param>
-    /// <returns>A string value produced by this method.</returns>
-    private static string GetIndentation(string line)
-    {
-        int count = 0;
-        foreach (char c in line)
-        {
-            if (c == ' ' || c == '\t')
-                count++;
-            else
-                break;
-        }
-
-        return line.Substring(0, count);
     }
 }

@@ -34,6 +34,21 @@ namespace CodeJanitor.Logic.Transformations;
 /// </remarks>
 public sealed class NullCheckPatternMatchingConverter
 {
+    private readonly Action<string> _reportSkipped;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NullCheckPatternMatchingConverter" /> class.
+    /// </summary>
+    /// <param name="reportSkipped">
+    /// Receives a message when <c>!= null</c> checks were left unchanged only because the language version of a project
+    /// compiling the file is older than C# 9; null to report nothing. It runs on the thread completing the analysis,
+    /// which is not the UI thread: it must not write to the output pane or use any COM object itself.
+    /// </param>
+    public NullCheckPatternMatchingConverter(Action<string> reportSkipped = null)
+    {
+        _reportSkipped = reportSkipped;
+    }
+
     /// <summary>
     /// Converts the null checks of the file that are safe to convert in every document of <paramref name="documents" />.
     /// </summary>
@@ -41,6 +56,18 @@ public sealed class NullCheckPatternMatchingConverter
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The text of the file with the safe null checks converted, or its unchanged text when none is.</returns>
     public async Task<string> ConvertAsync(IReadOnlyList<Document> documents, CancellationToken cancellationToken)
+    {
+        var inequalitySkipped = false;
+        var converted = await ConvertCoreAsync(documents, () => inequalitySkipped = true, cancellationToken).ConfigureAwait(false);
+        if (inequalitySkipped)
+        {
+            _reportSkipped?.Invoke("'!= null' checks were left unchanged: 'is not null' patterns need C# 9, and a project compiling the file uses an older language version.");
+        }
+
+        return converted;
+    }
+
+    private async Task<string> ConvertCoreAsync(IReadOnlyList<Document> documents, Action onInequalitySkipped, CancellationToken cancellationToken)
     {
         if (documents is null || documents.Count == 0)
         {
@@ -52,7 +79,7 @@ public sealed class NullCheckPatternMatchingConverter
 
         foreach (var document in documents)
         {
-            var safeInDocument = await GetConvertibleAsync(document, cancellationToken).ConfigureAwait(false);
+            var safeInDocument = await GetConvertibleAsync(document, onInequalitySkipped, cancellationToken).ConfigureAwait(false);
             if (convertible is null)
             {
                 convertible = safeInDocument;
@@ -75,7 +102,7 @@ public sealed class NullCheckPatternMatchingConverter
     /// Gets the spans of the null checks of <paramref name="document" /> whose conversion keeps the behavior and
     /// compiles in its project.
     /// </summary>
-    private static async Task<HashSet<TextSpan>> GetConvertibleAsync(Document document, CancellationToken cancellationToken)
+    private static async Task<HashSet<TextSpan>> GetConvertibleAsync(Document document, Action onInequalitySkipped, CancellationToken cancellationToken)
     {
         var convertible = new HashSet<TextSpan>();
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
@@ -88,12 +115,19 @@ public sealed class NullCheckPatternMatchingConverter
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         foreach (var check in root.DescendantNodes().OfType<BinaryExpressionSyntax>())
         {
-            if (TryGetComparedOperand(check, out var operand) &&
-                (check.IsKind(SyntaxKind.EqualsExpression) || languageVersion >= LanguageVersion.CSharp9) &&
-                IsReferenceEqualityCheck(check, operand, semanticModel, cancellationToken))
+            if (!TryGetComparedOperand(check, out var operand) ||
+                !IsReferenceEqualityCheck(check, operand, semanticModel, cancellationToken))
             {
-                convertible.Add(check.Span);
+                continue;
             }
+
+            if (check.IsKind(SyntaxKind.NotEqualsExpression) && languageVersion < LanguageVersion.CSharp9)
+            {
+                onInequalitySkipped();
+                continue;
+            }
+
+            convertible.Add(check.Span);
         }
 
         return convertible;

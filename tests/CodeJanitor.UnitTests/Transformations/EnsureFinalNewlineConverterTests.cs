@@ -103,7 +103,6 @@ public sealed class EnsureFinalNewlineConverterTests
     [TestCategory("Transformations UnitTests")]
     [DataRow("Console.WriteLine();\r\n// end", "Console.WriteLine();\r\n// end\r\n", DisplayName = "top-level statements file ending with a comment")]
     [DataRow("#region R\r\n#endregion", "#region R\r\n#endregion\r\n", DisplayName = "file ending with a directive")]
-    [DataRow("class C { }\n   ", "class C { }\n   \n", DisplayName = "whitespace-only last line is kept")]
     [DataRow("\r\n\r\n", "\r\n", DisplayName = "file of blank lines")]
     [DataRow("a\nb\r\n\n", "a\nb\r\n", DisplayName = "mixed line breaks use CRLF")]
     public void FinalLineBreak_IsExactlyOne(string input, string expected)
@@ -119,5 +118,21 @@ public sealed class EnsureFinalNewlineConverterTests
     public void CarriageReturnOnlyFile_KeepsItsLineBreakStyle(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C\n{\n}", DisplayName = "missing final line break")]
+    [DataRow("class C\r\n{\r\n}\r\n\r\n\r\n", DisplayName = "several CRLF line breaks")]
+    [DataRow("a\nb\r\n\n", DisplayName = "mixed line breaks")]
+    [DataRow("class C { }\r\r\r", DisplayName = "CR-only file with several final line breaks")]
+    [DataRow("#region R\r\n#endregion", DisplayName = "file ending with a directive")]
+    [DataRow("\r\n\r\n", DisplayName = "file of blank lines")]
+    public void Apply_IsIdempotent(string input)
+    {
+        string once = _converter.Convert(input);
+
+        Assert.AreNotEqual(input, once, "The scenario has to change the input at all.");
+        Assert.AreEqual(once, _converter.Convert(once));
     }
 }

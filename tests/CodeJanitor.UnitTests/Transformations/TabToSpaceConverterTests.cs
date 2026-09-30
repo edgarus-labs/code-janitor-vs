@@ -177,4 +177,20 @@ public sealed class TabToSpaceConverterTests
 
         Assert.AreEqual(expected, new TabToSpaceConverter().Convert(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(4, "class C\n{\n\tint x;\n}\n", DisplayName = "indentation, default tab size")]
+    [DataRow(2, "class C\n{\n\t\tint x;\n}\n", DisplayName = "nested indentation, custom tab size")]
+    [DataRow(4, "class C\r\n{\r\n\t#region R\r\n\t/// <summary>Doc</summary>\r\n\tint x;\t// trailing\r\n\t#endregion\r\n}\r\n", DisplayName = "directives, documentation comments and trailing tabs")]
+    [DataRow(4, "class C\n{\n\tstring s = \"a\tb\";\n\tstring v = @\"x\ty\";\n}\n", DisplayName = "literals keep their tabs")]
+    [DataRow(4, "class C\n{\n\t/**\n\t * <summary>Doc</summary>\n\t */\n\tint x;\n}\n", DisplayName = "multi-line documentation comment")]
+    public void Convert_IsIdempotent(int tabSize, string input)
+    {
+        TabToSpaceConverter converter = new TabToSpaceConverter(tabSize);
+        string once = converter.Convert(input);
+
+        Assert.AreNotEqual(input, once, "The scenario has to change the input at all.");
+        Assert.AreEqual(once, converter.Convert(once));
+    }
 }

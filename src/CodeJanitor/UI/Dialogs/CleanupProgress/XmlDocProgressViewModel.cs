@@ -250,6 +250,11 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
         _batchStopwatch.Stop();
         UpdateExecutionSummary();
 
+        // The batch counts as canceled when the worker was canceled or the process-wide AI XML documentation run was
+        // canceled (the Cancel button cancels both, also after the work finished). This is read before BeginRun, which
+        // replaces the canceled run.
+        var canceled = e.Cancelled || AiXmlDocumentationLogic.RunToken.IsCancellationRequested;
+
         // Cancel also cancels the process-wide AI XML documentation run, which only BeginRun resets: without a fresh
         // run every later "run during cleanup" XML documentation would be skipped.
         AiXmlDocumentationLogic.BeginRun();
@@ -263,7 +268,7 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
                 $"Add XMLDoc batch failed after changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}. Error: {e.Error.Message}");
             _showError(e.Error.Message);
         }
-        else if (e.Cancelled || AiXmlDocumentationLogic.RunToken.IsCancellationRequested)
+        else if (canceled)
         {
             OutputWindowHelper.InfoWriteLine(
                 $"Add XMLDoc batch canceled. Processed {ProcessedCount} of {CountTotal} file(s). Changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");

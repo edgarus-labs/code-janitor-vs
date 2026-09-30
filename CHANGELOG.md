@@ -91,9 +91,13 @@ This file records changes made in Code Janitor after the project became an indep
 	as diagnostic fixes in the cleanup summary.
 - Splitting top-level types into their own files now also moves structs (and record structs); classes,
 	interfaces, records, enums and delegates were already split. Partial types stay in place.
-- Cleanup skip reasons and informational messages (batch completed/canceled, build verification passed) are
-	written to the output pane only in Diagnostics Mode.
-- A code fix provider that fails during diagnostic cleanup is now named in the output pane, with its error message.
+- Cleanup skip reasons and informational messages (batch completed/canceled, build verification passed, repository
+	settings import/export results) are written to the output pane only in Diagnostics Mode.
+- A code fix provider that fails during diagnostic cleanup no longer aborts the cleanup of the file: it is named in
+	the output pane with its error message, asked only once per diagnostic id per file cleanup, the other fixes are
+	still applied and the diagnostic is reported as unresolved. A failure that means the host Roslyn cannot be bound
+	(older than the Roslyn 5.0 Code Janitor is built against) is still reported as a failure that leaves the file
+	unchanged, not blamed on a provider.
 
 ### Removed
 
@@ -114,23 +118,34 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed "Seal Classes" not sealing a class that the cleanup of an open document moved to its own file
 	("Move top-level types to separate files"); it was sealed only by the next cleanup of the created file.
 - Fixed "Seal Classes" sealing a class that code elsewhere in the solution casts, `as`-converts or pattern-matches
-	to or from an interface it does not implement (`CS0030`, `CS0039`, `CS8121`), or that code in an inactive `#if`
+	to or from an interface it does not implement (`CS0030`, `CS0039`, `CS8121`), including through arrays and generic
+	collection interfaces (`(IList<IBar>)foos`, `foos as IEnumerable<IBar>`), or that code in an inactive `#if`
 	branch derives from, overrides or names.
+- Fixed "Seal Classes" sealing classes it could not prove unused: cleanup is skipped with a warning while the
+	solution is loading or a project is unloaded or failed to load, because such projects are missing from the Roslyn
+	workspace and their derived classes, generic constraints and casts would go unseen. Documents produced by source
+	generators are scanned like written files. The solution-wide scans are cached per project version instead of per
+	solution snapshot, so a batch rescans only what a rewritten file changed. Known limit: a class used as a runtime
+	proxy or mock (`Mock<Foo>`, `Substitute.For<Foo>()`) compiles once sealed but fails at run time; turn off Seal
+	Classes for such projects.
 - Fixed the AI XML documentation option "Run during cleanup" having no effect: cleanup now adds the AI-generated
 	XML documentation to each file it cleans up, open or closed, except in the automatic cleanup on save. Canceling
 	a cleanup batch also stops its XML documentation.
-- Fixed pattern-matching null checks rewriting constant null checks (`const` initializers, default parameter values,
-	attribute arguments, `case` labels), where `is null` does not compile.
-- Fixed string interpolation copying placeholders with spaces or an empty format (`{1, 10}`, `{0 }`, `{0:}`) as
-	literal text; they are now converted, and a format with a brace it cannot convert is left unchanged.
-- Fixed single-statement lambda simplification changing a lambda's natural type (`Action` to `Func<T>`); only lambdas
-	whose target is a written delegate or expression type (`Action`, `Func<>`, `Predicate<>`, `Expression<>`, ...) are
-	simplified.
-- Fixed "Make Fields Readonly" trusting a well-known class name or `I` + upper-case name when the same file declares
-	a mutable struct with that name.
-- Fixed collection expressions replacing implicitly typed arrays whose declared element type could be a covariant
-	base (`object[] a = new[] { "a" }`), which changed the runtime array type.
-- Fixed comment formatting skipping comments inside inactive `#if` branches.
+- Fixed "Inline out variable declarations" dropping the declared type (`Enum.TryParse(text, out var value)` no longer
+	compiled, and overloaded or `dynamic` arguments changed meaning); the inlined declaration now keeps its type
+	(`out DayOfWeek value`). Consecutive declarations before one call are all inlined.
+- Fixed "Move top-level types to separate files" leaving the files it had already created behind when a later file
+	could not be written; a retry no longer creates duplicate `Name~1.cs` files.
+- Fixed the cleanup summary counting a file both as changed and as an editor item when a semantic step changed it and
+	editor cleanup was required.
+- Fixed the cleanup progress dialog staying open when completing the batch failed; the error is written to the output
+	pane.
+- Fixed a diagnostic cleanup fix provider failure losing its stack trace; the full exception is now written to the
+	output pane in Diagnostics Mode.
+- Fixed the accessor consistency cleanup adding a blank line and extra indentation when it expanded an accessor whose
+	body already ended its line.
+- `!= null` checks left unchanged because a project compiles the file with a language version older than C# 9 are
+	reported in the output pane in Diagnostics Mode, with the file path.
 - Fixed single-line method spreading indenting the body from a wrapped parameter or `where` line.
 - Fixed a `#region` around a single top-level type blocking the split into separate files; the region now moves
 	with the type.
@@ -139,7 +154,6 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
 	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
 - Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.
-- Fixed "Make Fields Readonly" cleanup adding `readonly` to private fields mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)` and `Interlocked.Decrement(ref field)`) or writes inside nested types, or fields whose address is taken directly (`&field`, `CS0192`).
 - Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.
 - Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
 - Fixed "Move using directives outside namespace" breaking compilation (`CS0246`) for namespace-relative
@@ -180,29 +194,49 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed "Make Fields Readonly" cleanup breaking compilation or behavior: it no longer makes a field
 	`readonly` when a constructor writes it through another instance (`other.field = ...`, object or `with`
 	initializers), when it is written through a deconstruction, when code excluded by `#if` mentions it, when it
-	is a `fixed` buffer, or when a method is called on it and its type may be a mutable struct (the call would
-	run on a defensive copy). The field's indentation is kept when `readonly` is its first modifier.
+	is a `fixed` buffer, when it is mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)`
+	and `Interlocked.Decrement(ref field)`), when its address is taken directly (`&field`, `CS0192`), when it is
+	written inside a nested type, when a constructor writes one of its members and its type may be a mutable struct
+	(`_p.X = 1`, `_p.X += 1`, `_p.Count++`, `CS1648`), or when a method is called on it and its type may be a mutable
+	struct (the call would run on a defensive copy). A well-known class name or an `I` + upper-case name is trusted as
+	a reference type only when the same file declares no mutable struct with that name; `ID` and `IPv4Address` are no
+	longer assumed to be interfaces, and well-known class names outside `System` are recognised only when their
+	namespace is imported in the file. The field's indentation is kept when `readonly` is its first modifier.
 - Fixed "Inline `out` variable declarations" moving a declaration into a statement that scopes the variable to
 	itself (loops, `using`, `lock`, lambdas, queries), which broke later uses, and dropping comments between the
 	declaration and the call.
 - Fixed "Simplify single-statement lambdas" changing the chosen overload (for example `Func<Task>` instead of
 	`Action`, or an `IQueryable` expression-tree overload) for lambdas passed as arguments or collection
-	elements, converting parameterless anonymous methods whose target needs a parameter list, and dropping
-	comments or directives inside the body.
-- Fixed "Convert to collection expressions" converting multi-dimensional and jagged arrays of another shape
-	and dropping comments or preprocessor directives between the initializer braces.
+	elements, changing a lambda's natural type (`Action` to `Func<T>`; only lambdas whose target is a written delegate
+	or expression type such as `Action`, `Func<>`, `Predicate<>` or `Expression<>` are simplified), converting
+	parameterless anonymous methods whose target needs a parameter list, dropping comments or directives inside the
+	body, dropping `static` from a `static delegate { }` anonymous method, and turning an Allman-style anonymous
+	method into a line that starts with `=>` (the arrow now stays on the header line).
+- Fixed "Convert to collection expressions" converting multi-dimensional and jagged arrays of another shape,
+	dropping comments outside the braces and comments or preprocessor directives between the initializer braces,
+	converting member or indexer initializers (`new List<int> { Capacity = 5 }`) to invalid collection expressions,
+	replacing implicitly typed arrays whose declared element type could be a covariant base
+	(`object[] a = new[] { "a" }`), which changed the runtime array type, and turning open-start ranges (`..3`) in a
+	`Range` collection into spread elements.
 - Fixed "Convert to `var` when the type is apparent" producing `const var` (`CS0822`) and converting arrays
 	whose rank differs from the declared type.
 - Fixed string-format-to-interpolation treating escaped braces (`{{`, `}}`) as placeholders, not escaping
 	backslashes, quotes and control characters in format specifiers (a format specifier containing a brace leaves
-	the call unchanged), and not parenthesizing conditional expressions and `global::` names in holes.
+	the call unchanged), not parenthesizing conditional expressions and `global::` names in holes, copying
+	placeholders with spaces or an empty format (`{1, 10}`, `{0 }`, `{0:}`) as literal text, and dropping comments in
+	the call. Calls whose arguments have side effects are converted only when every argument is still evaluated
+	exactly once and in order: only literals, `this` and plain identifiers may be repeated, reordered or dropped, a
+	member read such as `DateTime.Now` is never duplicated, and an identifier is not moved across an argument that
+	assigns, increments or passes it `ref`/`out`.
 - Fixed pattern-matching null checks changing behavior or breaking compilation: the conversion now runs on
 	the Visual Studio Roslyn workspace and changes a check only when `==`/`!=` binds to the built-in operator
 	(no user-defined or lifted operator from any file, project or referenced assembly, e.g.
 	`UnityEngine.Object`), the operand is a reference type, `Nullable<T>` or a type parameter not constrained
 	to a value type, and the C# version allows it (`is null` C# 7.0, `is not null` C# 9), in every project and
 	target framework compiling the file. It also runs for open documents now, and is no longer part of the
-	text cleanup preview. `a == b == null` (`CS0037`) and comments between the operands are handled.
+	text cleanup preview. `a == b == null` (`CS0037`) and comments between the operands are handled, and constant
+	null checks (`const` initializers, default parameter values, attribute arguments, `case` labels), where
+	`is null` does not compile, are left unchanged.
 - Fixed "Reuse `JsonSerializerOptions`" replacing an argument with a positional `null` that is ambiguous
 	between overloads (`CS0121`); the argument is now named `options:`.
 - Fixed explicit access modifier insertion adding `private` to types and fields nested in interfaces and
@@ -216,7 +250,8 @@ This file records changes made in Code Janitor after the project became an indep
 	were applied inside string literals, and inserted blank lines used a different line ending than the file.
 	A `return` or `throw` that shares its line with other code is left alone.
 - Fixed comment formatting changing string literals, `///` documentation comments, `////` separators and
-	trailing comments after code, and changing the file's line endings.
+	trailing comments after code, skipping comments inside inactive `#if` branches, and changing the file's line
+	endings.
 - Fixed "Remove trailing whitespace" leaving whitespace on a final line without a line break and in some
 	comments and directives. Whitespace inside multi-line string literals and `#if`-disabled code is kept.
 - Fixed multiple-blank-line removal collapsing blank lines inside multi-line string literals and missing
@@ -225,6 +260,22 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed "Ensure final newline" adding `\n` to files that use `\r` line breaks.
 - Fixed single-line method and accessor updates hard-coding CRLF line endings and four-space indentation,
 	dropping comments, and compressing accessor bodies that hold comments, directives or multi-line statements.
+- Fixed blank-line padding adding a blank line directly below `#if`, `#elif` or `#else` or above `#elif`, `#else` or
+	`#endif`, and `return`/`throw` padding adding one directly below a preprocessor directive. `return`/`throw`
+	padding applies only to statements of a braced block; top-level statements and `switch` sections are not padded.
+- Fixed explicit access modifier insertion treating a `record struct` as a class (it now follows the Structs
+	setting; `record` and `record class` follow Classes) and skipping indexers without an access modifier (they
+	get `private` under the Properties setting).
+- Fixed region removal and "Update `#endregion` directives" taking exponential time on deeply nested inactive `#if`
+	branches and allocating a substring per line.
+- Fixed "Move top-level types to separate files" leaving the files it created on disk, next to the unchanged
+	original, when the original could not be saved afterwards (headless cleanup) or its editor text could not be
+	replaced; the files are removed again. `global using` directives are no longer copied into the created files.
+- Fixed the cleanup progress dialog switching to the UI thread through a captured dispatcher instead of the joinable
+	task factory, counting a file whose cleanup failed once per cleanup pass instead of once, and Add XMLDoc reporting
+	a Cancel pressed just before completion as completed. The dialog must now be created on the UI thread.
+- Fixed `nameof` conversion replacing the message argument of `ArgumentException(string)`,
+	`ArgumentException(string, string)` and similar constructors; only the parameter-name argument is converted.
 
 ## CodeMaid history
 

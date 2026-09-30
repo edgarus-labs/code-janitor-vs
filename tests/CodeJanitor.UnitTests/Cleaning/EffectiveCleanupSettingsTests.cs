@@ -818,14 +818,24 @@ public sealed class EffectiveCleanupSettingsTests
     [TestCategory("Cleaning UnitTests")]
     [DataRow("inside_namespace", UsingDirectivePlacementPreference.InsideNamespace)]
     [DataRow("Outside_Namespace", UsingDirectivePlacementPreference.OutsideNamespace)]
-    [DataRow("anywhere", UsingDirectivePlacementPreference.Unchanged, DisplayName = "unknown value")]
-    [DataRow("inside_namespace:loud", UsingDirectivePlacementPreference.Unchanged, DisplayName = "unknown severity")]
-    public void UsingDirectivePlacement_UnknownValueFallsBackToTheDisabledUserSetting(string value, object expected)
+    public void UsingDirectivePlacement_ValidValueWinsOverTheDisabledUserSetting(string value, object expected)
     {
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
         WriteRootEditorConfig($"csharp_using_directive_placement = {value}");
 
         Assert.AreEqual(expected, EffectiveCleanupSettings.For(_filePath).UsingDirectivePlacement);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("anywhere", DisplayName = "unknown value")]
+    [DataRow("inside_namespace:loud", DisplayName = "unknown severity")]
+    public void UsingDirectivePlacement_UnknownValueFallsBackToTheDisabledUserSetting(string value)
+    {
+        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
+        WriteRootEditorConfig($"csharp_using_directive_placement = {value}");
+
+        Assert.AreEqual(UsingDirectivePlacementPreference.Unchanged, EffectiveCleanupSettings.For(_filePath).UsingDirectivePlacement);
     }
 
     [TestMethod]

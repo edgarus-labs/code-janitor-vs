@@ -47,7 +47,7 @@ Visual Studio runtime checklist below is still pending.
 Only `.cs` files are supported in this increment. Other file types are listed as
 skipped. Type splitting, AI documentation, namespace fixing, code reorganization,
 third-party cleanup, Visual Studio formatting/removal of unused usings, moving using
-directives outside namespaces and sealing classes (both need the semantic model), and changes to the
+directives outside namespaces, sealing classes and converting null checks to pattern matching (all need the semantic model), and changes to the
 file's disk encoding are not previewed or applied by this mode.
 
 This is a preview of the existing deterministic text pipeline, not a compiler or

@@ -62,10 +62,25 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         if (_settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)))
             CollectSingleLineCommentPadding(root, text, lines, wantBlankBefore);
 
+        // Conditional directives enclose code the way braces do: no blank line goes right after #if/#elif/#else
+        // or right before #elif/#else/#endif.
+        var afterConditionalOpener = new HashSet<int>();
+        var beforeConditionalCloser = new HashSet<int>();
+        foreach (var trivia in root.DescendantTrivia().Where(t => t.IsDirective))
+        {
+            var line = text.Lines.GetLineFromPosition(trivia.SpanStart).LineNumber;
+            if (trivia.IsKind(SyntaxKind.IfDirectiveTrivia) || trivia.IsKind(SyntaxKind.ElifDirectiveTrivia) || trivia.IsKind(SyntaxKind.ElseDirectiveTrivia))
+                afterConditionalOpener.Add(line + 1);
+
+            if (trivia.IsKind(SyntaxKind.ElifDirectiveTrivia) || trivia.IsKind(SyntaxKind.ElseDirectiveTrivia) || trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
+                beforeConditionalCloser.Add(line);
+        }
+
         var changes = new List<TextChange>();
         foreach (var idx in wantBlankBefore)
         {
-            if (ShouldSkipInsertion(lines, idx) || !IndentationGuard.CanChangeIndentation(root, text.Lines[idx].Start))
+            if (ShouldSkipInsertion(lines, idx) || afterConditionalOpener.Contains(idx) || beforeConditionalCloser.Contains(idx) ||
+                !IndentationGuard.CanChangeIndentation(root, text.Lines[idx].Start))
                 continue;
 
             var previousLine = text.Lines[idx - 1];

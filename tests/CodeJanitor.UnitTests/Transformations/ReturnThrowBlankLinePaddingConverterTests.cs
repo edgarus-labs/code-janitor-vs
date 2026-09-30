@@ -162,8 +162,17 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
         "class C\r\n{\r\n    string M()\r\n    {\r\n        var x = \"\"\"\r\n            Log();\r\n            return y;\r\n            \"\"\";\r\n\r\n        return x;\r\n    }\r\n}\r\n",
         DisplayName = "raw string containing a return is not touched")]
     [DataRow("class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#if NEVER_DEFINED\r\n        Log();\r\n        return 1;\r\n#endif\r\n        return 2;\r\n    }\r\n}\r\n",
-        "class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#if NEVER_DEFINED\r\n        Log();\r\n        return 1;\r\n#endif\r\n\r\n        return 2;\r\n    }\r\n}\r\n",
-        DisplayName = "disabled preprocessor branch")]
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#if NEVER_DEFINED\r\n        Log();\r\n        return 1;\r\n#endif\r\n        return 2;\r\n    }\r\n}\r\n",
+        DisplayName = "return directly below #endif gets no blank line after the directive")]
+    [DataRow("class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#if NEVER_DEFINED\r\n        Log();\r\n#else\r\n        return 2;\r\n#endif\r\n    }\r\n}\r\n",
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#if NEVER_DEFINED\r\n        Log();\r\n#else\r\n        return 2;\r\n#endif\r\n    }\r\n}\r\n",
+        DisplayName = "return directly below #else gets no blank line after the directive")]
+    [DataRow("class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#region Exit\r\n        return 2;\r\n#endregion\r\n    }\r\n}\r\n",
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        Log();\r\n#region Exit\r\n        return 2;\r\n#endregion\r\n    }\r\n}\r\n",
+        DisplayName = "return directly below #region gets no blank line after the directive")]
+    [DataRow("class C\r\n{\r\n    string M()\r\n    {\r\n        var x = @\"a\r\n#b\";\r\n        return x;\r\n    }\r\n}\r\n",
+        "class C\r\n{\r\n    string M()\r\n    {\r\n        var x = @\"a\r\n#b\";\r\n\r\n        return x;\r\n    }\r\n}\r\n",
+        DisplayName = "verbatim string line that looks like a directive is not a directive")]
     [DataRow("class C\r\n{\r\n\tint M()\r\n\t{\r\n\t\tLog();\r\n\t\treturn 1;\r\n\t}\r\n}",
         "class C\r\n{\r\n\tint M()\r\n\t{\r\n\t\tLog();\r\n\r\n\t\treturn 1;\r\n\t}\r\n}",
         DisplayName = "tabs and no final newline")]

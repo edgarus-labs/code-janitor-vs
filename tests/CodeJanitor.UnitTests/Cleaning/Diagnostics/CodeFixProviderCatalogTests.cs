@@ -72,7 +72,8 @@ public sealed class CodeFixProviderCatalogTests
             }
 
             CodeFixProvider hostProvider = new RenameLegacyFieldCodeFixProvider("CJT0500");
-            Project project = CreateProject(new AnalyzerFileReference(path, LoadFromPathLoader.Instance));
+            using AdhocWorkspace workspace = new AdhocWorkspace();
+            Project project = CreateProject(workspace, new AnalyzerFileReference(path, LoadFromPathLoader.Instance));
 
             ImmutableArray<CodeFixProvider> providers = new CodeFixProviderCatalog(new[] { hostProvider }).GetProviders(project);
 
@@ -93,7 +94,8 @@ public sealed class CodeFixProviderCatalogTests
         {
             string path = Path.Combine(directory, "Partial.Analyzers.dll");
             File.WriteAllBytes(path, EmitPartiallyLoadableAnalyzerAssembly());
-            Project project = CreateProject(new AnalyzerFileReference(path, LoadFromBytesLoader.Instance));
+            using AdhocWorkspace workspace = new AdhocWorkspace();
+            Project project = CreateProject(workspace, new AnalyzerFileReference(path, LoadFromBytesLoader.Instance));
 
             ImmutableArray<CodeFixProvider> providers = new CodeFixProviderCatalog().GetProviders(project);
 
@@ -114,10 +116,8 @@ public sealed class CodeFixProviderCatalogTests
         return directory;
     }
 
-    private static Project CreateProject(AnalyzerReference reference)
+    private static Project CreateProject(AdhocWorkspace workspace, AnalyzerReference reference)
     {
-        AdhocWorkspace workspace = new AdhocWorkspace();
-
         return workspace.CurrentSolution.AddProject("Analyzed", "Analyzed", LanguageNames.CSharp).AddAnalyzerReference(reference);
     }
 

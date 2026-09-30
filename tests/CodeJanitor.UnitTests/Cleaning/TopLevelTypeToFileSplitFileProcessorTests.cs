@@ -241,6 +241,143 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     }
 
     [TestMethod]
+    public void Apply_WhenALaterFileFails_ThrowsAndLeavesNoCreatedFilesBehind()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string originalContent = "class Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n";
+        File.WriteAllText(filePath, originalContent);
+        string foreignFile = Path.Combine(_tempDirectory, "Other.cs");
+        File.WriteAllText(foreignFile, "content written by someone else");
+        int transformCalls = 0;
+
+        Exception exception = Assert.Throws<InvalidOperationException>(() => _processor.Apply(
+            originalContent,
+            filePath,
+            Encoding.UTF8,
+            null,
+            transformCreatedFile: (text, path) =>
+            {
+                transformCalls++;
+                if (transformCalls == 2)
+                {
+                    throw new InvalidOperationException("second file failed");
+                }
+
+                return text;
+            }));
+
+        Assert.AreEqual("second file failed", exception.Message);
+        Assert.AreSequenceEqual(new[] { filePath, foreignFile }.OrderBy(x => x, StringComparer.Ordinal).ToArray(), Directory.GetFiles(_tempDirectory).OrderBy(x => x, StringComparer.Ordinal).ToArray());
+        Assert.AreEqual(originalContent, File.ReadAllText(filePath));
+        Assert.AreEqual("content written by someone else", File.ReadAllText(foreignFile));
+
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult retry = _processor.Apply(originalContent, filePath, Encoding.UTF8, null);
+
+        Assert.AreSequenceEqual(
+            new[] { Path.Combine(_tempDirectory, "Bar.cs"), Path.Combine(_tempDirectory, "Baz.cs") },
+            retry.CreatedFiles.OrderBy(x => x, StringComparer.Ordinal).ToArray());
+    }
+
+    [TestMethod]
+    public void Apply_WhenTheSecondFileCannotBeWritten_DeletesTheFirstOneAndKeepsTheOriginalException()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string blockedPath = Path.Combine(_tempDirectory, "Baz.cs");
+        int transformCalls = 0;
+
+        Exception exception = Assert.Throws<Exception>(() => _processor.Apply(
+            "class Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n",
+            filePath,
+            Encoding.UTF8,
+            null,
+            transformCreatedFile: (text, path) =>
+            {
+                // The second planned file is blocked once its content is transformed, i.e. right before it is written.
+                if (++transformCalls == 2)
+                {
+                    Directory.CreateDirectory(path);
+                    blockedPath = path;
+                }
+
+                return text;
+            }));
+
+        Assert.AreEqual(2, transformCalls);
+        Assert.IsTrue(exception is IOException || exception is UnauthorizedAccessException, exception.ToString());
+        Assert.IsTrue(Directory.Exists(blockedPath), "The blocked target is the directory that caused the failure.");
+        Assert.IsEmpty(Directory.GetFiles(_tempDirectory), "The first file written before the failure must be deleted again.");
+    }
+
+    [TestMethod]
+    public void Apply_WhenTheRollbackCannotDeleteAFile_StillThrowsTheOriginalException()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string firstCreated = null;
+        FileStream lockOnFirstFile = null;
+        int transformCalls = 0;
+        try
+        {
+            Exception exception = Assert.Throws<Exception>(() => _processor.Apply(
+                "class Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n",
+                filePath,
+                Encoding.UTF8,
+                null,
+                transformCreatedFile: (text, path) =>
+                {
+                    if (++transformCalls == 1)
+                    {
+                        firstCreated = path;
+                    }
+                    else
+                    {
+                        // Keeps the first file from being deleted by the rollback, then blocks the second target.
+                        lockOnFirstFile = new FileStream(firstCreated, FileMode.Open, FileAccess.Read, FileShare.None);
+                        Directory.CreateDirectory(path);
+                    }
+
+                    return text;
+                }));
+
+            Assert.IsTrue(exception is IOException || exception is UnauthorizedAccessException, exception.ToString());
+            Assert.IsNotNull(lockOnFirstFile, "The second file must have been attempted.");
+            Assert.IsTrue(File.Exists(firstCreated), "A file that cannot be deleted stays; the rollback must not mask the write failure.");
+        }
+        finally
+        {
+            lockOnFirstFile?.Dispose();
+        }
+    }
+
+    [TestMethod]
+    public void DeleteCreatedFiles_RemovesTheGivenFilesAndIgnoresMissingOnes()
+    {
+        string first = Path.Combine(_tempDirectory, "First.cs");
+        string second = Path.Combine(_tempDirectory, "Second.cs");
+        string untouched = Path.Combine(_tempDirectory, "Untouched.cs");
+        File.WriteAllText(first, "class First { }");
+        File.WriteAllText(untouched, "class Untouched { }");
+
+        TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(new[] { first, second });
+
+        Assert.AreSequenceEqual(new[] { untouched }, Directory.GetFiles(_tempDirectory));
+    }
+
+    [TestMethod]
+    public void Apply_WhenTransformingTheUpdatedSourceFails_ThrowsAndLeavesNoCreatedFilesBehind()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+
+        Assert.Throws<InvalidOperationException>(() => _processor.Apply(
+            "class Foo { }\r\nclass Bar { }\r\n",
+            filePath,
+            Encoding.UTF8,
+            (text, path) => throw new InvalidOperationException("updated source failed"),
+            transformCreatedFile: (text, path) => text));
+
+        Assert.IsEmpty(Directory.GetFileSystemEntries(_tempDirectory));
+    }
+
+    [TestMethod]
     public void Apply_WhenTheTemporaryFileCannotBeWritten_ThrowsWithoutCreatingAnyFile()
     {
         // The target name fits the file system limit, the temporary name next to it does not.

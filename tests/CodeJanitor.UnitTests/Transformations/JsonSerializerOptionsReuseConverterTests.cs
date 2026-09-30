@@ -1,3 +1,8 @@
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using CodeJanitor.Logic.Transformations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -170,5 +175,49 @@ public sealed class JsonSerializerOptionsReuseConverterTests
         string expected = "using System.Text.Json; class C { string M(object v) => JsonSerializer.Serialize(v, options: null); void N( { int y = ; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async System.Threading.Tasks.Task ConvertedCalls_CompileAgainstTheRealJsonSerializerOverloads()
+    {
+        string input =
+            "using System.IO;\r\n" +
+            "using System.Text.Json;\r\n" +
+            "using System.Threading.Tasks;\r\n" +
+            "class C\r\n" +
+            "{\r\n" +
+            "    string Serialize(object v) => JsonSerializer.Serialize(v, new JsonSerializerOptions());\r\n" +
+            "    string SerializeWithType(object v) => JsonSerializer.Serialize(v, typeof(C), new JsonSerializerOptions());\r\n" +
+            "    string SerializeGeneric(C v) => JsonSerializer.Serialize<C>(v, new JsonSerializerOptions());\r\n" +
+            "    byte[] SerializeToBytes(object v) => JsonSerializer.SerializeToUtf8Bytes(v, new JsonSerializerOptions());\r\n" +
+            "    void SerializeToWriter(Utf8JsonWriter w, object v) => JsonSerializer.Serialize(w, v, new JsonSerializerOptions());\r\n" +
+            "    void SerializeToStream(Stream s, object v) => JsonSerializer.Serialize(s, v, new JsonSerializerOptions());\r\n" +
+            "    Task SerializeAsync(Stream s, object v) => JsonSerializer.SerializeAsync(s, v, new JsonSerializerOptions());\r\n" +
+            "    C Deserialize(string s) => JsonSerializer.Deserialize<C>(s, new JsonSerializerOptions());\r\n" +
+            "    object DeserializeWithType(string s) => JsonSerializer.Deserialize(s, typeof(C), new JsonSerializerOptions());\r\n" +
+            "    C DeserializeFromStream(Stream s) => JsonSerializer.Deserialize<C>(s, new JsonSerializerOptions());\r\n" +
+            "    object DeserializeAsync(Stream s) => JsonSerializer.DeserializeAsync<C>(s, new JsonSerializerOptions());\r\n" +
+            "    JsonElement ToElement(object v) => JsonSerializer.SerializeToElement(v, new JsonSerializerOptions());\r\n" +
+            "    C Named(string s) => JsonSerializer.Deserialize<C>(s, options: new JsonSerializerOptions());\r\n" +
+            "}\r\n";
+        string expected = input
+            .Replace(", options: new JsonSerializerOptions()", ", options: null")
+            .Replace(", new JsonSerializerOptions()", ", options: null");
+        string jsonAssemblyDirectory = Path.GetDirectoryName(Assembly.Load("System.Text.Json").Location);
+        MetadataReference[] references = new[]
+        {
+            "System.Text.Json", "System.Memory", "System.Buffers", "System.Numerics.Vectors", "System.Runtime.CompilerServices.Unsafe",
+            "System.Threading.Tasks.Extensions", "System.Text.Encodings.Web", "Microsoft.Bcl.AsyncInterfaces", "System.IO.Pipelines"
+        }
+        .Select(name => (MetadataReference)MetadataReference.CreateFromFile(Path.Combine(jsonAssemblyDirectory, name + ".dll")))
+        .ToArray();
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, references);
+
+        string result = _converter.Apply(input);
+
+        Assert.AreEqual(expected, result);
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, input), "the input must compile before the conversion");
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, result));
     }
 }

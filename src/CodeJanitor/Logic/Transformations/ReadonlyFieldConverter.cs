@@ -16,9 +16,9 @@ namespace CodeJanitor.Logic.Transformations;
 /// the declaring type's own constructor (instance fields) or static constructor (static
 /// fields) through the instance under construction - never in a regular method, accessor, local
 /// function, or nested lambda, since those could execute after construction. Fields named in
-/// code excluded by a preprocessor directive, fixed-size buffers, and fields with a method call on
-/// them whose type may be a mutable struct are left alone. Pure logic, unit-testable without
-/// Visual Studio.
+/// code excluded by a preprocessor directive, fixed-size buffers, and fields with a method call or a
+/// member write (<c>_p.X = 1</c>) on them whose type may be a mutable struct are left alone. Pure
+/// logic, unit-testable without Visual Studio.
 /// </remarks>
 public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
 {
@@ -181,17 +181,26 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
             }
         }
 
+        // A member of a readonly struct field cannot be written even in the constructor (CS1648), and a method called on
+        // it runs on a defensive copy, silently dropping the mutation, so sub-member writes and calls are only accepted
+        // when the field's type is known not to be a mutable struct. Writing the field itself stays allowed.
+        var isKnownNotMutableStruct = IsKnownNotMutableStruct(fieldDecl.Declaration.Type, typeDecl.SyntaxTree.GetRoot());
+
         foreach (var write in writes)
         {
             if (!IsWriteInMatchingConstructor(write.Key, write.Value, fieldName, typeDecl, isStatic))
             {
                 return false;
             }
+
+            if (!isKnownNotMutableStruct &&
+                write.Value.Any(target => GetFieldAccessKind(target, fieldName, declaringTypeName) == FieldAccessKind.SubMember))
+            {
+                return false;
+            }
         }
 
-        // A method called on a readonly field of a mutable struct type runs on a defensive copy, silently dropping the
-        // mutation, so calls are only accepted when the field's type is known not to be a mutable struct.
-        if (!IsKnownNotMutableStruct(fieldDecl.Declaration.Type, typeDecl.SyntaxTree.GetRoot()))
+        if (!isKnownNotMutableStruct)
         {
             foreach (var invocation in scopeNodes.OfType<InvocationExpressionSyntax>())
             {
@@ -452,9 +461,10 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     /// Determines whether the declared type is syntactically known not to be a mutable struct: a predefined type, an
     /// array or pointer, a nullable value, an unqualified name of a class, interface, record class, delegate, enum or
     /// <c>readonly struct</c> declared in this file with the same arity, or, unless this file declares a mutable struct
-    /// of that name, a well-known framework reference type (unqualified or qualified with its own namespace) or a name
-    /// following the interface naming convention (<c>I</c> followed by an upper-case letter). A qualified name may refer
-    /// to a type outside this file, so a same-named declaration here only ever counts against it.
+    /// of that name, a well-known framework reference type (qualified with its own namespace, or unqualified while this
+    /// file imports that namespace or the type lives in <c>System</c>) or a name following the interface naming
+    /// convention (see <see cref="FollowsInterfaceNamingConvention" />). A qualified name may refer to a type outside
+    /// this file, so a same-named declaration here only ever counts against it.
     /// </summary>
     private static bool IsKnownNotMutableStruct(TypeSyntax type, SyntaxNode root)
     {
@@ -511,9 +521,32 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         }
 
         return (KnownReferenceTypeNamespaces.TryGetValue(text, out var namespaces) &&
-                (qualifier == null || namespaces.Contains(qualifier))) ||
-            (text.Length > 1 && text[0] == 'I' && char.IsUpper(text[1]));
+                (qualifier == null
+                    ? namespaces.Any(ns => ns == "System" || IsNamespaceImported(root, ns))
+                    : namespaces.Contains(qualifier))) ||
+            FollowsInterfaceNamingConvention(text);
     }
+
+    /// <summary>
+    /// Determines whether the file has a plain <c>using</c> directive importing the namespace. Global and implicit
+    /// usings of other files are invisible from a single syntax tree, so an unqualified name relying on them is not
+    /// recognised.
+    /// </summary>
+    private static bool IsNamespaceImported(SyntaxNode root, string namespaceName) =>
+        root.DescendantNodes().OfType<UsingDirectiveSyntax>().Any(directive =>
+            directive.Alias == null &&
+            directive.StaticKeyword.IsKind(SyntaxKind.None) &&
+            directive.Name != null &&
+            string.Concat(directive.Name.DescendantTokens().Select(t => t.ValueText)) == namespaceName);
+
+    /// <summary>
+    /// Determines whether a name looks like a conventionally named interface: <c>I</c> followed by an upper-case letter
+    /// starting a word (<c>IService</c>, <c>IDisposable</c>). Names that merely start with <c>I</c> - all-caps
+    /// abbreviations such as <c>ID</c> or <c>IO</c>, and names containing digits such as <c>IPv4Address</c> - are far
+    /// more likely to be structs declared elsewhere.
+    /// </summary>
+    private static bool FollowsInterfaceNamingConvention(string name) =>
+        name.Length > 2 && name[0] == 'I' && char.IsUpper(name[1]) && char.IsLower(name[2]) && !name.Any(char.IsDigit);
 
     /// <summary>
     /// Gets the number of type parameters of a type or delegate declaration.

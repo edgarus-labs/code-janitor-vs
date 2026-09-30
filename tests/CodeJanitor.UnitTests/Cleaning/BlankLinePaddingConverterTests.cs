@@ -406,12 +406,59 @@ public sealed class BlankLinePaddingConverterTests
     }
 
     [TestMethod]
-    public void FileWithSyntaxErrors_StillPadsTheRecognisedDeclarationsWithoutLosingText()
+    public void FileWithSyntaxErrors_OnlyAddsBlankLines_AndLosesNoText()
     {
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeMethods = true;
         string source = "class C\r\n{\r\n    int a\r\n    void M( { }\r\n";
 
-        Assert.AreEqual("class C\r\n{\r\n    int a\r\n\r\n    void M( { }\r\n", _converter.Apply(source));
+        string result = _converter.Apply(source);
+
+        Assert.AreEqual(source, result.Replace("\r\n\r\n", "\r\n"));
+    }
+
+    [TestMethod]
+    [DataRow(true, false, DisplayName = "all before settings")]
+    [DataRow(false, true, DisplayName = "all after settings")]
+    [DataRow(true, true, DisplayName = "all before and after settings")]
+    public void CombinedSettings_ArePaddedIdempotently(bool before, bool after)
+    {
+        if (before)
+        {
+            EnableAllBeforeSettings();
+        }
+
+        if (after)
+        {
+            EnableAllAfterSettings();
+        }
+
+        string source =
+            "// header\r\nusing System;\r\nusing System.Text;\r\nnamespace N\r\n{\r\n    #region Fields\r\n    class C\r\n    {\r\n" +
+            "        int a;\r\n        // note\r\n        int b;\r\n        int P { get; }\r\n        void M(int x)\r\n        {\r\n" +
+            "            switch (x)\r\n            {\r\n                case 1:\r\n                    break;\r\n" +
+            "                default:\r\n                    return;\r\n            }\r\n        }\r\n        event System.Action E;\r\n" +
+            "#if true\r\n        int c;\r\n#else\r\n        int d;\r\n#endif\r\n    }\r\n    #endregion\r\n    struct S { }\r\n" +
+            "    enum E2 { A }\r\n    delegate void D();\r\n    interface I { }\r\n}\r\n";
+
+        string once = _converter.Apply(source);
+        string twice = _converter.Apply(once);
+
+        Assert.AreNotEqual(source, once, "The scenario has to be padded at all.");
+        Assert.AreEqual(once, twice, "A second run changed the output:\r\n" + once);
+    }
+
+    [TestMethod]
+    [DataRow("BeforeMethods", "class C\n{\n    int a;\n#if true\n    void M() { }\n#endif\n}\n", "class C\n{\n    int a;\n#if true\n    void M() { }\n#endif\n}\n", DisplayName = "declaration directly below #if")]
+    [DataRow("BeforeMethods", "class C\n{\n    int a;\n#if false\n    int b;\n#else\n    void M() { }\n#endif\n}\n", "class C\n{\n    int a;\n#if false\n    int b;\n#else\n    void M() { }\n#endif\n}\n", DisplayName = "declaration directly below #else")]
+    [DataRow("BeforeSingleLineComments", "class C\n{\n#if true\n    // c\n    int a;\n#endif\n}\n", "class C\n{\n#if true\n    // c\n    int a;\n#endif\n}\n", DisplayName = "comment directly below #if")]
+    [DataRow("AfterMethods", "class C\n{\n#if true\n    void M() { }\n#endif\n    int a;\n}\n", "class C\n{\n#if true\n    void M() { }\n#endif\n    int a;\n}\n", DisplayName = "no blank line between a declaration and the #endif below it")]
+    [DataRow("AfterMethods", "class C\n{\n#if true\n    void M() { }\n#else\n    int b;\n#endif\n}\n", "class C\n{\n#if true\n    void M() { }\n#else\n    int b;\n#endif\n}\n", DisplayName = "no blank line between a declaration and the #else below it")]
+    [DataRow("BeforeMethods", "class C\n{\n#if true\n    int a;\n#endif\n    void M() { }\n}\n", "class C\n{\n#if true\n    int a;\n#endif\n\n    void M() { }\n}\n", DisplayName = "declaration directly below #endif is still padded")]
+    public void ConditionalDirectives_AreNotSeparatedFromTheCodeTheyEnclose(string setting, string source, string expected)
+    {
+        Settings.Default["Cleaning_InsertBlankLinePadding" + setting] = true;
+
+        Assert.AreEqual(expected, _converter.Apply(source));
     }
 
     [TestMethod]
@@ -551,6 +598,25 @@ public sealed class BlankLinePaddingConverterTests
         Settings.Default.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments = true;
 
         Assert.AreEqual(expected, _converter.Apply(source));
+    }
+
+    private static void EnableAllAfterSettings()
+    {
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterClasses = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterDelegates = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterEnumerations = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterEvents = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterInterfaces = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterMethods = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterNamespaces = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterRegionTags = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterEndRegionTags = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterStructs = true;
+        Settings.Default.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks = true;
     }
 
     private static void EnableAllBeforeSettings()

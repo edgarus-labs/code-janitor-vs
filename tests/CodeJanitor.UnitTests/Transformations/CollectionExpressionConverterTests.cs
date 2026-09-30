@@ -165,6 +165,19 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("class C { void M() { System.Collections.Generic.List<int> x = new System.Collections.Generic.List<int>(); } }", DisplayName = "qualified list type")]
     [DataRow("class C { void M() { List<int>? x = new List<int>(); } }", DisplayName = "nullable declared type")]
     [DataRow("class C { void M(IEnumerable<int> source) { List<int> x = new List<int>(source) { 1 }; } }", DisplayName = "constructor argument with initializer")]
+    [DataRow("class C { List<int> a = new List<int> { Capacity = 5 }; }", DisplayName = "member initializer")]
+    [DataRow("class C { List<int> a = new List<int> { [0] = 1 }; }", DisplayName = "indexer initializer")]
+    [DataRow("class C { List<int> a = new List<int> { 1, Capacity = 5 }; }", DisplayName = "member initializer after an element")]
+    [DataRow("class C { List<int> a = new List<int> { { 1, 2 } }; }", DisplayName = "complex element initializer")]
+    [DataRow("class C { System.Range[] a = new System.Range[] { ..3, 1..2 }; }", DisplayName = "array with a range element that omits its start")]
+    [DataRow("class C { List<System.Range> a = new List<System.Range> { ..^1 }; }", DisplayName = "list with a range element that omits its start")]
+    [DataRow("class C { List<System.Range> a = new List<System.Range> { 1.. , .. }; }", DisplayName = "list with a range element that omits both bounds")]
+    [DataRow("class C { List<int> a = new List<int>\n    // note\n    { 1 }; }", DisplayName = "comment before the braces of a list")]
+    [DataRow("class C { int[] a = new int[] // c\n    { 1 }; }", DisplayName = "comment before the braces of an array")]
+    [DataRow("class C { int[] a = new[] /* c */ { 1 }; }", DisplayName = "comment before the braces of an implicit array")]
+    [DataRow("class C { List<int> a = new List<int>(/*k*/) { 1 }; }", DisplayName = "comment inside the constructor parentheses")]
+    [DataRow("class C { List<int> a = new List<int> /* c */ (); }", DisplayName = "comment before the constructor parentheses")]
+    [DataRow("class C { int[] a = new int[/*z*/0]; }", DisplayName = "comment inside a zero-length array size")]
     public void InitializerThatCannotBecomeACollectionExpression_IsUnchanged(string input)
     {
         Assert.AreEqual(input, _converter.Apply(input));
@@ -186,6 +199,8 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("class C<T> where T : struct { List<T> _items = new List<T>(); }", "class C<T> where T : struct { List<T> _items = []; }", DisplayName = "generic element type")]
     [DataRow("class C { string[] a = new string[] { \"new List<int>()\", @\"x\", $\"{1}\" }; }", "class C { string[] a = [\"new List<int>()\", @\"x\", $\"{1}\"]; }", DisplayName = "string literal elements")]
     [DataRow("class C { string[] a = new[] { \"a\" }; double[] b = new[] { 1.5 }; }", "class C { string[] a = [\"a\"]; double[] b = [1.5]; }", DisplayName = "implicit array of a sealed predefined type")]
+    [DataRow("class C { System.Range[] a = new System.Range[] { 1..2, 0..^1, 2.. }; }", "class C { System.Range[] a = [1..2, 0..^1, 2..]; }", DisplayName = "range elements with a start")]
+    [DataRow("class C { List<System.Range> a = new List<System.Range> { (..3) }; }", "class C { List<System.Range> a = [(..3)]; }", DisplayName = "parenthesized range element without a start")]
     public void ConvertibleInitializer_BecomesACollectionExpression(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));

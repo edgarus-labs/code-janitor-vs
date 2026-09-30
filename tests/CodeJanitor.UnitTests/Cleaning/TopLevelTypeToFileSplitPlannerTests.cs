@@ -233,6 +233,29 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
     }
 
     [TestMethod]
+    public void CreatePlan_GlobalUsings_StayOnlyInTheOriginalFile()
+    {
+        // A global using repeated in a split-out file is reported as a duplicate global using (CS8933).
+        string source = "// Header\nglobal using System;\nusing System.IO;\n\nclass Foo { }\n\nclass Bar { }\n";
+
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+
+        Assert.AreEqual("// Header\nglobal using System;\nusing System.IO;\n\nclass Foo { }\n", plan.UpdatedSource);
+        Assert.AreEqual("// Header\nusing System.IO;\n\nclass Bar { }\n", plan.NewFiles.Single().Content);
+    }
+
+    [TestMethod]
+    public void CreatePlan_OnlyGlobalUsings_LeavesTheGeneratedFileWithoutUsings()
+    {
+        string source = "// Header\nglobal using System;\n\nclass Foo { }\n\nclass Bar { }\n";
+
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+
+        Assert.AreEqual("// Header\nglobal using System;\n\nclass Foo { }\n", plan.UpdatedSource);
+        Assert.AreEqual("// Header\n\nclass Bar { }\n", plan.NewFiles.Single().Content);
+    }
+
+    [TestMethod]
     public void CreatePlan_NoTypeMatchesTheFileName_KeepsTheFirstTypeAndMovesTheOthers()
     {
         string source = "namespace Demo;\n\nclass Alpha { }\n\nclass Beta { }\n";

@@ -45,7 +45,7 @@ public class C
 {
     public void M(string s)
     {
-        if (int.TryParse(s, out var result))
+        if (int.TryParse(s, out int result))
         {
             DoWork(result);
         }
@@ -107,17 +107,21 @@ public class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    [DataRow("class C { void M() { int a; F(out a); int b; F(out b); } }", "class C { void M() { F(out var a); F(out var b); } }", DisplayName = "consecutive pairs")]
-    [DataRow("class C { void M() { int a; int b; F(out a, out b); } }", "class C { void M() { int a; F(out a, out var b); } }", DisplayName = "only the declaration right before the call")]
-    [DataRow("class C { void M(System.Collections.Generic.Dictionary<string, string> d) { string s; d.TryGetValue(\"k\", out s); } }", "class C { void M(System.Collections.Generic.Dictionary<string, string> d) { d.TryGetValue(\"k\", out var s); } }", DisplayName = "expression statement")]
-    [DataRow("class C { int M(string t) { int n; return int.TryParse(t, out n) ? n : 0; } }", "class C { int M(string t) { return int.TryParse(t, out var n) ? n : 0; } }", DisplayName = "return statement")]
-    [DataRow("class C { void M(string t) { int n; bool ok = int.TryParse(t, out n); Use(n); } }", "class C { void M(string t) { bool ok = int.TryParse(t, out var n); Use(n); } }", DisplayName = "local declaration with later use")]
-    [DataRow("class C { void M() { { int x; F(out x); } } }", "class C { void M() { { F(out var x); } } }", DisplayName = "nested block")]
-    [DataRow("class C { System.Action A = () => { int x; F(out x); }; }", "class C { System.Action A = () => { F(out var x); }; }", DisplayName = "block lambda")]
-    [DataRow("class C { void M() { void L() { int x; F(out x); } } }", "class C { void M() { void L() { F(out var x); } } }", DisplayName = "local function")]
-    [DataRow("struct S { void M<T>() where T : new() { T x; F(out x); } }", "struct S { void M<T>() where T : new() { F(out var x); } }", DisplayName = "generic method in struct")]
-    [DataRow("record R { R(string t) { int n; int.TryParse(t, out n); } }", "record R { R(string t) { int.TryParse(t, out var n); } }", DisplayName = "record constructor")]
-    [DataRow("class C { async System.Threading.Tasks.Task M() { await System.Threading.Tasks.Task.Yield(); int n; F(out n); } }", "class C { async System.Threading.Tasks.Task M() { await System.Threading.Tasks.Task.Yield(); F(out var n); } }", DisplayName = "async method")]
+    [DataRow("class C { void M() { int a; F(out a); int b; F(out b); } }", "class C { void M() { F(out int a); F(out int b); } }", DisplayName = "consecutive pairs")]
+    [DataRow("class C { void M() { int a; int b; F(out a, out b); } }", "class C { void M() { F(out int a, out int b); } }", DisplayName = "several declarations before the call")]
+    [DataRow("class C { void M(System.Collections.Generic.Dictionary<string, string> d) { string s; d.TryGetValue(\"k\", out s); } }", "class C { void M(System.Collections.Generic.Dictionary<string, string> d) { d.TryGetValue(\"k\", out string s); } }", DisplayName = "expression statement")]
+    [DataRow("class C { int M(string t) { int n; return int.TryParse(t, out n) ? n : 0; } }", "class C { int M(string t) { return int.TryParse(t, out int n) ? n : 0; } }", DisplayName = "return statement")]
+    [DataRow("class C { void M(string t) { int n; bool ok = int.TryParse(t, out n); Use(n); } }", "class C { void M(string t) { bool ok = int.TryParse(t, out int n); Use(n); } }", DisplayName = "local declaration with later use")]
+    [DataRow("class C { void M() { { int x; F(out x); } } }", "class C { void M() { { F(out int x); } } }", DisplayName = "nested block")]
+    [DataRow("class C { System.Action A = () => { int x; F(out x); }; }", "class C { System.Action A = () => { F(out int x); }; }", DisplayName = "block lambda")]
+    [DataRow("class C { void M() { void L() { int x; F(out x); } } }", "class C { void M() { void L() { F(out int x); } } }", DisplayName = "local function")]
+    [DataRow("struct S { void M<T>() where T : new() { T x; F(out x); } }", "struct S { void M<T>() where T : new() { F(out T x); } }", DisplayName = "generic method in struct")]
+    [DataRow("record R { R(string t) { int n; int.TryParse(t, out n); } }", "record R { R(string t) { int.TryParse(t, out int n); } }", DisplayName = "record constructor")]
+    [DataRow("class C { async System.Threading.Tasks.Task M() { await System.Threading.Tasks.Task.Yield(); int n; F(out n); } }", "class C { async System.Threading.Tasks.Task M() { await System.Threading.Tasks.Task.Yield(); F(out int n); } }", DisplayName = "async method")]
+    [DataRow("class C { void M(string s) { System.DayOfWeek e; System.Enum.TryParse(s, out e); } }", "class C { void M(string s) { System.Enum.TryParse(s, out System.DayOfWeek e); } }", DisplayName = "declared type that cannot be inferred from the call")]
+    [DataRow("class C { void M() { dynamic d; F(out d); d.Foo(); } }", "class C { void M() { F(out dynamic d); d.Foo(); } }", DisplayName = "dynamic keeps its declared type")]
+    [DataRow("class C { void M() { string? s; F(out s); } }", "class C { void M() { F(out string? s); } }", DisplayName = "nullable reference type")]
+    [DataRow("class C { void M() { int[] a; F(out a); } }", "class C { void M() { F(out int[] a); } }", DisplayName = "array type")]
     public void DeclarationFollowedByOutArgument_IsInlined(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -148,13 +152,13 @@ public class C
             "\r\n" +
             "static int Parse(string text)\r\n" +
             "{\r\n" +
-            "    int.TryParse(text, out var value);\r\n" +
+            "    int.TryParse(text, out int value);\r\n" +
             "    return value;\r\n" +
             "}\r\n" +
             "\r\n" +
             "class Parser\r\n" +
             "{\r\n" +
-            "    public int Parse(string text) { int.TryParse(text, out var value); return value; }\r\n" +
+            "    public int Parse(string text) { int.TryParse(text, out int value); return value; }\r\n" +
             "}\r\n";
 
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -182,7 +186,7 @@ public class C
             "\tvoid M(string s)" + newLine +
             "\t{" + newLine +
             "\t\t// parse the input" + newLine +
-            "\t\tint.TryParse(s, out var result); // trailing" + newLine +
+            "\t\tint.TryParse(s, out int result); // trailing" + newLine +
             "\t}" + newLine +
             "}" + newLine;
 
@@ -194,7 +198,7 @@ public class C
     public void FileWithSyntaxErrors_InlinesTheValidPairAndKeepsTheRestVerbatim()
     {
         string input = "class C { void M(string s) { int n; int.TryParse(s, out n); } void N( { int y = ; } }";
-        string expected = "class C { void M(string s) { int.TryParse(s, out var n); } void N( { int y = ; } }";
+        string expected = "class C { void M(string s) { int.TryParse(s, out int n); } void N( { int y = ; } }";
 
         Assert.AreEqual(expected, _converter.Apply(input));
     }
@@ -222,9 +226,9 @@ public class C
         Microsoft.CodeAnalysis.Document document = CompilingTestProject.CreateDocument(input);
         string expected = input
             .Replace("        int number;\r\n", string.Empty)
-            .Replace("out number", "out var number")
+            .Replace("out number", "out int number")
             .Replace("        string value;\r\n", string.Empty)
-            .Replace("out value", "out var value");
+            .Replace("out value", "out string value");
 
         string output = _converter.Apply(input);
 
@@ -253,11 +257,11 @@ public class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    [DataRow("class C { void M() { int x; // result\n F(out x); } }", "class C { void M() { // result\n F(out var x); } }", DisplayName = "one line")]
-    [DataRow("class C\n{\n    void M()\n    {\n        int x; // result\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        // result\n        F(out var x);\n    }\n}\n", DisplayName = "trailing comment of the declaration")]
-    [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        int x;\r\n        // parse\r\n        F(out x);\r\n    }\r\n}\r\n", "class C\r\n{\r\n    void M()\r\n    {\r\n        // parse\r\n        F(out var x);\r\n    }\r\n}\r\n", DisplayName = "leading comment of the call")]
-    [DataRow("class C\n{\n    void M()\n    {\n        int x; /* a */\n        /* b */\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        /* a */\n        /* b */\n        F(out var x);\n    }\n}\n", DisplayName = "both")]
-    [DataRow("class C\n{\n    void M()\n    {\n        int x;\n\n        // parse\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n\n        // parse\n        F(out var x);\n    }\n}\n", DisplayName = "blank line before the leading comment of the call")]
+    [DataRow("class C { void M() { int x; // result\n F(out x); } }", "class C { void M() { // result\n F(out int x); } }", DisplayName = "one line")]
+    [DataRow("class C\n{\n    void M()\n    {\n        int x; // result\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        // result\n        F(out int x);\n    }\n}\n", DisplayName = "trailing comment of the declaration")]
+    [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        int x;\r\n        // parse\r\n        F(out x);\r\n    }\r\n}\r\n", "class C\r\n{\r\n    void M()\r\n    {\r\n        // parse\r\n        F(out int x);\r\n    }\r\n}\r\n", DisplayName = "leading comment of the call")]
+    [DataRow("class C\n{\n    void M()\n    {\n        int x; /* a */\n        /* b */\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        /* a */\n        /* b */\n        F(out int x);\n    }\n}\n", DisplayName = "both")]
+    [DataRow("class C\n{\n    void M()\n    {\n        int x;\n\n        // parse\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n\n        // parse\n        F(out int x);\n    }\n}\n", DisplayName = "blank line before the leading comment of the call")]
     public void CommentsBetweenDeclarationAndCall_AreKept(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -284,8 +288,44 @@ public class C
             "}\n";
         Microsoft.CodeAnalysis.Document document = CompilingTestProject.CreateDocument(input);
         string expected = input
-            .Replace("        int a; // first\n        if (F(out a) && c)", "        // first\n        if (F(out var a) && c)")
-            .Replace("        int b;\n        int s = F(out b)", "        int s = F(out var b)");
+            .Replace("        int a; // first\n        if (F(out a) && c)", "        // first\n        if (F(out int a) && c)")
+            .Replace("        int b;\n        int s = F(out b)", "        int s = F(out int b)");
+
+        string output = _converter.Apply(input);
+
+        Assert.AreEqual(expected, output);
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, output));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async System.Threading.Tasks.Task OutArgumentsWhoseTypeTheCallCannotInfer_StillCompile()
+    {
+        string input =
+            "using System;\n" +
+            "class C\n" +
+            "{\n" +
+            "    static void F(out int v) { v = 1; }\n" +
+            "    static void F(out long v) { v = 1; }\n" +
+            "    DayOfWeek M(string s)\n" +
+            "    {\n" +
+            "        DayOfWeek day;\n" +
+            "        Enum.TryParse(s, out day);\n" +
+            "        int n;\n" +
+            "        F(out n);\n" +
+            "        int a;\n" +
+            "        F(out a);\n" +
+            "        int b;\n" +
+            "        F(out b);\n" +
+            "        Console.WriteLine(n + a + b);\n" +
+            "        return day;\n" +
+            "    }\n" +
+            "}\n";
+        Microsoft.CodeAnalysis.Document document = CompilingTestProject.CreateDocument(input);
+        string expected = input
+            .Replace("        DayOfWeek day;\n        Enum.TryParse(s, out day);", "        Enum.TryParse(s, out DayOfWeek day);")
+            .Replace("        int n;\n        F(out n);", "        F(out int n);")
+            .Replace("        int a;\n        F(out a);\n        int b;\n        F(out b);", "        F(out int a);\n        F(out int b);");
 
         string output = _converter.Apply(input);
 

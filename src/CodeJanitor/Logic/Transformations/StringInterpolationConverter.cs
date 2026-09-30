@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -123,6 +124,11 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                 return visited;
             }
 
+            if (!PreservesEvaluation(formatArgs, matches) || LosesComments(visited, formatArgs, matches))
+            {
+                return visited;
+            }
+
             // Build interpolated string components
             var builder = new System.Text.StringBuilder();
             builder.Append("$\"");
@@ -194,6 +200,123 @@ public sealed class StringInterpolationConverter : ISourceTransformation
             return parsedExpr
                 .WithLeadingTrivia(visited.GetLeadingTrivia())
                 .WithTrailingTrivia(visited.GetTrailingTrivia());
+        }
+
+        /// <summary>
+        /// Determines whether moving the arguments into the interpolation holes keeps the program's behaviour: every
+        /// argument that is not a literal, <c>this</c> or a plain identifier (a member access may run a property getter,
+        /// so it counts too) is evaluated exactly once and in its original order, and a plain identifier is not read on
+        /// the other side of an argument that assigns, increments or passes it by reference than it was originally.
+        /// Literals, <c>this</c> and identifiers may otherwise be repeated, reordered or dropped.
+        /// </summary>
+        /// <remarks>
+        /// Without a semantic model an identifier may still be a field changed by a called method, which is not detected.
+        /// </remarks>
+        private static bool PreservesEvaluation(ExpressionSyntax[] formatArgs, MatchCollection matches)
+        {
+            var holes = matches.Cast<Match>()
+                .Where(match => match.Groups[1].Success)
+                .Select(match => int.Parse(match.Groups[1].Value))
+                .ToList();
+            var useCounts = new int[formatArgs.Length];
+            var lastEvaluatedOnce = -1;
+            foreach (var index in holes)
+            {
+                useCounts[index]++;
+                if (IsRepeatable(formatArgs[index]))
+                {
+                    continue;
+                }
+
+                if (useCounts[index] > 1 || index < lastEvaluatedOnce)
+                {
+                    return false;
+                }
+
+                lastEvaluatedOnce = index;
+            }
+
+            for (var i = 0; i < formatArgs.Length; i++)
+            {
+                if (useCounts[i] == 0 && !IsRepeatable(formatArgs[i]))
+                {
+                    return false;
+                }
+            }
+
+            for (var writerIndex = 0; writerIndex < formatArgs.Length; writerIndex++)
+            {
+                var writtenNames = GetWrittenIdentifiers(formatArgs[writerIndex]);
+                if (writtenNames.Count == 0)
+                {
+                    continue;
+                }
+
+                var writerHole = holes.IndexOf(writerIndex);
+                for (var hole = 0; hole < holes.Count; hole++)
+                {
+                    var readerIndex = holes[hole];
+                    if (formatArgs[readerIndex] is IdentifierNameSyntax reader &&
+                        writtenNames.Contains(reader.Identifier.ValueText) &&
+                        (readerIndex < writerIndex) != (hole < writerHole))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsRepeatable(ExpressionSyntax expression) =>
+            expression is LiteralExpressionSyntax or IdentifierNameSyntax or ThisExpressionSyntax;
+
+        /// <summary>
+        /// Collects the names of the identifiers an expression assigns, increments, decrements or passes by reference.
+        /// </summary>
+        private static HashSet<string> GetWrittenIdentifiers(ExpressionSyntax expression)
+        {
+            var names = new HashSet<string>();
+            foreach (var node in expression.DescendantNodesAndSelf())
+            {
+                SyntaxNode target = node switch
+                {
+                    AssignmentExpressionSyntax assignment => assignment.Left,
+                    PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression) => prefix.Operand,
+                    PostfixUnaryExpressionSyntax postfix when postfix.IsKind(SyntaxKind.PostIncrementExpression) || postfix.IsKind(SyntaxKind.PostDecrementExpression) => postfix.Operand,
+                    ArgumentSyntax argument when argument.RefKindKeyword.IsKind(SyntaxKind.RefKeyword) || argument.RefKindKeyword.IsKind(SyntaxKind.OutKeyword) => argument.Expression,
+                    _ => null
+                };
+
+                if (target == null)
+                {
+                    continue;
+                }
+
+                foreach (var identifier in target.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+                {
+                    names.Add(identifier.Identifier.ValueText);
+                }
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// Determines whether the call contains a comment or directive that the rewrite would delete: everything
+        /// inside the call except the text of the arguments that are moved into the interpolated string.
+        /// </summary>
+        private static bool LosesComments(InvocationExpressionSyntax call, ExpressionSyntax[] formatArgs, MatchCollection matches)
+        {
+            var keptSpans = matches.Cast<Match>()
+                .Where(match => match.Groups[1].Success)
+                .Select(match => formatArgs[int.Parse(match.Groups[1].Value)].Span)
+                .ToList();
+
+            return call.DescendantTrivia(call.Span).Any(trivia =>
+                !trivia.IsKind(SyntaxKind.WhitespaceTrivia) &&
+                !trivia.IsKind(SyntaxKind.EndOfLineTrivia) &&
+                !keptSpans.Any(span => span.Contains(trivia.Span)));
         }
 
         /// <summary>

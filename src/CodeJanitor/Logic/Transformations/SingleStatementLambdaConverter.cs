@@ -49,7 +49,7 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                              (node.ParameterList is not null || InitializesParameterlessDelegate(node));
             node = (AnonymousMethodExpressionSyntax)base.VisitAnonymousMethodExpression(node);
 
-            var expression = canConvert ? TryExtractSingleExpression(node.Block) : null;
+            var expression = canConvert && !LosesHeaderTrivia(node) ? TryExtractSingleExpression(node.Block) : null;
             if (expression is null)
             {
                 return node;
@@ -58,6 +58,19 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
             var parameterList = node.ParameterList ??
                                 SyntaxFactory.ParameterList(
                                     SyntaxFactory.SeparatedList<ParameterSyntax>());
+
+            // Allman style: the line break between the header and the open brace moves behind the arrow, so the
+            // arrow does not start a line and the block's indentation is not glued to it on the same line.
+            var headerTrailing = node.Block.OpenBraceToken.GetPreviousToken().TrailingTrivia;
+            var lineBreak = headerTrailing.Where(t => t.IsKind(SyntaxKind.EndOfLineTrivia)).Take(1).ToList();
+            var arrowTrailing = lineBreak.Count > 0
+                ? SyntaxFactory.TriviaList(lineBreak)
+                : SyntaxFactory.TriviaList(SyntaxFactory.Space);
+
+            if (lineBreak.Count > 0 && node.ParameterList is not null)
+            {
+                parameterList = parameterList.WithTrailingTrivia(SyntaxFactory.Space);
+            }
 
             var lambda = SyntaxFactory.ParenthesizedLambdaExpression(
                 parameterList,
@@ -71,14 +84,28 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                 SyntaxFactory.Token(
                     leadingArrowTrivia,
                     SyntaxKind.EqualsGreaterThanToken,
-                    SyntaxFactory.TriviaList(SyntaxFactory.Space)));
+                    arrowTrailing));
 
-            if (node.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword))
+            if (node.Modifiers.Count > 0)
             {
-                lambda = lambda.WithAsyncKeyword(node.AsyncKeyword);
+                lambda = lambda.WithModifiers(node.Modifiers);
             }
 
             return lambda.WithTriviaFrom(node);
+        }
+
+        /// <summary>
+        /// Determines whether the <c>delegate</c> keyword carries a comment or directive that a lambda has no place
+        /// for. Trivia before the first token of the expression moves to the lambda and is not lost.
+        /// </summary>
+        private static bool LosesHeaderTrivia(AnonymousMethodExpressionSyntax node)
+        {
+            var keyword = node.DelegateKeyword;
+            var trivia = node.Modifiers.Count > 0
+                ? keyword.LeadingTrivia.Concat(keyword.TrailingTrivia)
+                : keyword.TrailingTrivia;
+
+            return trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
         }
 
         /// <summary>

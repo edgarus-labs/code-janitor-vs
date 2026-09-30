@@ -121,4 +121,25 @@ public sealed class CompilerErrorsTests
 
         Assert.AreEqual(expectNew, newError is not null);
     }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task FindFirstNewAsync_TwoErrorsWithChangedMessagesCompeteForOneExistingError_TheSecondIsNew()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
+        DocumentId documentId = workspace.AddDocument("Sample.cs", Text);
+        Project before = workspace.CreateSolution().GetProject(documentId.ProjectId);
+        SourceText oldText = await before.GetDocument(documentId).GetTextAsync();
+        Project after = before.Solution
+            .WithDocumentText(documentId, oldText.WithChanges(new TextChange(new TextSpan(0, 0), "ZZ")))
+            .GetProject(before.Id);
+        SyntaxTree afterTree = await after.GetDocument(documentId).GetSyntaxTreeAsync();
+        Diagnostic existing = Diagnostic.Create(ErrorDescriptor, Location.Create(await before.GetDocument(documentId).GetSyntaxTreeAsync(), new TextSpan(5, 4)), "old");
+        Diagnostic first = Diagnostic.Create(ErrorDescriptor, Location.Create(afterTree, new TextSpan(7, 4)), "first");
+        Diagnostic second = Diagnostic.Create(ErrorDescriptor, Location.Create(afterTree, new TextSpan(7, 4)), "second");
+
+        Diagnostic newError = await CompilerErrors.FindFirstNewAsync(before, new[] { existing }, after, new[] { first, second }, CancellationToken.None);
+
+        Assert.AreSame(second, newError);
+    }
 }

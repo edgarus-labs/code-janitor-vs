@@ -4,9 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -15,10 +15,6 @@ namespace CodeJanitor.Logic.Transformations;
 /// </summary>
 public sealed class RegionDirectiveRemover : ISourceTransformation
 {
-    private static readonly Regex RegionDirectiveLineRegex = new Regex(
-        @"^[ \t]*#(?:end)?region\b",
-        RegexOptions.Compiled);
-
     private static readonly char[] LineBreakCharacters = { '\r', '\n' };
 
     /// <summary>
@@ -45,7 +41,8 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
         while (lineStart < source.Length)
         {
             int contentEnd = FindLineEnd(source, lineStart, out int nextLineStart);
-            bool isRegionDirective = RegionDirectiveLineRegex.IsMatch(source.Substring(lineStart, contentEnd - lineStart))
+            bool isRegionDirective = (IsDirectiveLine(source, lineStart, contentEnd, "region", out _)
+                    || IsDirectiveLine(source, lineStart, contentEnd, "endregion", out _))
                 && !StartsInside(protectedSpans, lineStart);
             if (!isRegionDirective)
             {
@@ -56,6 +53,67 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
         }
 
         return result.ToString();
+    }
+
+    /// <summary>
+    /// Returns true when the line <c>[lineStart, contentEnd)</c> consists of optional spaces or tabs, <c>#</c> and
+    /// <paramref name="keyword"/> ending at a word boundary (the <c>^[ \t]*#keyword\b</c> match), without copying the line.
+    /// </summary>
+    /// <param name="source">The text.</param>
+    /// <param name="lineStart">The start of the line.</param>
+    /// <param name="contentEnd">The end of the line content.</param>
+    /// <param name="keyword">The directive name without the <c>#</c>.</param>
+    /// <param name="afterKeyword">The position right after the keyword when the line matches.</param>
+    /// <returns>True when the line is such a directive line.</returns>
+    internal static bool IsDirectiveLine(string source, int lineStart, int contentEnd, string keyword, out int afterKeyword)
+    {
+        afterKeyword = 0;
+        int i = lineStart;
+        while (i < contentEnd && (source[i] == ' ' || source[i] == '\t'))
+        {
+            i++;
+        }
+
+        if (i >= contentEnd || source[i] != '#')
+        {
+            return false;
+        }
+
+        i++;
+        if (contentEnd - i < keyword.Length || string.CompareOrdinal(source, i, keyword, 0, keyword.Length) != 0)
+        {
+            return false;
+        }
+
+        i += keyword.Length;
+        if (i < contentEnd && IsWordCharacter(source[i]))
+        {
+            return false;
+        }
+
+        afterKeyword = i;
+        return true;
+    }
+
+    /// <summary>
+    /// The regex <c>\w</c> class: letters, non-spacing marks, decimal digits and connector punctuation.
+    /// </summary>
+    private static bool IsWordCharacter(char c)
+    {
+        switch (char.GetUnicodeCategory(c))
+        {
+            case UnicodeCategory.UppercaseLetter:
+            case UnicodeCategory.LowercaseLetter:
+            case UnicodeCategory.TitlecaseLetter:
+            case UnicodeCategory.ModifierLetter:
+            case UnicodeCategory.OtherLetter:
+            case UnicodeCategory.NonSpacingMark:
+            case UnicodeCategory.DecimalDigitNumber:
+            case UnicodeCategory.ConnectorPunctuation:
+                return true;
+            default:
+                return false;
+        }
     }
 
     /// <summary>
@@ -75,7 +133,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
     /// Adds the multi-line literal and comment spans of <paramref name="root"/>, shifted by <paramref name="offset"/>;
     /// inactive <c>#if</c>/<c>#elif</c>/<c>#else</c> branches are parsed on their own so their literals and comments are found too.
     /// </summary>
-    private static void AddMultiLineLiteralAndCommentSpans(string source, SyntaxNode root, int offset, List<TextSpan> spans)
+    private static void AddMultiLineLiteralAndCommentSpans(string source, SyntaxNode root, int offset, List<TextSpan> spans, bool isBranchParse = false)
     {
         foreach (SyntaxNodeOrToken nodeOrToken in root.DescendantNodesAndTokens())
         {
@@ -98,7 +156,15 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
         }
 
         // The directives inside an inactive branch split its text into several disabled-text trivia, so
-        // the whole branch (up to its #elif, #else or #endif) is parsed on its own instead.
+        // the whole branch (up to its #elif, #else or #endif) is parsed on its own instead. Only the outermost
+        // inactive directives are handled: the parse of a branch sees the directives nested in it again, but
+        // the enclosing parse has already handled those, and handling them twice would reparse the same text
+        // once per subset of its enclosing branches.
+        if (isBranchParse)
+        {
+            return;
+        }
+
         string rootText = null;
         foreach (SyntaxTrivia directiveTrivia in root.DescendantTrivia().Where(trivia => trivia.IsDirective))
         {
@@ -112,7 +178,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
                 {
                     rootText = rootText ?? root.ToFullString();
                     string block = rootText.Substring(start, end - start);
-                    AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(block).GetRoot(), offset + start, spans);
+                    AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(block).GetRoot(), offset + start, spans, isBranchParse: true);
                 }
             }
         }

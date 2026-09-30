@@ -28,9 +28,57 @@ public static class TestAssemblySetup
     public static void AssemblyCleanup()
     {
         SettingsContextHelper.UserSettingsDirectoryOverride = null;
-        if (Directory.Exists(_userSettingsDirectory))
+        TryDeleteDirectory(_userSettingsDirectory, Console.Error);
+    }
+
+    /// <summary>
+    /// Deletes the temporary directory best effort: a directory held by another process (e.g. a virus scanner) must not
+    /// fail or mask the test run, and the leftover is reported to <paramref name="log" /> instead of swallowed silently.
+    /// </summary>
+    /// <param name="path">The directory to delete; ignored when it does not exist.</param>
+    /// <param name="log">Receives a line naming the directory and the reason when deleting fails.</param>
+    /// <returns>True when the directory no longer exists.</returns>
+    internal static bool TryDeleteDirectory(string path, TextWriter log)
+    {
+        try
         {
-            Directory.Delete(_userSettingsDirectory, recursive: true);
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+
+            return true;
         }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            log.WriteLine($"Could not delete the temporary test directory '{path}': {ex.Message}");
+
+            return false;
+        }
+    }
+}
+
+[TestClass]
+public sealed class TestAssemblySetupTests
+{
+    [TestMethod]
+    public void TryDeleteDirectory_DirectoryHeldByAnotherHandle_ReportsTheLeftoverInsteadOfThrowing()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", "CleanupFailure", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        StringWriter log = new StringWriter();
+        FileStream held = new FileStream(Path.Combine(directory, "held.tmp"), FileMode.Create, FileAccess.Write, FileShare.None);
+        try
+        {
+            Assert.IsFalse(TestAssemblySetup.TryDeleteDirectory(directory, log));
+            Assert.Contains(directory, log.ToString());
+        }
+        finally
+        {
+            held.Dispose();
+        }
+
+        Assert.IsTrue(TestAssemblySetup.TryDeleteDirectory(directory, log));
+        Assert.IsFalse(Directory.Exists(directory));
     }
 }

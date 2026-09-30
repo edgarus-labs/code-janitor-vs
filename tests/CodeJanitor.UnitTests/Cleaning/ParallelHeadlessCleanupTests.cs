@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.ExceptionServices;
 using System.Threading;
-using System.Windows.Threading;
-using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
-using CodeJanitor.UI.Dialogs.CleanupProgress;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -67,44 +63,27 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CleanupProgressViewModel_CanceledBatch_DoesNotLeaveLaterCleanupsWithACanceledXmlDocumentationRun()
+    public void TryRunHeadlessPreCleanupForCSharpCore_OriginalCannotBeWrittenAfterTheSplit_RemovesTheFilesCreatedByTheSplit()
     {
-        Exception failure = null;
-        Thread uiThread = new Thread(() =>
+        Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        const string Original = "class Foo { }\r\nclass Bar { }\r\n";
+        File.WriteAllText(filePath, Original);
+        File.SetAttributes(filePath, FileAttributes.ReadOnly);
+        try
         {
-            try
-            {
-                CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
-                viewModel.CancelCommand.Execute(null);
+            CodeCleanupManager.HeadlessPreCleanupOutcome outcome = CodeCleanupManager.GetInstance(null).TryRunHeadlessPreCleanupForCSharpCore(filePath);
 
-                // The batch completes on the dispatcher of this thread; pump it until the dialog result is set.
-                DispatcherFrame frame = new DispatcherFrame();
-                DispatcherTimer poll = new DispatcherTimer(TimeSpan.FromMilliseconds(20), DispatcherPriority.Background, (_, _) => frame.Continue = viewModel.DialogResult is null, Dispatcher.CurrentDispatcher);
-                DispatcherTimer timeout = new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Normal, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
-                Dispatcher.PushFrame(frame);
-                poll.Stop();
-                timeout.Stop();
-
-                Assert.IsTrue(viewModel.DialogResult == true, "The canceled batch must complete.");
-                Assert.IsFalse(AiXmlDocumentationLogic.RunToken.IsCancellationRequested, "A canceled batch must not cancel the XML documentation of later single-document cleanups.");
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                AiXmlDocumentationLogic.BeginRun();
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        uiThread.SetApartmentState(ApartmentState.STA);
-        uiThread.Start();
-        uiThread.Join();
-
-        if (failure is not null)
+            // Bar is still declared by the unchanged original: a surviving Bar.cs would duplicate it (CS0101).
+            Assert.AreEqual(CodeCleanupManager.HeadlessCleanupResult.NotApplicable, outcome.Result);
+            Assert.IsFalse(outcome.SplitOperationOccurred);
+            Assert.IsEmpty(outcome.CreatedFiles);
+            Assert.IsFalse(File.Exists(Path.Combine(_tempDirectory, "Bar.cs")), "The file created for the moved type must be removed.");
+            Assert.AreEqual(Original, File.ReadAllText(filePath));
+        }
+        finally
         {
-            ExceptionDispatchInfo.Capture(failure).Throw();
+            File.SetAttributes(filePath, FileAttributes.Normal);
         }
     }
 

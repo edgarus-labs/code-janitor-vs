@@ -140,7 +140,10 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         }
 
         /// <summary>
-        /// Visits a record declaration, and if the setting for explicit access modifiers on classes is enabled and the record lacks an access modifier or is not partial, returns a modified node with a default access modifier prepended and the keyword&apos;s leading trivia cleared; otherwise returns the base-visited node unchanged.
+        /// Visits a record declaration and, when the setting of its kind is enabled (structs for a <c>record struct</c>,
+        /// classes for a <c>record</c>/<c>record class</c>) and the record lacks an access modifier and is not partial,
+        /// returns a modified node with a default access modifier prepended and the keyword&apos;s leading trivia cleared;
+        /// otherwise returns the base-visited node unchanged.
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
@@ -148,7 +151,10 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         {
             var visited = (RecordDeclarationSyntax)base.VisitRecordDeclaration(node);
             if (IsNestedInInterface(node)) return visited;
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
+            var settingName = node.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword)
+                ? nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs)
+                : nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses);
+            if (!_settings.GetBoolean(settingName)) return visited;
             if (HasAccessModifier(visited.Modifiers)) return visited;
             if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.ClassOrStructKeyword);
@@ -252,6 +258,27 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             var visited = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties))) return visited;
+            if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
+            if (parentType is InterfaceDeclarationSyntax) return visited;
+            if (HasAccessModifier(visited.Modifiers)) return visited;
+            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
+            var leading = FirstLeadingTrivia(visited.Modifiers, visited.Type);
+            var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
+
+            return visited.WithModifiers(newMods).WithType(visited.Type.WithLeadingTrivia(SyntaxTriviaList.Empty));
+        }
+
+        /// <summary>
+        /// Visits an indexer declaration and, like a property, adds an explicit <c>private</c> access modifier when the
+        /// properties setting is enabled and the indexer lacks one in a non-interface type (skipping explicit interface
+        /// implementations), while clearing the type&apos;s leading trivia.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+        public override SyntaxNode VisitIndexerDeclaration(IndexerDeclarationSyntax node)
+        {
+            var visited = (IndexerDeclarationSyntax)base.VisitIndexerDeclaration(node);
             if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties))) return visited;
             if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
             if (parentType is InterfaceDeclarationSyntax) return visited;

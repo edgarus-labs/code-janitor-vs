@@ -135,11 +135,34 @@ internal sealed class TopLevelTypeToFileSplitPlanner
             var finalFileName = MakeFileNameUnique(desiredFileName, reservedFileNames);
             reservedFileNames.Add(finalFileName);
 
-            var newRoot = ReplaceContainedMembers(root, new[] { movedMember });
+            var newRoot = WithoutGlobalUsings(ReplaceContainedMembers(root, new[] { movedMember }));
             plannedFiles.Add(new PlannedFile(Path.Combine(directoryPath, finalFileName), newRoot.ToFullString()));
         }
 
         return new SplitPlan(updatedRoot.ToFullString(), plannedFiles);
+    }
+
+    /// <summary>
+    /// Removes the <c>global using</c> directives: they apply to the whole compilation and stay in the original file,
+    /// repeated in a split-out file they are reported as duplicates (CS8933). The file header, which the parser
+    /// attaches to the first directive, is kept.
+    /// </summary>
+    /// <param name="root">The root of a generated file.</param>
+    /// <returns>The root without global using directives.</returns>
+    private static CompilationUnitSyntax WithoutGlobalUsings(CompilationUnitSyntax root)
+    {
+        if (!root.Usings.Any(x => !x.GlobalKeyword.IsKind(SyntaxKind.None)))
+        {
+            return root;
+        }
+
+        var header = root.Externs.Count == 0 && !root.Usings[0].GlobalKeyword.IsKind(SyntaxKind.None)
+            ? root.Usings[0].GetLeadingTrivia()
+            : default;
+        var stripped = root.WithUsings(SyntaxFactory.List(root.Usings.Where(x => x.GlobalKeyword.IsKind(SyntaxKind.None))));
+        var firstToken = stripped.GetFirstToken();
+
+        return stripped.ReplaceToken(firstToken, firstToken.WithLeadingTrivia(header.AddRange(firstToken.LeadingTrivia)));
     }
 
     /// <summary>

@@ -81,20 +81,51 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
 
         var createdFileTransform = transformCreatedFile ?? transformSource;
         var createdFiles = new List<string>();
-        foreach (var plannedFile in splitPlan.NewFiles)
+        try
         {
-            var transformedSource = createdFileTransform is not null
-                ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
-                : plannedFile.Content;
+            foreach (var plannedFile in splitPlan.NewFiles)
+            {
+                var transformedSource = createdFileTransform is not null
+                    ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
+                    : plannedFile.Content;
 
-            createdFiles.Add(WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding));
+                createdFiles.Add(WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding));
+            }
+
+            var updatedSource = transformSource is not null && transformUpdatedSource
+                ? transformSource(splitPlan.UpdatedSource, filePath)
+                : splitPlan.UpdatedSource;
+
+            return new ApplyResult(true, updatedSource, createdFiles, TopLevelTypeSplitSkipReason.None);
         }
+        catch
+        {
+            DeleteCreatedFiles(createdFiles);
 
-        var updatedSource = transformSource is not null && transformUpdatedSource
-            ? transformSource(splitPlan.UpdatedSource, filePath)
-            : splitPlan.UpdatedSource;
+            throw;
+        }
+    }
 
-        return new ApplyResult(true, updatedSource, createdFiles, TopLevelTypeSplitSkipReason.None);
+    /// <summary>
+    /// Best-effort removal of the files this processor created, so that the original source (which still contains
+    /// the moved types) is not left with duplicate declarations in sibling files. Used when a later write failed, and
+    /// by callers that fail to persist the updated original source after <see cref="Apply" /> returned.
+    /// Only the given paths (those returned by the writer) are deleted, and failures are swallowed to keep the original exception.
+    /// </summary>
+    /// <param name="createdFiles">The files created so far.</param>
+    internal static void DeleteCreatedFiles(IEnumerable<string> createdFiles)
+    {
+        foreach (var createdFile in createdFiles)
+        {
+            try
+            {
+                File.Delete(createdFile);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // Cleanup is best effort; the original failure is the one to surface.
+            }
+        }
     }
 
     /// <summary>

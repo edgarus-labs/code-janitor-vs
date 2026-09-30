@@ -173,6 +173,15 @@ public sealed class UpdateEndRegionDirectivesConverterTests
     }
 
     [TestMethod]
+    [DataRow("#region A\n#regionX\n#endregionY\n#endregion\n", "#region A\n#regionX\n#endregionY\n#endregion A\n", DisplayName = "directives that continue into a word character are ignored")]
+    [DataRow("#region   Padded name  \t\n \t#endregion trailing\n", "#region   Padded name  \t\n \t#endregion Padded name\n", DisplayName = "name is trimmed and the indentation kept")]
+    [DataRow("#region A\n#endregion", "#region A\n#endregion A", DisplayName = "last line without a line break")]
+    public void Apply_MatchesWholeKeywordsOnly(string source, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(source));
+    }
+
+    [TestMethod]
     [DataRow(
         "#region A\nclass C\n{\n    string s = @\"\n#endregion keep me\n\";\n}\n#endregion\n",
         "#region A\nclass C\n{\n    string s = @\"\n#endregion keep me\n\";\n}\n#endregion A\n",

@@ -143,7 +143,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [DataRow("// hi   \r\nclass C { }\r\n", "// hi\r\nclass C { }\r\n", DisplayName = "single-line comment")]
     [DataRow("#region X   \r\nclass C { }\r\n#endregion \t\r\n", "#region X\r\nclass C { }\r\n#endregion\r\n", DisplayName = "region directives")]
     [DataRow("/// <summary>  \n/// Doc\t\n/// </summary>\nclass C { }\n", "/// <summary>\n/// Doc\n/// </summary>\nclass C { }\n", DisplayName = "documentation comment")]
-    [DataRow("/* a   \n   b  */\nclass C { }\n", "/* a\n   b  */\nclass C { }\n", DisplayName = "block comment inner line")]
+    [DataRow("/* a\n   b   \n   c */\nclass C { }\n", "/* a\n   b\n   c */\nclass C { }\n", DisplayName = "block comment inner line")]
     [DataRow("class C { }   ", "class C { }", DisplayName = "last line without line break")]
     [DataRow("class C { }\r\n// end  ", "class C { }\r\n// end", DisplayName = "last comment line without line break")]
     public void TrailingWhitespaceInTriviaAndOnTheLastLine_Removed(string input, string expected)
@@ -158,5 +158,20 @@ public sealed class RemoveTrailingWhitespaceConverterTests
         string input = "#if NEVER_DEFINED\nstring s = @\"a   \nb\";\n#endif\n";
 
         Assert.AreEqual(input, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C\n{\n    int x;   \n\t\n}\n   ", DisplayName = "code, whitespace-only lines and whitespace after the final line break")]
+    [DataRow("var s = \"\"\"\r\n  a   \r\n  \"\"\";   \r\nvar i = $@\"x  \r\n{s}  \";\r\n", DisplayName = "strings keep their whitespace")]
+    [DataRow("#region X   \r\nclass C { }\r\n#endregion \t\r\n", DisplayName = "region directives")]
+    [DataRow("/* a\n   b   \n   c */\nclass C { }   \n", DisplayName = "block comment inner line")]
+    [DataRow("class C { }\r\n// end  ", DisplayName = "last comment line without line break")]
+    public void Apply_IsIdempotent(string input)
+    {
+        string once = _converter.Convert(input);
+
+        Assert.AreNotEqual(input, once, "The scenario has to change the input at all.");
+        Assert.AreEqual(once, _converter.Convert(once));
     }
 }

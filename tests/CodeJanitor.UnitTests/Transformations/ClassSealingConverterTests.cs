@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Composition.Hosting;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
@@ -398,6 +401,10 @@ public sealed class ClassSealingConverterTests
     [DataRow("object M((int, Foo) pair) => ((int, IBar))pair;", DisplayName = "tuple to a tuple with an interface element")]
     [DataRow("object M(System.Func<Foo> make) => (System.Func<IBar>)make;", DisplayName = "covariant delegate type argument")]
     [DataRow("object M(System.Func<Foo>[] makers) => (System.Func<IBar>[])makers;", DisplayName = "array of a delegate with a covariant type argument")]
+    [DataRow("object M(Foo[] foos) => (System.Collections.Generic.IList<IBar>)foos;", DisplayName = "cast of an array of the class to a generic interface of an interface")]
+    [DataRow("object M(Foo[] foos) => foos as System.Collections.Generic.IEnumerable<IBar>;", DisplayName = "as of an array of the class to a generic interface of an interface")]
+    [DataRow("object M(System.Collections.Generic.IList<IBar> bars) => (Foo[])bars;", DisplayName = "cast of a generic interface of an interface to an array of the class")]
+    [DataRow("object M(System.Collections.Generic.IReadOnlyList<IBar> bars) => bars as Foo[];", DisplayName = "as of a read-only generic interface of an interface to an array of the class")]
     public async Task ClassConvertedToAnInterfaceItDoesNotImplement_StaysUnsealed(string use)
     {
         string input = "public class Foo { }";
@@ -414,6 +421,18 @@ public sealed class ClassSealingConverterTests
     {
         // Any interface converts explicitly to any other, and a contravariant type argument only needs reference
         // types: these conversions do not depend on the class being unsealed.
+        Assert.AreEqual(
+            "public sealed class Foo { }",
+            await SealAsync("public class Foo { }", "public interface IBar { } public static class Use { public static " + use + " }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("object M(Foo[] foos) => (System.Collections.Generic.IList<Foo>)foos;", DisplayName = "array of the class to a generic interface of the class")]
+    [DataRow("object M(System.Collections.Generic.IList<Foo> foos) => (Foo[])foos;", DisplayName = "generic interface of the class to an array of the class")]
+    [DataRow("object M(System.Collections.Generic.IList<IBar> bars) => (IBar[])bars;", DisplayName = "generic interface of an interface to an array of the interface")]
+    public async Task ClassInArrayConvertedWithAGenericInterfaceOfItself_BecomesSealed(string use)
+    {
         Assert.AreEqual(
             "public sealed class Foo { }",
             await SealAsync("public class Foo { }", "public interface IBar { } public static class Use { public static " + use + " }"));
@@ -487,6 +506,188 @@ public sealed class ClassSealingConverterTests
         Assert.AreEqual("public class Foo { }", await shared.SealWhenSafeAsync(new[] { converting.GetDocument(target.Id) }, CancellationToken.None));
         Assert.AreEqual("public class Foo { }", await shared.SealWhenSafeAsync(new[] { inactive.GetDocument(target.Id) }, CancellationToken.None));
         Assert.AreEqual("public sealed class Foo { }", await shared.SealWhenSafeAsync(new[] { solution.GetDocument(target.Id) }, CancellationToken.None));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConversionScanOfAnUnchangedProject_IsReusedAcrossSolutionSnapshots()
+    {
+        // A batch sees a new snapshot after every rewritten file (and one with the text of the file being cleaned):
+        // the scan of a project that did not change must not be repeated for each of them.
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document library = AddProject(ref solution, "Library", "public class Foo { }", "public interface IBar { }", "public static class Use { public static object M(Foo foo) => (IBar)foo; }");
+        Document other = AddProject(ref solution, "Other", "public class Unrelated { }");
+        Solution otherProjectChanged = solution.WithDocumentText(other.Id, SourceText.From("public class Unrelated { int _value; }"));
+        ClassSealingConverter converter = new ClassSealingConverter();
+
+        ClassSealingConverter.ConvertedClasses first = await converter.GetConvertedClassesAsync(solution.GetProject(library.Project.Id), CancellationToken.None);
+        ClassSealingConverter.ConvertedClasses second = await converter.GetConvertedClassesAsync(otherProjectChanged.GetProject(library.Project.Id), CancellationToken.None);
+
+        Assert.IsNotNull(first);
+        Assert.AreSame(first, second);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConversionScanOfAProject_IsRepeatedWhenItsOwnTextChanges()
+    {
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document library = AddProject(ref solution, "Library", "public class Foo { }", "public interface IBar { }", "public static class Use { }");
+        DocumentId useId = solution.GetProject(library.Project.Id).Documents.Single(document => document.Name == "Library1.cs").Id;
+        Solution changed = solution.WithDocumentText(useId, SourceText.From("public static class Use { public static object M(Foo foo) => (IBar)foo; }"));
+        ClassSealingConverter converter = new ClassSealingConverter();
+
+        ClassSealingConverter.ConvertedClasses before = await converter.GetConvertedClassesAsync(solution.GetProject(library.Project.Id), CancellationToken.None);
+        ClassSealingConverter.ConvertedClasses after = await converter.GetConvertedClassesAsync(changed.GetProject(library.Project.Id), CancellationToken.None);
+
+        Assert.AreNotSame(before, after);
+        Assert.IsEmpty(before.Classes);
+        Assert.HasCount(1, after.Classes);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConversionScanOfAProject_IsRepeatedWhenAProjectItReferencesChanges()
+    {
+        // The symbols of the scan belong to the compilation of the project, which is built against the referenced one.
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document library = AddProject(ref solution, "Library", "namespace Demo { public class Foo { } public interface IBar { } }");
+        Document consumer = AddProject(ref solution, "Consumer", "namespace Consumer { public static class Use { public static object M(Demo.Foo foo) => (Demo.IBar)foo; } }");
+        solution = solution.AddProjectReference(consumer.Project.Id, new ProjectReference(library.Project.Id));
+        Solution libraryChanged = solution.WithDocumentText(library.Id, SourceText.From("namespace Demo { public class Foo { int _value; } public interface IBar { } }"));
+        ClassSealingConverter converter = new ClassSealingConverter();
+
+        ClassSealingConverter.ConvertedClasses before = await converter.GetConvertedClassesAsync(solution.GetProject(consumer.Project.Id), CancellationToken.None);
+        ClassSealingConverter.ConvertedClasses after = await converter.GetConvertedClassesAsync(libraryChanged.GetProject(consumer.Project.Id), CancellationToken.None);
+
+        Assert.AreNotSame(before, after);
+        Assert.HasCount(1, before.Classes);
+        Assert.HasCount(1, after.Classes);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConversionScan_ReadsSourceGeneratedDocuments()
+    {
+        // Source generators run in every build: a conversion in their output removes the explicit conversion of the
+        // class just as one in a written file does.
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document library = AddProject(ref solution, "Library", "public class Foo { }", "public interface IBar { }");
+        solution = AddSourceGenerator(solution, library.Project.Id, "public static class Use { public static object M(Foo foo) => (IBar)foo; }");
+        Project project = solution.GetProject(library.Project.Id);
+
+        ClassSealingConverter.ConvertedClasses scan = await new ClassSealingConverter().GetConvertedClassesAsync(project, CancellationToken.None);
+
+        Assert.HasCount(1, await project.GetSourceGeneratedDocumentsAsync(), "The generator must add its file.");
+        Assert.AreEqual("Foo", scan.Classes.Single().Name);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task InactiveCodeScan_ReadsSourceGeneratedDocuments()
+    {
+        // Inactive code of generated files is compiled by the builds that define its symbols, like written files.
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document library = AddProject(ref solution, "Library", "public class Widget { }");
+        solution = AddSourceGenerator(solution, library.Project.Id, "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\n");
+
+        HashSet<string> identifiers = await new ClassSealingConverter().GetInactiveCodeIdentifiersAsync(solution, CancellationToken.None);
+
+        Assert.HasCount(1, await solution.GetProject(library.Project.Id).GetSourceGeneratedDocumentsAsync(), "The generator must add its file.");
+        Assert.Contains("Widget", identifiers);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task AnalysisCache_ComputesEachKeyOnce_AndSharesTheValueWithConcurrentCallers()
+    {
+        ClassSealingConverter.AsyncCache<object, string> cache = new ClassSealingConverter.AsyncCache<object, string>();
+        object key = new object();
+        VersionStamp version = VersionStamp.Create();
+        TaskCompletionSource<string> gate = new TaskCompletionSource<string>();
+        int computations = 0;
+
+        Task<string> first = cache.GetOrComputeAsync(key, version, _ => { computations++; return gate.Task; }, CancellationToken.None);
+        Task<string> concurrent = cache.GetOrComputeAsync(key, version, _ => { computations++; return Task.FromResult("concurrent"); }, CancellationToken.None);
+        gate.SetResult("first");
+
+        Assert.AreEqual("first", await first);
+        Assert.AreEqual("first", await concurrent);
+        Assert.AreEqual("first", await cache.GetOrComputeAsync(key, version, _ => { computations++; return Task.FromResult("later"); }, CancellationToken.None));
+        Assert.AreEqual(1, computations);
+        Assert.AreEqual("other", await cache.GetOrComputeAsync(new object(), version, _ => Task.FromResult("other"), CancellationToken.None));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task AnalysisCache_NewVersionOfAKey_ReplacesTheValue()
+    {
+        ClassSealingConverter.AsyncCache<object, string> cache = new ClassSealingConverter.AsyncCache<object, string>();
+        object key = new object();
+        VersionStamp version = VersionStamp.Create();
+        VersionStamp newer = version.GetNewerVersion();
+
+        Assert.AreEqual("old", await cache.GetOrComputeAsync(key, version, _ => Task.FromResult("old"), CancellationToken.None));
+        Assert.AreEqual("new", await cache.GetOrComputeAsync(key, newer, _ => Task.FromResult("new"), CancellationToken.None));
+        Assert.AreEqual("new", await cache.GetOrComputeAsync(key, newer, _ => Task.FromResult("never"), CancellationToken.None));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task AnalysisCache_FailedComputation_IsSeenByConcurrentCallersButNotKept()
+    {
+        ClassSealingConverter.AsyncCache<object, string> cache = new ClassSealingConverter.AsyncCache<object, string>();
+        object key = new object();
+        VersionStamp version = VersionStamp.Create();
+        TaskCompletionSource<string> gate = new TaskCompletionSource<string>();
+
+        Task<string> first = cache.GetOrComputeAsync(key, version, _ => gate.Task, CancellationToken.None);
+        Task<string> concurrent = cache.GetOrComputeAsync(key, version, _ => Task.FromResult("concurrent"), CancellationToken.None);
+        gate.SetException(new InvalidOperationException("scan failed"));
+
+        Assert.AreEqual("scan failed", (await Assert.ThrowsAsync<InvalidOperationException>(() => first)).Message);
+        Assert.AreEqual("scan failed", (await Assert.ThrowsAsync<InvalidOperationException>(() => concurrent)).Message);
+        Assert.AreEqual("recomputed", await cache.GetOrComputeAsync(key, version, _ => Task.FromResult("recomputed"), CancellationToken.None));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task AnalysisCache_ComputationCanceledByItsCaller_IsComputedAgainByAConcurrentCallerWithALiveToken()
+    {
+        ClassSealingConverter.AsyncCache<object, string> cache = new ClassSealingConverter.AsyncCache<object, string>();
+        object key = new object();
+        VersionStamp version = VersionStamp.Create();
+        using CancellationTokenSource cancellation = new CancellationTokenSource();
+        int waiterComputations = 0;
+
+        Task<string> canceled = cache.GetOrComputeAsync(key, version, async token => { await Task.Delay(Timeout.Infinite, token); return "never"; }, cancellation.Token);
+        Task<string> waiter = cache.GetOrComputeAsync(key, version, _ => { waiterComputations++; return Task.FromResult("waiter"); }, CancellationToken.None);
+        cancellation.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => canceled);
+        Assert.AreEqual("waiter", await waiter);
+        Assert.AreEqual(1, waiterComputations);
+        Assert.AreEqual("waiter", await cache.GetOrComputeAsync(key, version, _ => Task.FromResult("later"), CancellationToken.None));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task AnalysisCache_ComputationCanceledByItsCaller_IsNotKept_AndCancelsAConcurrentCallerThatIsCanceledToo()
+    {
+        ClassSealingConverter.AsyncCache<object, string> cache = new ClassSealingConverter.AsyncCache<object, string>();
+        object key = new object();
+        VersionStamp version = VersionStamp.Create();
+        using CancellationTokenSource computingCancellation = new CancellationTokenSource();
+        using CancellationTokenSource waitingCancellation = new CancellationTokenSource();
+
+        Task<string> canceled = cache.GetOrComputeAsync(key, version, async token => { await Task.Delay(Timeout.Infinite, token); return "never"; }, computingCancellation.Token);
+        Task<string> waiter = cache.GetOrComputeAsync(key, version, _ => Task.FromResult("waiter"), waitingCancellation.Token);
+        waitingCancellation.Cancel();
+        computingCancellation.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => canceled);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => waiter);
+        Assert.AreEqual("again", await cache.GetOrComputeAsync(key, version, _ => Task.FromResult("again"), CancellationToken.None));
     }
 
     [TestMethod]
@@ -716,6 +917,54 @@ public sealed class ClassSealingConverterTests
 
         Assert.AreEqual(input, releaseOnly);
         Assert.AreEqual(input, both);
+    }
+
+    /// <summary>
+    /// Adds a source generator to the project that emits <paramref name="generatedSource" /> as a source file.
+    /// </summary>
+    private static Solution AddSourceGenerator(Solution solution, ProjectId projectId, string generatedSource) =>
+        solution.AddAnalyzerReference(projectId, new GeneratorReference(new FixedSourceGenerator(generatedSource).AsSourceGenerator()));
+
+    /// <summary>
+    /// An analyzer reference that only supplies a source generator, standing in for a generator package (which cannot
+    /// be loaded from the .NET Framework test assembly: Roslyn rejects analyzer assemblies that reference mscorlib).
+    /// </summary>
+    private sealed class GeneratorReference : AnalyzerReference
+    {
+        private readonly ImmutableArray<ISourceGenerator> _generators;
+
+        public GeneratorReference(ISourceGenerator generator)
+        {
+            _generators = ImmutableArray.Create(generator);
+        }
+
+        public override string FullPath => null;
+
+        public override object Id => this;
+
+        public override ImmutableArray<DiagnosticAnalyzer> GetAnalyzers(string language) => ImmutableArray<DiagnosticAnalyzer>.Empty;
+
+        public override ImmutableArray<DiagnosticAnalyzer> GetAnalyzersForAllLanguages() => ImmutableArray<DiagnosticAnalyzer>.Empty;
+
+        public override ImmutableArray<ISourceGenerator> GetGenerators(string language) => _generators;
+
+        public override ImmutableArray<ISourceGenerator> GetGeneratorsForAllLanguages() => _generators;
+    }
+
+    /// <summary>
+    /// A source generator that adds one file with a fixed source to the compilation.
+    /// </summary>
+    private sealed class FixedSourceGenerator : IIncrementalGenerator
+    {
+        private readonly string _source;
+
+        public FixedSourceGenerator(string source)
+        {
+            _source = source;
+        }
+
+        public void Initialize(IncrementalGeneratorInitializationContext context) =>
+            context.RegisterPostInitializationOutput(output => output.AddSource("Generated.g.cs", SourceText.From(_source, Encoding.UTF8)));
     }
 
     private static Document AddProject(ref Solution solution, string name, string targetSource, params string[] librarySources)

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -91,12 +93,13 @@ public sealed class CleanupBatchPartitionerTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    [Timeout(30000)]
     public async Task RunPerGroupAsync_ItemsOfDifferentGroups_AreProcessedAtTheSameTime()
     {
         int started = 0;
         TaskCompletionSource<bool> bothStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        ConcurrentBag<bool> sawTheOtherGroup = new ConcurrentBag<bool>();
 
+        // Each item only completes once the item of the other group has started too: sequential processing never gets there.
         await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "b1" }, item => item.Substring(0, 1), 4, CancellationToken.None, async item =>
         {
             if (Interlocked.Increment(ref started) == 2)
@@ -104,10 +107,44 @@ public sealed class CleanupBatchPartitionerTests
                 bothStarted.TrySetResult(true);
             }
 
-            sawTheOtherGroup.Add(await Task.WhenAny(bothStarted.Task, Task.Delay(1000)) == bothStarted.Task);
+            await bothStarted.Task;
         });
 
-        Assert.AreSequenceEqual(new[] { true, true }, sawTheOtherGroup.ToArray());
+        Assert.AreEqual(2, started);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task RunPerGroupAsync_SingleParallelGroup_NeverProcessesTwoGroupsAtTheSameTime()
+    {
+        int running = 0;
+        int maxRunning = 0;
+        List<string> processed = new List<string>();
+
+        await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "b1", "c1", "a2", "b2", "c2" }, item => item.Substring(0, 1), 1, CancellationToken.None, async item =>
+        {
+            int now = Interlocked.Increment(ref running);
+            int seen;
+            while ((seen = Volatile.Read(ref maxRunning)) < now && Interlocked.CompareExchange(ref maxRunning, now, seen) != seen)
+            {
+            }
+
+            // Gives a concurrently started item of another group every chance to overlap.
+            for (int i = 0; i < 50; i++)
+            {
+                await Task.Yield();
+            }
+
+            lock (processed)
+            {
+                processed.Add(item);
+            }
+
+            Interlocked.Decrement(ref running);
+        });
+
+        Assert.AreEqual(1, maxRunning);
+        Assert.HasCount(6, processed);
     }
 
     [TestMethod]
@@ -163,15 +200,56 @@ public sealed class CleanupBatchPartitionerTests
             ide.Events.Returns(_ => throw new COMException("The build events are not available."));
             CodeJanitorPackage package = CreatePackage(ide);
 
-            CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
+            WithPackage(package, () =>
+            {
+                CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
+                try
+                {
+                    CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
 
-            // A changed file makes the batch start the build verification when it completes on this thread's
-            // dispatcher, which only runs once the dispatcher is pumped below.
-            CodeCleanupManager.GetInstance(package).IncrementHeadlessChanged();
-            WaitForBatch(viewModel);
+                    // A changed file makes the batch start the build verification when it completes on this thread's
+                    // dispatcher, which only runs once the dispatcher is pumped below.
+                    manager.IncrementHeadlessChanged();
+                    WaitForBatch(viewModel);
 
-            Assert.IsTrue(viewModel.DialogResult == true, "The dialog must close when the build verification cannot be started.");
-            _ = ide.Received().Events;
+                    Assert.IsTrue(viewModel.DialogResult == true, "The dialog must close when the build verification cannot be started.");
+                    _ = ide.Received().Events;
+                }
+                finally
+                {
+                    manager.ResetCleanupExecutionStats();
+                }
+            });
+        });
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CleanupProgressViewModel_CompletingTheBatchThrows_TheDialogStillCloses()
+    {
+        RunOnVisualStudioUIThread(() =>
+        {
+            // Reading the solution fails while the batch completes, e.g. because the solution was closed meanwhile.
+            DTE2 ide = Substitute.For<DTE2>();
+            ide.Solution.Returns(_ => throw new COMException("The solution is closed."));
+            CodeJanitorPackage package = CreatePackage(ide);
+
+            WithPackage(package, () =>
+            {
+                CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
+                try
+                {
+                    CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
+                    manager.IncrementHeadlessChanged();
+                    WaitForBatch(viewModel);
+
+                    Assert.IsTrue(viewModel.DialogResult == true, "The dialog must close even when completing the batch fails.");
+                }
+                finally
+                {
+                    manager.ResetCleanupExecutionStats();
+                }
+            });
         });
     }
 
@@ -234,6 +312,60 @@ public sealed class CleanupBatchPartitionerTests
         finally
         {
             AiXmlDocumentationLogic.BeginRun();
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void TopLevelTypeSplit_ReplacingTheEditorTextFails_RemovesTheFilesCreatedForTheMovedTypes()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string filePath = Path.Combine(directory, "Foo.cs");
+        const string Source = "class Foo { }\r\nclass Bar { }\r\n";
+        File.WriteAllText(filePath, Source);
+        Settings.Default.Reset();
+        Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
+        try
+        {
+            RunOnVisualStudioUIThread(() =>
+            {
+                CodeJanitorPackage package = CreatePackage(Substitute.For<DTE2>());
+                EnvDTE.ProjectItem projectItem = Substitute.For<EnvDTE.ProjectItem>();
+                projectItem.FileNames[1].Returns(filePath);
+                EnvDTE.EditPoint startPoint = Substitute.For<EnvDTE.EditPoint>();
+                startPoint.GetText(Arg.Any<object>()).Returns(Source);
+                startPoint
+                    .When(point => point.ReplaceText(Arg.Any<object>(), Arg.Any<string>(), Arg.Any<int>()))
+                    .Do(_ => throw new IOException("The editor buffer is read-only."));
+                EnvDTE.TextPoint startTextPoint = Substitute.For<EnvDTE.TextPoint>();
+                startTextPoint.CreateEditPoint().Returns(startPoint);
+                EnvDTE.TextPoint endTextPoint = Substitute.For<EnvDTE.TextPoint>();
+                endTextPoint.CreateEditPoint().Returns(Substitute.For<EnvDTE.EditPoint>());
+                EnvDTE.TextDocument textDocument = Substitute.For<EnvDTE.TextDocument>();
+                textDocument.StartPoint.Returns(startTextPoint);
+                textDocument.EndPoint.Returns(endTextPoint);
+                EnvDTE.Document document = Substitute.For<EnvDTE.Document>();
+                document.Language.Returns("CSharp");
+                document.ProjectItem.Returns(projectItem);
+                document.Object("TextDocument").Returns(textDocument);
+
+                WithPackage(package, () =>
+                {
+                    MethodInfo split = typeof(CodeCleanupManager).GetMethod("TrySplitTopLevelTypesToSeparateFiles", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                    // The original keeps declaring Bar: a surviving Bar.cs would duplicate it (CS0101).
+                    TargetInvocationException failure = Assert.ThrowsExactly<TargetInvocationException>(
+                        () => split.Invoke(CodeCleanupManager.GetInstance(package), new object[] { document, EffectiveCleanupSettings.For(filePath) }));
+                    Assert.IsInstanceOfType<IOException>(failure.InnerException);
+                    Assert.IsFalse(File.Exists(Path.Combine(directory, "Bar.cs")), "The file created for the moved type must be removed.");
+                });
+            });
+        }
+        finally
+        {
+            Settings.Default.Reset();
+            Directory.Delete(directory, recursive: true);
         }
     }
 
@@ -300,28 +432,36 @@ public sealed class CleanupBatchPartitionerTests
     }
 
     /// <summary>
-    /// Runs the action with the package in the cleanup singletons, which keep the package they were first created with.
+    /// Runs the action with fresh cleanup singletons created with the package, which they keep for their lifetime.
+    /// The singletons of the test run are put back afterwards, so the fake package never outlives the action, even
+    /// when the action created a singleton that did not exist before.
     /// </summary>
     private static void WithPackage(CodeJanitorPackage package, Action action)
     {
-        object[] singletons = { CodeCleanupManager.GetInstance(package), CodeCleanupAvailabilityLogic.GetInstance(package) };
-        FieldInfo[] packageFields = Array.ConvertAll(singletons, singleton => singleton.GetType().GetField("_package", BindingFlags.Instance | BindingFlags.NonPublic));
-        object[] previousPackages = new object[singletons.Length];
-        for (int i = 0; i < singletons.Length; i++)
+        FieldInfo[] singletonFields = Array.FindAll(
+            typeof(CodeCleanupManager).Assembly.GetTypes(),
+            type => type.GetMethod("GetInstance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic, null, new[] { typeof(CodeJanitorPackage) }, null) is not null)
+            .Select(type => type.GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic))
+            .Where(field => field is not null)
+            .ToArray();
+        object[] previousInstances = Array.ConvertAll(singletonFields, field => field.GetValue(null));
+        foreach (FieldInfo field in singletonFields)
         {
-            previousPackages[i] = packageFields[i].GetValue(singletons[i]);
-            packageFields[i].SetValue(singletons[i], package);
+            field.SetValue(null, null);
         }
 
         try
         {
+            // The singletons the cleanup under test reaches through GetInstance must belong to this package.
+            CodeCleanupManager.GetInstance(package);
+            CodeCleanupAvailabilityLogic.GetInstance(package);
             action();
         }
         finally
         {
-            for (int i = 0; i < singletons.Length; i++)
+            for (int i = 0; i < singletonFields.Length; i++)
             {
-                packageFields[i].SetValue(singletons[i], previousPackages[i]);
+                singletonFields[i].SetValue(null, previousInstances[i]);
             }
         }
     }

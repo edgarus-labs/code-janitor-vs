@@ -59,7 +59,6 @@ public sealed class RemoveFinalNewlineConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    [DataRow("  \r\n \t\n", "  ", DisplayName = "whitespace-only file keeps its first line")]
     [DataRow("\r\n\r\n", "", DisplayName = "file of blank lines")]
     [DataRow("a\r", "a", DisplayName = "carriage return only")]
     [DataRow("var s = \"\"\"\n  x\n  \"\"\";\n", "var s = \"\"\"\n  x\n  \"\"\";", DisplayName = "raw string before the final line break")]

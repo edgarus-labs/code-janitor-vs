@@ -375,7 +375,7 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if separate uninitialized out variable declarations should be inlined into out var expressions.
+    /// Gets or sets the flag indicating if separate uninitialized out variable declarations should be inlined into inline out declarations (out T x).
     /// </summary>
     public bool InlineOutVariableDeclarations
     {

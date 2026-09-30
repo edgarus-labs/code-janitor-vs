@@ -91,6 +91,7 @@ internal sealed class SemanticFileRewriter
 
         var endPoint = textDocument.EndPoint.CreateEditPoint();
         startPoint.ReplaceText(endPoint, rewrittenText, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+        WriteRewrittenInfo(filePath);
     }
 
     /// <summary>
@@ -114,6 +115,26 @@ internal sealed class SemanticFileRewriter
 
         var projectFilePath = VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem);
 
+        return await RewriteClosedFileAsync(
+            filePath,
+            projectFilePath,
+            () => VsShellUtilities.IsDocumentOpen(_package, filePath, Guid.Empty, out _, out _, out _),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Rewrites the closed file at <paramref name="filePath" /> and writes the result back with the file's encoding,
+    /// unless it was opened or changed on disk while it was being analyzed. The file is written only after the whole
+    /// analysis completed, so a canceled or failed analysis leaves it unchanged.
+    /// </summary>
+    /// <param name="filePath">The path of the file.</param>
+    /// <param name="projectFilePath">The path of the project containing the file, or null.</param>
+    /// <param name="isDocumentOpen">Tells, on the UI thread, whether the file is open in an editor.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True when the file was rewritten.</returns>
+    /// <exception cref="OperationCanceledException">The analysis was canceled; the file is left unchanged.</exception>
+    internal async Task<bool> RewriteClosedFileAsync(string filePath, string projectFilePath, Func<bool> isDocumentOpen, CancellationToken cancellationToken)
+    {
         string originalText;
         try
         {
@@ -129,7 +150,6 @@ internal sealed class SemanticFileRewriter
             return false;
         }
 
-        // The file is written only after the whole analysis completed, so a canceled analysis leaves it unchanged.
         var rewrittenText = await TryRewriteAsync(filePath, projectFilePath, originalText, cancellationToken);
         if (rewrittenText is null)
         {
@@ -138,14 +158,21 @@ internal sealed class SemanticFileRewriter
 
         // The analysis took a while: a file the user opened meanwhile is left alone, its editor buffer is the truth.
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-        if (VsShellUtilities.IsDocumentOpen(_package, filePath, Guid.Empty, out _, out _, out _))
+        if (isDocumentOpen())
         {
             WriteNotRewrittenWarning(filePath, "the file was opened while it was being analyzed; it was left unchanged.");
 
             return false;
         }
 
-        return TryWriteRewrittenText(filePath, originalText, rewrittenText, reason => WriteNotRewrittenWarning(filePath, reason));
+        if (!TryWriteRewrittenText(filePath, originalText, rewrittenText, reason => WriteNotRewrittenWarning(filePath, reason)))
+        {
+            return false;
+        }
+
+        WriteRewrittenInfo(filePath);
+
+        return true;
     }
 
     /// <summary>
@@ -222,6 +249,9 @@ internal sealed class SemanticFileRewriter
     private void WriteNotRewrittenWarning(string filePath, string reason) =>
         OutputWindowHelper.WarningWriteLine($"{_notRewrittenWarning} in '{filePath}': {reason}");
 
+    private void WriteRewrittenInfo(string filePath) =>
+        OutputWindowHelper.InfoWriteLine($"{_rewrittenInfo} in '{filePath}'.");
+
     /// <summary>
     /// Runs the step on <paramref name="currentText" /> and returns the rewritten text, or null when the step changed
     /// nothing or the file could not be analyzed (reported as a warning). Cancellation is not reported as a failure:
@@ -256,8 +286,6 @@ internal sealed class SemanticFileRewriter
 
             return null;
         }
-
-        OutputWindowHelper.InfoWriteLine($"{_rewrittenInfo} in '{filePath}'.");
 
         return rewrittenText;
     }

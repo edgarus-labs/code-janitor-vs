@@ -1,6 +1,8 @@
+using CodeJanitor.Helpers;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -22,7 +24,6 @@ namespace CodeJanitor.Logic.Cleaning;
 internal sealed class NullCheckPatternMatchingLogic
 {
     private readonly SemanticFileRewriter _rewriter;
-    private readonly NullCheckPatternMatchingConverter _converter;
 
     /// <summary>
     /// The singleton instance of the <see cref="NullCheckPatternMatchingLogic" /> class.
@@ -45,7 +46,6 @@ internal sealed class NullCheckPatternMatchingLogic
     /// <param name="package">The hosting package.</param>
     private NullCheckPatternMatchingLogic(CodeJanitorPackage package)
     {
-        _converter = new NullCheckPatternMatchingConverter();
         _rewriter = new SemanticFileRewriter(
             package,
             nameof(Settings.Cleaning_ConvertToPatternMatchingNullChecks),
@@ -78,9 +78,24 @@ internal sealed class NullCheckPatternMatchingLogic
 
     /// <summary>
     /// Resolves every C# document of the file in the Visual Studio workspace with <paramref name="currentText" /> and
-    /// converts the null checks that are safe in all of them.
+    /// converts the null checks that are safe in all of them. What the converter reports while it runs off the UI
+    /// thread is written to the output pane here, on the UI thread, with the path of the file.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private Task<string> ConvertInWorkspaceAsync(string filePath, string projectFilePath, string currentText, CancellationToken cancellationToken) =>
-        _rewriter.RewriteInWorkspaceAsync(filePath, projectFilePath, currentText, _converter.ConvertAsync, cancellationToken);
+    private async Task<string> ConvertInWorkspaceAsync(string filePath, string projectFilePath, string currentText, CancellationToken cancellationToken)
+    {
+        // The converter keeps no state between files: one per file lets the report belong to the file.
+        string skipped = null;
+        var converter = new NullCheckPatternMatchingConverter(message => skipped = message);
+
+        var convertedText = await _rewriter.RewriteInWorkspaceAsync(filePath, projectFilePath, currentText, converter.ConvertAsync, cancellationToken);
+
+        if (skipped != null)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            OutputWindowHelper.DiagnosticWriteLine($"NullCheckPatternMatchingLogic in '{filePath}': {skipped}");
+        }
+
+        return convertedText;
+    }
 }

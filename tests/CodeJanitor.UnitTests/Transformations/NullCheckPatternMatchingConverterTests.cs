@@ -54,7 +54,22 @@ public sealed class NullCheckPatternMatchingConverterTests
     [DataRow("class C { bool M(object a, object b) => a != b != null; }", DisplayName = "inequality operand")]
     public async Task EqualityOperand_IsUnchanged(string input)
     {
-        // `a == b is null` parses as `a == (b is null)`, and `(a == b) is null` does not compile for a bool operand (CS0037).
+        // A bool operand is not a reference type, so the semantic gate already rejects the outer check.
+        Assert.AreEqual(input, await ConvertAsync(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("a == b == null", DisplayName = "equality operand")]
+    [DataRow("a != b != null", DisplayName = "inequality operand")]
+    public async Task UserDefinedEqualityReturningReference_AsOperand_IsUnchanged(string expression)
+    {
+        // `a == b is null` would parse as `a == (b is null)`; the outer check is a reference check, so only the operand guard prevents it.
+        string input =
+            "class R { }\n" +
+            "class H { public static R operator ==(H a, H b) => null; public static R operator !=(H a, H b) => null; }\n" +
+            "class C { bool M(H a, H b) => " + expression + "; }\n";
+
         Assert.AreEqual(input, await ConvertAsync(input));
     }
 
@@ -268,9 +283,9 @@ class C
 
         string actual = await ConvertAsync(input);
 
-        // Deliberately conservative: this lambda has no semantic model to confirm its delegate type,
-        // so it could still be bound to Expression<Func<T, bool>> (e.g. IQueryable .Where/.Any), which
-        // would fail to compile with CS8122 if rewritten to `is null`.
+        // Deliberately conservative: every expression-bodied non-async lambda is skipped, because it may be bound to
+        // Expression<Func<T, bool>> (e.g. IQueryable .Where/.Any), and `is null` in an expression tree
+        // fails to compile with CS8122.
         Assert.Contains("x == null", actual);
         Assert.DoesNotContain("x is null", actual);
     }
@@ -669,6 +684,45 @@ class C
         string input = "class C { bool M(object a, object b) => a == null && b != null; }";
 
         Assert.AreEqual(input, await ConvertAsync(input, LanguageVersion.CSharp6));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { bool M(object a) => a != null; }", LanguageVersion.CSharp8, 1, DisplayName = "inequality before C# 9")]
+    [DataRow("class C { bool M(object a) => a != null && null != a; }", LanguageVersion.CSharp7, 1, DisplayName = "several inequality checks are reported once")]
+    [DataRow("class C { bool M(object a) => a == null; }", LanguageVersion.CSharp8, 0, DisplayName = "equality before C# 9")]
+    [DataRow("class C { bool M(object a) => a != null; }", LanguageVersion.CSharp9, 0, DisplayName = "inequality in C# 9")]
+    [DataRow("class C { bool M(int a) => a != null; }", LanguageVersion.CSharp8, 0, DisplayName = "inequality that would not convert anyway")]
+    public async Task InequalityChecksLeftUnchangedForTheLanguageVersion_AreReported(string input, LanguageVersion languageVersion, int expectedReports)
+    {
+        List<string> reports = new List<string>();
+        Document document = CompilingTestProject.CreateDocument(input, languageVersion, new[] { SystemCoreReference });
+
+        await new NullCheckPatternMatchingConverter(reports.Add).ConvertAsync(new[] { document }, CancellationToken.None);
+
+        Assert.HasCount(expectedReports, reports);
+        if (expectedReports > 0)
+        {
+            Assert.Contains("C# 9", reports[0]);
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task InequalityChecksLeftUnchangedInSeveralProjects_AreReportedOnce()
+    {
+        string input = "class C { bool M(object a, object b) => a == null && b != null; }";
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document first = AddProject(ref solution, "First", input, LanguageVersion.CSharp8);
+        Document second = AddProject(ref solution, "Second", input, LanguageVersion.CSharp7);
+        List<string> reports = new List<string>();
+
+        string result = await new NullCheckPatternMatchingConverter(reports.Add).ConvertAsync(
+            new[] { solution.GetDocument(first.Id), solution.GetDocument(second.Id) },
+            CancellationToken.None);
+
+        Assert.AreEqual("class C { bool M(object a, object b) => a is null && b != null; }", result);
+        Assert.HasCount(1, reports);
     }
 
     private static Task<string> ConvertAsync(string input, params string[] librarySources) =>

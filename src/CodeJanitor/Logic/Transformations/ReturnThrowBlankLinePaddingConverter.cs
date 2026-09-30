@@ -9,12 +9,14 @@ namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
 /// Inserts a blank line before a <c>return</c> or <c>throw</c> statement when it is preceded
-/// by at least one other statement within the same block (i.e. the block contains more
+/// by at least one other statement within the same braced block (i.e. the block contains more
 /// instructions than just this return/throw), visually separating the exit/failure path from
 /// the preceding logic. Idempotent - does nothing when a blank line already precedes it, or
 /// when the return/throw is the first (or only) statement in its block. Comments directly above the
-/// return/throw stay attached to it (the blank line goes above them), and a return/throw that does not
-/// start its own line is left alone.
+/// return/throw stay attached to it (the blank line goes above them), a return/throw that does not
+/// start its own line is left alone, and so is one directly below a preprocessor directive.
+/// Only statements of a braced block count: top-level statements, switch sections and embedded
+/// statements are not blocks and are never padded.
 /// </summary>
 /// <remarks>
 /// This is a pure text transformation with no dependency on Visual Studio / EnvDTE,
@@ -73,13 +75,18 @@ public sealed class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
             candidateLineIndexes.Add(startLine.LineNumber);
         }
 
+        var directiveLines = new HashSet<int>(
+            root.DescendantTrivia().Where(trivia => trivia.IsDirective)
+                .Select(trivia => text.Lines.GetLineFromPosition(trivia.SpanStart).LineNumber));
+
         var changes = new List<TextChange>();
         foreach (var lineIndex in candidateLineIndexes)
         {
             var previousLine = text.Lines[lineIndex - 1];
-            if (string.IsNullOrWhiteSpace(text.ToString(previousLine.Span)))
+            if (string.IsNullOrWhiteSpace(text.ToString(previousLine.Span)) || directiveLines.Contains(lineIndex - 1))
             {
-                // Already has a blank line before it.
+                // Already has a blank line before it, or directly follows a preprocessor directive
+                // (#if/#else/#region/#endif), which a blank line would cut off from the code it introduces.
                 continue;
             }
 

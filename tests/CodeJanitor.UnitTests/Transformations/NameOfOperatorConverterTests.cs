@@ -141,7 +141,7 @@ public class C
     [TestCategory("Transformations UnitTests")]
     public void Apply_SimpleLambdaParameter_ConvertsToNameOf()
     {
-        string input = "using System; public class C { public Action<string> Create() => value => throw new ArgumentException(\"value\"); }";
+        string input = "using System; public class C { public Action<string> Create() => value => throw new ArgumentNullException(\"value\"); }";
 
         string result = _converter.Apply(input);
 
@@ -156,7 +156,7 @@ public class C
 
         string result = _converter.Apply(input);
 
-        Assert.AreEqual(input.Replace("\"value\"", "nameof(value)").Replace("\"count\"", "nameof(count)"), result);
+        Assert.AreEqual(input.Replace("\"count\"", "nameof(count)"), result);
     }
 
     [TestMethod]
@@ -187,18 +187,22 @@ public class C
     [DataRow("class C { void M(string value) { throw new ArgumentException { Source = \"value\" }; } }", DisplayName = "object initializer without argument list")]
     [DataRow("class C { void M() { throw new ArgumentNullException(\"value\"); } }", DisplayName = "method without parameters")]
     [DataRow("class C { Exception E = new ArgumentNullException(\"value\"); }", DisplayName = "field initializer")]
-    [DataRow("class C { int _v; int V { set { if (value < 0) throw new ArgumentOutOfRangeException(\"value\"); _v = value; } } }", DisplayName = "setter value is not collected")]
-    [DataRow("class C(string name) { void M() { throw new ArgumentNullException(\"name\"); } }", DisplayName = "primary constructor parameter is not collected")]
-    [DataRow("class C { System.Action<string> A = delegate (string value) { throw new ArgumentNullException(\"value\"); }; }", DisplayName = "anonymous method parameter is not collected")]
     [DataRow("class C { void M(string value) { throw new ArgumentNullException(\"Value\"); } }", DisplayName = "different casing")]
-    [DataRow("class C { void M(string @class) { throw new ArgumentNullException(\"class\"); } }", DisplayName = "verbatim identifier")]
     [DataRow("class C { void M(string value) { throw new ArgumentNullException($\"value\"); } }", DisplayName = "interpolated string")]
     [DataRow("class C { void M(string value) { throw new ArgumentNullException(nameof(value)); } }", DisplayName = "already nameof")]
     [DataRow("class C { void M(string value) { ArgumentNullException e = new(\"value\"); } }", DisplayName = "target-typed new")]
     [DataRow("class C { void M(string value) { throw new NotSupportedException(\"value\"); } }", DisplayName = "other exception type")]
     [DataRow("class C { void M(string value) { throw new MyArgumentException(\"value\"); } }", DisplayName = "name only ends with a target type")]
     [DataRow("class C { void M(string value) { string s = \"value\"; throw new ArgumentNullException(s); } }", DisplayName = "literal outside the constructor call")]
-    [DataRow("class C { void M(string value) { throw new ArgumentException(\"value\"u8.ToString()); } }", DisplayName = "UTF-8 literal")]
+    [DataRow("class C { void M(string value) { throw new ArgumentException(\"value\"); } }", DisplayName = "ArgumentException message")]
+    [DataRow("class C { void M(string value) { throw new ArgumentException(\"value\", \"unknown\"); } }", DisplayName = "ArgumentException message beside an unknown parameter name")]
+    [DataRow("class C { void M(string value, System.Exception inner) { throw new ArgumentException(\"value\", inner); } }", DisplayName = "ArgumentException message with an inner exception")]
+    [DataRow("class C { void M(string value) { throw new ArgumentException(message: \"value\"); } }", DisplayName = "named ArgumentException message")]
+    [DataRow("class C { void M(string value) { throw new ArgumentNullException(\"other\", \"value\"); } }", DisplayName = "ArgumentNullException message")]
+    [DataRow("class C { void M(string value) { throw new ArgumentNullException(\"value\", new System.Exception()); } }", DisplayName = "ArgumentNullException message with an inner exception")]
+    [DataRow("class C { void M(string value, string text) { throw new ArgumentNullException(\"value\", text); } }", DisplayName = "ArgumentNullException with a second argument of unknown type")]
+    [DataRow("class C { void M(string value) { throw new ArgumentOutOfRangeException(\"value\", new System.Exception()); } }", DisplayName = "ArgumentOutOfRangeException message with an inner exception")]
+    [DataRow("class C { void M(string value) { throw new System.ComponentModel.InvalidEnumArgumentException(\"value\"); } }", DisplayName = "InvalidEnumArgumentException message")]
     public void LiteralThatCannotBecomeNameOf_IsUnchanged(string input)
     {
         Assert.AreEqual(input, _converter.Apply(input));
@@ -212,11 +216,19 @@ public class C
     [DataRow("class C { void M(string value) { throw new ArgumentException(message: \"Bad\", paramName: \"value\"); } }", "class C { void M(string value) { throw new ArgumentException(message: \"Bad\", paramName: nameof(value)); } }", DisplayName = "named arguments")]
     [DataRow("class C { void M(string value) { throw new ArgumentNullException(@\"value\"); } }", "class C { void M(string value) { throw new ArgumentNullException(nameof(value)); } }", DisplayName = "verbatim literal")]
     [DataRow("class C { void M(string value) { throw new ArgumentNullException(\"\"\"value\"\"\"); } }", "class C { void M(string value) { throw new ArgumentNullException(nameof(value)); } }", DisplayName = "raw literal")]
-    [DataRow("class C { void M(string outer) { System.Action<string> a = inner => throw new ArgumentException(\"inner\", \"outer\"); } }", "class C { void M(string outer) { System.Action<string> a = inner => throw new ArgumentException(nameof(inner), nameof(outer)); } }", DisplayName = "lambda inside method sees both scopes")]
+    [DataRow("class C { void M(string outer) { System.Action<string> a = inner => { object e = new ArgumentException(\"x\", \"inner\"); object f = new ArgumentException(\"x\", \"outer\"); }; } }", "class C { void M(string outer) { System.Action<string> a = inner => { object e = new ArgumentException(\"x\", nameof(inner)); object f = new ArgumentException(\"x\", nameof(outer)); }; } }", DisplayName = "lambda inside method sees both scopes")]
     [DataRow("class C { void M(string value) { System.Func<string, Exception> f = static x => new ArgumentNullException(\"x\"); } }", "class C { void M(string value) { System.Func<string, Exception> f = static x => new ArgumentNullException(nameof(x)); } }", DisplayName = "static lambda")]
-    [DataRow("class C { void M(string value) { throw new ArgumentException(\"value\", new ArgumentNullException(\"value\")); } }", "class C { void M(string value) { throw new ArgumentException(nameof(value), new ArgumentNullException(nameof(value))); } }", DisplayName = "nested exception")]
+    [DataRow("class C { void M(string value) { throw new ArgumentException(\"value\", new ArgumentNullException(\"value\")); } }", "class C { void M(string value) { throw new ArgumentException(\"value\", new ArgumentNullException(nameof(value))); } }", DisplayName = "nested exception")]
     [DataRow("record R { public R(string name) { if (name == null) throw new ArgumentNullException(\"name\"); } }", "record R { public R(string name) { if (name == null) throw new ArgumentNullException(nameof(name)); } }", DisplayName = "record constructor")]
     [DataRow("struct S { void M<T>(T item) where T : class { _ = item ?? throw new ArgumentNullException(\"item\"); } }", "struct S { void M<T>(T item) where T : class { _ = item ?? throw new ArgumentNullException(nameof(item)); } }", DisplayName = "generic method in struct")]
+    [DataRow("class C { void M(string value) { throw new ArgumentNullException(\"value\", \"must not be null\"); } }", "class C { void M(string value) { throw new ArgumentNullException(nameof(value), \"must not be null\"); } }", DisplayName = "ArgumentNullException with a message")]
+    [DataRow("class C { void M(string value) { throw new ArgumentOutOfRangeException(\"value\", \"too large\"); } }", "class C { void M(string value) { throw new ArgumentOutOfRangeException(nameof(value), \"too large\"); } }", DisplayName = "ArgumentOutOfRangeException with a message")]
+    [DataRow("class C { void M(string value) { throw new ArgumentOutOfRangeException(\"value\", 5, \"too large\"); } }", "class C { void M(string value) { throw new ArgumentOutOfRangeException(nameof(value), 5, \"too large\"); } }", DisplayName = "ArgumentOutOfRangeException with value and message")]
+    [DataRow("class C { void M(string value) { throw new ArgumentNullException(paramName: \"value\", message: \"must not be null\"); } }", "class C { void M(string value) { throw new ArgumentNullException(paramName: nameof(value), message: \"must not be null\"); } }", DisplayName = "named ArgumentNullException arguments")]
+    [DataRow("class C { void M(string value) { throw new ArgumentException(\"value\", \"value\"); } }", "class C { void M(string value) { throw new ArgumentException(\"value\", nameof(value)); } }", DisplayName = "only the parameter name of ArgumentException")]
+    [DataRow("class C { void M(string value, System.Exception inner) { throw new ArgumentException(\"Bad\", \"value\", inner); } }", "class C { void M(string value, System.Exception inner) { throw new ArgumentException(\"Bad\", nameof(value), inner); } }", DisplayName = "ArgumentException with an inner exception")]
+    [DataRow("class C { void M(string value) { throw new ArgumentException(paramName: \"value\", message: \"value\"); } }", "class C { void M(string value) { throw new ArgumentException(paramName: nameof(value), message: \"value\"); } }", DisplayName = "named ArgumentException arguments in reverse order")]
+    [DataRow("class C { void M(int value) { throw new System.ComponentModel.InvalidEnumArgumentException(argumentName: \"value\", invalidValue: 1, enumClass: typeof(int)); } }", "class C { void M(int value) { throw new System.ComponentModel.InvalidEnumArgumentException(argumentName: nameof(value), invalidValue: 1, enumClass: typeof(int)); } }", DisplayName = "named InvalidEnumArgumentException arguments")]
     public void LiteralNamingAParameterInScope_BecomesNameOf(string input, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -229,12 +241,12 @@ public class C
         string input =
             "using System;\r\n" +
             "\r\n" +
-            "if (args.Length == 0) throw new ArgumentException(\"args\");\r\n" +
+            "if (args.Length == 0) throw new ArgumentNullException(\"args\");\r\n" +
             "Check(args[0]);\r\n" +
             "\r\n" +
             "static void Check(string path)\r\n" +
             "{\r\n" +
-            "    if (path.Length == 0) throw new ArgumentException(\"path\");\r\n" +
+            "    if (path.Length == 0) throw new ArgumentNullException(\"path\");\r\n" +
             "}\r\n" +
             "\r\n" +
             "class Guard\r\n" +
@@ -242,7 +254,7 @@ public class C
             "    public static void NotNull(object value) { if (value == null) throw new ArgumentNullException(\"value\"); }\r\n" +
             "}\r\n";
         string expected = input
-            .Replace("ArgumentException(\"path\")", "ArgumentException(nameof(path))")
+            .Replace("ArgumentNullException(\"path\")", "ArgumentNullException(nameof(path))")
             .Replace("ArgumentNullException(\"value\")", "ArgumentNullException(nameof(value))");
 
         Assert.AreEqual(expected, _converter.Apply(input));
@@ -302,7 +314,7 @@ public class C
             .Replace("ArgumentNullException(\"name\")", "ArgumentNullException(nameof(name))")
             .Replace("ArgumentOutOfRangeException(\"count\",", "ArgumentOutOfRangeException(nameof(count),")
             .Replace("ArgumentException(\"Bad\", \"text\")", "ArgumentException(\"Bad\", nameof(text))")
-            .Replace("ArgumentException(\"label\", \"inner\")", "ArgumentException(nameof(label), nameof(inner))");
+            .Replace("ArgumentException(\"label\", \"inner\")", "ArgumentException(\"label\", nameof(inner))");
 
         string output = _converter.Apply(input);
 

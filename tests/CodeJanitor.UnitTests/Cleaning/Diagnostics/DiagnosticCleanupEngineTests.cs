@@ -927,6 +927,21 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_ProviderExceptionMessageWithNewlines_YieldsASingleLineDetail()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0048", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
+
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new MultiLineThrowingLegacyFieldCodeFixProvider("CJT0048"));
+
+        UnresolvedDiagnostic unresolved = result.Unresolved.Single();
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+        StringAssert.Contains(unresolved.Detail, "first line second line third line");
+        Assert.IsFalse(unresolved.Detail.Contains('\r') || unresolved.Detail.Contains('\n'), "The detail is written to one output pane line.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ProviderWhoseGetFixAllProviderThrows_IsRejectedAndTheOtherFixesOfTheFileAreApplied()
     {
         DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(
@@ -1018,6 +1033,54 @@ public sealed class DiagnosticCleanupEngineTests
             workspace.CreateSolution().GetDocument(documentId),
             new DiagnosticCleanupOptions(new[] { DiagnosticCleanupCategory.AnalyzerFixes }),
             cancellation.Token));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow((int)FixAllFailure.None, DisplayName = "RegisterCodeFixesAsync")]
+    [DataRow((int)FixAllFailure.GetFixAllProvider, DisplayName = "GetFixAllProvider")]
+    [DataRow((int)FixAllFailure.GetFixAsync, DisplayName = "Fix-all GetFixAsync")]
+    public async Task CleanupAsync_RoslynBindingFailure_PropagatesInsteadOfBeingBlamedOnTheProvider(int failingStep)
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0049", out DocumentId documentId);
+        CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new CodeFixProvider[] { new BindingFailureLegacyFieldCodeFixProvider("CJT0049", (FixAllFailure)failingStep) });
+
+        // The host Roslyn cannot be bound: the caller must see it (and report an explicit failure), not a per-diagnostic provider failure.
+        await Assert.ThrowsExactlyAsync<System.MissingMethodException>(
+            () => CleanupAsync(workspace.CreateSolution(), documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_ProviderThatThrowsWhileRegisteringFixes_IsNotInvokedAgainForTheSameDiagnosticInLaterPasses()
+    {
+        DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(
+            new LegacyFieldAnalyzer("old", ("CJT0050", "Performance")),
+            new HiddenLegacyFieldAnalyzer("CJT0051"));
+        using (workspace)
+        {
+            workspace.ConfigureRuleSeverity("CJT0050", "warning");
+            workspace.ConfigureRuleSeverity("CJT0051", "warning");
+            DocumentId documentId = workspace.AddDocument("Settings.cs", Lines(
+                "class Settings",
+                "{",
+                "    public int oldValue;",
+                "    public int legacyValue;",
+                "}"));
+            CountingThrowingLegacyFieldCodeFixProvider throwing = new CountingThrowingLegacyFieldCodeFixProvider("CJT0050");
+            CodeFixProviderCatalog catalog = new CodeFixProviderCatalog(new CodeFixProvider[] { throwing, new RenameLegacyFieldCodeFixProvider("CJT0051") });
+
+            DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
+
+            // Pass 1 applies the CJT0051 fix, pass 2 plans the remaining CJT0050 diagnostic again.
+            Assert.AreEqual("CJT0051", result.AppliedFixes.Single().DiagnosticId);
+            Assert.AreEqual(1, throwing.RegisterCalls, "A provider that failed for a diagnostic id is not retried in later passes of the same run.");
+            UnresolvedDiagnostic unresolved = result.Unresolved.Single();
+            Assert.AreEqual("CJT0050", unresolved.DiagnosticId);
+            Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+            StringAssert.Contains(unresolved.Detail, nameof(CountingThrowingLegacyFieldCodeFixProvider));
+            StringAssert.Contains(unresolved.Detail, "Registration failed");
+        }
     }
 
     [TestMethod]
@@ -1801,6 +1864,81 @@ public sealed class DiagnosticCleanupEngineTests
     // A test double handed to the workspace as an instance; the analyzer-authoring rules about shipping compiler
     // extensions do not apply.
 #pragma warning disable RS1036, RS1038, RS1041, RS2008
+
+    /// <summary>
+    /// Throws with a multi-line message while registering its fixes.
+    /// </summary>
+    private sealed class MultiLineThrowingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+    {
+        public MultiLineThrowingLegacyFieldCodeFixProvider(string diagnosticId)
+            : base(diagnosticId)
+        {
+        }
+
+        public override System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context) =>
+            throw new System.InvalidOperationException("first line\r\nsecond line\nthird line");
+    }
+
+    /// <summary>
+    /// Throws a <see cref="System.MissingMethodException" /> (a Roslyn binding failure of the host) at the chosen step.
+    /// </summary>
+    private sealed class BindingFailureLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+    {
+        private readonly FixAllFailure _failingStep;
+
+        public BindingFailureLegacyFieldCodeFixProvider(string diagnosticId, FixAllFailure failingStep)
+            : base(diagnosticId)
+        {
+            _failingStep = failingStep;
+        }
+
+        public override FixAllProvider GetFixAllProvider() => _failingStep switch
+        {
+            FixAllFailure.GetFixAllProvider => throw new System.MissingMethodException("GetFixAllProvider"),
+            FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
+            _ => null,
+        };
+
+        public override async System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context)
+        {
+            if (_failingStep == FixAllFailure.None)
+            {
+                throw new System.MissingMethodException("RegisterCodeFixesAsync");
+            }
+
+            string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken);
+            context.RegisterCodeFix(
+                CodeAction.Create("Rename", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct), "BindingFailureLegacyField"),
+                context.Diagnostics);
+        }
+
+        private sealed class ThrowingFixAllProvider : FixAllProvider
+        {
+            public override System.Collections.Generic.IEnumerable<FixAllScope> GetSupportedFixAllScopes() => new[] { FixAllScope.Document };
+
+            public override System.Threading.Tasks.Task<CodeAction> GetFixAsync(FixAllContext fixAllContext) => throw new System.MissingMethodException("GetFixAsync");
+        }
+    }
+
+    /// <summary>
+    /// Throws while registering its fixes and counts how often it was asked.
+    /// </summary>
+    private sealed class CountingThrowingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+    {
+        public CountingThrowingLegacyFieldCodeFixProvider(string diagnosticId)
+            : base(diagnosticId)
+        {
+        }
+
+        public int RegisterCalls { get; private set; }
+
+        public override System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context)
+        {
+            RegisterCalls++;
+
+            throw new System.InvalidOperationException("Registration failed");
+        }
+    }
 
     /// <summary>
     /// Reports every source field whose name starts with <c>legacy</c> with a rule that is hidden by default, like

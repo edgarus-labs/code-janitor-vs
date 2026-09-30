@@ -105,6 +105,44 @@ public sealed class SingleStatementLambdaConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { Action a = delegate /* keep */ { Foo(); }; static void Foo() { } }", DisplayName = "comment after the delegate keyword")]
+    [DataRow("class C { Action<int> a = delegate /* keep */ (int x) { Foo(); }; static void Foo() { } }", DisplayName = "comment after the delegate keyword before parameters")]
+    public void AnonymousMethodWithCommentInItsHeader_IsUnchanged(string input)
+    {
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { Action a = static delegate { Foo(); }; static void Foo() { } }", "class C { Action a = static () => Foo(); static void Foo() { } }", DisplayName = "static anonymous method")]
+    [DataRow("class C { Func<int, int> f = static delegate (int x) { return x; }; }", "class C { Func<int, int> f = static (int x) => x; }", DisplayName = "static anonymous method with parameters")]
+    [DataRow("class C { Func<Task> f = static async delegate { await Task.Delay(1); }; }", "class C { Func<Task> f = static async () => await Task.Delay(1); }", DisplayName = "static async anonymous method")]
+    [DataRow("class C { Func<Task> f = async static delegate { await Task.Delay(1); }; }", "class C { Func<Task> f = async static () => await Task.Delay(1); }", DisplayName = "async static anonymous method")]
+    public void StaticAnonymousMethod_KeepsItsModifiers(string input, string expected)
+    {
+        Assert.AreEqual(expected, _converter.Apply(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        "class C\r\n{\r\n    Func<int, int> f = delegate (int x)\r\n    {\r\n        return x;\r\n    };\r\n}",
+        "class C\r\n{\r\n    Func<int, int> f = (int x) =>\r\n    x;\r\n}",
+        DisplayName = "with parameters")]
+    [DataRow(
+        "class C\r\n{\r\n    Action a = delegate\r\n    {\r\n        Foo();\r\n    };\r\n    static void Foo() { }\r\n}",
+        "class C\r\n{\r\n    Action a = () =>\r\n    Foo();\r\n    static void Foo() { }\r\n}",
+        DisplayName = "without parameters")]
+    public void AllmanAnonymousMethod_KeepsTheArrowOnTheHeaderLine(string input, string expected)
+    {
+        string result = _converter.Apply(input);
+
+        Assert.AreEqual(expected, result);
+        Assert.AreEqual(expected, _converter.Apply(result), "The conversion must be idempotent.");
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     [DataRow("  \r\n\t", DisplayName = "whitespace only")]
     [DataRow("class C { Func<int, int> f = x => x + 1; Action a = () => DoWork(); }", DisplayName = "already expression-bodied")]
     [DataRow("class C { Action a = () => { }; Action b = delegate { }; }", DisplayName = "empty block")]

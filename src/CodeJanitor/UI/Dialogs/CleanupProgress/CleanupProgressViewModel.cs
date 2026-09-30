@@ -3,7 +3,9 @@ using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Threading;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,13 +23,13 @@ namespace CodeJanitor.UI.Dialogs.CleanupProgress;
 public sealed class CleanupProgressViewModel : BaseProgressViewModel
 {
     private readonly CodeJanitorPackage _package;
+    private readonly Action<string, string, MessageBoxImage> _showMessage;
 
     /// <summary>
     /// Projects whose files are analyzed at the same time; each one holds a project compilation in memory.
     /// </summary>
     private const int MaxParallelProjects = 4;
 
-    private readonly Dispatcher _dispatcher;
     private readonly Stopwatch _batchStopwatch;
 
     /// <summary>
@@ -67,9 +69,23 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// <param name="package">The hosting package.</param>
     /// <param name="items">The items to cleanup.</param>
     public CleanupProgressViewModel(CodeJanitorPackage package, IEnumerable<object> items)
+        : this(package, items, null)
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CleanupProgressViewModel" /> class that reports the outcome of the
+    /// batch through <paramref name="showMessage" /> instead of a modal message box.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <param name="items">The items to cleanup.</param>
+    /// <param name="showMessage">Shows the message of the batch outcome, or null to show a message box.</param>
+    internal CleanupProgressViewModel(CodeJanitorPackage package, IEnumerable<object> items, Action<string> showMessage)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
         _package = package;
-        _dispatcher = Dispatcher.CurrentDispatcher;
+        _showMessage = showMessage is null ? ShowMessage : (message, _, _) => showMessage(message);
         CodeCleanupManager = CodeCleanupManager.GetInstance(package);
         CodeCleanupManager.ResetCleanupExecutionStats();
         _batchStopwatch = Stopwatch.StartNew();
@@ -80,9 +96,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         CountTotal = cleanupItems.Count;
         ProcessedCount = 0;
         UpdateExecutionSummary();
-        _refreshTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, (_, _) => UpdateExecutionSummary(), _dispatcher);
+        _refreshTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, (_, _) => UpdateExecutionSummary(), Dispatcher.CurrentDispatcher);
 
-        // The batch runs on the thread pool; UI work goes through the dispatcher.
+        // The batch runs on the thread pool; UI work goes through the joinable task factory.
         _ = RunBatchAsync(cleanupItems);
     }
 
@@ -123,7 +139,8 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             error = ex;
         }
 
-        await _dispatcher.InvokeAsync(() => OnBatchCompleted(error, canceled));
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        OnBatchCompleted(error, canceled);
     }
 
     /// <summary>
@@ -131,7 +148,31 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// </summary>
     /// <param name="state">The progress state.</param>
     private void ReportProgress(ProgressReportState state) =>
-        _ = _dispatcher.InvokeAsync(() => OnProgressChanged(state));
+        _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            OnProgressChanged(state);
+        });
+
+    /// <summary>
+    /// Runs <paramref name="action" /> on the UI thread through the joinable task factory, so it is also serviced while
+    /// the UI thread waits in a joinable task, and returns to the thread pool afterwards.
+    /// </summary>
+    /// <typeparam name="T">The result type.</typeparam>
+    /// <param name="action">The UI-thread work.</param>
+    /// <returns>The result of <paramref name="action" />.</returns>
+    private static async Task<T> RunOnMainThreadAsync<T>(Func<T> action)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        try
+        {
+            return action();
+        }
+        finally
+        {
+            await TaskScheduler.Default;
+        }
+    }
 
     /// <summary>
     /// Cleans up the items on a thread pool thread.
@@ -158,7 +199,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 MaxDegreeOfParallelism = maxDegree
             };
 
-            var workItems = await _dispatcher.InvokeAsync(() => projectItems.Select(CreateWorkItem).ToList());
+            var workItems = await RunOnMainThreadAsync(() => projectItems.Select(CreateWorkItem).ToList());
 
             // Open documents, files in other languages than C#, and C# files that need editor-backed steps
             // (reorganizing, third-party cleanup) are cleaned one at a time in the editor.
@@ -175,6 +216,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             // soon as it is rewritten, so it is counted even when the batch is canceled before its headless cleanup. The
             // set is only read during the parallel pass, which does not count these files again.
             var filesChangedBySemanticSteps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // A file whose semantic step or headless cleanup failed is recorded as failed once: the later passes leave it
+            // alone, as they would record their own failures for the same file and inflate the failure count.
+            var failedItems = new ConcurrentDictionary<WorkItem, bool>();
             await CleanupBatchPartitioner.RunPerGroupAsync(parallelItems, workItem => workItem.ProjectKey, MaxParallelProjects, cancellationToken, async workItem =>
             {
                 ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = Volatile.Read(ref completedCount), Total = totalCount });
@@ -208,6 +253,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                 }
                 catch (Exception ex)
                 {
+                    failedItems.TryAdd(workItem, true);
                     CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                 }
             });
@@ -225,6 +271,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     {
                         loopState.Stop();
 
+                        return;
+                    }
+
+                    if (failedItems.ContainsKey(workItem))
+                    {
                         return;
                     }
 
@@ -252,8 +303,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                         if (outcome.SplitOperationOccurred && outcome.CreatedFiles.Count > 0)
                         {
                             CodeCleanupManager.RecordSplitOperation(outcome.CreatedFiles.Count);
-                            _dispatcher.Invoke(() =>
+                            ThreadHelper.JoinableTaskFactory.Run(async () =>
                             {
+                                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                                 foreach (var createdFile in outcome.CreatedFiles)
                                 {
                                     CodeCleanupManager.AddGeneratedFileToProject(workItem.ProjectItem, createdFile);
@@ -263,6 +315,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     }
                     catch (Exception ex)
                     {
+                        failedItems.TryAdd(workItem, true);
                         CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
                     }
 
@@ -286,14 +339,17 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             {
                 ReportProgress(new ProgressReportState { FileName = workItem.FileName, Completed = Volatile.Read(ref completedCount), Total = totalCount });
 
-                try
+                if (!failedItems.ContainsKey(workItem))
                 {
-                    await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
-                    await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(workItem.ProjectItem);
-                }
-                catch (Exception ex)
-                {
-                    CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
+                    try
+                    {
+                        await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
+                        await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(workItem.ProjectItem);
+                    }
+                    catch (Exception ex)
+                    {
+                        CodeCleanupManager.RecordCleanupFailure(workItem.FilePath, ex);
+                    }
                 }
 
                 var completed = Interlocked.Increment(ref completedCount);
@@ -366,7 +422,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     // documentation step then runs from this thread, so its requests neither block Visual Studio nor
                     // the Cancel button.
                     EnvDTE.Document document = item;
-                    var xmlDocumentationItem = await _dispatcher.InvokeAsync(() => CodeCleanupManager.CleanupWithoutXmlDocumentation(document));
+                    var xmlDocumentationItem = await RunOnMainThreadAsync(() => CodeCleanupManager.CleanupWithoutXmlDocumentation(document));
                     if (xmlDocumentationItem is not null)
                     {
                         await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(xmlDocumentationItem);
@@ -414,6 +470,30 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// <param name="canceled">Whether the batch was canceled.</param>
     private void OnBatchCompleted(Exception error, bool canceled)
     {
+        // The batch runs fire-and-forget: an exception escaping here would land in a task nobody observes and leave
+        // the modal dialog open, because closing it is refused until the dialog result is set.
+        try
+        {
+            CompleteBatch(error, canceled);
+        }
+        catch (Exception ex)
+        {
+            OutputWindowHelper.ExceptionWriteLine("Completing the cleanup batch failed", ex);
+        }
+        finally
+        {
+            DialogResult = true;
+            _cancellationSource.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Reports the outcome of the batch and starts the build verification when it applies; runs on the UI thread.
+    /// </summary>
+    /// <param name="error">The exception that ended the batch, if any.</param>
+    /// <param name="canceled">Whether the batch was canceled.</param>
+    private void CompleteBatch(Exception error, bool canceled)
+    {
         _refreshTimer.Stop();
         _batchStopwatch.Stop();
         ProcessedCount = CountTotal;
@@ -429,7 +509,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         if (error is not null)
         {
             OutputWindowHelper.WarningWriteLine($"Cleanup batch failed after {counts}.");
-            ShowMessage(error.Message, "CodeJanitor Cleanup Error", MessageBoxImage.Error);
+            _showMessage(error.Message, "CodeJanitor Cleanup Error", MessageBoxImage.Error);
         }
         else if (canceled)
         {
@@ -438,12 +518,12 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         else if (stats.FailedItems > 0)
         {
             OutputWindowHelper.WarningWriteLine($"Cleanup batch completed with failures. Processed: {counts}.");
-            ShowMessage($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxImage.Warning);
+            _showMessage($"Cleanup completed with {stats.FailedItems} failed item(s). Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxImage.Warning);
         }
         else if (stats.DiagnosticUnresolvedItems > 0)
         {
             OutputWindowHelper.WarningWriteLine($"Cleanup batch completed with unresolved diagnostics. Processed: {counts}.");
-            ShowMessage($"Cleanup completed, but {stats.DiagnosticUnresolvedItems} file(s) still have diagnostics that could not be fixed automatically. Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxImage.Warning);
+            _showMessage($"Cleanup completed, but {stats.DiagnosticUnresolvedItems} file(s) still have diagnostics that could not be fixed automatically. Please check the CodeJanitor output window for details.", "CodeJanitor Cleanup Warning", MessageBoxImage.Warning);
         }
         else
         {
@@ -459,9 +539,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         {
             StartBuildVerification();
         }
-
-        DialogResult = true;
-        _cancellationSource.Dispose();
     }
 
     /// <summary>
@@ -512,8 +589,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     }
 
     /// <summary>
-    /// Shows a message box owned by the progress window and above every other window, so it cannot end up hidden
-    /// behind the progress window or Visual Studio while the batch waits for it.
+    /// Shows a message box owned by the progress window (the window whose data context is this view model) and above
+    /// every other window, so it cannot end up hidden behind the progress window or Visual Studio while the batch waits
+    /// for it. Without such a window the message box is shown by the system defaults.
     /// </summary>
     /// <param name="message">The message.</param>
     /// <param name="caption">The caption.</param>
@@ -523,7 +601,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         var owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => ReferenceEquals(window.DataContext, this));
         if (owner is null)
         {
-            MessageBox.Show(message, caption, MessageBoxButton.OK, image, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+            MessageBox.Show(message, caption, MessageBoxButton.OK, image);
 
             return;
         }

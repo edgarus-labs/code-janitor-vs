@@ -96,6 +96,9 @@ public sealed class UpdateSingleLineMethodsConverterTests
     [DataRow("class C\r\n{\r\n    void M() { Foo(1,\r\n        2); }\r\n}\r\n", DisplayName = "statement spanning two lines")]
     [DataRow("using System;\r\nConsole.WriteLine(Local());\r\nstatic int Local() { return 1; }\r\n", DisplayName = "top-level statements with a single-line local function")]
     [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        Run(() => { A(); });\r\n    }\r\n}\r\n", DisplayName = "single-line lambda inside a multi-line method")]
+    [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        Run(delegate { A(); });\r\n    }\r\n}\r\n", DisplayName = "single-line anonymous method inside a multi-line method")]
+    [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        Run(delegate (int x)\r\n        {\r\n            A(x);\r\n        });\r\n    }\r\n}\r\n", DisplayName = "Allman anonymous method inside a multi-line method")]
+    [DataRow("class C\r\n{\r\n    System.Action<int> a = delegate (int x)\r\n    {\r\n        A(x);\r\n    };\r\n}\r\n", DisplayName = "Allman anonymous method in a field initializer")]
     [DataRow("class C\r\n{\r\n#if NEVER_DEFINED\r\n    void M() { A(); }\r\n#endif\r\n}\r\n", DisplayName = "disabled preprocessor branch")]
     [DataRow("partial class C\r\n{\r\n    partial void M();\r\n}\r\n", DisplayName = "partial method declaration")]
     [DataRow("class C\r\n{\r\n    extern void M();\r\n}\r\n", DisplayName = "extern method")]
@@ -167,6 +170,14 @@ public sealed class UpdateSingleLineMethodsConverterTests
         "class C\r\n{\r\n    T M<T>()\r\n        where T : new() { return new T(); }\r\n}\r\n",
         "class C\r\n{\r\n    T M<T>()\r\n        where T : new()\r\n    {\r\n        return new T();\r\n    }\r\n}\r\n",
         DisplayName = "constraint clause on a continuation line")]
+    [DataRow(
+        "class C\r\n{\r\n    int M() { return 1; }\n    void N() { }\r\n}\r\n",
+        "class C\r\n{\r\n    int M()\n    {\n        return 1;\n    }\n    void N() { }\r\n}\r\n",
+        DisplayName = "CRLF file whose single-line method sits on a bare LF line")]
+    [DataRow(
+        "class C\n{\n    int M() { return 1; }\r\n    void N() { }\n}\n",
+        "class C\n{\n    int M()\r\n    {\r\n        return 1;\r\n    }\r\n    void N() { }\n}\n",
+        DisplayName = "LF file whose single-line method sits on a CRLF line")]
     public void SingleLineMethod_IsSpreadWithTheFileIndentationAndLineBreaks(string source, string expected)
     {
         Assert.AreEqual(expected, _converter.Apply(source));

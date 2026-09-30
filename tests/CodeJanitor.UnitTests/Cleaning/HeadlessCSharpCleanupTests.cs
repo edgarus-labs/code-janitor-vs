@@ -280,7 +280,7 @@ public sealed class HeadlessCSharpCleanupTests
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.Contains("if (int.TryParse(s, out var res))", output);
+        Assert.Contains("if (int.TryParse(s, out int res))", output);
     }
 
     [TestMethod]

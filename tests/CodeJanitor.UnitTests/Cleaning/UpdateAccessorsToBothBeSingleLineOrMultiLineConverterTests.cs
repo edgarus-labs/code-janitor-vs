@@ -190,4 +190,14 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
     {
         Assert.AreEqual(source, _converter.Apply(source));
     }
+
+    [TestMethod]
+    public void SingleLineSetterWhoseBodyAlreadyBreaksTheLine_IsNotExpandedIntoABlankLine()
+    {
+        string source = "class C\r\n{\r\n    int P\r\n    {\r\n        get\r\n        {\r\n            return _p;\r\n        }\r\n        set { _p = value; // keep\r\n        } }\r\n}\r\n";
+
+        string result = _converter.Apply(source);
+
+        Assert.DoesNotContain("\r\n\r\n", result, result);
+    }
 }

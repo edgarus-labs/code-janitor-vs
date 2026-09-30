@@ -781,7 +781,7 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Inline &apos;out&apos; variable declarations (&apos;out var ...&apos;).
+        ///   Looks up a localized string similar to Inline &apos;out&apos; variable declarations (&apos;out T x&apos;).
         /// </summary>
         public static string InlineOutVariableDeclarations {
             get {

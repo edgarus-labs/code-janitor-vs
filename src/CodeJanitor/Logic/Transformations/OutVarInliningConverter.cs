@@ -1,13 +1,14 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
 /// A source transformation that inlines separate uninitialized local variable declarations
-/// preceding out argument usages into modern 'out var ...' syntax.
+/// preceding out argument usages into inline 'out T x' declarations (the declared type is kept, because the call may depend on it).
 /// </summary>
 public sealed class OutVarInliningConverter : ISourceTransformation
 {
@@ -77,15 +78,14 @@ public sealed class OutVarInliningConverter : ISourceTransformation
 
                             if (!priorUsages)
                             {
-                                var varKeywordToken = SyntaxFactory.Identifier(
-                                    SyntaxFactory.TriviaList(),
-                                    "var",
-                                    SyntaxFactory.TriviaList(SyntaxFactory.Space));
+                                // Keep the declared type: 'var' would change what the call binds to (out int vs. out long
+                                // overloads, generic type arguments inferred from the argument, dynamic becoming object).
+                                var declaredType = localDecl.Declaration.Type
+                                    .WithoutTrivia()
+                                    .WithTrailingTrivia(SyntaxFactory.Space);
 
                                 var designation = SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier(varName));
-                                var declExpr = SyntaxFactory.DeclarationExpression(
-                                    SyntaxFactory.IdentifierName(varKeywordToken),
-                                    designation);
+                                var declExpr = SyntaxFactory.DeclarationExpression(declaredType, designation);
 
                                 var newOutArg = outArg.WithExpression(declExpr);
                                 var updatedNextStatement = nextStatement.ReplaceNode(outArg, newOutArg)
@@ -94,7 +94,7 @@ public sealed class OutVarInliningConverter : ISourceTransformation
                                 statements.RemoveAt(i);
                                 statements[i] = updatedNextStatement;
                                 changed = true;
-                                i--; // Re-check at current index
+                                i = Math.Max(i - 2, -1); // Re-check the declaration right before the rewritten call
                             }
                         }
                     }

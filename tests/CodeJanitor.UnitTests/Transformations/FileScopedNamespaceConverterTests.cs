@@ -670,7 +670,7 @@ public sealed class FileScopedNamespaceConverterTests
     [DataRow("namespace A\r\n{\r\n    class C { }\r\n}\r\n#pragma warning disable CS0168\r\n;\r\n", DisplayName = "directive before the semicolon after the closing brace")]
     [DataRow("#if true\r\nnamespace A\r\n{\r\n#else\r\nnamespace B\r\n{\r\n#endif\r\n    class C { }\r\n}\r\n", DisplayName = "#else in the body continues an #if before the namespace")]
     [DataRow("#if true\r\nnamespace A\r\n{\r\n#endif\r\n    class C { }\r\n}\r\n", DisplayName = "#endif in the body closes an #if before the namespace")]
-    [DataRow("namespace A\r\n{\r\n    class C { }\r\n#if X\r\n    class D { }\r\n}\r\n", DisplayName = "#if in the body without #endif")]
+    [DataRow("namespace A\r\n{\r\n    class C { }\r\n#if true\r\n    class D { }\r\n}\r\n", DisplayName = "#if in the body without #endif")]
     [DataRow("using System;\r\n\r\nConsole.WriteLine(\"namespace X { }\");\r\n\r\nstatic int Add(int a, int b) => a + b;\r\n\r\nnamespace A\r\n{\r\n    class C { }\r\n}\r\n", DisplayName = "top-level statements before the namespace")]
     [DataRow("using System;\r\n\r\nConsole.WriteLine(\"hello\");\r\n\r\nclass C { }\r\n", DisplayName = "top-level statements without namespace")]
     [DataRow("namespace A.B\r\n{\r\n}\r\nnamespace A.C\r\n{\r\n}\r\n", DisplayName = "two namespaces")]

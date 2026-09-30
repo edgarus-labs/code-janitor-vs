@@ -1,3 +1,4 @@
+using CodeJanitor.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -51,7 +52,10 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// <para>
 /// Exceptions thrown by code fix providers (while registering fixes, providing a fix-all provider or computing a fix)
 /// never abort the cleanup: the affected diagnostics are reported as <see cref="UnresolvedDiagnosticReason.FixProviderFailed" />
-/// and the other fixes still apply. Only cancellation propagates to the caller. Analyzer failures are reported by Roslyn
+/// and the other fixes still apply; a provider that failed while registering fixes for a diagnostic id is not asked again
+/// for that id in the same run. Roslyn binding failures (see <see cref="VisualStudioRoslynWorkspace.IsRoslynBindingFailure" />)
+/// are never attributed to a provider: they propagate, because the host Roslyn cannot be used at all. Only cancellation
+/// and those failures propagate to the caller. Analyzer failures are reported by Roslyn
 /// without a source location, so they never become actionable.
 /// </para>
 /// </remarks>
@@ -247,6 +251,11 @@ public sealed class DiagnosticCleanupEngine
         private readonly Dictionary<(CodeFixProvider Provider, string EquivalenceKey), (UnresolvedDiagnosticReason Reason, string Detail)> _rejectedGroups =
             new Dictionary<(CodeFixProvider Provider, string EquivalenceKey), (UnresolvedDiagnosticReason Reason, string Detail)>();
 
+        // Providers that threw while registering fixes for a diagnostic id: they are not asked again in later passes of
+        // this run (like _rejectedGroups for failures while computing a fix), so their exception is logged once.
+        private readonly Dictionary<(CodeFixProvider Provider, string DiagnosticId), string> _registrationFailures =
+            new Dictionary<(CodeFixProvider Provider, string DiagnosticId), string>();
+
         private readonly List<(string DiagnosticId, DiagnosticCleanupCategory Category, CodeFixProvider Provider)> _appliedOrder =
             [];
 
@@ -425,18 +434,27 @@ public sealed class DiagnosticCleanupEngine
             string providerFailure = null;
             foreach (var provider in providers)
             {
+                if (_registrationFailures.TryGetValue((provider, actionable.Diagnostic.Id), out var knownFailure))
+                {
+                    providerFailure ??= knownFailure;
+
+                    continue;
+                }
+
                 (CodeAction Action, bool HasEquivalentAlternatives) chosen;
                 try
                 {
                     chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception exception)
+                catch (Exception exception) when (!VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception))
                 {
                     // Canceling the cleanup wins over whatever the interrupted provider threw.
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // A provider bug must not stop the cleanup of the file; the next provider may still offer a fix.
-                    providerFailure ??= DescribeProviderFailure(provider, exception);
+                    var failure = DescribeProviderFailure(provider, exception);
+                    _registrationFailures[(provider, actionable.Diagnostic.Id)] = failure;
+                    providerFailure ??= failure;
 
                     continue;
                 }
@@ -452,8 +470,18 @@ public sealed class DiagnosticCleanupEngine
                 : FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.FixProviderFailed, providerFailure);
         }
 
-        private static string DescribeProviderFailure(CodeFixProvider provider, Exception exception) =>
-            $"{provider.GetType().Name} threw {exception.GetType().Name}: {exception.Message}";
+        /// <summary>
+        /// Writes the full exception (with its stack trace) to the diagnostic log and returns the one-line detail
+        /// reported for the unresolved diagnostic: line breaks of the exception message are flattened to spaces.
+        /// </summary>
+        private static string DescribeProviderFailure(CodeFixProvider provider, Exception exception)
+        {
+            OutputWindowHelper.DiagnosticWriteLine($"Code fix provider {provider.GetType().FullName} failed", exception);
+
+            var message = string.Join(" ", exception.Message.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None));
+
+            return $"{provider.GetType().Name} threw {exception.GetType().Name}: {message}";
+        }
 
         /// <summary>
         /// Gets the first top-level action registered by <paramref name="provider" /> that has no nested actions;
@@ -546,7 +574,7 @@ public sealed class DiagnosticCleanupEngine
 
                 operations = await action.GetOperationsAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch (Exception exception) when (!VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
