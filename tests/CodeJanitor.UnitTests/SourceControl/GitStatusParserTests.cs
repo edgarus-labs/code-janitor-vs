@@ -21,15 +21,9 @@ public sealed class GitStatusParserTests
     private IGitStatusParser _parser;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _parser = new GitStatusParser();
-    }
+    public void TestInitialize() => _parser = new GitStatusParser();
 
-    private static string Combine(string relative)
-    {
-        return Path.Combine(Root, relative.Replace('/', Path.DirectorySeparatorChar));
-    }
+    private static string Combine(string relative) => Path.Combine(Root, relative.Replace('/', Path.DirectorySeparatorChar));
 
     [TestMethod]
     [TestCategory("SourceControl UnitTests")]

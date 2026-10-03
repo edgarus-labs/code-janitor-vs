@@ -14,8 +14,11 @@ namespace CodeJanitor.Logic.Transformations;
 /// Scope is intentionally conservative: only <c>private</c> fields of non-partial types with a
 /// single declarator are considered, and only when every write to the field occurs directly in
 /// the declaring type's own constructor (instance fields) or static constructor (static
-/// fields) - never in a regular method, accessor, local function, or nested lambda, since those
-/// could execute after construction. Pure logic, unit-testable without Visual Studio.
+/// fields) through the instance under construction - never in a regular method, accessor, local
+/// function, or nested lambda, since those could execute after construction. Fields named in
+/// code excluded by a preprocessor directive, fixed-size buffers, and fields with a method call or a
+/// member write (<c>_p.X = 1</c>) on them whose type may be a mutable struct are left alone. Pure
+/// logic, unit-testable without Visual Studio.
 /// </remarks>
 public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceTransformation
 {
@@ -90,7 +93,8 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         var modifiers = fieldDecl.Modifiers;
         if (modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword) ||
                                 m.IsKind(SyntaxKind.ConstKeyword) ||
-                                m.IsKind(SyntaxKind.VolatileKeyword)))
+                                m.IsKind(SyntaxKind.VolatileKeyword) ||
+                                m.IsKind(SyntaxKind.FixedKeyword)))
         {
             return false;
         }
@@ -139,43 +143,76 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
             }
         }
 
-        var writeNodes = new List<SyntaxNode>();
+        var writes = new List<KeyValuePair<SyntaxNode, List<ExpressionSyntax>>>();
+
+        void AddWrite(SyntaxNode writeNode, ExpressionSyntax target)
+        {
+            var targets = new List<ExpressionSyntax>();
+            CollectWrittenTargets(target, fieldName, declaringTypeName, targets);
+            if (targets.Count > 0)
+            {
+                writes.Add(new KeyValuePair<SyntaxNode, List<ExpressionSyntax>>(writeNode, targets));
+            }
+        }
 
         foreach (var assignment in scopeNodes.OfType<AssignmentExpressionSyntax>())
         {
-            if (GetFieldAccessKind(assignment.Left, fieldName, declaringTypeName) != FieldAccessKind.None)
-            {
-                writeNodes.Add(assignment);
-            }
+            AddWrite(assignment, assignment.Left);
+        }
+
+        foreach (var forEach in scopeNodes.OfType<ForEachVariableStatementSyntax>())
+        {
+            AddWrite(forEach, forEach.Variable);
         }
 
         foreach (var unary in scopeNodes.OfType<PostfixUnaryExpressionSyntax>())
         {
-            if ((unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression)) &&
-                GetFieldAccessKind(unary.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
+            if (unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression))
             {
-                writeNodes.Add(unary);
+                AddWrite(unary, unary.Operand);
             }
         }
 
         foreach (var unary in scopeNodes.OfType<PrefixUnaryExpressionSyntax>())
         {
-            if ((unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression)) &&
-                GetFieldAccessKind(unary.Operand, fieldName, declaringTypeName) != FieldAccessKind.None)
+            if (unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression))
             {
-                writeNodes.Add(unary);
+                AddWrite(unary, unary.Operand);
             }
         }
 
-        foreach (var writeNode in writeNodes)
+        // A member of a readonly struct field cannot be written even in the constructor (CS1648), and a method called on
+        // it runs on a defensive copy, silently dropping the mutation, so sub-member writes and calls are only accepted
+        // when the field's type is known not to be a mutable struct. Writing the field itself stays allowed.
+        var isKnownNotMutableStruct = IsKnownNotMutableStruct(fieldDecl.Declaration.Type, typeDecl.SyntaxTree.GetRoot());
+
+        foreach (var write in writes)
         {
-            if (!IsWriteInMatchingConstructor(writeNode, typeDecl, isStatic))
+            if (!IsWriteInMatchingConstructor(write.Key, write.Value, fieldName, typeDecl, isStatic))
+            {
+                return false;
+            }
+
+            if (!isKnownNotMutableStruct &&
+                write.Value.Any(target => GetFieldAccessKind(target, fieldName, declaringTypeName) == FieldAccessKind.SubMember))
             {
                 return false;
             }
         }
 
-        return true;
+        if (!isKnownNotMutableStruct)
+        {
+            foreach (var invocation in scopeNodes.OfType<InvocationExpressionSyntax>())
+            {
+                if (invocation.Expression is MemberAccessExpressionSyntax calledMember &&
+                    GetFieldAccessKind(calledMember.Expression, fieldName, declaringTypeName) != FieldAccessKind.None)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return !IsMentionedInInactiveCode(typeDecl, fieldName);
     }
 
     /// <summary>
@@ -255,13 +292,15 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     }
 
     /// <summary>
-    /// Determines whether a write occurs inside a constructor of the given type with matching staticness by walking ancestor nodes, returning false if any non-constructor member boundary or type boundary is reached first.
+    /// Determines whether a write occurs inside a constructor of the given type with matching staticness, through the instance under construction, by walking ancestor nodes, returning false if any non-constructor member boundary or type boundary is reached first.
     /// </summary>
     /// <param name="writeNode">The write node.</param>
+    /// <param name="writtenTargets">The accesses of the field written by the node.</param>
+    /// <param name="fieldName">The field name.</param>
     /// <param name="typeDecl">The type decl.</param>
     /// <param name="isStatic">The is static.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool IsWriteInMatchingConstructor(SyntaxNode writeNode, TypeDeclarationSyntax typeDecl, bool isStatic)
+    private static bool IsWriteInMatchingConstructor(SyntaxNode writeNode, IReadOnlyList<ExpressionSyntax> writtenTargets, string fieldName, TypeDeclarationSyntax typeDecl, bool isStatic)
     {
         foreach (var ancestor in writeNode.Ancestors())
         {
@@ -280,7 +319,8 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
 
                 case ConstructorDeclarationSyntax constructor:
                     var constructorIsStatic = constructor.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-                    return ReferenceEquals(constructor.Parent, typeDecl) && constructorIsStatic == isStatic;
+                    return ReferenceEquals(constructor.Parent, typeDecl) && constructorIsStatic == isStatic &&
+                           writtenTargets.All(target => IsAccessThroughOwnInstance(target, fieldName, typeDecl.Identifier.Text, isStatic));
 
                 case TypeDeclarationSyntax _:
                     // Reached the type boundary (e.g. a field initializer) without finding a
@@ -301,6 +341,221 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     {
         var readonlyToken = SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword).WithTrailingTrivia(SyntaxFactory.Space);
 
+        if (fieldDecl.Modifiers.Count == 0)
+        {
+            // The indentation (and anything else leading the declaration after its attributes) belongs to the type;
+            // move it in front of the new first token so the layout is kept.
+            var type = fieldDecl.Declaration.Type;
+            readonlyToken = readonlyToken.WithLeadingTrivia(type.GetLeadingTrivia());
+            var newDeclaration = fieldDecl.Declaration.WithType(type.WithLeadingTrivia(SyntaxTriviaList.Empty));
+
+            return fieldDecl.WithDeclaration(newDeclaration).WithModifiers(SyntaxFactory.TokenList(readonlyToken));
+        }
+
         return fieldDecl.WithModifiers(fieldDecl.Modifiers.Add(readonlyToken));
     }
+
+    /// <summary>
+    /// Determines whether a written field access (possibly a sub-member or element of the field) reaches the field
+    /// through the instance under construction: a bare name, <c>this.</c>, or (for a static field) the declaring
+    /// type's name. Writes through any other receiver, including object and <c>with</c> initializers, target another
+    /// object, which a readonly field forbids even in a constructor.
+    /// </summary>
+    private static bool IsAccessThroughOwnInstance(ExpressionSyntax expression, string fieldName, string declaringTypeName, bool isStatic)
+    {
+        expression = UnwrapParentheses(expression);
+        switch (expression)
+        {
+            case IdentifierNameSyntax identifier when identifier.Identifier.Text == fieldName:
+                return !(identifier.Parent is AssignmentExpressionSyntax assignment &&
+                         assignment.Left == identifier &&
+                         assignment.Parent is InitializerExpressionSyntax);
+
+            case MemberAccessExpressionSyntax memberAccess when memberAccess.Name.Identifier.Text == fieldName:
+                var receiver = UnwrapParentheses(memberAccess.Expression);
+                return isStatic
+                    ? receiver is IdentifierNameSyntax typeName && typeName.Identifier.Text == declaringTypeName
+                    : receiver is ThisExpressionSyntax;
+
+            case MemberAccessExpressionSyntax memberAccess:
+                return IsAccessThroughOwnInstance(memberAccess.Expression, fieldName, declaringTypeName, isStatic);
+
+            case ElementAccessExpressionSyntax elementAccess:
+                return IsAccessThroughOwnInstance(elementAccess.Expression, fieldName, declaringTypeName, isStatic);
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Collects the field accesses written by the target of an assignment or a deconstruction (including nested
+    /// tuples) into <paramref name="targets" />.
+    /// </summary>
+    private static void CollectWrittenTargets(ExpressionSyntax target, string fieldName, string declaringTypeName, List<ExpressionSyntax> targets)
+    {
+        target = UnwrapParentheses(target);
+        if (target is TupleExpressionSyntax tuple)
+        {
+            foreach (var argument in tuple.Arguments)
+            {
+                CollectWrittenTargets(argument.Expression, fieldName, declaringTypeName, targets);
+            }
+
+            return;
+        }
+
+        if (GetFieldAccessKind(target, fieldName, declaringTypeName) != FieldAccessKind.None)
+        {
+            targets.Add(target);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the field name occurs as an identifier in code excluded by a preprocessor directive
+    /// (<c>#if</c>/<c>#elif</c>/<c>#else</c> branches inactive without symbols). Such code is compiled in other build
+    /// configurations (for example <c>DEBUG</c>) and may write the field there.
+    /// </summary>
+    private static bool IsMentionedInInactiveCode(SyntaxNode scope, string fieldName)
+    {
+        foreach (var trivia in scope.DescendantTrivia(descendIntoTrivia: true))
+        {
+            if (!trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+            {
+                continue;
+            }
+
+            if (SyntaxFactory.ParseTokens(trivia.ToString()).Any(t => t.IsKind(SyntaxKind.IdentifierToken) && t.ValueText == fieldName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Well-known framework reference types whose instance methods are commonly called on fields, mapped to the
+    /// namespaces declaring them. A method call on a readonly field of a mutable struct type runs on a defensive copy,
+    /// so calls are only accepted on types known not to be mutable structs.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> KnownReferenceTypeNamespaces = BuildKnownReferenceTypeNamespaces(
+        ("System", new[] { "Object", "String", "Array", "Delegate", "Action", "Func", "EventHandler", "Lazy", "Random", "Type" }),
+        ("System.Threading.Tasks", new[] { "Task" }),
+        ("System.Collections.Generic", new[] { "List", "Dictionary", "HashSet", "SortedSet", "SortedList", "SortedDictionary", "LinkedList", "Queue", "Stack" }),
+        ("System.Collections.Concurrent", new[] { "ConcurrentDictionary", "ConcurrentQueue", "ConcurrentStack", "ConcurrentBag", "BlockingCollection" }),
+        ("System.Text", new[] { "StringBuilder" }),
+        ("System.IO", new[] { "Stream", "MemoryStream", "StreamReader", "StreamWriter", "TextReader", "TextWriter" }),
+        ("System.Diagnostics", new[] { "Stopwatch" }),
+        ("System.Threading", new[] { "Timer", "CancellationTokenSource", "SemaphoreSlim", "ManualResetEventSlim" }),
+        ("System.Timers", new[] { "Timer" }),
+        ("System.Net.Http", new[] { "HttpClient" }));
+
+    private static Dictionary<string, string[]> BuildKnownReferenceTypeNamespaces(params (string Namespace, string[] Names)[] entries) =>
+        entries
+            .SelectMany(entry => entry.Names.Select(name => (Name: name, entry.Namespace)))
+            .GroupBy(pair => pair.Name, System.StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Select(pair => pair.Namespace).ToArray(), System.StringComparer.Ordinal);
+
+    /// <summary>
+    /// Determines whether the declared type is syntactically known not to be a mutable struct: a predefined type, an
+    /// array or pointer, a nullable value, an unqualified name of a class, interface, record class, delegate, enum or
+    /// <c>readonly struct</c> declared in this file with the same arity, or, unless this file declares a mutable struct
+    /// of that name, a well-known framework reference type (qualified with its own namespace, or unqualified while this
+    /// file imports that namespace or the type lives in <c>System</c>) or a name following the interface naming
+    /// convention (see <see cref="FollowsInterfaceNamingConvention" />). A qualified name may refer to a type outside
+    /// this file, so a same-named declaration here only ever counts against it.
+    /// </summary>
+    private static bool IsKnownNotMutableStruct(TypeSyntax type, SyntaxNode root)
+    {
+        switch (type)
+        {
+            case PredefinedTypeSyntax _:
+            case ArrayTypeSyntax _:
+            case PointerTypeSyntax _:
+            case NullableTypeSyntax _:
+                return true;
+        }
+
+        SimpleNameSyntax name;
+        string qualifier;
+        switch (type)
+        {
+            case SimpleNameSyntax simple:
+                name = simple;
+                qualifier = null;
+                break;
+
+            case QualifiedNameSyntax qualified:
+                name = qualified.Right;
+                qualifier = string.Concat(qualified.Left.DescendantTokens().Select(t => t.ValueText));
+                if (qualifier.StartsWith("global::", System.StringComparison.Ordinal))
+                {
+                    qualifier = qualifier.Substring("global::".Length);
+                }
+
+                break;
+
+            case AliasQualifiedNameSyntax aliasQualified:
+                name = aliasQualified.Name;
+                qualifier = aliasQualified.Alias.Identifier.ValueText + "::";
+                break;
+
+            default:
+                return false;
+        }
+
+        var text = name.Identifier.ValueText;
+        var declarations = root.DescendantNodes(n => !(n is BlockSyntax))
+            .Where(n => n is BaseTypeDeclarationSyntax || n is DelegateDeclarationSyntax)
+            .Where(n => (n is BaseTypeDeclarationSyntax t ? t.Identifier : ((DelegateDeclarationSyntax)n).Identifier).ValueText == text)
+            .ToList();
+
+        if (declarations.Any(declaration =>
+                (declaration is StructDeclarationSyntax || declaration.IsKind(SyntaxKind.RecordStructDeclaration)) &&
+                !((TypeDeclarationSyntax)declaration).Modifiers.Any(m => m.IsKind(SyntaxKind.ReadOnlyKeyword))))
+        {
+            return false;
+        }
+
+        if (qualifier is null && declarations.Any(declaration => GetArity(declaration) == name.Arity))
+        {
+            return true;
+        }
+
+        return (KnownReferenceTypeNamespaces.TryGetValue(text, out var namespaces) &&
+                (qualifier is null
+                    ? namespaces.Any(ns => ns == "System" || IsNamespaceImported(root, ns))
+                    : namespaces.Contains(qualifier))) ||
+            FollowsInterfaceNamingConvention(text);
+    }
+
+    /// <summary>
+    /// Determines whether the file has a plain <c>using</c> directive importing the namespace. Global and implicit
+    /// usings of other files are invisible from a single syntax tree, so an unqualified name relying on them is not
+    /// recognised.
+    /// </summary>
+    private static bool IsNamespaceImported(SyntaxNode root, string namespaceName) =>
+        root.DescendantNodes().OfType<UsingDirectiveSyntax>().Any(directive =>
+            directive.Alias == null &&
+            directive.StaticKeyword.IsKind(SyntaxKind.None) &&
+            directive.Name != null &&
+            string.Concat(directive.Name.DescendantTokens().Select(t => t.ValueText)) == namespaceName);
+
+    /// <summary>
+    /// Determines whether a name looks like a conventionally named interface: <c>I</c> followed by an upper-case letter
+    /// starting a word (<c>IService</c>, <c>IDisposable</c>). Names that merely start with <c>I</c> - all-caps
+    /// abbreviations such as <c>ID</c> or <c>IO</c>, and names containing digits such as <c>IPv4Address</c> - are far
+    /// more likely to be structs declared elsewhere.
+    /// </summary>
+    private static bool FollowsInterfaceNamingConvention(string name) =>
+        name.Length > 2 && name[0] == 'I' && char.IsUpper(name[1]) && char.IsLower(name[2]) && !name.Any(char.IsDigit);
+
+    /// <summary>
+    /// Gets the number of type parameters of a type or delegate declaration.
+    /// </summary>
+    private static int GetArity(SyntaxNode declaration) =>
+        declaration is TypeDeclarationSyntax typeDeclaration ? typeDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
+        declaration is DelegateDeclarationSyntax delegateDeclaration ? delegateDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
+        0;
 }

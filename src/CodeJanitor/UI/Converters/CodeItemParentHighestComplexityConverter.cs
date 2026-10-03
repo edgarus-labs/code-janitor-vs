@@ -28,11 +28,17 @@ public sealed class CodeItemParentHighestComplexityConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var parent = value as ICodeItemParent;
-        if (parent is null) return null;
+        if (parent is null)
+        {
+            return null;
+        }
 
         var childrenWithComplexity = parent.GetChildrenRecursive().OfType<ICodeItemComplexity>().ToArray();
 
-        if (!childrenWithComplexity.Any()) return null;
+        if (!childrenWithComplexity.Any())
+        {
+            return null;
+        }
 
         var maxComplexity = childrenWithComplexity.Max(x => x.Complexity);
 
@@ -47,8 +53,5 @@ public sealed class CodeItemParentHighestComplexityConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

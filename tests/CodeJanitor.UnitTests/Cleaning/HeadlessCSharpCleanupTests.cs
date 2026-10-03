@@ -230,8 +230,10 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_AppliesPatternMatchingNullChecks_WhenEnabled()
+    public void ApplyHeadlessCSharpTransformations_LeavesNullChecks_WhenPatternMatchingNullChecksAreEnabled()
     {
+        // The conversion needs the semantic model (a user-defined == may give null a meaning of its own), so it runs
+        // against the Visual Studio workspace (NullCheckPatternMatchingLogic), not in the headless text pipeline.
         Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
 
         string filePath = Path.Combine(_tempDirectory, "SampleNullChecks.cs");
@@ -239,7 +241,7 @@ public sealed class HeadlessCSharpCleanupTests
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.Contains("if (x is not null)", output);
+        Assert.Contains("if (x != null)", output);
     }
 
     [TestMethod]
@@ -278,7 +280,7 @@ public sealed class HeadlessCSharpCleanupTests
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.Contains("if (int.TryParse(s, out var res))", output);
+        Assert.Contains("if (int.TryParse(s, out int res))", output);
     }
 
     [TestMethod]
@@ -487,20 +489,14 @@ public sealed class HeadlessCSharpCleanupTests
     /// <summary>
     /// Writes a root .editorconfig with the specified C# options into the test directory.
     /// </summary>
-    private void WriteEditorConfig(params string[] options)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
+    private void WriteEditorConfig(params string[] options) => File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
             "root = true\r\n\r\n[*.cs]\r\n" + string.Join("\r\n", options) + "\r\n");
-    }
 
     /// <summary>
     /// Writes a .codejanitor repository policy with the specified cleanup entries into the test directory.
     /// </summary>
-    private void WriteRepositoryPolicy(string cleanupEntries)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
+    private void WriteRepositoryPolicy(string cleanupEntries) => File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
             "{ \"cleanup\": { " + cleanupEntries + " } }");
-    }
 
     private const string NamespaceRelativeUsingSource =
         "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    public class C\r\n    {\r\n        public Svc Service { get; set; }\r\n    }\r\n}\r\n";

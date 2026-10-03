@@ -20,20 +20,14 @@ public static class WindowAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-    public static bool? GetDialogResult(Window target)
-    {
-        return (bool?)target.GetValue(DialogResultProperty);
-    }
+    public static bool? GetDialogResult(Window target) => (bool?)target.GetValue(DialogResultProperty);
 
     /// <summary>
     /// Sets the DialogResult value on the specified target.
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-    public static void SetDialogResult(Window target, bool? value)
-    {
-        target.SetValue(DialogResultProperty, value);
-    }
+    public static void SetDialogResult(Window target, bool? value) => target.SetValue(DialogResultProperty, value);
 
     /// <summary>
     /// Called when the DialogResult attached property has changed.

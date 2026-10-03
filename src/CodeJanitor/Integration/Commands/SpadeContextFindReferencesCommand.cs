@@ -58,10 +58,16 @@ internal sealed class SpadeContextFindReferencesCommand : BaseCommand
         var spade = Package.Spade;
 
         var item = spade?.SelectedItems.OfType<BaseCodeItemElement>().FirstOrDefault();
-        if (item is null) return;
+        if (item is null)
+        {
+            return;
+        }
 
         var document = spade.Document;
-        if (document is null) return;
+        if (document is null)
+        {
+            return;
+        }
 
         var selection = ((TextSelection)document.Selection);
 

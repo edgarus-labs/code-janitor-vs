@@ -28,10 +28,7 @@ internal sealed class ReadonlyFieldLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="ReadonlyFieldLogic" /> class.</returns>
-    internal static ReadonlyFieldLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new ReadonlyFieldLogic(package));
-    }
+    internal static ReadonlyFieldLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new ReadonlyFieldLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReadonlyFieldLogic" /> class.

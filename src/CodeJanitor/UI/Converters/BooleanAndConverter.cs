@@ -41,7 +41,10 @@ public sealed class BooleanAndConverter : IMultiValueConverter
     /// </returns>
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values is null || values.Length < 1) return null;
+        if (values is null || values.Length < 1)
+        {
+            return null;
+        }
 
         return values.All(x => (bool)x);
     }
@@ -59,8 +62,5 @@ public sealed class BooleanAndConverter : IMultiValueConverter
     /// <returns>
     /// An array of values that have been converted from the target value back to the source values.
     /// </returns>
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

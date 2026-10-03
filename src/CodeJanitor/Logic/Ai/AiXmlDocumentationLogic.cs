@@ -50,20 +50,14 @@ internal sealed class AiXmlDocumentationLogic
     /// <summary>
     /// Cancels the ongoing run by signaling the internal CancellationTokenSource, which propagates cancellation to any awaiting or executing operations.
     /// </summary>
-    internal static void CancelRun()
-    {
-        _runCancellation?.Cancel();
-    }
+    internal static void CancelRun() => _runCancellation?.Cancel();
 
     /// <summary>
     /// Returns the existing cached `AiXmlDocumentationLogic` singleton or lazily creates and stores a new instance initialized with the supplied `CodeJanitorPackage` on first call.
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A AiXmlDocumentationLogic value produced by this method.</returns>
-    internal static AiXmlDocumentationLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new AiXmlDocumentationLogic(package));
-    }
+    internal static AiXmlDocumentationLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new AiXmlDocumentationLogic(package));
 
     private AiXmlDocumentationLogic(CodeJanitorPackage package)
     {
@@ -196,11 +190,8 @@ internal sealed class AiXmlDocumentationLogic
     /// whether the AI XML documentation cleaning endpoint URL is configured in the application settings.
     /// </summary>
     /// <returns>true if the condition is met; otherwise, false.</returns>
-    internal static bool IsConfigurationPresent()
-    {
-        return OpenAiCompatibleClient.IsEndpointConfigured(
+    internal static bool IsConfigurationPresent() => OpenAiCompatibleClient.IsEndpointConfigured(
             Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl);
-    }
 
     /// <summary>
     /// Asynchronously tests reachability and authentication of the specified OpenAI-compatible AI
@@ -384,14 +375,7 @@ internal sealed class AiXmlDocumentationLogic
                 return false;
             }
 
-            string originalFileText;
-            Encoding encoding;
-
-            using (var reader = new StreamReader(filePath, true))
-            {
-                originalFileText = reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
-            }
+            var originalFileText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
             var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
             if (RunToken.IsCancellationRequested || updatedFileText == originalFileText)
@@ -399,7 +383,7 @@ internal sealed class AiXmlDocumentationLogic
                 return false;
             }
 
-            File.WriteAllText(filePath, updatedFileText, encoding);
+            FileTextStyle.WriteAllText(filePath, updatedFileText, encoding, originalFileText);
 
             return true;
         });
@@ -463,14 +447,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        string originalFileText;
-        Encoding encoding;
-
-        using (var reader = new StreamReader(filePath, true))
-        {
-            originalFileText = reader.ReadToEnd();
-            encoding = reader.CurrentEncoding;
-        }
+        var originalFileText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
         var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
         if (updatedFileText == originalFileText)
@@ -478,7 +455,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        File.WriteAllText(filePath, updatedFileText, encoding);
+        FileTextStyle.WriteAllText(filePath, updatedFileText, encoding, originalFileText);
 
         return true;
     }
@@ -718,6 +695,7 @@ internal sealed class AiXmlDocumentationLogic
             .OrderBy(x => x.GetFirstToken().SpanStart)
             .ToList();
 
+        var lineEnding = FileTextStyle.GetDominantLineEnding(source);
         var builder = new StringBuilder(source);
         var deadlineUtc = DateTime.UtcNow.AddSeconds(options.GlobalTimeoutSeconds > 0 ? options.GlobalTimeoutSeconds : 60);
         foreach (var method in eligibleToProcess.OrderByDescending(x => x.GetFirstToken().SpanStart))
@@ -753,7 +731,7 @@ internal sealed class AiXmlDocumentationLogic
             var exceptions = method is BaseMethodDeclarationSyntax methodForExceptions
                 ? DetectThrownExceptions(methodForExceptions).ToList()
                 : new List<string>();
-            var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions);
+            var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions, lineEnding);
 
             builder.Insert(insertPosition, xmlBlock);
             stats.DocumentedMethods++;
@@ -766,25 +744,22 @@ internal sealed class AiXmlDocumentationLogic
     /// Loads and returns an AiXmlDocumentationRunOptions instance populated from the application settings, applying positive-value fallbacks to numeric limits and the configured toggles for deterministic fallback, filtering rules, and change previewing.
     /// </summary>
     /// <returns>The ai xml documentation run options result.</returns>
-    private static AiXmlDocumentationRunOptions LoadRunOptionsFromSettings()
+    private static AiXmlDocumentationRunOptions LoadRunOptionsFromSettings() => new AiXmlDocumentationRunOptions
     {
-        return new AiXmlDocumentationRunOptions
-        {
-            MaxMethodsPerFile = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxMethodsPerFile, 25),
-            MaxRequestsPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, 25),
-            MaxInputCharsPerMethod = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, 2500),
-            MaxTokensPerRequest = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxTokensPerRequest, 256),
-            ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
-            MaxEstimatedTokensPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, 8000),
-            GlobalTimeoutSeconds = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, 60),
-            AllowDeterministicFallback = Settings.Default.Cleaning_AiXmlDocumentationAllowDeterministicFallback,
-            IgnoreGeneratedCode = Settings.Default.Cleaning_AiXmlDocumentationIgnoreGeneratedCode,
-            IgnoreObsolete = Settings.Default.Cleaning_AiXmlDocumentationIgnoreObsolete,
-            IgnoreTestMethods = Settings.Default.Cleaning_AiXmlDocumentationIgnoreTestMethods,
-            IgnorePattern = Settings.Default.Cleaning_AiXmlDocumentationIgnorePattern,
-            PreviewChanges = Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges
-        };
-    }
+        MaxMethodsPerFile = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxMethodsPerFile, 25),
+        MaxRequestsPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, 25),
+        MaxInputCharsPerMethod = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, 2500),
+        MaxTokensPerRequest = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxTokensPerRequest, 256),
+        ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
+        MaxEstimatedTokensPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, 8000),
+        GlobalTimeoutSeconds = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, 60),
+        AllowDeterministicFallback = Settings.Default.Cleaning_AiXmlDocumentationAllowDeterministicFallback,
+        IgnoreGeneratedCode = Settings.Default.Cleaning_AiXmlDocumentationIgnoreGeneratedCode,
+        IgnoreObsolete = Settings.Default.Cleaning_AiXmlDocumentationIgnoreObsolete,
+        IgnoreTestMethods = Settings.Default.Cleaning_AiXmlDocumentationIgnoreTestMethods,
+        IgnorePattern = Settings.Default.Cleaning_AiXmlDocumentationIgnorePattern,
+        PreviewChanges = Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges
+    };
 
     /// <summary>
     /// Returns the specified value when it is positive, or the provided fallback when the value is zero or negative.
@@ -792,25 +767,19 @@ internal sealed class AiXmlDocumentationLogic
     /// <param name="value">The value.</param>
     /// <param name="fallback">The fallback.</param>
     /// <returns>The int result.</returns>
-    private static int PositiveOrDefault(int value, int fallback)
-    {
-        return value > 0 ? value : fallback;
-    }
+    private static int PositiveOrDefault(int value, int fallback) => value > 0 ? value : fallback;
 
     /// <summary>
     /// Creates and configures an OpenAI-compatible client using the AI XML documentation cleaning settings, including endpoint URL, API key, model, timeout, and context window size.
     /// </summary>
     /// <returns>The open ai compatible client result.</returns>
-    private static OpenAiCompatibleClient CreateClientFromSettings()
-    {
-        return CreateClient(
+    private static OpenAiCompatibleClient CreateClientFromSettings() => CreateClient(
             Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl,
             GetConfiguredApiKey(),
             Settings.Default.Cleaning_AiXmlDocumentationApiKeyHeader,
             Settings.Default.Cleaning_AiXmlDocumentationModel,
                 Settings.Default.Cleaning_AiXmlDocumentationTimeoutSeconds,
                 PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072));
-    }
 
     /// <summary>
     /// Creates and returns a new OpenAI-compatible client instance using the specified endpoint, credentials, model, and timeout settings, or returns null when the endpoint is not configured.
@@ -1417,10 +1386,22 @@ internal sealed class AiXmlDocumentationLogic
         {
             foreach (var member in typeDeclaration.Members)
             {
-                if (member is PropertyDeclarationSyntax p) memberNames.Add(p.Identifier.ValueText + " (" + (p.Type?.ToString() ?? "property") + ")");
-                else if (member is MethodDeclarationSyntax m) memberNames.Add(m.Identifier.ValueText + "()");
-                else if (member is ConstructorDeclarationSyntax c) memberNames.Add(c.Identifier.ValueText + "()");
-                else if (member is FieldDeclarationSyntax f) memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
+                if (member is PropertyDeclarationSyntax p)
+                {
+                    memberNames.Add(p.Identifier.ValueText + " (" + (p.Type?.ToString() ?? "property") + ")");
+                }
+                else if (member is MethodDeclarationSyntax m)
+                {
+                    memberNames.Add(m.Identifier.ValueText + "()");
+                }
+                else if (member is ConstructorDeclarationSyntax c)
+                {
+                    memberNames.Add(c.Identifier.ValueText + "()");
+                }
+                else if (member is FieldDeclarationSyntax f)
+                {
+                    memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
+                }
             }
         }
         else if (type is EnumDeclarationSyntax enumDeclaration)
@@ -1482,10 +1463,7 @@ internal sealed class AiXmlDocumentationLogic
     /// </summary>
     /// <param name="indexer">The indexer.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string BuildIndexerSummary(IndexerDeclarationSyntax indexer)
-    {
-        return "Gets or sets the element at the specified index.";
-    }
+    private static string BuildIndexerSummary(IndexerDeclarationSyntax indexer) => "Gets or sets the element at the specified index.";
 
     /// <summary>
     /// Builds a standardized &quot;Occurs when {name}.&quot; summary string for an event member, extracting the event name from either an EventDeclarationSyntax or EventFieldDeclarationSyntax and lowercasing the split identifier, with no side effects or thrown exceptions.
@@ -1603,13 +1581,13 @@ internal sealed class AiXmlDocumentationLogic
     /// and for methods, constructors, and positional records additionally appending &lt;param&gt; elements, a &lt;returns&gt; element,
     /// and ordered &lt;exception&gt; elements.
     /// </summary>
-    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes)
+    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes, string lineEnding)
     {
         var sb = new StringBuilder();
 
-        sb.Append(indent).AppendLine("/// <summary>");
-        sb.Append(indent).Append("/// ").AppendLine(XmlEscape(summary));
-        sb.Append(indent).AppendLine("/// </summary>");
+        sb.Append(indent).Append("/// <summary>").Append(lineEnding);
+        sb.Append(indent).Append("/// ").Append(XmlEscape(summary)).Append(lineEnding);
+        sb.Append(indent).Append("/// </summary>").Append(lineEnding);
 
         // 1. Positional records or primary constructors parameters
         IEnumerable<ParameterSyntax> parameters = null;
@@ -1639,7 +1617,8 @@ internal sealed class AiXmlDocumentationLogic
                         .Append(parameterName)
                         .Append("\">")
                         .Append(XmlEscape(BuildParameterDescription(parameterName, paramType)))
-                        .AppendLine("</param>");
+                        .Append("</param>")
+                        .Append(lineEnding);
                 }
             }
         }
@@ -1655,7 +1634,8 @@ internal sealed class AiXmlDocumentationLogic
                 sb.Append(indent)
                     .Append("/// <returns>")
                     .Append(XmlEscape(BuildReturnDescription(returnTypeStr, m.Identifier.ValueText)))
-                    .AppendLine("</returns>");
+                    .Append("</returns>")
+                    .Append(lineEnding);
             }
         }
 
@@ -1669,7 +1649,8 @@ internal sealed class AiXmlDocumentationLogic
                     .Append(XmlEscape(exceptionType))
                     .Append("\">")
                     .Append(XmlEscape("Thrown when an error occurs during execution."))
-                    .AppendLine("</exception>");
+                    .Append("</exception>")
+                    .Append(lineEnding);
             }
         }
 
@@ -2047,15 +2028,12 @@ internal sealed class AiXmlDocumentationLogic
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string XmlEscape(string text)
-    {
-        return (text ?? string.Empty)
+    private static string XmlEscape(string text) => (text ?? string.Empty)
             .Replace("&", "&amp;")
             .Replace("<", "&lt;")
             .Replace(">", "&gt;")
             .Replace("\"", "&quot;")
             .Replace("'", "&apos;");
-    }
 
     /// <summary>
     /// Returns the specified text unchanged if it is null, empty, or within the maximum length; otherwise, truncates the text to the specified maximum length and appends a period.

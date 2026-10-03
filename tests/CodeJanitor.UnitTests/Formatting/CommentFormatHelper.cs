@@ -18,10 +18,7 @@ internal sealed class CommentFormatHelper
     /// <returns>A string value produced by this method.</returns>
     public static string AssertEqualAfterFormat(
              string text,
-             Action<FormatterOptions> options = null)
-    {
-        return AssertEqualAfterFormat(text, null, null, options);
-    }
+             Action<FormatterOptions> options = null) => AssertEqualAfterFormat(text, null, null, options);
 
     /// <summary>
     /// This convenience overload delegates to the four-argument Assert.
@@ -33,10 +30,7 @@ internal sealed class CommentFormatHelper
     public static string AssertEqualAfterFormat(
                   string text,
             string expected,
-                  Action<FormatterOptions> options = null)
-    {
-        return AssertEqualAfterFormat(text, expected, null, options);
-    }
+                  Action<FormatterOptions> options = null) => AssertEqualAfterFormat(text, expected, null, options);
 
     /// <summary>
     /// Formats the given text via CodeComment.Format, applies optional FormatterOptions from default settings via the options callback, asserts the result equals expected (or the original text if expected is null), and returns the formatted result.

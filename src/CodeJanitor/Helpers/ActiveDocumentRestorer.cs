@@ -47,10 +47,7 @@ internal sealed class ActiveDocumentRestorer : IDisposable
     /// Performs application-defined tasks associated with freeing, releasing, or resetting
     /// unmanaged resources.
     /// </summary>
-    public void Dispose()
-    {
-        RestoreTrackedDocument();
-    }
+    public void Dispose() => RestoreTrackedDocument();
 
     /// <summary>
     /// Gets or sets the hosting package.

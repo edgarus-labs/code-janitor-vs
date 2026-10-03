@@ -44,14 +44,11 @@ public sealed class SettingsMonitor<TSetting>
     /// <param name="settings">The settings.</param>
     /// <param name="changedCallback">The changed callback.</param>
     /// <returns>A Task value produced by this method.</returns>
-    public async Task WatchAsync<TValue>(string[] settings, Func<TValue[], Task> changedCallback)
-    {
-        await WatchAsync(settings, async (object[] values) =>
-        {
-            var typedValues = Array.ConvertAll(values, v => (TValue)v);
-            await changedCallback(typedValues);
-        });
-    }
+    public async Task WatchAsync<TValue>(string[] settings, Func<TValue[], Task> changedCallback) => await WatchAsync(settings, async (object[] values) =>
+                                                                                                          {
+                                                                                                              var typedValues = Array.ConvertAll(values, v => (TValue)v);
+                                                                                                              await changedCallback(typedValues);
+                                                                                                          });
 
     /// <summary>
     /// This async method retrieves current values for the given settings, immediately invokes the callback with those values, and then registers the callback in an existing or newly created monitor stored in a dictionary, thereby subscribing it to future changes.

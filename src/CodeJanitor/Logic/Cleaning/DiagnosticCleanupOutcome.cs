@@ -1,18 +1,4 @@
-using CodeJanitor.Helpers;
-using CodeJanitor.Logic.Cleaning.Diagnostics;
-using CodeJanitor.Properties;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Text;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Threading;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CodeJanitor.Logic.Cleaning;
 

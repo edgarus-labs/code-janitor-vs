@@ -72,13 +72,15 @@ public sealed class DiagnosticCleanupResult
     public IReadOnlyList<UnresolvedDiagnostic> Unresolved { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the cleanup finished its work: <c>false</c> when a fix was rejected or the
-    /// cleanup did not converge. Diagnostics that simply have no usable fix are reported but do not make it incomplete.
+    /// Gets a value indicating whether the cleanup finished its work: <c>false</c> when a fix was rejected, a code fix
+    /// provider failed, or the cleanup did not converge. Diagnostics that simply have no usable fix are reported but do
+    /// not make it incomplete.
     /// </summary>
     public bool IsComplete => Unresolved.All(diagnostic => !IsBlocking(diagnostic.Reason));
 
     private static bool IsBlocking(UnresolvedDiagnosticReason reason) =>
         reason == UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors
         || reason == UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges
-        || reason == UnresolvedDiagnosticReason.NotConverged;
+        || reason == UnresolvedDiagnosticReason.NotConverged
+        || reason == UnresolvedDiagnosticReason.FixProviderFailed;
 }

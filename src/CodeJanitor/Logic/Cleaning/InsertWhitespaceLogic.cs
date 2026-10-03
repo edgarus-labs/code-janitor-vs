@@ -23,10 +23,7 @@ internal sealed class InsertWhitespaceLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="InsertWhitespaceLogic" /> class.</returns>
-    internal static InsertWhitespaceLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new InsertWhitespaceLogic(package));
-    }
+    internal static InsertWhitespaceLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new InsertWhitespaceLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InsertWhitespaceLogic" /> class.
@@ -45,7 +42,10 @@ internal sealed class InsertWhitespaceLogic
     internal void InsertBlankSpaceBeforeSelfClosingAngleBracket(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets)))
+        {
+            return;
+        }
 
         const string pattern = @"([^ \t])/>";
         const string replacement = @"$1 />";
@@ -63,7 +63,10 @@ internal sealed class InsertWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.InsertFinalNewline) return;
+        if (!settings.InsertFinalNewline)
+        {
+            return;
+        }
 
         EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
 

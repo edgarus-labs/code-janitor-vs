@@ -34,10 +34,7 @@ internal sealed class CodeModelBuilder
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeModelBuilder" /> class.</returns>
-    internal static CodeModelBuilder GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeModelBuilder(package));
-    }
+    internal static CodeModelBuilder GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeModelBuilder(package));
 
     /// <summary>
     /// Walks the given document and constructs a <see cref="SetCodeItems" /> of CodeItems

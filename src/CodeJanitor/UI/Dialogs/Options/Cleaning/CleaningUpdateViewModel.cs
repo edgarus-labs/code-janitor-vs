@@ -337,9 +337,9 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if classes provably not derived from within the same
-    /// file should have the <c>sealed</c> modifier added. This is a single-file heuristic and
-    /// changes the API surface, so it defaults to disabled.
+    /// Gets or sets the flag indicating if classes the semantic model proves safe to seal (no virtual or protected
+    /// members, no derived class and no generic constraint naming them in the solution) should have the
+    /// <c>sealed</c> modifier added. Sealing a public class changes the API surface, so it defaults to disabled.
     /// </summary>
     public bool SealClassesWhenSafe
     {
@@ -375,7 +375,7 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if separate uninitialized out variable declarations should be inlined into out var expressions.
+    /// Gets or sets the flag indicating if separate uninitialized out variable declarations should be inlined into inline out declarations (out T x).
     /// </summary>
     public bool InlineOutVariableDeclarations
     {

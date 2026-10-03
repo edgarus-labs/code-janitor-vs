@@ -25,10 +25,7 @@ internal sealed class UsingStatementCleanupLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="UsingStatementCleanupLogic" /> class.</returns>
-    internal static UsingStatementCleanupLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new UsingStatementCleanupLogic(package));
-    }
+    internal static UsingStatementCleanupLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new UsingStatementCleanupLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UsingStatementCleanupLogic" /> class.
@@ -52,8 +49,15 @@ internal sealed class UsingStatementCleanupLogic
     public void RemoveAndSortUsingStatements(TextDocument textDocument, EffectiveCleanupSettings settings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements))) return;
-        if (_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)))
+        {
+            return;
+        }
+
+        if (_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave)))
+        {
+            return;
+        }
 
         // Capture all existing using statements that should be re-inserted if removed.
         const string patternFormat = @"^[ \t]*{0}[ \t]*\r?\n";

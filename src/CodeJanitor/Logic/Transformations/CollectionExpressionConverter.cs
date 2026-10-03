@@ -99,8 +99,16 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                     return TryConvertArrayCreation(declaredType, arrayCreation);
 
                 case ImplicitArrayCreationExpressionSyntax implicitArrayCreation:
-                    return declaredType is ArrayTypeSyntax
-                        ? BuildCollectionExpression(implicitArrayCreation.Initializer.Expressions).WithTriviaFrom(implicitArrayCreation)
+                    // The elements' best type may be a subtype of a reference element type (object[] a = new[] { "a" }
+                    // creates a string[]), so only element types without covariant subtypes are converted.
+                    return declaredType is ArrayTypeSyntax declaredArrayType &&
+                           declaredArrayType.RankSpecifiers[0].Rank == 1 &&
+                           implicitArrayCreation.Commas.Count == 0 &&
+                           declaredArrayType.ElementType is PredefinedTypeSyntax elementType &&
+                           !elementType.Keyword.IsKind(SyntaxKind.ObjectKeyword) &&
+                           HasOnlyPlainElements(implicitArrayCreation.Initializer) &&
+                           !WouldDiscardComments(implicitArrayCreation, implicitArrayCreation.Initializer)
+                        ? BuildCollectionExpression(implicitArrayCreation.Initializer).WithTriviaFrom(implicitArrayCreation)
                         : null;
 
                 default:
@@ -128,9 +136,9 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                 return null;
             }
 
-            var elements = objectCreation.Initializer?.Expressions ?? default;
-
-            return BuildCollectionExpression(elements).WithTriviaFrom(objectCreation);
+            return HasOnlyPlainElements(objectCreation.Initializer) && !WouldDiscardComments(objectCreation, objectCreation.Initializer)
+                ? BuildCollectionExpression(objectCreation.Initializer).WithTriviaFrom(objectCreation)
+                : null;
         }
 
         /// <summary>
@@ -142,22 +150,26 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         private static ExpressionSyntax TryConvertArrayCreation(TypeSyntax declaredType, ArrayCreationExpressionSyntax arrayCreation)
         {
             if (!(declaredType is ArrayTypeSyntax declaredArrayType)
-                || declaredArrayType.ElementType.ToString() != arrayCreation.Type.ElementType.ToString())
+                || declaredArrayType.ElementType.ToString() != arrayCreation.Type.ElementType.ToString()
+                || !IsSingleDimensionalArrayOfSameShape(declaredArrayType, arrayCreation.Type))
             {
                 return null;
             }
 
             if (arrayCreation.Initializer is not null)
             {
-                return BuildCollectionExpression(arrayCreation.Initializer.Expressions).WithTriviaFrom(arrayCreation);
+                return HasOnlyPlainElements(arrayCreation.Initializer) && !WouldDiscardComments(arrayCreation, arrayCreation.Initializer)
+                    ? BuildCollectionExpression(arrayCreation.Initializer).WithTriviaFrom(arrayCreation)
+                    : null;
             }
 
             // No initializer - only safe to convert an explicitly zero-length array (e.g.
             // 'new T[0]'), since a sized-but-empty array ('new T[5]') has different semantics.
             var rankSize = arrayCreation.Type.RankSpecifiers.FirstOrDefault()?.Sizes.FirstOrDefault();
 
-            return rankSize is LiteralExpressionSyntax literal && literal.Token.ValueText == "0"
-                ? BuildCollectionExpression(default).WithTriviaFrom(arrayCreation)
+            return rankSize is LiteralExpressionSyntax literal && literal.Token.ValueText == "0" &&
+                   !WouldDiscardComments(arrayCreation, null)
+                ? BuildCollectionExpression(null).WithTriviaFrom(arrayCreation)
                 : null;
         }
 
@@ -170,15 +182,71 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                     type is GenericNameSyntax genericName && genericName.Identifier.ValueText == "List";
 
         /// <summary>
-        /// Builds a collection expression string from the element expressions&apos; text and returns the parsed SyntaxFactory expression, with no side effects.
+        /// Determines whether the initializer can be expressed as collection expression elements: member initializers
+        /// (<c>Capacity = 5</c>, <c>[0] = 1</c>) and complex element initializers (<c>{ 1, 2 }</c>) have no element form,
+        /// and a range element without a start (<c>..3</c>) would read as a spread element (<c>[..3]</c>).
         /// </summary>
-        /// <param name="elements">The elements.</param>
-        /// <returns>A ExpressionSyntax value produced by this method.</returns>
-        private static ExpressionSyntax BuildCollectionExpression(SeparatedSyntaxList<ExpressionSyntax> elements)
+        private static bool HasOnlyPlainElements(InitializerExpressionSyntax initializer) =>
+            initializer is null ||
+            !initializer.Expressions.Any(e => e is AssignmentExpressionSyntax || e is InitializerExpressionSyntax ||
+                                              e is RangeExpressionSyntax { LeftOperand: null });
+
+        /// <summary>
+        /// Determines whether replacing the creation expression would discard a comment or directive: everything outside
+        /// the initializer's braces (and the creation's own leading and trailing trivia) is thrown away.
+        /// </summary>
+        private static bool WouldDiscardComments(ExpressionSyntax creation, InitializerExpressionSyntax initializer)
         {
+            var first = creation.GetFirstToken();
+            var last = creation.GetLastToken();
+
+            return creation.DescendantTokens().Any(token =>
+                (token != first && HasCommentOutside(token.LeadingTrivia, initializer)) ||
+                (token != last && HasCommentOutside(token.TrailingTrivia, initializer)));
+        }
+
+        private static bool HasCommentOutside(SyntaxTriviaList trivia, InitializerExpressionSyntax initializer) =>
+            trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) &&
+                            !t.IsKind(SyntaxKind.EndOfLineTrivia) &&
+                            (initializer is null || !initializer.Span.Contains(t.Span)));
+
+        /// <summary>
+        /// Builds a collection expression from the initializer's elements (an empty one for <see langword="null" />).
+        /// When comments or preprocessor directives appear between the braces, the braces become brackets and every
+        /// token and trivia in between is kept; otherwise the elements are joined on one line.
+        /// </summary>
+        /// <param name="initializer">The initializer, or <see langword="null" /> for an empty collection.</param>
+        /// <returns>The collection expression.</returns>
+        private static ExpressionSyntax BuildCollectionExpression(InitializerExpressionSyntax initializer)
+        {
+            var elements = initializer?.Expressions ?? default;
+
+            if (initializer is not null && initializer.DescendantTrivia().Any(trivia =>
+                    initializer.Span.Contains(trivia.Span) &&
+                    !trivia.IsKind(SyntaxKind.WhitespaceTrivia) &&
+                    !trivia.IsKind(SyntaxKind.EndOfLineTrivia)))
+            {
+                var elementsWithSeparators = elements.GetWithSeparators().Select(item => item.IsNode
+                    ? (SyntaxNodeOrToken)SyntaxFactory.ExpressionElement((ExpressionSyntax)item.AsNode())
+                    : item);
+
+                return SyntaxFactory.CollectionExpression(
+                    SyntaxFactory.Token(SyntaxKind.OpenBracketToken).WithTrailingTrivia(initializer.OpenBraceToken.TrailingTrivia),
+                    SyntaxFactory.SeparatedList<CollectionElementSyntax>(elementsWithSeparators),
+                    SyntaxFactory.Token(SyntaxKind.CloseBracketToken).WithLeadingTrivia(initializer.CloseBraceToken.LeadingTrivia));
+            }
+
             var elementsText = string.Join(", ", elements.Select(e => e.ToString()));
 
             return SyntaxFactory.ParseExpression("[" + elementsText + "]");
         }
+
+        /// <summary>
+        /// Determines whether the declared array type can be the target of a collection expression built from the
+        /// created array: a single-dimensional array whose ranks (including those of jagged element arrays) match.
+        /// </summary>
+        private static bool IsSingleDimensionalArrayOfSameShape(ArrayTypeSyntax declaredArrayType, ArrayTypeSyntax createdArrayType) =>
+            declaredArrayType.RankSpecifiers[0].Rank == 1 &&
+            declaredArrayType.RankSpecifiers.Select(r => r.Rank).SequenceEqual(createdArrayType.RankSpecifiers.Select(r => r.Rank));
     }
 }

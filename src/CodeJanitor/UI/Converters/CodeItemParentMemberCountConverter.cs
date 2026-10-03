@@ -43,10 +43,16 @@ public sealed class CodeItemParentMemberCountConverter : IMultiValueConverter
     /// </returns>
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values is null || values.Length < 2) return null;
+        if (values is null || values.Length < 2)
+        {
+            return null;
+        }
 
         var parent = values[0] as ICodeItemParent;
-        if (parent is null || !(values[1] is KindCodeItem)) return null;
+        if (parent is null || !(values[1] is KindCodeItem))
+        {
+            return null;
+        }
 
         var count = parent.GetChildrenRecursive().Count(x => x.Kind == (KindCodeItem)values[1]);
 
@@ -66,8 +72,5 @@ public sealed class CodeItemParentMemberCountConverter : IMultiValueConverter
     /// <returns>
     /// An array of values that have been converted from the target value back to the source values.
     /// </returns>
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

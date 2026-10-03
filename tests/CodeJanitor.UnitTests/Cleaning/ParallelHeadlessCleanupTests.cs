@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis.CSharp;
@@ -21,7 +24,6 @@ public sealed class ParallelHeadlessCleanupTests
     public void TestInitialize()
     {
         Settings.Default.Reset();
-        Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
         Settings.Default.Cleaning_ConvertStringFormatToInterpolation = true;
         Settings.Default.Cleaning_RemoveByteOrderMark = true;
 
@@ -46,13 +48,72 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public void TryRunHeadlessPreCleanupForCSharpCore_RemoveBomEnabledAndEditorConfigRequiresBom_LeavesAnUpToDateFileUnchanged()
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n\n[*.cs]\ncharset = utf-8-bom\n");
+        string filePath = Path.Combine(_tempDirectory, "WithBom.cs");
+        byte[] content = new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes("namespace Demo;\r\n\r\npublic class C { }\r\n")).ToArray();
+        File.WriteAllBytes(filePath, content);
+
+        CodeCleanupManager.HeadlessPreCleanupOutcome outcome = CodeCleanupManager.GetInstance(null).TryRunHeadlessPreCleanupForCSharpCore(filePath);
+
+        Assert.AreEqual(CodeCleanupManager.HeadlessCleanupResult.NoChanges, outcome.Result);
+        Assert.AreSequenceEqual(content, File.ReadAllBytes(filePath));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async System.Threading.Tasks.Task RunSemanticStepsAsync_LaterStepThrows_FileRewrittenByAnEarlierStepIsStillCountedAndTheErrorPropagates()
+    {
+        int changedCount = 0;
+        Func<Task<bool>>[] steps = new Func<System.Threading.Tasks.Task<bool>>[]
+        {
+            () => System.Threading.Tasks.Task.FromResult(true),
+            () => throw new IOException("sealing failed"),
+        };
+
+        IOException error = await Assert.ThrowsExactlyAsync<IOException>(
+            () => CodeJanitor.UI.Dialogs.CleanupProgress.CleanupProgressViewModel.RunSemanticStepsAsync(steps, () => changedCount++));
+
+        Assert.AreEqual("sealing failed", error.Message);
+        Assert.AreEqual(1, changedCount, "The file rewritten by the first step must be counted as changed.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void TryRunHeadlessPreCleanupForCSharpCore_OriginalCannotBeWrittenAfterTheSplit_RemovesTheFilesCreatedByTheSplit()
+    {
+        Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        const string Original = "class Foo { }\r\nclass Bar { }\r\n";
+        File.WriteAllText(filePath, Original);
+        File.SetAttributes(filePath, FileAttributes.ReadOnly);
+        try
+        {
+            CodeCleanupManager.HeadlessPreCleanupOutcome outcome = CodeCleanupManager.GetInstance(null).TryRunHeadlessPreCleanupForCSharpCore(filePath);
+
+            // Bar is still declared by the unchanged original: a surviving Bar.cs would duplicate it (CS0101).
+            Assert.AreEqual(CodeCleanupManager.HeadlessCleanupResult.NotApplicable, outcome.Result);
+            Assert.IsFalse(outcome.SplitOperationOccurred);
+            Assert.IsEmpty(outcome.CreatedFiles);
+            Assert.IsFalse(File.Exists(Path.Combine(_tempDirectory, "Bar.cs")), "The file created for the moved type must be removed.");
+            Assert.AreEqual(Original, File.ReadAllText(filePath));
+        }
+        finally
+        {
+            File.SetAttributes(filePath, FileAttributes.Normal);
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformationsToFiles_CleansMultipleFilesConcurrently()
     {
         List<string> filePaths = [];
         for (int i = 0; i < 10; i++)
         {
             string filePath = Path.Combine(_tempDirectory, $"Sample_{i}.cs");
-            string content = $"namespace Demo;\r\n\r\npublic class C{i} {{ public void M(object x) {{ if (x != null) {{ }} }} }}\r\n";
+            string content = $"namespace Demo;\r\n\r\npublic class C{i} {{ public string M(string n) {{ return string.Format(\"Hello {{0}}\", n); }} }}\r\n";
             File.WriteAllText(filePath, content);
             filePaths.Add(filePath);
         }
@@ -66,7 +127,7 @@ public sealed class ParallelHeadlessCleanupTests
         foreach (string filePath in filePaths)
         {
             string cleanedContent = File.ReadAllText(filePath);
-            Assert.Contains("if (x is not null)", cleanedContent, $"File {filePath} was not transformed.");
+            Assert.Contains("return $\"Hello {n}\";", cleanedContent, $"File {filePath} was not transformed.");
         }
     }
 
@@ -119,63 +180,6 @@ public sealed class ParallelHeadlessCleanupTests
         vm.CountTotal = 3;
         vm.ProcessedCount = 1;
         Assert.AreEqual("33%", vm.ProgressPercentText);
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
-    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesVirtualMemberClassUnsealed()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = true;
-
-        string filePath = Path.Combine(_tempDirectory, "VirtualClass.cs");
-        string content = "namespace Demo;\r\n\r\npublic class Foo\r\n{\r\n    public virtual string Name { get; set; }\r\n}\r\n";
-        File.WriteAllText(filePath, content);
-
-        CodeCleanupManager.ParallelCleanupResult result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { filePath });
-
-        Assert.AreEqual(0, result.FailedFiles);
-        string text = File.ReadAllText(filePath);
-        Assert.DoesNotContain("sealed class Foo", text, "Class with virtual property must not be sealed.");
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
-    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesBaseClassUnsealed_WhenGenericConstraintOrDerivedTypeInAnotherFile()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = true;
-
-        string baseFile = Path.Combine(_tempDirectory, "Result.cs");
-        string derivedFile = Path.Combine(_tempDirectory, "ResultOfT.cs");
-        string handlerFile = Path.Combine(_tempDirectory, "Handler.cs");
-
-        File.WriteAllText(baseFile, "namespace Demo;\r\n\r\npublic class Result\r\n{\r\n    public bool Success { get; set; }\r\n}\r\n");
-        File.WriteAllText(derivedFile, "namespace Demo;\r\n\r\npublic class Result<T> : Result\r\n{\r\n    public T Value { get; set; }\r\n}\r\n");
-        File.WriteAllText(handlerFile, "namespace Demo;\r\n\r\npublic class Handler<T> where T : Result\r\n{\r\n}\r\n");
-
-        CodeCleanupManager.ParallelCleanupResult result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { baseFile, derivedFile, handlerFile });
-
-        Assert.AreEqual(0, result.FailedFiles);
-        string baseText = File.ReadAllText(baseFile);
-        Assert.IsFalse(baseText.Contains("sealed class Result\r\n") || baseText.Contains("sealed class Result\n"), "Base class used in generic constraint or derived type in another file must not be sealed.");
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
-    public void ApplyHeadlessCSharpTransformationsToFiles_LeavesBaseClassUnsealed_WhenNullableGenericConstraintInAnotherFile()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = true;
-
-        string baseFile = Path.Combine(_tempDirectory, "Result.cs");
-        string handlerFile = Path.Combine(_tempDirectory, "Handler.cs");
-
-        File.WriteAllText(baseFile, "namespace Demo;\r\n\r\npublic class Result\r\n{\r\n    public bool Success { get; set; }\r\n}\r\n");
-        File.WriteAllText(handlerFile, "namespace Demo;\r\n\r\npublic class Handler<T> where T : Result?\r\n{\r\n}\r\n");
-
-        CodeCleanupManager.ParallelCleanupResult result = CodeCleanupManager.ApplyHeadlessCSharpTransformationsToFiles(new[] { baseFile, handlerFile });
-
-        Assert.AreEqual(0, result.FailedFiles);
-        string baseText = File.ReadAllText(baseFile);
-        Assert.IsFalse(baseText.Contains("sealed class Result\r\n") || baseText.Contains("sealed class Result\n"), "Base class used in a nullable generic constraint in another file must not be sealed.");
     }
 
     [TestMethod]

@@ -14,8 +14,5 @@ public static class OptionsPageViewModelEnumerableExtensions
     /// <remarks>This currently only recurses down one level as that's all that is needed.</remarks>
     /// <param name="pages">The initial pages collection.</param>
     /// <returns>The flattened collection including children.</returns>
-    public static IEnumerable<OptionsPageViewModel> Flatten(this IEnumerable<OptionsPageViewModel> pages)
-    {
-        return pages.Union(pages.SelectMany(x => x.Children));
-    }
+    public static IEnumerable<OptionsPageViewModel> Flatten(this IEnumerable<OptionsPageViewModel> pages) => pages.Union(pages.SelectMany(x => x.Children));
 }

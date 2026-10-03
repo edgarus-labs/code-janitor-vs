@@ -38,15 +38,12 @@ public sealed class FormatterOptions
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A FormatterOptions value produced by this method.</returns>
-    internal static FormatterOptions FromSettings(Settings settings)
+    internal static FormatterOptions FromSettings(Settings settings) => new FormatterOptions
     {
-        return new FormatterOptions
-        {
-            WrapColumn = settings.Formatting_CommentWrapColumn,
-            SkipWrapOnLastWord = settings.Formatting_CommentSkipWrapOnLastWord,
-            Xml = FormatterOptionsXml.FromSettings(settings)
-        };
-    }
+        WrapColumn = settings.Formatting_CommentWrapColumn,
+        SkipWrapOnLastWord = settings.Formatting_CommentSkipWrapOnLastWord,
+        Xml = FormatterOptionsXml.FromSettings(settings)
+    };
 
     /// <summary>
     /// Invokes the provided action on the current instance if non-null, mutating it, then returns the same instance for fluent chaining, with no-op behavior when the action is null and no thrown exceptions.

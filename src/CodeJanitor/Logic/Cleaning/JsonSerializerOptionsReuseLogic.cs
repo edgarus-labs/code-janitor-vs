@@ -23,10 +23,7 @@ internal sealed class JsonSerializerOptionsReuseLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="JsonSerializerOptionsReuseLogic" /> class.</returns>
-    internal static JsonSerializerOptionsReuseLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new JsonSerializerOptionsReuseLogic(package));
-    }
+    internal static JsonSerializerOptionsReuseLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new JsonSerializerOptionsReuseLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonSerializerOptionsReuseLogic" /> class.

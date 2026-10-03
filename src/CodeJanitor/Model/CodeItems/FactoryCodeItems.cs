@@ -15,7 +15,10 @@ public static class FactoryCodeItems
     /// <returns>A generated code item element, otherwise null.</returns>
     public static BaseCodeItemElement CreateCodeItemElement(CodeElement codeElement)
     {
-        if (codeElement is null) return null;
+        if (codeElement is null)
+        {
+            return null;
+        }
 
         BaseCodeItemElement codeItem;
 

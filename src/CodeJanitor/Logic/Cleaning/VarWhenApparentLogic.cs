@@ -28,10 +28,7 @@ internal sealed class VarWhenApparentLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="VarWhenApparentLogic" /> class.</returns>
-    internal static VarWhenApparentLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new VarWhenApparentLogic(package));
-    }
+    internal static VarWhenApparentLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new VarWhenApparentLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VarWhenApparentLogic" /> class.

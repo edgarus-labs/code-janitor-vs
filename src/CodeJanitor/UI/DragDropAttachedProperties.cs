@@ -18,20 +18,14 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-    public static bool GetIsBeingDragged(UIElement target)
-    {
-        return (bool)target.GetValue(IsBeingDraggedProperty);
-    }
+    public static bool GetIsBeingDragged(UIElement target) => (bool)target.GetValue(IsBeingDraggedProperty);
 
     /// <summary>
     /// Sets the IsBeingDragged value on the specified target.
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-    public static void SetIsBeingDragged(UIElement target, bool value)
-    {
-        target.SetValue(IsBeingDraggedProperty, value);
-    }
+    public static void SetIsBeingDragged(UIElement target, bool value) => target.SetValue(IsBeingDraggedProperty, value);
 
     /// <summary>
     /// The dependency property definition for the IsDropAboveTarget attached property.
@@ -44,20 +38,14 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-    public static bool GetIsDropAboveTarget(UIElement target)
-    {
-        return (bool)target.GetValue(IsDropAboveTargetProperty);
-    }
+    public static bool GetIsDropAboveTarget(UIElement target) => (bool)target.GetValue(IsDropAboveTargetProperty);
 
     /// <summary>
     /// Sets the IsDropAboveTarget value on the specified target.
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-    public static void SetIsDropAboveTarget(UIElement target, bool value)
-    {
-        target.SetValue(IsDropAboveTargetProperty, value);
-    }
+    public static void SetIsDropAboveTarget(UIElement target, bool value) => target.SetValue(IsDropAboveTargetProperty, value);
 
     /// <summary>
     /// The dependency property definition for the IsDropBelowTarget attached property.
@@ -70,20 +58,14 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-    public static bool GetIsDropBelowTarget(UIElement target)
-    {
-        return (bool)target.GetValue(IsDropBelowTargetProperty);
-    }
+    public static bool GetIsDropBelowTarget(UIElement target) => (bool)target.GetValue(IsDropBelowTargetProperty);
 
     /// <summary>
     /// Sets the IsDropBelowTarget value on the specified target.
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-    public static void SetIsDropBelowTarget(UIElement target, bool value)
-    {
-        target.SetValue(IsDropBelowTargetProperty, value);
-    }
+    public static void SetIsDropBelowTarget(UIElement target, bool value) => target.SetValue(IsDropBelowTargetProperty, value);
 
     /// <summary>
     /// The dependency property definition for the IsDropOnTarget attached property.
@@ -96,18 +78,12 @@ public static class DragDropAttachedProperties
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-    public static bool GetIsDropOnTarget(UIElement target)
-    {
-        return (bool)target.GetValue(IsDropOnTargetProperty);
-    }
+    public static bool GetIsDropOnTarget(UIElement target) => (bool)target.GetValue(IsDropOnTargetProperty);
 
     /// <summary>
     /// Sets the IsDropOnTarget value on the specified target.
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-    public static void SetIsDropOnTarget(UIElement target, bool value)
-    {
-        target.SetValue(IsDropOnTargetProperty, value);
-    }
+    public static void SetIsDropOnTarget(UIElement target, bool value) => target.SetValue(IsDropOnTargetProperty, value);
 }

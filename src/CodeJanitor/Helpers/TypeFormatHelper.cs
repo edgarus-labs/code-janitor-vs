@@ -14,7 +14,10 @@ public static class TypeFormatHelper
     /// <returns>The formatted output string.</returns>
     public static string Format(string input)
     {
-        if (string.IsNullOrEmpty(input)) return input;
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
 
         var result = Regex.Replace(input, @"[^ \t,<>\[\]]*\.", string.Empty);
 

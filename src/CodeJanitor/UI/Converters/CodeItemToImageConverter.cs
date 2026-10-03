@@ -38,12 +38,18 @@ public sealed class CodeItemToImageConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var codeItem = value as BaseCodeItem;
-        if (codeItem is null) return null;
+        if (codeItem is null)
+        {
+            return null;
+        }
 
         try
         {
             string uriString = BuildImageURIString(codeItem);
-            if (uriString is null) return null;
+            if (uriString is null)
+            {
+                return null;
+            }
 
             return new BitmapImage(new Uri(uriString, UriKind.Relative));
         }
@@ -61,10 +67,7 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
     /// <summary>
     /// Attempts to build an image URI from the specified code item.
@@ -76,7 +79,10 @@ public sealed class CodeItemToImageConverter : IValueConverter
         string typeComponent = GetTypeComponentString(codeItem);
         string accessComponent = GetAccessString(codeItem as BaseCodeItemElement);
 
-        if (typeComponent is null) return null;
+        if (typeComponent is null)
+        {
+            return null;
+        }
 
         string uriString = $"/UI/ToolWindows/Spade/Images/{ImagePath}/{typeComponent}{accessComponent}.png";
 
@@ -100,8 +106,16 @@ public sealed class CodeItemToImageConverter : IValueConverter
             case KindCodeItem.Event: return "Event";
             case KindCodeItem.Field:
                 var codeItemField = (CodeItemField)codeItem;
-                if (codeItemField.IsEnumItem) return "EnumItem";
-                if (codeItemField.IsConstant) return "Constant";
+                if (codeItemField.IsEnumItem)
+                {
+                    return "EnumItem";
+                }
+
+                if (codeItemField.IsConstant)
+                {
+                    return "Constant";
+                }
+
                 return "Field";
 
             case KindCodeItem.Interface: return "Interface";
@@ -121,7 +135,10 @@ public sealed class CodeItemToImageConverter : IValueConverter
     /// <returns>The access string, otherwise an empty string.</returns>
     private static string GetAccessString(BaseCodeItemElement codeItem)
     {
-        if (codeItem is null) return string.Empty;
+        if (codeItem is null)
+        {
+            return string.Empty;
+        }
 
         switch (codeItem.Access)
         {

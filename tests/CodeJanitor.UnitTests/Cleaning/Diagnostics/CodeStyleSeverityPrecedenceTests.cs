@@ -39,15 +39,17 @@ public sealed class CodeStyleSeverityPrecedenceTests
             "precedence/Probe.cs",
             "class Probe\n{\n    int Get(bool open)\n    {\n        if (open)\n            return 1;\n        return 0;\n    }\n}\n");
         Project project = workspace.CreateSolution().GetDocument(documentId).Project;
-        Compilation compilation = await project.GetCompilationAsync();
+        Compilation compilation = await project.GetCompilationAsync(TestContext.CancellationToken);
         ImmutableArray<DiagnosticAnalyzer> analyzers = DiagnosticCleanupTestWorkspace.HostAnalyzers
             .Where(analyzer => analyzer.SupportedDiagnostics.Any(descriptor => descriptor.Id == "IDE0011"))
             .ToImmutableArray();
 
         ImmutableArray<Diagnostic> diagnostics = await compilation
-            .WithAnalyzers(analyzers, project.AnalyzerOptions)
-            .GetAnalyzerDiagnosticsAsync();
+            .WithAnalyzers(analyzers, project.AnalyzerOptions, TestContext.CancellationToken)
+            .GetAnalyzerDiagnosticsAsync(TestContext.CancellationToken);
 
         Assert.AreEqual(expected, diagnostics.Where(diagnostic => diagnostic.Id == "IDE0011").Select(diagnostic => (DiagnosticSeverity?)diagnostic.Severity).SingleOrDefault());
     }
+
+    public TestContext TestContext { get; set; }
 }

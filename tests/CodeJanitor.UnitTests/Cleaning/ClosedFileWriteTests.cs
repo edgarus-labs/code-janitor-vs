@@ -39,6 +39,32 @@ public sealed class ClosedFileWriteTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public void SemanticFileRewriter_FileEditedDuringTheAnalysis_IsNotOverwritten()
+    {
+        string filePath = WriteFile("class Edited { }", new UTF8Encoding(false));
+        string reason = null;
+
+        bool written = SemanticFileRewriter.TryWriteRewrittenText(filePath, "class C { }", "sealed class C { }", notWritten => reason = notWritten);
+
+        Assert.IsFalse(written);
+        Assert.AreEqual("class Edited { }", File.ReadAllText(filePath));
+        Assert.IsNotNull(reason, "The user must be told why the file was left unchanged.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void SemanticFileRewriter_UnchangedFile_IsRewrittenKeepingItsByteOrderMark()
+    {
+        string filePath = WriteFile("class C { }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        bool written = SemanticFileRewriter.TryWriteRewrittenText(filePath, "class C { }", "sealed class C { }", _ => Assert.Fail("The file must be written."));
+
+        Assert.IsTrue(written);
+        Assert.AreSequenceEqual(new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes("sealed class C { }")).ToArray(), File.ReadAllBytes(filePath));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public void TryWriteClosedFileText_KeepsTheUtf8ByteOrderMark()
     {
         string filePath = WriteFile("class C { }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));

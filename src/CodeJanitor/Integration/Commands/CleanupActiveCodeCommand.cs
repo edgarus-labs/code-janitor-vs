@@ -56,8 +56,15 @@ internal sealed class CleanupActiveCodeCommand : BaseCommand
     internal void OnBeforeDocumentSave(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!Settings.Default.Cleaning_AutoCleanupOnFileSave) return;
-        if (!CodeCleanupAvailabilityLogic.CanCleanupDocument(document)) return;
+        if (!Settings.Default.Cleaning_AutoCleanupOnFileSave)
+        {
+            return;
+        }
+
+        if (!CodeCleanupAvailabilityLogic.CanCleanupDocument(document))
+        {
+            return;
+        }
 
         try
         {

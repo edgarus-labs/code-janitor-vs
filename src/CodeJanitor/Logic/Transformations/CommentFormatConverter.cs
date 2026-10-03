@@ -1,7 +1,9 @@
 using CodeJanitor.Properties;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -11,20 +13,19 @@ namespace CodeJanitor.Logic.Transformations;
 /// </summary>
 public sealed class CommentFormatConverter : ISourceTransformation
 {
-    private static readonly Regex SingleLineCommentRegex = new Regex(@"^(\s*)//\s*(.*)$", RegexOptions.Multiline | RegexOptions.Compiled);
-    private static readonly Regex MultiLineCommentStartRegex = new Regex(@"^(\s*)/\*", RegexOptions.Multiline | RegexOptions.Compiled);
-    private static readonly Regex MultiLineCommentEndRegex = new Regex(@"\*/$", RegexOptions.Multiline | RegexOptions.Compiled);
-
     /// <summary>
     /// Gets the name.
     /// </summary>
     public string Name => "Format comments";
 
     /// <summary>
-    /// 1. **Analyze the request**: The user wants a single concise summary sentence (plain text, no XML, no quotes) about the provided C# method `Apply(string source)`, mentioning key behavior and side effects. 2. **Analyze the code**: * Method: `public string Apply(string source)` * Behavior: If `source` is null/empty OR setting `Formatting_CommentRunDuringCleanup` is false, returns `source` as-is. * Parses source into lines, preserving original newline style. * Tracks multi-line comments (`/* ... */`). If inside a multi-line comment, normalizes continuation lines using `NormalizeMultiLineCommentLine` (preserving indentation of the start). * Detects single-line comments (`// ...`), formats them to preserve indentation and ensure exactly one space after `//` (unless empty, then just `//`). * Non-comment lines are kept as-is. * Returns the joined, modified string. * Side effects: None externally observable (pure function, no state mutation, no IO). It only modifies the comment formatting in the returned string. 3.
+    /// Puts exactly one space after the <c>//</c> of every comment that starts its line and aligns the
+    /// <c>*</c> continuation lines of block comments that start their line. Only real comment trivia is
+    /// changed: string literals, <c>///</c> documentation comments, comments starting with more than two slashes
+    /// and the line endings of the file are left as they are.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>A string value produced by this method.</returns>
+    /// <returns>The source with its comments formatted.</returns>
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !Settings.Default.Formatting_CommentRunDuringCleanup)
@@ -32,64 +33,106 @@ public sealed class CommentFormatConverter : ISourceTransformation
             return source;
         }
 
-        var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        var result = new List<string>();
-        var inMultiLineComment = false;
-        var multiLineCommentIndentation = "";
+        var text = SourceText.From(source);
+        var changes = new List<TextChange>();
+        AddCommentChanges(text, CSharpSyntaxTree.ParseText(text).GetRoot(), 0, changes);
 
-        for (int i = 0; i < lines.Length; i++)
+        if (changes.Count == 0)
         {
-            var line = lines[i];
-
-            // Handle multi-line comments
-            if (inMultiLineComment)
-            {
-                if (line.Contains("*/"))
-                {
-                    inMultiLineComment = false;
-                    result.Add(line);
-                }
-                else
-                {
-                    // Normalize continuation lines in multi-line comments
-                    result.Add(NormalizeMultiLineCommentLine(line, multiLineCommentIndentation));
-                }
-                continue;
-            }
-
-            // Check for multi-line comment start
-            var multiLineStartMatch = MultiLineCommentStartRegex.Match(line);
-            if (multiLineStartMatch.Success)
-            {
-                inMultiLineComment = !line.Contains("*/");
-                multiLineCommentIndentation = multiLineStartMatch.Groups[1].Value;
-                result.Add(line);
-                continue;
-            }
-
-            // Handle single-line comments
-            var singleLineMatch = SingleLineCommentRegex.Match(line);
-            if (singleLineMatch.Success)
-            {
-                var indentation = singleLineMatch.Groups[1].Value;
-                var commentText = singleLineMatch.Groups[2].Value;
-
-                // Format: preserve indentation, ensure single space after //
-                var formattedLine = string.IsNullOrWhiteSpace(commentText)
-                    ? indentation + "//"
-                    : indentation + "// " + commentText.TrimStart();
-
-                result.Add(formattedLine);
-                continue;
-            }
-
-            // Not a comment line, keep as-is
-            result.Add(line);
+            return source;
         }
 
-        var newline = source.Contains("\r\n") ? "\r\n" : (source.Contains("\r") ? "\r" : "\n");
+        changes.Sort((left, right) => left.Span.Start.CompareTo(right.Span.Start));
 
-        return string.Join(newline, result);
+        return text.WithChanges(changes).ToString();
+    }
+
+    /// <summary>
+    /// Adds the changes for the comments of <paramref name="root" />, whose text starts at
+    /// <paramref name="offset" /> in <paramref name="text" />.
+    /// </summary>
+    private static void AddCommentChanges(SourceText text, SyntaxNode root, int offset, List<TextChange> changes)
+    {
+        foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
+        {
+            var span = new TextSpan(offset + trivia.SpanStart, trivia.Span.Length);
+            if (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia))
+            {
+                AddSingleLineCommentChange(text, span, changes);
+            }
+            else if (trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+            {
+                AddMultiLineCommentChanges(text, span, changes);
+            }
+            else if (trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+            {
+                // An inactive #if branch is kept as plain text; parsing it on its own finds its comments
+                // while its string literals stay strings.
+                AddCommentChanges(text, CSharpSyntaxTree.ParseText(trivia.ToString()).GetRoot(), span.Start, changes);
+            }
+        }
+    }
+
+    private static void AddSingleLineCommentChange(SourceText text, TextSpan span, List<TextChange> changes)
+    {
+        var line = text.Lines.GetLineFromPosition(span.Start);
+        if (!IsWhitespace(text, line.Start, span.Start))
+        {
+            // Trailing comments after code are left alone.
+            return;
+        }
+
+        var comment = text.ToString(span);
+        if (comment.StartsWith("///", StringComparison.Ordinal))
+        {
+            // Commented-out documentation comments and //// separators are not reformatted.
+            return;
+        }
+
+        var body = comment.Substring(2);
+        var formatted = string.IsNullOrWhiteSpace(body) ? "//" : "// " + body.TrimStart();
+        if (formatted != comment)
+        {
+            changes.Add(new TextChange(span, formatted));
+        }
+    }
+
+    private static void AddMultiLineCommentChanges(SourceText text, TextSpan span, List<TextChange> changes)
+    {
+        var startLine = text.Lines.GetLineFromPosition(span.Start);
+        if (!IsWhitespace(text, startLine.Start, span.Start))
+        {
+            // A block comment opened after code keeps its content as written.
+            return;
+        }
+
+        var baseIndentation = text.ToString(TextSpan.FromBounds(startLine.Start, span.Start));
+        var closingLineNumber = text.Lines.GetLineFromPosition(span.End).LineNumber;
+
+        // The opening and closing lines are kept as they are; only the lines in between are aligned.
+        for (var lineNumber = startLine.LineNumber + 1; lineNumber < closingLineNumber; lineNumber++)
+        {
+            var lineSpan = text.Lines[lineNumber].Span;
+            var line = text.ToString(lineSpan);
+            var formatted = NormalizeMultiLineCommentLine(line, baseIndentation);
+            if (formatted != line)
+            {
+                changes.Add(new TextChange(lineSpan, formatted));
+            }
+        }
+    }
+
+    private static bool IsWhitespace(SourceText text, int start, int end)
+    {
+        for (var position = start; position < end; position++)
+        {
+            if (!char.IsWhiteSpace(text[position]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -98,12 +141,12 @@ public sealed class CommentFormatConverter : ISourceTransformation
     /// <param name="line">The line.</param>
     /// <param name="baseIndentation">The base indentation.</param>
     /// <returns>A string value produced by this method.</returns>
-    private string NormalizeMultiLineCommentLine(string line, string baseIndentation)
+    private static string NormalizeMultiLineCommentLine(string line, string baseIndentation)
     {
         var trimmed = line.TrimStart();
 
         // If line starts with *, align it with base indentation
-        if (trimmed.StartsWith("*"))
+        if (trimmed.StartsWith("*", StringComparison.Ordinal))
         {
             return baseIndentation + " " + trimmed;
         }

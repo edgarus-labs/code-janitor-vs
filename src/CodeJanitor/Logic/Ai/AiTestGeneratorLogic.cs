@@ -84,9 +84,7 @@ internal sealed class AiTestGeneratorLogic
     /// <param name="testFramework">The test framework.</param>
     /// <param name="mockingLib">The mocking lib.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string BuildTestPrompt(string memberOrClassName, string codeSnippet, string testFramework, string mockingLib)
-    {
-        return $@"Generate a comprehensive suite of unit tests for the following C# code ('{memberOrClassName}') using {testFramework} and {mockingLib}:
+    private static string BuildTestPrompt(string memberOrClassName, string codeSnippet, string testFramework, string mockingLib) => $@"Generate a comprehensive suite of unit tests for the following C# code ('{memberOrClassName}') using {testFramework} and {mockingLib}:
 
 ```csharp
 {codeSnippet}
@@ -102,7 +100,6 @@ Requirements:
    - Asynchronous execution / exception throwing paths if applicable
 4. Use clean Arrange-Act-Assert structure and readable method names following: `MethodName_Condition_ExpectedResult`.
 5. Return the complete test class file with necessary using statements.";
-    }
 
     /// <summary>
     /// Extracts the trimmed interior of a markdown code fence from the AI response, preferring a case-insensitive ```csharp block then a generic ``` block (skipping a short language identifier after the opening fence), falling back to the trimmed original string or empty for null/whitespace input, with no side effects.

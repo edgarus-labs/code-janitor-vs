@@ -76,7 +76,10 @@ internal sealed class TextEditorEventListener : BaseEventListener
     private void TextEditorEvents_LineChanged(TextPoint startPoint, TextPoint endPoint, int hint)
     {
         var textDocument = startPoint?.Parent;
-        if (textDocument is null) return;
+        if (textDocument is null)
+        {
+            return;
+        }
 
         var document = startPoint.Parent.Parent;
 

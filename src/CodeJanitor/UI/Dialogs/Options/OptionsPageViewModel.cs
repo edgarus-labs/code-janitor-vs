@@ -84,10 +84,7 @@ public abstract class OptionsPageViewModel : Bindable
     /// <summary>
     /// Saves the settings.
     /// </summary>
-    public virtual void SaveSettings()
-    {
-        Mappings?.CopyOptionsToSettings();
-    }
+    public virtual void SaveSettings() => Mappings?.CopyOptionsToSettings();
 
     /// <summary>
     /// Gets the full path of the open solution file.

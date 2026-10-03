@@ -14,10 +14,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     private RemoveTrailingWhitespaceConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new RemoveTrailingWhitespaceConverter();
-    }
+    public void TestInitialize() => _converter = new RemoveTrailingWhitespaceConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -78,17 +75,11 @@ public sealed class RemoveTrailingWhitespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void EmptySource_Unchanged()
-    {
-        Assert.AreEqual(string.Empty, _converter.Convert(string.Empty));
-    }
+    public void EmptySource_Unchanged() => Assert.AreEqual(string.Empty, _converter.Convert(string.Empty));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void NullSource_ReturnsNull()
-    {
-        Assert.IsNull(_converter.Convert(null));
-    }
+    public void NullSource_ReturnsNull() => Assert.IsNull(_converter.Convert(null));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -100,5 +91,72 @@ public sealed class RemoveTrailingWhitespaceConverterTests
 
         Assert.AreEqual(expected, transformation.Apply(input));
         Assert.AreEqual("Remove trailing whitespace", transformation.Name);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void WhitespaceAfterTheFinalLineBreak_Removed() => Assert.AreEqual("class C { }\r\n", _converter.Convert("class C { }\r\n   \t"));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileEndingWithACommentWithoutLineBreak_Unchanged()
+    {
+        string input = "class C { }\r\n// end";
+
+        Assert.AreEqual(input, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFile_TrailingWhitespaceRemovedFromEveryCodeLine()
+    {
+        string input = "using System;   \r\n  \r\nConsole.WriteLine(1);\t\r\nstatic void L() { }  \r\nrecord R(int X); \r\n";
+        string expected = "using System;\r\n\r\nConsole.WriteLine(1);\r\nstatic void L() { }\r\nrecord R(int X);\r\n";
+
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TrailingWhitespaceInsideRawAndInterpolatedStrings_Preserved()
+    {
+        string input = "var s = \"\"\"\r\n  a   \r\n  \"\"\";   \r\nvar i = $@\"x  \r\n{s}  \";\r\n";
+        string expected = "var s = \"\"\"\r\n  a   \r\n  \"\"\";\r\nvar i = $@\"x  \r\n{s}  \";\r\n";
+
+        Assert.AreEqual(expected, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("// hi   \r\nclass C { }\r\n", "// hi\r\nclass C { }\r\n", DisplayName = "single-line comment")]
+    [DataRow("#region X   \r\nclass C { }\r\n#endregion \t\r\n", "#region X\r\nclass C { }\r\n#endregion\r\n", DisplayName = "region directives")]
+    [DataRow("/// <summary>  \n/// Doc\t\n/// </summary>\nclass C { }\n", "/// <summary>\n/// Doc\n/// </summary>\nclass C { }\n", DisplayName = "documentation comment")]
+    [DataRow("/* a\n   b   \n   c */\nclass C { }\n", "/* a\n   b\n   c */\nclass C { }\n", DisplayName = "block comment inner line")]
+    [DataRow("class C { }   ", "class C { }", DisplayName = "last line without line break")]
+    [DataRow("class C { }\r\n// end  ", "class C { }\r\n// end", DisplayName = "last comment line without line break")]
+    public void TrailingWhitespaceInTriviaAndOnTheLastLine_Removed(string input, string expected) => Assert.AreEqual(expected, _converter.Convert(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TrailingWhitespaceInsideDisabledText_Preserved()
+    {
+        string input = "#if NEVER_DEFINED\nstring s = @\"a   \nb\";\n#endif\n";
+
+        Assert.AreEqual(input, _converter.Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("class C\n{\n    int x;   \n\t\n}\n   ", DisplayName = "code, whitespace-only lines and whitespace after the final line break")]
+    [DataRow("var s = \"\"\"\r\n  a   \r\n  \"\"\";   \r\nvar i = $@\"x  \r\n{s}  \";\r\n", DisplayName = "strings keep their whitespace")]
+    [DataRow("#region X   \r\nclass C { }\r\n#endregion \t\r\n", DisplayName = "region directives")]
+    [DataRow("/* a\n   b   \n   c */\nclass C { }   \n", DisplayName = "block comment inner line")]
+    [DataRow("class C { }\r\n// end  ", DisplayName = "last comment line without line break")]
+    public void Apply_IsIdempotent(string input)
+    {
+        string once = _converter.Convert(input);
+
+        Assert.AreNotEqual(input, once, "The scenario has to change the input at all.");
+        Assert.AreEqual(once, _converter.Convert(once));
     }
 }

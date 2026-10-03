@@ -37,10 +37,7 @@ internal sealed class SettingsContextHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SettingsContextHelper" /> class.</returns>
-    internal static SettingsContextHelper GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new SettingsContextHelper(package));
-    }
+    internal static SettingsContextHelper GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new SettingsContextHelper(package));
 
     /// <summary>
     /// Gets the path to the solution settings file based on the specified <see cref="SettingsContext"/>.
@@ -52,7 +49,10 @@ internal sealed class SettingsContextHelper
     /// <returns>The path to the solution settings, otherwise null.</returns>
     internal static string GetSolutionSettingsPath(SettingsContext context)
     {
-        if (context is null) throw new ArgumentNullException(nameof(context));
+        if (context is null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
 
         var solutionPath = context["SolutionPath"];
 
@@ -60,11 +60,21 @@ internal sealed class SettingsContextHelper
     }
 
     /// <summary>
+    /// Gets or sets the directory holding the user settings file instead of the default
+    /// <c>%LOCALAPPDATA%\CodeJanitor</c>. Null uses the default. Tests set it so they never read or write the
+    /// settings of the developer running them.
+    /// </summary>
+    internal static string UserSettingsDirectoryOverride { get; set; }
+
+    /// <summary>
     /// Gets the path to the user settings file.
     /// </summary>
     internal static string GetUserSettingsPath()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodeJanitor", SettingsFilename);
+        var directory = UserSettingsDirectoryOverride ??
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodeJanitor");
+
+        return Path.Combine(directory, SettingsFilename);
     }
 
     /// <summary>

@@ -32,8 +32,5 @@ public sealed class CenterConverter : System.Windows.Data.IValueConverter
     /// <param name="culture">The culture.</param>
     /// <returns>A object value produced by this method.</returns>
     /// <exception cref="NotImplementedException">Thrown when method validation or execution fails for this exception type.</exception>
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

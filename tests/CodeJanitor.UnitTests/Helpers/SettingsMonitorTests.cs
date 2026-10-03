@@ -10,10 +10,7 @@ namespace CodeJanitor.UnitTests.Helpers;
 public sealed class SettingsMonitorTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     [TestMethod]
     public async Task CallbackShouldBeCalledAtOnce()

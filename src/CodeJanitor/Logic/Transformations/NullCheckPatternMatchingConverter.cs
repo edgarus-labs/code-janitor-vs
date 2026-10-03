@@ -1,74 +1,202 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using Microsoft.CodeAnalysis.Text;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
-/// A source transformation that converts traditional null equality checks (== null, != null)
-/// to modern pattern matching (is null, is not null). Skips expression-bodied non-async lambdas
-/// and LINQ query-expression clauses, since those can be converted to expression trees where the
-/// compiler rejects the `is`/`is not` pattern-matching operator (CS8122) and this tool has no
-/// semantic model to prove otherwise. The `is null` pattern needs C# 7.0, `is not null` needs C# 9.
+/// Converts null equality checks (<c>== null</c>, <c>!= null</c>) of a C# file to pattern matching (<c>is null</c>,
+/// <c>is not null</c>) where the semantic model proves the conversion keeps the behavior and compiles.
 /// </summary>
-public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
+/// <remarks>
+/// A check is converted only when all of these hold:
+/// <list type="bullet">
+/// <item>it compares with the built-in reference or nullable equality: a user-defined <c>==</c> or <c>!=</c>, declared
+/// anywhere (another file, project or referenced assembly, for example <c>UnityEngine.Object</c>) and lifted ones
+/// included, may give <c>null</c> a meaning of its own that the <c>is</c> pattern bypasses;</item>
+/// <item>the compared operand is known to be of a reference type, <see cref="Nullable{T}" /> or a type parameter not
+/// constrained to a value type (<c>is null</c> on a non-nullable value type does not compile, CS0037; a
+/// <c>dynamic</c> operand may bind to a user-defined operator at run time);</item>
+/// <item>the language version allows it: <c>is null</c> needs C# 7.0, <c>is not null</c> needs C# 9;</item>
+/// <item>it is not in an expression-bodied non-async lambda or a query-expression clause, which can become an
+/// expression tree where the pattern is rejected (CS8122), nor an operand of another equality (<c>a == b == null</c>),
+/// nor a check with <c>null</c> on the left and comments between the operands.</item>
+/// </list>
+/// A file compiled by several projects or target frameworks is analyzed in each of them, and a check is converted only
+/// when it is safe in every one. Pure logic over Roslyn workspace types, unit-testable without Visual Studio.
+/// </remarks>
+public sealed class NullCheckPatternMatchingConverter
 {
-    private readonly bool _convertInequalityChecks;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="NullCheckPatternMatchingConverter" /> class that converts both
-    /// equality (<c>== null</c>) and inequality (<c>!= null</c>) checks.
-    /// </summary>
-    public NullCheckPatternMatchingConverter()
-        : this(true)
-    {
-    }
+    private readonly Action<string> _reportSkipped;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NullCheckPatternMatchingConverter" /> class.
     /// </summary>
-    /// <param name="convertInequalityChecks">
-    /// True to also convert inequality checks (<c>!= null</c>) to <c>is not null</c>, which needs C# 9; false to
-    /// convert only equality checks (<c>== null</c>) to <c>is null</c>, which needs C# 7.0.
+    /// <param name="reportSkipped">
+    /// Receives a message when <c>!= null</c> checks were left unchanged only because the language version of a project
+    /// compiling the file is older than C# 9; null to report nothing. It runs on the thread completing the analysis,
+    /// which is not the UI thread: it must not write to the output pane or use any COM object itself.
     /// </param>
-    public NullCheckPatternMatchingConverter(bool convertInequalityChecks)
+    public NullCheckPatternMatchingConverter(Action<string> reportSkipped = null)
     {
-        _convertInequalityChecks = convertInequalityChecks;
-    }
-
-    /// <inheritdoc />
-    public string Name => "Convert to Pattern Matching Null Checks";
-
-    /// <inheritdoc />
-    public string Apply(string source)
-    {
-        if (string.IsNullOrWhiteSpace(source))
-        {
-            return source;
-        }
-
-        var tree = CSharpSyntaxTree.ParseText(source);
-        var root = tree.GetRoot();
-        var rewriter = new NullCheckRewriter(_convertInequalityChecks);
-        var newRoot = rewriter.Visit(root);
-
-        return newRoot.ToFullString();
+        _reportSkipped = reportSkipped;
     }
 
     /// <summary>
-    /// A rewriter that transforms null check binary expressions into a normalized or optimized form.
+    /// Converts the null checks of the file that are safe to convert in every document of <paramref name="documents" />.
+    /// </summary>
+    /// <param name="documents">The documents of one file, one per project flavor compiling it, all with the same text.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The text of the file with the safe null checks converted, or its unchanged text when none is.</returns>
+    public async Task<string> ConvertAsync(IReadOnlyList<Document> documents, CancellationToken cancellationToken)
+    {
+        var inequalitySkipped = false;
+        var converted = await ConvertCoreAsync(documents, () => inequalitySkipped = true, cancellationToken).ConfigureAwait(false);
+        if (inequalitySkipped)
+        {
+            _reportSkipped?.Invoke("'!= null' checks were left unchanged: 'is not null' patterns need C# 9, and a project compiling the file uses an older language version.");
+        }
+
+        return converted;
+    }
+
+    private async Task<string> ConvertCoreAsync(IReadOnlyList<Document> documents, Action onInequalitySkipped, CancellationToken cancellationToken)
+    {
+        if (documents is null || documents.Count == 0)
+        {
+            throw new ArgumentException("At least one document is required.", nameof(documents));
+        }
+
+        var root = await documents[0].GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        HashSet<TextSpan> convertible = null;
+
+        foreach (var document in documents)
+        {
+            var safeInDocument = await GetConvertibleAsync(document, onInequalitySkipped, cancellationToken).ConfigureAwait(false);
+            if (convertible is null)
+            {
+                convertible = safeInDocument;
+            }
+            else
+            {
+                convertible.IntersectWith(safeInDocument);
+            }
+
+            if (convertible.Count == 0)
+            {
+                return root.ToFullString();
+            }
+        }
+
+        return new NullCheckRewriter(convertible).Visit(root).ToFullString();
+    }
+
+    /// <summary>
+    /// Gets the spans of the null checks of <paramref name="document" /> whose conversion keeps the behavior and
+    /// compiles in its project.
+    /// </summary>
+    private static async Task<HashSet<TextSpan>> GetConvertibleAsync(Document document, Action onInequalitySkipped, CancellationToken cancellationToken)
+    {
+        var convertible = new HashSet<TextSpan>();
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var languageVersion = ((CSharpParseOptions)root.SyntaxTree.Options).LanguageVersion;
+        if (languageVersion < LanguageVersion.CSharp7)
+        {
+            return convertible;
+        }
+
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var check in root.DescendantNodes().OfType<BinaryExpressionSyntax>())
+        {
+            if (!TryGetComparedOperand(check, out var operand) ||
+                !IsReferenceEqualityCheck(check, operand, semanticModel, cancellationToken))
+            {
+                continue;
+            }
+
+            if (check.IsKind(SyntaxKind.NotEqualsExpression) && languageVersion < LanguageVersion.CSharp9)
+            {
+                onInequalitySkipped();
+                continue;
+            }
+
+            convertible.Add(check.Span);
+        }
+
+        return convertible;
+    }
+
+    /// <summary>
+    /// Gets the operand compared with the <c>null</c> literal by an <c>==</c> or <c>!=</c> expression.
+    /// </summary>
+    private static bool TryGetComparedOperand(BinaryExpressionSyntax check, out ExpressionSyntax operand)
+    {
+        operand = null;
+        if (!check.IsKind(SyntaxKind.EqualsExpression) && !check.IsKind(SyntaxKind.NotEqualsExpression))
+        {
+            return false;
+        }
+
+        if (check.Right.IsKind(SyntaxKind.NullLiteralExpression))
+        {
+            operand = check.Left;
+        }
+        else if (check.Left.IsKind(SyntaxKind.NullLiteralExpression))
+        {
+            operand = check.Right;
+        }
+
+        return operand is not null;
+    }
+
+    /// <summary>
+    /// Determines whether the check uses the built-in reference or nullable equality on an operand that the
+    /// <c>is null</c> pattern accepts, and is not a constant expression: an <c>is</c> pattern is never constant, so
+    /// it would not compile where a constant is required (const initializers, default parameter values, attribute
+    /// arguments, case labels).
+    /// </summary>
+    private static bool IsReferenceEqualityCheck(BinaryExpressionSyntax check, ExpressionSyntax operand, SemanticModel semanticModel, CancellationToken cancellationToken)
+    {
+        if (!(semanticModel.GetOperation(check, cancellationToken) is IBinaryOperation operation) ||
+            operation.OperatorMethod is not null ||
+            semanticModel.GetConstantValue(check, cancellationToken).HasValue)
+        {
+            return false;
+        }
+
+        var type = semanticModel.GetTypeInfo(operand, cancellationToken).Type;
+        if (type is ITypeParameterSymbol typeParameter)
+        {
+            return !typeParameter.HasValueTypeConstraint && !typeParameter.HasUnmanagedTypeConstraint;
+        }
+
+        return type is not null &&
+            type.TypeKind != TypeKind.Error &&
+            type.TypeKind != TypeKind.Dynamic &&
+            (type.IsReferenceType || type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T);
+    }
+
+    /// <summary>
+    /// A rewriter that converts the given null checks to <c>is</c> or <c>is not</c> patterns, preserving the trivia.
     /// </summary>
     private sealed class NullCheckRewriter : CSharpSyntaxRewriter
     {
-        private readonly bool _convertInequalityChecks;
+        private readonly HashSet<TextSpan> _convertible;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NullCheckRewriter" /> class.
         /// </summary>
-        /// <param name="convertInequalityChecks">Whether inequality checks are converted to <c>is not null</c>.</param>
-        internal NullCheckRewriter(bool convertInequalityChecks)
+        /// <param name="convertible">The spans of the null checks the semantic model proved safe to convert.</param>
+        internal NullCheckRewriter(HashSet<TextSpan> convertible)
         {
-            _convertInequalityChecks = convertInequalityChecks;
+            _convertible = convertible;
         }
 
         /// <summary>
@@ -80,26 +208,27 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
         {
             var visitedNode = (BinaryExpressionSyntax)base.VisitBinaryExpression(node);
 
-            var isNotEquals = visitedNode.IsKind(SyntaxKind.NotEqualsExpression) && _convertInequalityChecks;
-            var isEquals = visitedNode.IsKind(SyntaxKind.EqualsExpression);
-
-            if (!isNotEquals && !isEquals)
+            if (!_convertible.Contains(node.Span))
             {
                 return visitedNode;
             }
 
-            ExpressionSyntax targetExpr = null;
+            var isNotEquals = visitedNode.IsKind(SyntaxKind.NotEqualsExpression);
+
+            ExpressionSyntax targetExpr;
+            bool nullOnRight;
 
             if (visitedNode.Right.IsKind(SyntaxKind.NullLiteralExpression))
             {
-                targetExpr = visitedNode.Left.WithoutTrivia();
+                targetExpr = visitedNode.Left;
+                nullOnRight = true;
             }
             else if (visitedNode.Left.IsKind(SyntaxKind.NullLiteralExpression))
             {
-                targetExpr = visitedNode.Right.WithoutTrivia();
+                targetExpr = visitedNode.Right;
+                nullOnRight = false;
             }
-
-            if (targetExpr is null)
+            else
             {
                 return visitedNode;
             }
@@ -109,42 +238,91 @@ public sealed class NullCheckPatternMatchingConverter : ISourceTransformation
                 return visitedNode;
             }
 
+            // An unparenthesized operand of == or != can only be another equality: `a == b == null` would become
+            // `a == (b is null)`, and parenthesizing it gives `(a == b) is null`, which does not compile for bool (CS0037).
+            if (targetExpr.IsKind(SyntaxKind.EqualsExpression) || targetExpr.IsKind(SyntaxKind.NotEqualsExpression))
+            {
+                return visitedNode;
+            }
+
+            // Comments or directives between the operands are kept in place when the null literal is on the right;
+            // with `null` on the left they cannot keep their position, so such a check is left alone.
+            var keepInnerTrivia = HasCommentOrDirective(visitedNode.Left.GetTrailingTrivia())
+                || HasCommentOrDirective(visitedNode.OperatorToken.LeadingTrivia)
+                || HasCommentOrDirective(visitedNode.OperatorToken.TrailingTrivia)
+                || HasCommentOrDirective(visitedNode.Right.GetLeadingTrivia());
+            if (keepInnerTrivia && !nullOnRight)
+            {
+                return visitedNode;
+            }
+
+            if (!keepInnerTrivia)
+            {
+                targetExpr = targetExpr.WithoutTrivia();
+            }
+
             PatternSyntax pattern;
-            var isToken = SyntaxFactory.Token(
-                SyntaxFactory.TriviaList(SyntaxFactory.Space),
-                SyntaxKind.IsKeyword,
-                SyntaxFactory.TriviaList(SyntaxFactory.Space));
+            var isToken = keepInnerTrivia
+                ? SyntaxFactory.Token(visitedNode.OperatorToken.LeadingTrivia, SyntaxKind.IsKeyword, visitedNode.OperatorToken.TrailingTrivia)
+                : SyntaxFactory.Token(SyntaxFactory.TriviaList(SyntaxFactory.Space), SyntaxKind.IsKeyword, SyntaxFactory.TriviaList(SyntaxFactory.Space));
+
+            // A comment directly adjacent to the operator must still be separated from the keywords.
+            if (keepInnerTrivia && isToken.LeadingTrivia.Count == 0 && visitedNode.Left.GetTrailingTrivia().Count == 0)
+            {
+                isToken = isToken.WithLeadingTrivia(SyntaxFactory.Space);
+            }
+
+            if (keepInnerTrivia && isToken.TrailingTrivia.Count == 0)
+            {
+                isToken = isToken.WithTrailingTrivia(SyntaxFactory.Space);
+            }
+
+            var nullLiteral = SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+            if (keepInnerTrivia)
+            {
+                nullLiteral = nullLiteral.WithLeadingTrivia(visitedNode.Right.GetLeadingTrivia());
+            }
 
             if (isNotEquals)
             {
                 var notToken = SyntaxFactory.Token(
                     SyntaxFactory.TriviaList(),
                     SyntaxKind.NotKeyword,
-                    SyntaxFactory.TriviaList(SyntaxFactory.Space));
+                    isToken.TrailingTrivia);
+                isToken = isToken.WithTrailingTrivia(SyntaxFactory.Space);
 
-                pattern = SyntaxFactory.UnaryPattern(
-                    notToken,
-                    SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)));
+                pattern = SyntaxFactory.UnaryPattern(notToken, SyntaxFactory.ConstantPattern(nullLiteral));
             }
             else
             {
-                pattern = SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression));
+                pattern = SyntaxFactory.ConstantPattern(nullLiteral);
             }
 
-            var isPatternExpr = SyntaxFactory.IsPatternExpression(targetExpr, isToken, pattern)
-                .WithLeadingTrivia(visitedNode.GetLeadingTrivia())
-                .WithTrailingTrivia(visitedNode.GetTrailingTrivia());
+            var isPatternExpr = SyntaxFactory.IsPatternExpression(targetExpr, isToken, pattern);
+            if (!keepInnerTrivia)
+            {
+                isPatternExpr = isPatternExpr
+                    .WithLeadingTrivia(visitedNode.GetLeadingTrivia())
+                    .WithTrailingTrivia(visitedNode.GetTrailingTrivia());
+            }
+            else
+            {
+                isPatternExpr = isPatternExpr.WithTrailingTrivia(visitedNode.GetTrailingTrivia());
+            }
 
             return isPatternExpr;
         }
+
+        /// <summary>Returns whether the trivia list contains a comment, directive or other non-whitespace trivia.</summary>
+        private static bool HasCommentOrDirective(SyntaxTriviaList trivia) => trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
 
         /// <summary>
         /// Determines whether the given null-check node sits in a syntax position where the C# compiler
         /// could reject an `is`/`is not` pattern-matching operator if the surrounding lambda or query ends up
         /// converted to an Expression tree (CS8122). Block-bodied lambdas, async lambdas, and anonymous methods
         /// can never be compiled to expression trees (CS0834/CS1989/CS1946), so they are always safe; an
-        /// expression-bodied non-async lambda or a query-expression clause cannot be proven safe without a
-        /// semantic model, so both are conservatively treated as unsafe.
+        /// expression-bodied non-async lambda or a query-expression clause is conservatively treated as unsafe
+        /// (its delegate or expression-tree conversion is not analyzed).
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>True if rewriting to a pattern-matching operator here could break compilation; otherwise, false.</returns>

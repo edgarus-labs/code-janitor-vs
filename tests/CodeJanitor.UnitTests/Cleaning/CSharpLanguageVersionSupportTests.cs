@@ -24,8 +24,6 @@ public sealed class CSharpLanguageVersionSupportTests
 
     private const string CollectionSource = "public class C\r\n{\r\n    private int[] _values = new int[] { 1, 2 };\r\n}\r\n";
 
-    private const string NullCheckSource = "public class C\r\n{\r\n    public bool M(object x, object y)\r\n    {\r\n        return x == null || y != null;\r\n    }\r\n}\r\n";
-
     private static readonly string Root = Path.Combine(Path.GetTempPath(), "CodeJanitor.FileScopedSupport");
 
     private string _tempDirectory;
@@ -98,31 +96,11 @@ public sealed class CSharpLanguageVersionSupportTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow(LanguageVersion.CSharp7_3, false, DisplayName = "C# 7.3 project")]
-    [DataRow(LanguageVersion.CSharp8, false, DisplayName = "C# 8 project")]
-    [DataRow(LanguageVersion.CSharp9, true, DisplayName = "C# 9 project")]
-    public async Task HeadlessCleanup_ConvertsInequalityNullChecksToIsNotNull_OnlyForCSharp9OrNewer(LanguageVersion languageVersion, bool converted)
-    {
-        Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { languageVersion });
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(NullCheckSource, Path.Combine(_tempDirectory, "Sample.cs"));
-
-        Assert.Contains("x is null", output);
-        Assert.AreEqual(converted, output.Contains("y is not null"), output);
-        Assert.AreEqual(!converted, output.Contains("y != null"), output);
-        await AssertCompilesAsync(NullCheckSource, languageVersion, output);
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
     public async Task HeadlessCleanup_EmitsNoSyntaxNewerThanCSharp7_3_WhenTheLanguageVersionIsUnknown()
     {
         Settings.Default.Cleaning_ConvertToCollectionExpressions = true;
-        Settings.Default.Cleaning_ConvertToPatternMatchingNullChecks = true;
         const string Source =
-            "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n        private int[] _values = new int[] { 1, 2 };\r\n\r\n" +
-            "        public bool M(object x, object y)\r\n        {\r\n            return x == null || y != null;\r\n        }\r\n    }\r\n}\r\n";
+            "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n        private int[] _values = new int[] { 1, 2 };\r\n    }\r\n}\r\n";
         string filePath = Path.Combine(_tempDirectory, "Sample.cs");
         Func<string, IReadOnlyList<LanguageVersion>>[] resolvers = [_ => Array.Empty<LanguageVersion>(), null, _ => throw new InvalidOperationException("workspace unavailable")];
 
@@ -134,7 +112,6 @@ public sealed class CSharpLanguageVersionSupportTests
 
             Assert.Contains("namespace Demo\r\n{", output);
             Assert.Contains("new int[] { 1, 2 }", output);
-            Assert.Contains("x is null || y != null", output);
             await AssertCompilesAsync(Source, LanguageVersion.CSharp7_3, output);
         }
     }

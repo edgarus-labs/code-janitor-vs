@@ -20,6 +20,7 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
     private readonly Stopwatch _batchStopwatch;
     private readonly CodeJanitorPackage _package;
     private readonly AiXmlDocumentationLogic _aiXmlDocumentationLogic;
+    private readonly Action<string> _showError;
 
     /// <summary>
     /// Gets the window title.
@@ -64,8 +65,21 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
     /// <param name="package">The hosting package.</param>
     /// <param name="items">The project items to document.</param>
     public XmlDocProgressViewModel(CodeJanitorPackage package, IEnumerable<ProjectItem> items)
+        : this(package, items, message => MessageBox.Show(message, "CodeJanitor Add XMLDoc Error", MessageBoxButton.OK, MessageBoxImage.Error))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="XmlDocProgressViewModel"/> class that reports a failed batch
+    /// through <paramref name="showError"/> instead of a modal message box.
+    /// </summary>
+    /// <param name="package">The hosting package.</param>
+    /// <param name="items">The project items to document.</param>
+    /// <param name="showError">Shows the error message of a failed batch.</param>
+    internal XmlDocProgressViewModel(CodeJanitorPackage package, IEnumerable<ProjectItem> items, Action<string> showError)
     {
         _package = package;
+        _showError = showError;
         _aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(package);
         AiXmlDocumentationLogic.BeginRun();
         _batchStopwatch = Stopwatch.StartNew();
@@ -236,6 +250,15 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
         _batchStopwatch.Stop();
         UpdateExecutionSummary();
 
+        // The batch counts as canceled when the worker was canceled or the process-wide AI XML documentation run was
+        // canceled (the Cancel button cancels both, also after the work finished). This is read before BeginRun, which
+        // replaces the canceled run.
+        var canceled = e.Cancelled || AiXmlDocumentationLogic.RunToken.IsCancellationRequested;
+
+        // Cancel also cancels the process-wide AI XML documentation run, which only BeginRun resets: without a fresh
+        // run every later "run during cleanup" XML documentation would be skipped.
+        AiXmlDocumentationLogic.BeginRun();
+
         // Close the progress dialog immediately so the UI window is never stuck open
         DialogResult = true;
 
@@ -243,9 +266,9 @@ public sealed class XmlDocProgressViewModel : BaseProgressViewModel
         {
             OutputWindowHelper.WarningWriteLine(
                 $"Add XMLDoc batch failed after changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}. Error: {e.Error.Message}");
-            MessageBox.Show(e.Error.Message, "CodeJanitor Add XMLDoc Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            _showError(e.Error.Message);
         }
-        else if (e.Cancelled || AiXmlDocumentationLogic.RunToken.IsCancellationRequested)
+        else if (canceled)
         {
             OutputWindowHelper.InfoWriteLine(
                 $"Add XMLDoc batch canceled. Processed {ProcessedCount} of {CountTotal} file(s). Changed={ChangedCount}, unchanged={UnchangedCount}, failed={FailedCount}, elapsedMs={_batchStopwatch.ElapsedMilliseconds}.");

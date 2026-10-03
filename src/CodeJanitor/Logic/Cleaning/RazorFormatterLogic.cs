@@ -32,10 +32,7 @@ internal sealed class RazorFormatterLogic
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A RazorFormatterLogic value produced by this method.</returns>
-    internal static RazorFormatterLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new RazorFormatterLogic(package));
-    }
+    internal static RazorFormatterLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new RazorFormatterLogic(package));
 
     private RazorFormatterLogic(CodeJanitorPackage package)
     {
@@ -51,17 +48,34 @@ internal sealed class RazorFormatterLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (textDocument?.Parent?.FullName is null) return;
-        if (!string.Equals(Path.GetExtension(textDocument.Parent.FullName), ".razor", StringComparison.OrdinalIgnoreCase)) return;
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_FormatRazorComponents))) return;
+        if (textDocument?.Parent?.FullName is null)
+        {
+            return;
+        }
+
+        if (!string.Equals(Path.GetExtension(textDocument.Parent.FullName), ".razor", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_FormatRazorComponents)))
+        {
+            return;
+        }
 
         var start = textDocument.StartPoint.CreateEditPoint();
         var end = textDocument.EndPoint.CreateEditPoint();
         var original = start.GetText(end);
-        if (string.IsNullOrWhiteSpace(original)) return;
+        if (string.IsNullOrWhiteSpace(original))
+        {
+            return;
+        }
 
         var formatted = FormatRazorText(original);
-        if (string.Equals(original, formatted, StringComparison.Ordinal)) return;
+        if (string.Equals(original, formatted, StringComparison.Ordinal))
+        {
+            return;
+        }
 
         start.ReplaceText(end, formatted, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
     }
@@ -73,7 +87,10 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
     internal static string FormatRazorText(string input)
     {
-        if (string.IsNullOrEmpty(input)) return input;
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
 
         var lineEnding = DetectLineEnding(input);
         var withFormattedCode = FormatCodeBlocks(input, lineEnding);
@@ -86,10 +103,7 @@ internal sealed class RazorFormatterLogic
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string DetectLineEnding(string text)
-    {
-        return text.Contains("\r\n") ? "\r\n" : "\n";
-    }
+    private static string DetectLineEnding(string text) => text.Contains("\r\n") ? "\r\n" : "\n";
 
     /// <summary>
     /// Locates directive code block ranges in the text, attempts to format each block&apos;s inner C# content, re-indents it to match the original line&apos;s indentation, and returns the text with the successfully formatted blocks replaced in place (processing in descending order to preserve offsets).
@@ -100,18 +114,27 @@ internal sealed class RazorFormatterLogic
     private static string FormatCodeBlocks(string text, string lineEnding)
     {
         var ranges = FindDirectiveCodeBlockRanges(text);
-        if (ranges.Count == 0) return text;
+        if (ranges.Count == 0)
+        {
+            return text;
+        }
 
         var buffer = text;
         foreach (var range in ranges.OrderByDescending(x => x.BraceStart))
         {
             var contentStart = range.BraceStart + 1;
             var contentLength = range.BraceEnd - contentStart;
-            if (contentLength < 0) continue;
+            if (contentLength < 0)
+            {
+                continue;
+            }
 
             var content = buffer.Substring(contentStart, contentLength);
             var formatted = TryFormatCSharpBlock(content, lineEnding);
-            if (formatted is null) continue;
+            if (formatted is null)
+            {
+                continue;
+            }
 
             var baseIndent = GetLineIndent(buffer, range.Start);
             var indented = IndentBlock(formatted, baseIndent, lineEnding);
@@ -130,7 +153,10 @@ internal sealed class RazorFormatterLogic
     private static string FormatControlBlocks(string text, string lineEnding)
     {
         var ranges = FindControlBlockRanges(text);
-        if (ranges.Count == 0) return text;
+        if (ranges.Count == 0)
+        {
+            return text;
+        }
 
         var buffer = text;
         foreach (var range in ranges.OrderByDescending(x => x.Start))
@@ -166,7 +192,10 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
     private static string TryFormatCSharpBlock(string content, string lineEnding)
     {
-        if (string.IsNullOrWhiteSpace(content)) return content;
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return content;
+        }
 
         var wrapped = "class __CodeJanitorRazorDummy__\n{\n" + content + "\n}";
         var tree = CSharpSyntaxTree.ParseText(wrapped);
@@ -205,7 +234,10 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
     private static string IndentBlock(string content, string baseIndent, string lineEnding)
     {
-        if (string.IsNullOrWhiteSpace(content)) return content;
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return content;
+        }
 
         var lines = content.Replace("\r\n", "\n").Split('\n');
         var builder = new StringBuilder();
@@ -237,7 +269,10 @@ internal sealed class RazorFormatterLogic
     /// <returns>A string value produced by this method.</returns>
     private static string TryFormatControlBlock(string rawBlock, string baseIndent, string lineEnding)
     {
-        if (string.IsNullOrWhiteSpace(rawBlock) || rawBlock[0] != '@') return null;
+        if (string.IsNullOrWhiteSpace(rawBlock) || rawBlock[0] != '@')
+        {
+            return null;
+        }
 
         var braceIndex = rawBlock.IndexOf('{');
         if (braceIndex < 0)
@@ -377,7 +412,10 @@ internal sealed class RazorFormatterLogic
     private static string FormatMixedBlockInner(string content, string indent, string lineEnding)
     {
         var segments = SplitMarkupAndCodeSegments(content);
-        if (segments.Count == 0) return string.Empty;
+        if (segments.Count == 0)
+        {
+            return string.Empty;
+        }
 
         var formattedSegments = new List<string>();
         foreach (var segment in segments)
@@ -553,7 +591,11 @@ internal sealed class RazorFormatterLogic
         switch (state)
         {
             case RazorScannerState.LineComment:
-                if (current == '\n') state = RazorScannerState.Default;
+                if (current == '\n')
+                {
+                    state = RazorScannerState.Default;
+                }
+
                 return;
 
             case RazorScannerState.BlockComment:
@@ -571,7 +613,11 @@ internal sealed class RazorFormatterLogic
 
                     return;
                 }
-                if (current == '\'') state = RazorScannerState.Default;
+                if (current == '\'')
+                {
+                    state = RazorScannerState.Default;
+                }
+
                 return;
 
             case RazorScannerState.StringLiteral:
@@ -581,7 +627,11 @@ internal sealed class RazorFormatterLogic
 
                     return;
                 }
-                if (current == '"') state = RazorScannerState.Default;
+                if (current == '"')
+                {
+                    state = RazorScannerState.Default;
+                }
+
                 return;
 
             case RazorScannerState.VerbatimStringLiteral:
@@ -591,7 +641,11 @@ internal sealed class RazorFormatterLogic
 
                     return;
                 }
-                if (current == '"') state = RazorScannerState.Default;
+                if (current == '"')
+                {
+                    state = RazorScannerState.Default;
+                }
+
                 return;
 
             default:
@@ -683,7 +737,10 @@ internal sealed class RazorFormatterLogic
     {
         nextIndex = index;
 
-        if (index >= text.Length || text[index] != '@') return false;
+        if (index >= text.Length || text[index] != '@')
+        {
+            return false;
+        }
 
         var i = index + 1;
         if (i >= text.Length)
@@ -702,11 +759,17 @@ internal sealed class RazorFormatterLogic
 
         if (text[i] == '(')
         {
-            if (!TrySkipBalanced(text, i, '(', ')', out i)) return false;
+            if (!TrySkipBalanced(text, i, '(', ')', out i))
+            {
+                return false;
+            }
         }
         else if (IsIdentifierStart(text[i]))
         {
-            while (i < text.Length && IsIdentifierPart(text[i])) i++;
+            while (i < text.Length && IsIdentifierPart(text[i]))
+            {
+                i++;
+            }
         }
         else
         {
@@ -719,14 +782,20 @@ internal sealed class RazorFormatterLogic
         {
             if (text[i] == '[')
             {
-                if (!TrySkipBalanced(text, i, '[', ']', out i)) return false;
+                if (!TrySkipBalanced(text, i, '[', ']', out i))
+                {
+                    return false;
+                }
 
                 continue;
             }
 
             if (text[i] == '(')
             {
-                if (!TrySkipBalanced(text, i, '(', ')', out i)) return false;
+                if (!TrySkipBalanced(text, i, '(', ')', out i))
+                {
+                    return false;
+                }
 
                 continue;
             }
@@ -734,7 +803,10 @@ internal sealed class RazorFormatterLogic
             if (text[i] == '.' && i + 1 < text.Length && IsIdentifierStart(text[i + 1]))
             {
                 i += 2;
-                while (i < text.Length && IsIdentifierPart(text[i])) i++;
+                while (i < text.Length && IsIdentifierPart(text[i]))
+                {
+                    i++;
+                }
 
                 continue;
             }
@@ -760,7 +832,10 @@ internal sealed class RazorFormatterLogic
     {
         nextIndex = index;
 
-        if (index >= text.Length || text[index] != open) return false;
+        if (index >= text.Length || text[index] != open)
+        {
+            return false;
+        }
 
         var depth = 0;
         var i = index;
@@ -771,7 +846,10 @@ internal sealed class RazorFormatterLogic
 
             if (c == '"' || c == '\'')
             {
-                if (!TrySkipCSharpLiteral(text, i, out i)) return false;
+                if (!TrySkipCSharpLiteral(text, i, out i))
+                {
+                    return false;
+                }
 
                 continue;
             }
@@ -808,10 +886,16 @@ internal sealed class RazorFormatterLogic
     {
         nextIndex = index;
 
-        if (index >= text.Length) return false;
+        if (index >= text.Length)
+        {
+            return false;
+        }
 
         var quote = text[index];
-        if (quote != '"' && quote != '\'') return false;
+        if (quote != '"' && quote != '\'')
+        {
+            return false;
+        }
 
         var verbatim = quote == '"' && index > 0 && text[index - 1] == '@';
         var i = index + 1;
@@ -866,20 +950,14 @@ internal sealed class RazorFormatterLogic
     /// </summary>
     /// <param name="c">The c.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool IsIdentifierStart(char c)
-    {
-        return char.IsLetter(c) || c == '_';
-    }
+    private static bool IsIdentifierStart(char c) => char.IsLetter(c) || c == '_';
 
     /// <summary>
     /// ines whether the specified character is a valid identifier part by returning true if it is a letter, digit, or underscore.
     /// </summary>
     /// <param name="c">The c.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool IsIdentifierPart(char c)
-    {
-        return char.IsLetterOrDigit(c) || c == '_';
-    }
+    private static bool IsIdentifierPart(char c) => char.IsLetterOrDigit(c) || c == '_';
 
     /// <summary>
     /// leading whitespace (spaces and tabs) of the line that contains the specified index by locating the previous newline and scanning forward to the first non-whitespace character.
@@ -893,7 +971,10 @@ internal sealed class RazorFormatterLogic
         lineStart = lineStart < 0 ? 0 : lineStart + 1;
 
         var i = lineStart;
-        while (i < text.Length && (text[i] == ' ' || text[i] == '\t')) i++;
+        while (i < text.Length && (text[i] == ' ' || text[i] == '\t'))
+        {
+            i++;
+        }
 
         return text.Substring(lineStart, i - lineStart);
     }
@@ -923,7 +1004,11 @@ internal sealed class RazorFormatterLogic
             if (directiveLength > 0)
             {
                 var cursor = i + directiveLength;
-                while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+                while (cursor < text.Length && char.IsWhiteSpace(text[cursor]))
+                {
+                    cursor++;
+                }
+
                 if (cursor >= text.Length || text[cursor] != '{')
                 {
                     i++;
@@ -971,7 +1056,10 @@ internal sealed class RazorFormatterLogic
             var cursor = i + directive.Length;
             if (string.Equals(directive, "@else", StringComparison.OrdinalIgnoreCase))
             {
-                while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+                while (cursor < text.Length && char.IsWhiteSpace(text[cursor]))
+                {
+                    cursor++;
+                }
 
                 if (cursor + 1 < text.Length && string.Compare(text, cursor, "if", 0, 2, StringComparison.OrdinalIgnoreCase) == 0)
                 {
@@ -982,7 +1070,10 @@ internal sealed class RazorFormatterLogic
                     }
 
                     cursor = elseIfCloseParenIndex + 1;
-                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor]))
+                    {
+                        cursor++;
+                    }
                 }
             }
             else if (!string.Equals(directive, "@try", StringComparison.OrdinalIgnoreCase) &&
@@ -997,7 +1088,10 @@ internal sealed class RazorFormatterLogic
                 cursor = closeParenIndex + 1;
             }
 
-            while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+            while (cursor < text.Length && char.IsWhiteSpace(text[cursor]))
+            {
+                cursor++;
+            }
 
             if (cursor >= text.Length || text[cursor] != '{')
             {
@@ -1034,7 +1128,10 @@ internal sealed class RazorFormatterLogic
 
         for (var i = directiveStart; i < text.Length; i++)
         {
-            if (text[i] != '(') continue;
+            if (text[i] != '(')
+            {
+                continue;
+            }
 
             openParenIndex = i;
             var depth = 1;
@@ -1080,8 +1177,15 @@ internal sealed class RazorFormatterLogic
     /// <returns>A bool value produced by this method.</returns>
     private static bool IsDirectiveAt(string text, int index, string directive)
     {
-        if (index < 0 || index + directive.Length > text.Length) return false;
-        if (!text.AsSpan(index, directive.Length).Equals(directive.AsSpan(), StringComparison.OrdinalIgnoreCase)) return false;
+        if (index < 0 || index + directive.Length > text.Length)
+        {
+            return false;
+        }
+
+        if (!text.AsSpan(index, directive.Length).Equals(directive.AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
 
         var beforeOk = index == 0 || !char.IsLetterOrDigit(text[index - 1]);
         var afterIndex = index + directive.Length;
@@ -1113,7 +1217,11 @@ internal sealed class RazorFormatterLogic
 
             if (inLineComment)
             {
-                if (c == '\n') inLineComment = false;
+                if (c == '\n')
+                {
+                    inLineComment = false;
+                }
+
                 continue;
             }
 
@@ -1136,7 +1244,11 @@ internal sealed class RazorFormatterLogic
                     continue;
                 }
 
-                if (c == '\'') inChar = false;
+                if (c == '\'')
+                {
+                    inChar = false;
+                }
+
                 continue;
             }
 

@@ -95,8 +95,5 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     /// </summary>
     /// <param name="codeItem">The code item.</param>
     /// <returns>True if the code item can be deleted, otherwise false.</returns>
-    private static bool IsDeletable(BaseCodeItem codeItem)
-    {
-        return !(codeItem is CodeItemRegion) || !((CodeItemRegion)codeItem).IsPseudoGroup;
-    }
+    private static bool IsDeletable(BaseCodeItem codeItem) => !(codeItem is CodeItemRegion) || !((CodeItemRegion)codeItem).IsPseudoGroup;
 }

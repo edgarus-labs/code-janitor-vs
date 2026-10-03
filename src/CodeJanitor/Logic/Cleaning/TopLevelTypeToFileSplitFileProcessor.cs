@@ -1,3 +1,4 @@
+using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -81,30 +82,69 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
 
         var createdFileTransform = transformCreatedFile ?? transformSource;
         var createdFiles = new List<string>();
-        foreach (var plannedFile in splitPlan.NewFiles)
+        try
         {
-            var transformedSource = createdFileTransform is not null
-                ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
-                : plannedFile.Content;
+            foreach (var plannedFile in splitPlan.NewFiles)
+            {
+                var transformedSource = createdFileTransform is not null
+                    ? createdFileTransform(plannedFile.Content, plannedFile.FilePath)
+                    : plannedFile.Content;
 
-            WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding);
-            createdFiles.Add(plannedFile.FilePath);
+                createdFiles.Add(WriteAllTextAtomically(plannedFile.FilePath, transformedSource, encoding));
+            }
+
+            var updatedSource = transformSource is not null && transformUpdatedSource
+                ? transformSource(splitPlan.UpdatedSource, filePath)
+                : splitPlan.UpdatedSource;
+
+            return new ApplyResult(true, updatedSource, createdFiles, TopLevelTypeSplitSkipReason.None);
         }
+        catch
+        {
+            DeleteCreatedFiles(createdFiles);
 
-        var updatedSource = transformSource is not null && transformUpdatedSource
-            ? transformSource(splitPlan.UpdatedSource, filePath)
-            : splitPlan.UpdatedSource;
-
-        return new ApplyResult(true, updatedSource, createdFiles, TopLevelTypeSplitSkipReason.None);
+            throw;
+        }
     }
 
     /// <summary>
-    /// Writes content to a file atomically by creating missing directories, writing to a unique temporary file in the same location, deleting any existing target file, then moving the temp file into place, and cleaning up the temp file if any operation fails before rethrowing the exception.
+    /// Best-effort removal of the files this processor created, so that the original source (which still contains
+    /// the moved types) is not left with duplicate declarations in sibling files. Used when a later write failed, and
+    /// by callers that fail to persist the updated original source after <see cref="Apply" /> returned.
+    /// Only the given paths (those returned by the writer) are deleted. A file that cannot be deleted does not throw, so
+    /// that the original exception surfaces; it is returned instead, for the caller to report.
+    /// </summary>
+    /// <param name="createdFiles">The files created so far.</param>
+    /// <returns>The files that could not be deleted.</returns>
+    internal static IReadOnlyList<string> DeleteCreatedFiles(IEnumerable<string> createdFiles)
+    {
+        var notDeleted = new List<string>();
+        foreach (var createdFile in createdFiles)
+        {
+            try
+            {
+                File.Delete(createdFile);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                notDeleted.Add(createdFile);
+            }
+        }
+
+        return notDeleted;
+    }
+
+    /// <summary>
+    /// Writes content to a new file atomically by creating missing directories, writing to a unique temporary file in
+    /// the same location and moving it into place without overwriting anything: when a file with the target name has
+    /// appeared since planning, it is kept and the next free name (<c>Name~1.cs</c>, <c>Name~2.cs</c>, ...) is used.
+    /// The temporary file is removed if any operation fails before the exception is rethrown.
     /// </summary>
     /// <param name="targetFilePath">The target file path.</param>
     /// <param name="content">The content.</param>
     /// <param name="encoding">The encoding.</param>
-    private static void WriteAllTextAtomically(string targetFilePath, string content, Encoding encoding)
+    /// <returns>The path of the written file.</returns>
+    private static string WriteAllTextAtomically(string targetFilePath, string content, Encoding encoding)
     {
         var targetEncoding = Settings.Default.Cleaning_RemoveByteOrderMark
             ? new UTF8Encoding(false)
@@ -120,14 +160,25 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
 
         try
         {
-            File.WriteAllText(tempFilePath, content, targetEncoding);
+            FileTextStyle.WriteAllText(tempFilePath, content, targetEncoding, null, targetFilePath);
 
-            if (File.Exists(targetFilePath))
+            var targetFileName = Path.GetFileName(targetFilePath);
+            var takenFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var filePath = targetFilePath;
+            while (true)
             {
-                File.Delete(targetFilePath);
-            }
+                try
+                {
+                    File.Move(tempFilePath, filePath);
 
-            File.Move(tempFilePath, targetFilePath);
+                    return filePath;
+                }
+                catch (IOException) when (File.Exists(filePath))
+                {
+                    takenFileNames.Add(Path.GetFileName(filePath));
+                    filePath = Path.Combine(directoryPath ?? string.Empty, TopLevelTypeToFileSplitPlanner.MakeFileNameUnique(targetFileName, takenFileNames));
+                }
+            }
         }
         catch
         {

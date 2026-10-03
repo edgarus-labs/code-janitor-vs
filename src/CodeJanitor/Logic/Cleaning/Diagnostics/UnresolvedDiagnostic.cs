@@ -18,6 +18,10 @@ public sealed class UnresolvedDiagnostic
     /// <param name="line">The 1-based line of the diagnostic.</param>
     /// <param name="message">The diagnostic message.</param>
     /// <param name="reason">Why the diagnostic was not fixed.</param>
+    /// <param name="detail">
+    /// Optional details of the reason, e.g. the failing provider and its exception message for
+    /// <see cref="UnresolvedDiagnosticReason.FixProviderFailed" />.
+    /// </param>
     public UnresolvedDiagnostic(
         string diagnosticId,
         DiagnosticCleanupCategory category,
@@ -25,7 +29,8 @@ public sealed class UnresolvedDiagnostic
         string filePath,
         int line,
         string message,
-        UnresolvedDiagnosticReason reason)
+        UnresolvedDiagnosticReason reason,
+        string detail = null)
     {
         DiagnosticId = diagnosticId ?? throw new ArgumentNullException(nameof(diagnosticId));
         Category = category;
@@ -34,6 +39,7 @@ public sealed class UnresolvedDiagnostic
         Line = line;
         Message = message ?? string.Empty;
         Reason = reason;
+        Detail = detail ?? string.Empty;
     }
 
     /// <summary>
@@ -71,6 +77,13 @@ public sealed class UnresolvedDiagnostic
     /// </summary>
     public UnresolvedDiagnosticReason Reason { get; }
 
+    /// <summary>
+    /// Gets the details of <see cref="Reason" />, e.g. the failing provider and its exception message; empty when
+    /// there are none.
+    /// </summary>
+    public string Detail { get; }
+
     /// <inheritdoc />
-    public override string ToString() => $"{FilePath}({Line}): {Severity} {DiagnosticId} [{Category}] {Reason}: {Message}";
+    public override string ToString() =>
+        $"{FilePath}({Line}): {Severity} {DiagnosticId} [{Category}] {Reason}: {Message}" + (Detail.Length == 0 ? string.Empty : $" ({Detail})");
 }

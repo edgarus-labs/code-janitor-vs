@@ -29,10 +29,7 @@ public partial class AboutWindow
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The event arguments.</param>
-    private void OnKeyDown(object sender, KeyEventArgs e)
-    {
-        DialogResult = false;
-    }
+    private void OnKeyDown(object sender, KeyEventArgs e) => DialogResult = false;
 
     /// <summary>
     /// Called when an uncaptured left mouse button down event is received on the background.
@@ -42,10 +39,7 @@ public partial class AboutWindow
     /// The <see cref="System.Windows.Input.MouseButtonEventArgs" /> instance containing the
     /// event data.
     /// </param>
-    private void OnMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        DialogResult = false;
-    }
+    private void OnMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) => DialogResult = false;
 
     /// <summary>
     /// Called when the GitHub link is clicked.
@@ -54,10 +48,7 @@ public partial class AboutWindow
     /// <param name="e">
     /// The <see cref="System.Windows.RoutedEventArgs" /> instance containing the event data.
     /// </param>
-    private void OnGitHubLinkClick(object sender, RoutedEventArgs e)
-    {
-        LaunchLink(@"https://github.com/edgarus-labs/code-janitor-vs");
-    }
+    private void OnGitHubLinkClick(object sender, RoutedEventArgs e) => LaunchLink(@"https://github.com/edgarus-labs/code-janitor-vs");
 
     /// <summary>
     /// Attempts to launch the specified link.

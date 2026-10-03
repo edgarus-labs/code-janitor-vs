@@ -44,10 +44,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="EditorConfigDiagnosticCleanupLogic" /> class.</returns>
-    internal static EditorConfigDiagnosticCleanupLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new EditorConfigDiagnosticCleanupLogic(package));
-    }
+    internal static EditorConfigDiagnosticCleanupLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new EditorConfigDiagnosticCleanupLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EditorConfigDiagnosticCleanupLogic" /> class.
@@ -585,13 +582,14 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         foreach (var unresolved in result.Unresolved)
         {
             OutputWindowHelper.WarningWriteLine(
-                $"Diagnostic cleanup left {unresolved.DiagnosticId} ({unresolved.Category}, {unresolved.Severity}) unresolved at '{unresolved.FilePath}' line {unresolved.Line}: {unresolved.Reason}. {unresolved.Message}");
+                $"Diagnostic cleanup left {unresolved.DiagnosticId} ({unresolved.Category}, {unresolved.Severity}) unresolved at '{unresolved.FilePath}' line {unresolved.Line}: {unresolved.Reason}. {unresolved.Message}"
+                + (unresolved.Detail.Length == 0 ? string.Empty : $" ({unresolved.Detail})"));
         }
 
         if (!result.IsComplete)
         {
             OutputWindowHelper.WarningWriteLine(
-                $"Diagnostic cleanup for '{filePath}' is incomplete: some fixes were rejected as unsafe or did not converge.");
+                $"Diagnostic cleanup for '{filePath}' is incomplete: some fixes were rejected as unsafe, failed in their code fix provider, or did not converge.");
         }
     }
 
@@ -602,12 +600,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="changed">Whether diagnostic fixes were applied; changes made only by the editor command equivalents do not count.</param>
     /// <returns>The outcome.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static DiagnosticCleanupOutcome CreateOutcome(DiagnosticCleanupResult result, bool changed)
+    private static DiagnosticCleanupOutcome CreateOutcome(DiagnosticCleanupResult result, bool changed) => new DiagnosticCleanupOutcome
     {
-        return new DiagnosticCleanupOutcome
-        {
-            Changed = changed,
-            UnresolvedCount = result.Unresolved.Count,
-        };
-    }
+        Changed = changed,
+        UnresolvedCount = result.Unresolved.Count,
+    };
 }

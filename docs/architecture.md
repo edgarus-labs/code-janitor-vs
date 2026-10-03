@@ -177,6 +177,14 @@ later call sites of the same cleanup do not retry it, so the semantic analysis a
 happen once per file. Skip reasons and failures go to the output pane. The step is not a text
 transformation, so the headless text pipeline and the cleanup preview do not include it.
 
+Class sealing (`SealedClassLogic`) and pattern-matching null checks (`NullCheckPatternMatchingLogic`)
+run on the same workspace through the shared `SemanticFileRewriter` (setting check, document
+resolution for every project flavor, encoding-preserving file write, editor buffer replacement,
+output-pane warnings). They follow the same order: before the headless cleanup for closed files,
+and in the editor before the type split when splitting is enabled (then not again in
+`RunCodeCleanupCSharp`), so a type moved to a created file is already processed. Neither is a text
+transformation, so the headless pipeline and the cleanup preview do not include them.
+
 Packaging: `Microsoft.CodeAnalysis.CSharp.Workspaces` uses the same version as
 `Microsoft.CodeAnalysis.CSharp` (5.0.0, the lowest version that provides every API used). Neither ships in the VSIX: Code Janitor binds to the
 host's Roslyn through Visual Studio's binding redirects, which is required anyway because

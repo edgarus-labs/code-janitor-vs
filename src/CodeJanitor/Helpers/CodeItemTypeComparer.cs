@@ -122,7 +122,10 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateAccessOffset(BaseCodeItem codeItem)
     {
         var codeItemElement = codeItem as BaseCodeItemElement;
-        if (codeItemElement is null) return 0;
+        if (codeItemElement is null)
+        {
+            return 0;
+        }
 
         var itemsOrder = new List<vsCMAccess>
         {
@@ -169,7 +172,10 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateConstantOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
-        if (codeItemField is null) return 0;
+        if (codeItemField is null)
+        {
+            return 0;
+        }
 
         return codeItemField.IsConstant ? 0 : 1;
     }
@@ -182,7 +188,10 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateStaticOffset(BaseCodeItem codeItem)
     {
         var codeItemElement = codeItem as BaseCodeItemElement;
-        if (codeItemElement is null) return 0;
+        if (codeItemElement is null)
+        {
+            return 0;
+        }
 
         return codeItemElement.IsStatic ? 0 : 1;
     }
@@ -195,7 +204,10 @@ public sealed class CodeItemTypeComparer : Comparer<BaseCodeItem>
     private static int CalculateReadOnlyOffset(BaseCodeItem codeItem)
     {
         var codeItemField = codeItem as CodeItemField;
-        if (codeItemField is null) return 0;
+        if (codeItemField is null)
+        {
+            return 0;
+        }
 
         return codeItemField.IsReadOnly ? 0 : 1;
     }

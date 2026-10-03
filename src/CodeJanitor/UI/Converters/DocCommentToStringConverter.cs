@@ -27,7 +27,10 @@ public sealed class DocCommentToStringConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
         var str = value as string;
-        if (string.IsNullOrEmpty(str)) return string.Empty;
+        if (string.IsNullOrEmpty(str))
+        {
+            return string.Empty;
+        }
 
         try
         {
@@ -41,7 +44,10 @@ public sealed class DocCommentToStringConverter : IValueConverter
             var xElement = XElement.Parse(str);
 
             var summaryTag = xElement.DescendantsAndSelf("summary").FirstOrDefault();
-            if (summaryTag is null) return string.Empty;
+            if (summaryTag is null)
+            {
+                return string.Empty;
+            }
 
             // Get the Inner XML for the summary tag.
             var result = GetInnerXML(summaryTag);
@@ -71,10 +77,7 @@ public sealed class DocCommentToStringConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException();
 
     /// <summary>
     /// Gets the inner XML for the specified XElement.

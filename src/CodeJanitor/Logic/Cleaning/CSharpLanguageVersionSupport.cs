@@ -22,11 +22,6 @@ internal sealed class CSharpLanguageVersionSupport
     /// </summary>
     internal static readonly SyntaxRequirement CollectionExpressions = new SyntaxRequirement("collection expressions", LanguageVersion.CSharp12);
 
-    /// <summary>
-    /// The negated null pattern (<c>is not null</c>); the null pattern (<c>is null</c>) only needs C# 7.0.
-    /// </summary>
-    internal static readonly SyntaxRequirement NotNullPatterns = new SyntaxRequirement("'is not null' patterns", LanguageVersion.CSharp9);
-
     private static Func<string, IReadOnlyList<LanguageVersion>> _languageVersionResolver;
 
     private readonly string _filePath;
@@ -47,20 +42,14 @@ internal sealed class CSharpLanguageVersionSupport
     /// Resolves language versions through the Visual Studio Roslyn workspace.
     /// </summary>
     /// <param name="package">The hosting package.</param>
-    internal static void UseVisualStudioWorkspace(CodeJanitorPackage package)
-    {
-        SetLanguageVersionResolver(new VisualStudioRoslynWorkspace(package).GetCSharpLanguageVersions);
-    }
+    internal static void UseVisualStudioWorkspace(CodeJanitorPackage package) => SetLanguageVersionResolver(new VisualStudioRoslynWorkspace(package).GetCSharpLanguageVersions);
 
     /// <summary>
     /// Sets the function that returns the C# language versions of the projects compiling a file (one entry per project
     /// flavor, empty when no project compiles it). Null removes it, so no syntax newer than C# 7.3 is emitted.
     /// </summary>
     /// <param name="resolver">The resolver.</param>
-    internal static void SetLanguageVersionResolver(Func<string, IReadOnlyList<LanguageVersion>> resolver)
-    {
-        _languageVersionResolver = resolver;
-    }
+    internal static void SetLanguageVersionResolver(Func<string, IReadOnlyList<LanguageVersion>> resolver) => _languageVersionResolver = resolver;
 
     /// <summary>
     /// Gets the language version support of a file. The language versions are resolved on the first
@@ -68,10 +57,7 @@ internal sealed class CSharpLanguageVersionSupport
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <returns>The language version support of the file.</returns>
-    internal static CSharpLanguageVersionSupport For(string filePath)
-    {
-        return new CSharpLanguageVersionSupport(filePath, _languageVersionResolver);
-    }
+    internal static CSharpLanguageVersionSupport For(string filePath) => new CSharpLanguageVersionSupport(filePath, _languageVersionResolver);
 
     /// <summary>
     /// Determines whether the specified syntax may be emitted into the file.

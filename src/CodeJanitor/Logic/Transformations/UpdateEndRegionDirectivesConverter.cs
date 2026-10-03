@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -11,100 +10,71 @@ namespace CodeJanitor.Logic.Transformations;
 /// </summary>
 public sealed class UpdateEndRegionDirectivesConverter : ISourceTransformation
 {
-    private static readonly Regex RegionDirectiveRegex = new Regex(
-        @"^[ \t]*#region\b[ \t]*(.*)$",
-        RegexOptions.Multiline | RegexOptions.Compiled);
-
-    private static readonly Regex EndRegionDirectiveRegex = new Regex(
-        @"^[ \t]*#endregion\b[ \t]*(.*)$",
-        RegexOptions.Multiline | RegexOptions.Compiled);
-
     /// <summary>
     /// Gets the name.
     /// </summary>
     public string Name => "Update end region directives";
 
     /// <summary>
-    /// The method processes C# source text line by line, rewriting each `#endregion` directive to append the name of its matching `#region` based on a stack, preserving indentation and leaving unmatched or non-region lines unchanged, while returning the input unchanged for null/empty strings and having no side effects.
+    /// Processes the source line by line, rewriting each `#endregion` directive to carry the name of its matching
+    /// `#region` (tracked on a stack, nameless regions included), preserving indentation and the file's line breaks,
+    /// and leaving unmatched lines and lines inside multi-line string literals or comments unchanged.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
     public string Apply(string source)
     {
-        if (string.IsNullOrEmpty(source))
+        if (string.IsNullOrEmpty(source) || source.IndexOf("#endregion", StringComparison.Ordinal) < 0)
         {
             return source;
         }
 
-        var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        var protectedSpans = RegionDirectiveRemover.FindMultiLineLiteralAndCommentSpans(source);
         var regionStack = new Stack<string>();
-        var regionNames = new Dictionary<int, string>(); // line index -> region name for endregions
-        var result = new StringBuilder();
+        var result = new StringBuilder(source.Length);
+        int lineStart = 0;
 
-        for (int i = 0; i < lines.Length; i++)
+        while (lineStart < source.Length)
         {
-            string line = lines[i];
-            string trimmedLine = line.TrimStart();
+            int contentEnd = RegionDirectiveRemover.FindLineEnd(source, lineStart, out int nextLineStart);
+            bool isRegion = RegionDirectiveRemover.IsDirectiveLine(source, lineStart, contentEnd, "region", out int afterRegion);
+            bool isEndRegion = !isRegion && regionStack.Count > 0
+                && RegionDirectiveRemover.IsDirectiveLine(source, lineStart, contentEnd, "endregion", out _);
+            bool isCode = (isRegion || isEndRegion) && !RegionDirectiveRemover.StartsInside(protectedSpans, lineStart);
 
-            // Check for #region directive
-            if (trimmedLine.StartsWith("#region ", StringComparison.Ordinal))
+            if (isRegion && isCode)
             {
-                string regionName = trimmedLine.Substring(8).Trim(); // Skip "#region "
-                regionStack.Push(regionName);
-                result.Append(line);
+                regionStack.Push(source.Substring(afterRegion, contentEnd - afterRegion).Trim());
+                result.Append(source, lineStart, contentEnd - lineStart);
             }
-            // Check for #endregion directive
-            else if (trimmedLine.StartsWith("#endregion", StringComparison.Ordinal))
+            else if (isEndRegion && isCode)
             {
-                if (regionStack.Count > 0)
+                string matchingRegionName = regionStack.Pop();
+
+                // Keep the indentation, then build the new #endregion directive: "#endregion" + optional space + region name
+                int indentationEnd = lineStart;
+                while (source[indentationEnd] == ' ' || source[indentationEnd] == '\t')
                 {
-                    string matchingRegionName = regionStack.Pop();
-                    string indentation = GetIndentation(line);
-
-                    // Build the new #endregion directive: "#endregion" + optional space + region name
-                    string newDirective = string.IsNullOrEmpty(matchingRegionName) ?
-                        "#endregion" :
-                        $"#endregion {matchingRegionName}";
-
-                    result.Append(indentation).Append(newDirective);
+                    indentationEnd++;
                 }
-                else
+
+                result.Append(source, lineStart, indentationEnd - lineStart);
+                result.Append("#endregion");
+                if (!string.IsNullOrEmpty(matchingRegionName))
                 {
-                    // Mismatched regions, keep line as-is
-                    result.Append(line);
+                    result.Append(' ').Append(matchingRegionName);
                 }
             }
             else
             {
-                result.Append(line);
+                // Not a directive, or an #endregion without a matching #region: keep the line as-is
+                result.Append(source, lineStart, contentEnd - lineStart);
             }
 
-            // Add line ending for all but last line
-            if (i < lines.Length - 1)
-            {
-                result.AppendLine();
-            }
+            result.Append(source, contentEnd, nextLineStart - contentEnd);
+            lineStart = nextLineStart;
         }
 
         return result.ToString();
-    }
-
-    /// <summary>
-    /// Returns the leading whitespace (spaces and tabs) from the input line by counting consecutive whitespace characters until the first non-whitespace character, then extracting that substring with no side effects or thrown exceptions.
-    /// </summary>
-    /// <param name="line">The line.</param>
-    /// <returns>A string value produced by this method.</returns>
-    private static string GetIndentation(string line)
-    {
-        int count = 0;
-        foreach (char c in line)
-        {
-            if (c == ' ' || c == '\t')
-                count++;
-            else
-                break;
-        }
-
-        return line.Substring(0, count);
     }
 }

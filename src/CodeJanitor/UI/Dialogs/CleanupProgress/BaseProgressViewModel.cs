@@ -141,10 +141,7 @@ public abstract class BaseProgressViewModel : Bindable
     /// <summary>
     /// Determines whether the cancel command can execute.
     /// </summary>
-    protected virtual bool OnCancelCommandCanExecute(object parameter)
-    {
-        return !IsCanceling;
-    }
+    protected virtual bool OnCancelCommandCanExecute(object parameter) => !IsCanceling;
 
     /// <summary>
     /// Executes when the cancel command is triggered.

@@ -31,10 +31,7 @@ internal sealed class FileHeaderLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="FileHeaderLogic" /> class.</returns>
-    internal static FileHeaderLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new FileHeaderLogic(package));
-    }
+    internal static FileHeaderLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new FileHeaderLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileHeaderLogic" /> class.

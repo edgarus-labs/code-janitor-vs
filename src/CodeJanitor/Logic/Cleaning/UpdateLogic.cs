@@ -27,10 +27,7 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="UpdateLogic" /> class.</returns>
-    internal static UpdateLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new UpdateLogic(package));
-    }
+    internal static UpdateLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new UpdateLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateLogic" /> class.
@@ -56,7 +53,10 @@ internal sealed class UpdateLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateEndRegionDirectives))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateEndRegionDirectives)))
+        {
+            return;
+        }
 
         var regionStack = new Stack<string>();
         EditPoint cursor = textDocument.StartPoint.CreateEditPoint();
@@ -186,10 +186,7 @@ internal sealed class UpdateLogic
     /// </summary>
     /// <param name="regionName">The region name.</param>
     /// <returns>An empty suffix for empty names, otherwise a single leading space + name.</returns>
-    internal static string BuildDirectiveNameSuffix(string regionName)
-    {
-        return string.IsNullOrWhiteSpace(regionName) ? string.Empty : " " + regionName.Trim();
-    }
+    internal static string BuildDirectiveNameSuffix(string regionName) => string.IsNullOrWhiteSpace(regionName) ? string.Empty : " " + regionName.Trim();
 
     /// <summary>
     /// Updates the event accessors to either both be single-line or multi-line.
@@ -200,7 +197,10 @@ internal sealed class UpdateLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)))
+        {
+            return;
+        }
 
         foreach (var item in events)
         {
@@ -217,7 +217,10 @@ internal sealed class UpdateLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine)))
+        {
+            return;
+        }
 
         foreach (var item in properties)
         {
@@ -234,7 +237,10 @@ internal sealed class UpdateLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateSingleLineMethods))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_UpdateSingleLineMethods)))
+        {
+            return;
+        }
 
         var singleLineMethods = methods.Where(x => x.StartPoint.Line == x.EndPoint.Line && x.OverrideKind != vsCMOverrideKind.vsCMOverrideKindAbstract && !(x.CodeFunction.Parent is CodeInterface));
         foreach (var singleLineMethod in singleLineMethods)
@@ -305,12 +311,18 @@ internal sealed class UpdateLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (first is null || second is null) return;
+        if (first is null || second is null)
+        {
+            return;
+        }
 
         bool isFirstSingleLine = first.StartPoint.Line == first.EndPoint.Line;
         bool isSecondSingleLine = second.StartPoint.Line == second.EndPoint.Line;
 
-        if (isFirstSingleLine == isSecondSingleLine) return;
+        if (isFirstSingleLine == isSecondSingleLine)
+        {
+            return;
+        }
 
         var multiLineMethod = isFirstSingleLine ? second : first;
         var singleLineMethod = isFirstSingleLine ? first : second;
