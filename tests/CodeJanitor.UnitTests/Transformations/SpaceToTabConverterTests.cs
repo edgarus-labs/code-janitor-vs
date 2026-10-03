@@ -136,10 +136,35 @@ public sealed class SpaceToTabConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void TabSizeBelowOne_Throws()
+    public void TabSizeBelowOne_Throws() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new SpaceToTabConverter(0));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void AsSourceTransformation_HasANameAndAppliesTheConversion()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new SpaceToTabConverter(0));
+        ISourceTransformation transformation = new SpaceToTabConverter(4);
+
+        Assert.AreEqual("Convert spaces to tabs", transformation.Name);
+        Assert.AreEqual("class C\n{\n\tint x;\n}\n", transformation.Apply("class C\n{\n    int x;\n}\n"));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void TopLevelStatementsFileWithLambdaRegionAndDocumentationComments_IsIndentedWithTabs()
+    {
+        string input =
+            "using System;\r\n\r\nRun(() =>\r\n{\r\n    Console.WriteLine();\r\n});\r\n\r\n" +
+            "class C\r\n{\r\n    #region R\r\n    /// <summary>\r\n    /// Doc\r\n    /// </summary>\r\n    void M() { }\r\n    #endregion\r\n}\r\n";
+        string expected =
+            "using System;\r\n\r\nRun(() =>\r\n{\r\n\tConsole.WriteLine();\r\n});\r\n\r\n" +
+            "class C\r\n{\r\n\t#region R\r\n\t/// <summary>\r\n\t/// Doc\r\n\t/// </summary>\r\n\tvoid M() { }\r\n\t#endregion\r\n}\r\n";
+
+        Assert.AreEqual(expected, new SpaceToTabConverter(4).Convert(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void FileWithSyntaxErrors_IndentationIsStillConverted() => Assert.AreEqual("class C {\r\n\tvoid M( {\r\n", new SpaceToTabConverter(4).Convert("class C {\r\n    void M( {\r\n"));
 
     private static string[] GetStringValues(string source)
         => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantTokens()

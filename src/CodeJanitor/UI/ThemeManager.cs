@@ -29,10 +29,7 @@ public sealed class ThemeManager : Bindable
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="ThemeManager" /> class.</returns>
-    internal static ThemeManager GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new ThemeManager(package));
-    }
+    internal static ThemeManager GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new ThemeManager(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ThemeManager" /> class.
@@ -96,10 +93,7 @@ public sealed class ThemeManager : Bindable
     /// current IDE theme - manual theme selection was removed as redundant/confusing.
     /// </summary>
     /// <returns>The resolved theme.</returns>
-    private ThemeMode ResolveActiveTheme()
-    {
-        return AutoDetectTheme();
-    }
+    private ThemeMode ResolveActiveTheme() => AutoDetectTheme();
 
     /// <summary>
     /// Auto-detects which theme should be active based on the current IDE settings.
@@ -120,8 +114,8 @@ public sealed class ThemeManager : Bindable
     private static Color GetColorFromUInt(uint number)
     {
         return Color.FromRgb((byte)(number >> 16),
-                             (byte)(number >> 8),
-                             (byte)(number >> 0));
+            (byte)(number >> 8),
+            (byte)(number >> 0));
     }
 
     /// <summary>
@@ -131,7 +125,10 @@ public sealed class ThemeManager : Bindable
     /// <param name="theme">The theme to apply.</param>
     private void ApplyThemeToElement(FrameworkElement element, ThemeMode theme)
     {
-        if (element is null) return;
+        if (element is null)
+        {
+            return;
+        }
 
         if (element.Resources is null)
         {

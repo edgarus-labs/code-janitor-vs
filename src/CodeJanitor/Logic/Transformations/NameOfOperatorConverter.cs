@@ -8,7 +8,7 @@ using System.Linq;
 namespace CodeJanitor.Logic.Transformations;
 
 /// <summary>
-/// A source transformation that converts string literals matching parameter names in argument/exception constructors to nameof(...) expressions.
+/// A source transformation that converts the string literal naming a parameter in the parameter name position of argument exception constructors to a nameof(...) expression; the message position is left alone.
 /// </summary>
 public sealed class NameOfOperatorConverter : ISourceTransformation
 {
@@ -79,7 +79,8 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
             for (var argumentIndex = 0; argumentIndex < currentArgumentList.Arguments.Count; argumentIndex++)
             {
                 var arg = currentArgumentList.Arguments[argumentIndex];
-                if (arg.Expression is LiteralExpressionSyntax stringLiteral &&
+                if (IsParameterNameArgument(simpleTypeName, currentArgumentList, argumentIndex) &&
+                    arg.Expression is LiteralExpressionSyntax stringLiteral &&
                     stringLiteral.IsKind(SyntaxKind.StringLiteralExpression))
                 {
                     var literalValue = stringLiteral.Token.ValueText;
@@ -106,6 +107,53 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
             }
 
             return visited;
+        }
+
+        /// <summary>
+        /// Determines whether the argument at <paramref name="index" /> is the parameter name of the exception
+        /// constructor (<c>paramName</c> or <c>argumentName</c>) rather than its message. The first string of
+        /// <c>ArgumentException(message, paramName)</c> and <c>InvalidEnumArgumentException(message)</c> is the message,
+        /// and <c>ArgumentNullException(message, innerException)</c> starts with one too, so those literals are kept.
+        /// </summary>
+        private static bool IsParameterNameArgument(string exceptionType, ArgumentListSyntax argumentList, int index)
+        {
+            var arguments = argumentList.Arguments;
+            var argument = arguments[index];
+            if (argument.NameColon is not null)
+            {
+                var name = argument.NameColon.Name.Identifier.ValueText;
+
+                return name == "paramName" || name == "argumentName";
+            }
+
+            switch (exceptionType)
+            {
+                case "ArgumentException":
+                    return index == 1;
+
+                case "ArgumentNullException":
+                case "ArgumentOutOfRangeException":
+                    // (paramName), (paramName, message) and, for out-of-range, (paramName, actualValue, message) - but
+                    // (message, innerException) has the same shape as (paramName, message) unless the second argument
+                    // is known to be a string.
+                    return index == 0 &&
+                           (arguments.Count == 1 ||
+                            (arguments.Count == 2 && IsStringExpression(arguments[1].Expression)) ||
+                            (arguments.Count == 3 && exceptionType == "ArgumentOutOfRangeException"));
+
+                case "InvalidEnumArgumentException":
+                    // (argumentName, invalidValue, enumClass); the one- and two-argument overloads start with a message.
+                    return index == 0 && arguments.Count == 3;
+
+                default:
+                    return false;
+            }
+        }
+
+        private static bool IsStringExpression(ExpressionSyntax expression)
+        {
+            return expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression) ||
+                expression is InterpolatedStringExpressionSyntax;
         }
 
         /// <summary>

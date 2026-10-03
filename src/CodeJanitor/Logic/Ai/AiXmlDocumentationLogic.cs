@@ -50,20 +50,14 @@ internal sealed class AiXmlDocumentationLogic
     /// <summary>
     /// Cancels the ongoing run by signaling the internal CancellationTokenSource, which propagates cancellation to any awaiting or executing operations.
     /// </summary>
-    internal static void CancelRun()
-    {
-        _runCancellation?.Cancel();
-    }
+    internal static void CancelRun() => _runCancellation?.Cancel();
 
     /// <summary>
     /// Returns the existing cached `AiXmlDocumentationLogic` singleton or lazily creates and stores a new instance initialized with the supplied `CodeJanitorPackage` on first call.
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A AiXmlDocumentationLogic value produced by this method.</returns>
-    internal static AiXmlDocumentationLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new AiXmlDocumentationLogic(package));
-    }
+    internal static AiXmlDocumentationLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new AiXmlDocumentationLogic(package));
 
     private AiXmlDocumentationLogic(CodeJanitorPackage package)
     {
@@ -384,14 +378,7 @@ internal sealed class AiXmlDocumentationLogic
                 return false;
             }
 
-            string originalFileText;
-            Encoding encoding;
-
-            using (var reader = new StreamReader(filePath, true))
-            {
-                originalFileText = reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
-            }
+            var originalFileText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
             var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
             if (RunToken.IsCancellationRequested || updatedFileText == originalFileText)
@@ -399,7 +386,7 @@ internal sealed class AiXmlDocumentationLogic
                 return false;
             }
 
-            File.WriteAllText(filePath, updatedFileText, encoding);
+            FileTextStyle.WriteAllText(filePath, updatedFileText, encoding, originalFileText);
 
             return true;
         });
@@ -463,14 +450,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        string originalFileText;
-        Encoding encoding;
-
-        using (var reader = new StreamReader(filePath, true))
-        {
-            originalFileText = reader.ReadToEnd();
-            encoding = reader.CurrentEncoding;
-        }
+        var originalFileText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
         var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
         if (updatedFileText == originalFileText)
@@ -478,7 +458,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        File.WriteAllText(filePath, updatedFileText, encoding);
+        FileTextStyle.WriteAllText(filePath, updatedFileText, encoding, originalFileText);
 
         return true;
     }
@@ -718,6 +698,7 @@ internal sealed class AiXmlDocumentationLogic
             .OrderBy(x => x.GetFirstToken().SpanStart)
             .ToList();
 
+        var lineEnding = FileTextStyle.GetDominantLineEnding(source);
         var builder = new StringBuilder(source);
         var deadlineUtc = DateTime.UtcNow.AddSeconds(options.GlobalTimeoutSeconds > 0 ? options.GlobalTimeoutSeconds : 60);
         foreach (var method in eligibleToProcess.OrderByDescending(x => x.GetFirstToken().SpanStart))
@@ -753,7 +734,7 @@ internal sealed class AiXmlDocumentationLogic
             var exceptions = method is BaseMethodDeclarationSyntax methodForExceptions
                 ? DetectThrownExceptions(methodForExceptions).ToList()
                 : new List<string>();
-            var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions);
+            var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions, lineEnding);
 
             builder.Insert(insertPosition, xmlBlock);
             stats.DocumentedMethods++;
@@ -792,10 +773,7 @@ internal sealed class AiXmlDocumentationLogic
     /// <param name="value">The value.</param>
     /// <param name="fallback">The fallback.</param>
     /// <returns>The int result.</returns>
-    private static int PositiveOrDefault(int value, int fallback)
-    {
-        return value > 0 ? value : fallback;
-    }
+    private static int PositiveOrDefault(int value, int fallback) => value > 0 ? value : fallback;
 
     /// <summary>
     /// Creates and configures an OpenAI-compatible client using the AI XML documentation cleaning settings, including endpoint URL, API key, model, timeout, and context window size.
@@ -1417,10 +1395,22 @@ internal sealed class AiXmlDocumentationLogic
         {
             foreach (var member in typeDeclaration.Members)
             {
-                if (member is PropertyDeclarationSyntax p) memberNames.Add(p.Identifier.ValueText + " (" + (p.Type?.ToString() ?? "property") + ")");
-                else if (member is MethodDeclarationSyntax m) memberNames.Add(m.Identifier.ValueText + "()");
-                else if (member is ConstructorDeclarationSyntax c) memberNames.Add(c.Identifier.ValueText + "()");
-                else if (member is FieldDeclarationSyntax f) memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
+                if (member is PropertyDeclarationSyntax p)
+                {
+                    memberNames.Add(p.Identifier.ValueText + " (" + (p.Type?.ToString() ?? "property") + ")");
+                }
+                else if (member is MethodDeclarationSyntax m)
+                {
+                    memberNames.Add(m.Identifier.ValueText + "()");
+                }
+                else if (member is ConstructorDeclarationSyntax c)
+                {
+                    memberNames.Add(c.Identifier.ValueText + "()");
+                }
+                else if (member is FieldDeclarationSyntax f)
+                {
+                    memberNames.AddRange(f.Declaration.Variables.Select(v => v.Identifier.ValueText));
+                }
             }
         }
         else if (type is EnumDeclarationSyntax enumDeclaration)
@@ -1482,10 +1472,7 @@ internal sealed class AiXmlDocumentationLogic
     /// </summary>
     /// <param name="indexer">The indexer.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string BuildIndexerSummary(IndexerDeclarationSyntax indexer)
-    {
-        return "Gets or sets the element at the specified index.";
-    }
+    private static string BuildIndexerSummary(IndexerDeclarationSyntax indexer) => "Gets or sets the element at the specified index.";
 
     /// <summary>
     /// Builds a standardized &quot;Occurs when {name}.&quot; summary string for an event member, extracting the event name from either an EventDeclarationSyntax or EventFieldDeclarationSyntax and lowercasing the split identifier, with no side effects or thrown exceptions.
@@ -1603,13 +1590,13 @@ internal sealed class AiXmlDocumentationLogic
     /// and for methods, constructors, and positional records additionally appending &lt;param&gt; elements, a &lt;returns&gt; element,
     /// and ordered &lt;exception&gt; elements.
     /// </summary>
-    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes)
+    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes, string lineEnding)
     {
         var sb = new StringBuilder();
 
-        sb.Append(indent).AppendLine("/// <summary>");
-        sb.Append(indent).Append("/// ").AppendLine(XmlEscape(summary));
-        sb.Append(indent).AppendLine("/// </summary>");
+        sb.Append(indent).Append("/// <summary>").Append(lineEnding);
+        sb.Append(indent).Append("/// ").Append(XmlEscape(summary)).Append(lineEnding);
+        sb.Append(indent).Append("/// </summary>").Append(lineEnding);
 
         // 1. Positional records or primary constructors parameters
         IEnumerable<ParameterSyntax> parameters = null;
@@ -1639,7 +1626,8 @@ internal sealed class AiXmlDocumentationLogic
                         .Append(parameterName)
                         .Append("\">")
                         .Append(XmlEscape(BuildParameterDescription(parameterName, paramType)))
-                        .AppendLine("</param>");
+                        .Append("</param>")
+                        .Append(lineEnding);
                 }
             }
         }
@@ -1655,7 +1643,8 @@ internal sealed class AiXmlDocumentationLogic
                 sb.Append(indent)
                     .Append("/// <returns>")
                     .Append(XmlEscape(BuildReturnDescription(returnTypeStr, m.Identifier.ValueText)))
-                    .AppendLine("</returns>");
+                    .Append("</returns>")
+                    .Append(lineEnding);
             }
         }
 
@@ -1669,7 +1658,8 @@ internal sealed class AiXmlDocumentationLogic
                     .Append(XmlEscape(exceptionType))
                     .Append("\">")
                     .Append(XmlEscape("Thrown when an error occurs during execution."))
-                    .AppendLine("</exception>");
+                    .Append("</exception>")
+                    .Append(lineEnding);
             }
         }
 

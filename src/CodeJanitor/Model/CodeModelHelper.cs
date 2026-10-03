@@ -32,10 +32,7 @@ internal sealed class CodeModelHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeModelHelper" /> class.</returns>
-    internal static CodeModelHelper GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeModelHelper(package));
-    }
+    internal static CodeModelHelper GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeModelHelper(package));
 
     /// <summary>
     /// Gets the specified code items as unique blocks by consecutive line positioning.

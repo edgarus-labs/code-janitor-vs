@@ -17,11 +17,25 @@ public sealed class RegionComparerByName : IEqualityComparer<CodeItemRegion>
     /// <returns>True if the specified objects are equal; otherwise, false.</returns>
     public bool Equals(CodeItemRegion x, CodeItemRegion y)
     {
-        if (x is null && y is null) return true;
-        if (x is null || y is null) return false;
+        if (x is null && y is null)
+        {
+            return true;
+        }
 
-        if (x.Name is null && y.Name is null) return true;
-        if (x.Name is null || y.Name is null) return false;
+        if (x is null || y is null)
+        {
+            return false;
+        }
+
+        if (x.Name is null && y.Name is null)
+        {
+            return true;
+        }
+
+        if (x.Name is null || y.Name is null)
+        {
+            return false;
+        }
 
         return x.Name.Equals(y.Name);
     }

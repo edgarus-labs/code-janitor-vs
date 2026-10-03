@@ -28,10 +28,7 @@ internal sealed class FileScopedNamespaceLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="FileScopedNamespaceLogic" /> class.</returns>
-    internal static FileScopedNamespaceLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new FileScopedNamespaceLogic(package));
-    }
+    internal static FileScopedNamespaceLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new FileScopedNamespaceLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileScopedNamespaceLogic" /> class.

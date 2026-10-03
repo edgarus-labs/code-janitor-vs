@@ -78,6 +78,16 @@ public sealed class DiagnosticCleanupCategoryClassifierTests
         Assert.IsNull(DiagnosticCleanupCategoryClassifier.Classify(new LegacyFieldAnalyzer(), descriptor));
     }
 
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void Classify_MissingAnalyzerOrDescriptor_Throws()
+    {
+        DiagnosticDescriptor descriptor = new DiagnosticDescriptor("CJT0103", "Title", "Message", "Style", DiagnosticSeverity.Warning, isEnabledByDefault: true);
+
+        Assert.AreEqual("analyzer", Assert.ThrowsExactly<System.ArgumentNullException>(() => DiagnosticCleanupCategoryClassifier.Classify(null, descriptor)).ParamName);
+        Assert.AreEqual("descriptor", Assert.ThrowsExactly<System.ArgumentNullException>(() => DiagnosticCleanupCategoryClassifier.Classify(new LegacyFieldAnalyzer(), null)).ParamName);
+    }
+
     private static (DiagnosticAnalyzer Analyzer, DiagnosticDescriptor Descriptor) FindHostAnalyzer(string diagnosticId)
     {
         DiagnosticAnalyzer analyzer = DiagnosticCleanupTestWorkspace.HostAnalyzers.First(candidate => candidate.SupportedDiagnostics.Any(d => d.Id == diagnosticId));

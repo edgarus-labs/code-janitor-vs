@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -44,6 +45,7 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
         {
+            var original = node;
             node = (InvocationExpressionSyntax)base.VisitInvocationExpression(node);
 
             if (node.ArgumentList is null || node.ArgumentList.Arguments.Count == 0 || !IsJsonSerializerCall(node))
@@ -53,6 +55,7 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
 
             var updatedArgumentList = node.ArgumentList;
             var changed = false;
+            var namesOptionsParameter = IsSystemTextJsonSerializer(original);
 
             for (var i = 0; i < updatedArgumentList.Arguments.Count; i++)
             {
@@ -62,9 +65,32 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
                     continue;
                 }
 
-                var replacement = argument.WithExpression(
-                    SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)
-                                 .WithTriviaFrom(argument.Expression));
+                // The first positional argument is the value, JSON text or stream: the options never come first.
+                if (i == 0 && argument.NameColon is null)
+                {
+                    continue;
+                }
+
+                // A positional null is ambiguous between the JsonSerializerOptions and JsonTypeInfo/JsonSerializerContext
+                // overloads (CS0121); naming the argument keeps the options overload selected. A named argument followed by
+                // a positional one needs C# 7.2, and another JsonSerializer type may name its parameter differently, so
+                // there the null is cast to the options type as written instead.
+                var nullLiteral = SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+                var replacement = argument.WithExpression(nullLiteral.WithTriviaFrom(argument.Expression));
+                if (argument.NameColon is null && (!namesOptionsParameter || IsFollowedByPositionalArgument(updatedArgumentList, i)))
+                {
+                    var optionsType = ((ObjectCreationExpressionSyntax)argument.Expression).Type.WithoutTrivia();
+                    replacement = argument.WithExpression(
+                        SyntaxFactory.CastExpression(optionsType, nullLiteral).WithTriviaFrom(argument.Expression));
+                }
+                else if (argument.NameColon is null)
+                {
+                    replacement = replacement
+                        .WithNameColon(SyntaxFactory.NameColon(SyntaxFactory.IdentifierName("options"))
+                                                    .WithLeadingTrivia(argument.Expression.GetLeadingTrivia())
+                                                    .WithTrailingTrivia(SyntaxFactory.Space))
+                        .WithExpression(replacement.Expression.WithoutLeadingTrivia());
+                }
 
                 updatedArgumentList = updatedArgumentList.WithArguments(
                     updatedArgumentList.Arguments.Replace(argument, replacement));
@@ -72,6 +98,17 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
             }
 
             return changed ? node.WithArgumentList(updatedArgumentList) : node;
+        }
+
+        /// <summary>
+        /// Determines whether an argument after the one at <paramref name="index" /> is passed by position.
+        /// </summary>
+        /// <param name="argumentList">The argument list.</param>
+        /// <param name="index">The index of the argument.</param>
+        /// <returns>True when a later argument has no name.</returns>
+        private static bool IsFollowedByPositionalArgument(ArgumentListSyntax argumentList, int index)
+        {
+            return argumentList.Arguments.Skip(index + 1).Any(argument => argument.NameColon is null);
         }
 
         /// <summary>
@@ -91,6 +128,33 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
             return receiver == "JsonSerializer"
                    || receiver == "System.Text.Json.JsonSerializer"
                    || receiver == "global::System.Text.Json.JsonSerializer";
+        }
+
+        /// <summary>
+        /// Determines whether the call is known to be on <c>System.Text.Json.JsonSerializer</c>, whose options parameter
+        /// is named <c>options</c>: the receiver is qualified with <c>System.Text.Json</c>, or the file imports
+        /// <c>System.Text.Json</c> and declares no other type named <c>JsonSerializer</c>.
+        /// </summary>
+        private static bool IsSystemTextJsonSerializer(InvocationExpressionSyntax invocation)
+        {
+            var receiver = ((MemberAccessExpressionSyntax)invocation.Expression).Expression.ToString();
+            if (receiver != "JsonSerializer")
+            {
+                return true;
+            }
+
+            if (!(invocation.SyntaxTree.GetRoot() is CompilationUnitSyntax root))
+            {
+                return false;
+            }
+
+            return root.DescendantNodes(node => node is CompilationUnitSyntax || node is BaseNamespaceDeclarationSyntax)
+                    .OfType<UsingDirectiveSyntax>()
+                    .Any(directive => directive.Alias is null &&
+                                      directive.StaticKeyword.IsKind(SyntaxKind.None) &&
+                                      directive.Name?.ToString() == "System.Text.Json") &&
+                !root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>().Any(type => type.Identifier.ValueText == "JsonSerializer") &&
+                !root.DescendantNodes().OfType<DelegateDeclarationSyntax>().Any(type => type.Identifier.ValueText == "JsonSerializer");
         }
 
         /// <summary>

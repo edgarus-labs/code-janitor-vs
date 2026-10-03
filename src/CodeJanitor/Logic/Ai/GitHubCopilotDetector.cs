@@ -78,10 +78,7 @@ public static class GitHubCopilotDetector
         public string ErrorMessage { get; set; }
     }
 
-    internal static void ResetCopilotSessionCache()
-    {
-        SessionCache.Clear();
-    }
+    internal static void ResetCopilotSessionCache() => SessionCache.Clear();
 
     internal static void ApplyCopilotHeaders(HttpRequestHeaders headers)
     {
@@ -234,10 +231,7 @@ public static class GitHubCopilotDetector
         return text.Substring(0, maxLength) + "...";
     }
 
-    public static Task<CopilotModelsResult> FetchCopilotModelsAsync(string token)
-    {
-        return FetchCopilotModelsAsync(token, null);
-    }
+    public static Task<CopilotModelsResult> FetchCopilotModelsAsync(string token) => FetchCopilotModelsAsync(token, null);
 
     internal static async Task<CopilotModelsResult> FetchCopilotModelsAsync(string token, HttpMessageHandler httpMessageHandler)
     {

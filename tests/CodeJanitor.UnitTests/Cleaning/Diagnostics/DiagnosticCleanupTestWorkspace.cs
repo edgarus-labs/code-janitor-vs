@@ -148,10 +148,7 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        _workspace?.Dispose();
-    }
+    public void Dispose() => _workspace?.Dispose();
 
     private static TextLoader CreateLoader(string text, string filePath)
         => TextLoader.From(TextAndVersion.Create(SourceText.From(text), VersionStamp.Default, filePath));

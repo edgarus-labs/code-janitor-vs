@@ -66,8 +66,10 @@
     <Compile Include="..\..\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="TestAssemblySetupTests.cs" />
     <Compile Include="UI\AboutVersionTests.cs" />
     <Compile Include="UI\EditorConfigOverrideNotesTests.cs" />
+    <Compile Include="UI\ProgressViewModelTests.cs" />
     <Compile Include="CachedSettingSetTests.cs" />
     <Compile Include="CachedSettingTests.cs" />
     <Compile Include="Cleaning\CodeStyleCleanupTests.cs" />
@@ -83,10 +85,14 @@
     <Compile Include="Cleaning\RepositoryCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\CleanupBatchPartitionerTests.cs" />
     <Compile Include="Cleaning\ClosedFileWriteTests.cs" />
+    <Compile Include="Cleaning\SealedClassLogicTests.cs" />
+    <Compile Include="Cleaning\SemanticFileRewriterTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\RemoveXmlDocumentationLogicTests.cs" />
     <Compile Include="Cleaning\InsertExplicitAccessModifierLogicTests.cs" />
     <Compile Include="Cleaning\InsertBlankLinePaddingLogicTests.cs" />
+    <Compile Include="Cleaning\Diagnostics\CompilerErrorsTests.cs" />
+    <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupModelTests.cs" />
     <Compile Include="Cleaning\Diagnostics\CodeFixProviderCatalogTests.cs" />
     <Compile Include="Cleaning\Diagnostics\CodeStyleSeverityPrecedenceTests.cs" />
     <Compile Include="Cleaning\Diagnostics\DiagnosticCleanupCategoryClassifierTests.cs" />
@@ -115,9 +121,12 @@
     <Compile Include="Helpers\CodeItemTypeComparerTests.cs" />
     <Compile Include="Helpers\FileHeaderHelperTests.cs" />
     <Compile Include="Helpers\NamespacePathHelperTests.cs" />
+    <Compile Include="Helpers\EditorConfigHelperTests.cs" />
+    <Compile Include="Helpers\FileTextStyleTests.cs" />
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="SettingsConfigurationSyncTests.cs" />
+    <Compile Include="TestAssemblySetup.cs" />
     <Compile Include="Cleaning\RemoveByteOrderMarkLogicTests.cs" />
     <Compile Include="Cleaning\UsingDirectivePlacementLogicTests.cs" />
     <Compile Include="Transformations\ByteOrderMarkConverterTests.cs" />
@@ -138,8 +147,9 @@
     <Compile Include="Transformations\UsingDirectivePlacementConverterInwardTests.cs" />
     <Compile Include="Transformations\UsingDirectivePlacementConverterOutwardTests.cs" />
     <Compile Include="Transformations\VarWhenApparentConverterTests.cs" />
-    <Compile Include="Transformations\ReadonlyFieldConverterTests.cs" />
-    <Compile Include="Transformations\SealedClassConverterTests.cs" />
+    <Compile Include="Transformations\ClassSealingConverterTests.cs" />
+    <Compile Include="Transformations\CompilerErrorMatchingTests.cs" />
+    <Compile Include="Transformations\IndentationGuardTests.cs" />
     <Compile Include="Transformations\UsingDirectiveOrganizerTests.cs" />
     <Compile Include="Transformations\TabToSpaceConverterTests.cs" />
     <Compile Include="Transformations\SourceTransformationPipelineTests.cs" />

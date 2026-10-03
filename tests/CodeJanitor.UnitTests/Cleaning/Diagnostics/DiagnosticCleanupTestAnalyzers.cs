@@ -19,14 +19,15 @@ using Microsoft.CodeAnalysis.Text;
 namespace CodeJanitor.UnitTests.Cleaning.Diagnostics;
 
 /// <summary>
-/// Test analyzer reporting every source field whose name starts with <c>legacy</c>, once per configured rule. The
-/// diagnostic ids and descriptor categories are chosen per test so classification and provider lookup are exercised
-/// without depending on any built-in analyzer.
+/// Test analyzer reporting every source field whose name starts with <c>legacy</c> (or a prefix chosen by the test),
+/// once per configured rule. The diagnostic ids and descriptor categories are chosen per test so classification and
+/// provider lookup are exercised without depending on any built-in analyzer.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
 {
     private readonly ImmutableArray<DiagnosticDescriptor> _descriptors;
+    private readonly string _namePrefix;
 
     public LegacyFieldAnalyzer()
         : this("CJT0000", "Style")
@@ -39,7 +40,13 @@ internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
     }
 
     public LegacyFieldAnalyzer(params (string DiagnosticId, string Category)[] rules)
+        : this("legacy", rules)
     {
+    }
+
+    public LegacyFieldAnalyzer(string namePrefix, params (string DiagnosticId, string Category)[] rules)
+    {
+        _namePrefix = namePrefix;
         _descriptors = rules
             .Select(rule => new DiagnosticDescriptor(
                 rule.DiagnosticId,
@@ -60,7 +67,7 @@ internal sealed class LegacyFieldAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolAction(
             symbolContext =>
             {
-                if (symbolContext.Symbol.Name.StartsWith("legacy", System.StringComparison.Ordinal))
+                if (symbolContext.Symbol.Name.StartsWith(_namePrefix, System.StringComparison.Ordinal))
                 {
                     foreach (DiagnosticDescriptor descriptor in _descriptors)
                     {
@@ -232,6 +239,92 @@ internal sealed class BreakingLegacyFieldCodeFixProvider : LegacyFieldCodeFixPro
 }
 
 /// <summary>
+/// Throws while registering its fixes, like a third-party provider with a bug.
+/// </summary>
+internal sealed class ThrowingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    public ThrowingLegacyFieldCodeFixProvider(string diagnosticId)
+        : base(diagnosticId)
+    {
+    }
+
+    public override Task RegisterCodeFixesAsync(CodeFixContext context) => throw new InvalidOperationException("Sequence contains no elements");
+}
+
+/// <summary>
+/// Where <see cref="UnreliableFixAllLegacyFieldCodeFixProvider" /> throws.
+/// </summary>
+internal enum FixAllFailure
+{
+    None,
+    GetFixAllProvider,
+    GetFixAsync,
+}
+
+/// <summary>
+/// Renames the field (<c>legacy</c> to <c>renamed</c>) and optionally has broken fix-all support: either
+/// <see cref="CodeFixProvider.GetFixAllProvider" /> itself throws, or the fix-all provider throws while computing the fix.
+/// Its type name sorts after <see cref="ThrowingLegacyFieldCodeFixProvider" />, so the catalog tries it second.
+/// </summary>
+internal sealed class UnreliableFixAllLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly FixAllFailure _failure;
+
+    public UnreliableFixAllLegacyFieldCodeFixProvider(string diagnosticId, FixAllFailure failure)
+        : base(diagnosticId)
+    {
+        _failure = failure;
+    }
+
+    public override FixAllProvider GetFixAllProvider()
+    {
+        return _failure switch
+        {
+            FixAllFailure.GetFixAllProvider => throw new InvalidOperationException("Fix-all provider unavailable"),
+            FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
+            _ => null,
+        };
+    }
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+
+        context.RegisterCodeFix(
+            CodeAction.Create("Rename", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "renamed"), ct), "UnreliableFixAllLegacyField"),
+            context.Diagnostics);
+    }
+
+    private sealed class ThrowingFixAllProvider : FixAllProvider
+    {
+        public override IEnumerable<FixAllScope> GetSupportedFixAllScopes() => new[] { FixAllScope.Document };
+
+        public override Task<CodeAction> GetFixAsync(FixAllContext fixAllContext) => throw new InvalidOperationException("Fix-all computation failed");
+    }
+}
+
+/// <summary>
+/// Cancels the cleanup and then throws while registering its fixes, like a provider interrupted by the user.
+/// </summary>
+internal sealed class CancelingLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly CancellationTokenSource _cancellation;
+
+    public CancelingLegacyFieldCodeFixProvider(string diagnosticId, CancellationTokenSource cancellation)
+        : base(diagnosticId)
+    {
+        _cancellation = cancellation;
+    }
+
+    public override Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        _cancellation.Cancel();
+
+        throw new InvalidOperationException("Provider interrupted");
+    }
+}
+
+/// <summary>
 /// Adds a new document instead of editing text, which the engine must reject as an unsupported change.
 /// </summary>
 internal sealed class AddDocumentLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
@@ -387,5 +480,114 @@ internal sealed class BatchRenameLegacyFieldCodeFixProvider : LegacyFieldCodeFix
         context.RegisterCodeFix(
             CodeAction.Create("Rename", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "batch"), ct)),
             context.Diagnostics);
+    }
+}
+
+/// <summary>
+/// Analyzer whose <see cref="DiagnosticAnalyzer.SupportedDiagnostics" /> is broken: it either throws or returns a
+/// default array, like a faulty third-party analyzer.
+/// </summary>
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+internal sealed class BrokenDescriptorsAnalyzer : DiagnosticAnalyzer
+{
+    private readonly bool _throws;
+
+    public BrokenDescriptorsAnalyzer(bool throws)
+    {
+        _throws = throws;
+    }
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+        => _throws ? throw new InvalidOperationException("Broken analyzer.") : default(ImmutableArray<DiagnosticDescriptor>);
+
+    public override void Initialize(AnalysisContext context)
+        => throw new InvalidOperationException("A skipped analyzer must never be initialized.");
+}
+
+/// <summary>
+/// Suppresses every diagnostic with the given id, like a <c>DiagnosticSuppressor</c> shipped next to an analyzer.
+/// </summary>
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+internal sealed class LegacyFieldSuppressor : DiagnosticSuppressor
+{
+    private readonly SuppressionDescriptor _descriptor;
+
+    public LegacyFieldSuppressor(string suppressedDiagnosticId)
+    {
+        _descriptor = new SuppressionDescriptor("CJTSPR" + suppressedDiagnosticId, suppressedDiagnosticId, "Legacy fields are accepted here");
+    }
+
+    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions => ImmutableArray.Create(_descriptor);
+
+    public override void ReportSuppressions(SuppressionAnalysisContext context)
+    {
+        foreach (Diagnostic diagnostic in context.ReportedDiagnostics)
+        {
+            context.ReportSuppression(Suppression.Create(_descriptor, diagnostic));
+        }
+    }
+}
+
+/// <summary>
+/// A provider that does not declare its fixable diagnostic ids (a default array), which must simply be ignored.
+/// </summary>
+internal sealed class UndeclaredIdsCodeFixProvider : CodeFixProvider
+{
+    public override ImmutableArray<string> FixableDiagnosticIds => default;
+
+    public override FixAllProvider GetFixAllProvider() => null;
+
+    public override Task RegisterCodeFixesAsync(CodeFixContext context)
+        => throw new InvalidOperationException("A provider without fixable ids must never be asked for fixes.");
+}
+
+/// <summary>
+/// Renames the field (<c>legacy</c> to <c>probed</c>) and exposes a fix-all provider that only records which
+/// diagnostics the fix-all context hands out for every document and project, then declines.
+/// </summary>
+internal sealed class ProbingFixAllLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+{
+    private readonly ProbingFixAllProvider _fixAllProvider = new ProbingFixAllProvider();
+
+    public ProbingFixAllLegacyFieldCodeFixProvider(string diagnosticId)
+        : base(diagnosticId)
+    {
+    }
+
+    public IReadOnlyList<string> Observations => _fixAllProvider.Observations;
+
+    public override FixAllProvider GetFixAllProvider() => _fixAllProvider;
+
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
+        string name = await GetFieldNameAsync(context.Document, context.Span, context.CancellationToken).ConfigureAwait(false);
+
+        context.RegisterCodeFix(
+            CodeAction.Create("Rename", ct => RenameDeclaratorAsync(context.Document, context.Span, ReplaceLegacyPrefix(name, "probed"), ct), "ProbingFixAllLegacyField"),
+            context.Diagnostics);
+    }
+
+    private sealed class ProbingFixAllProvider : FixAllProvider
+    {
+        public List<string> Observations { get; } = [];
+
+        public override IEnumerable<FixAllScope> GetSupportedFixAllScopes() => new[] { FixAllScope.Document };
+
+        public override async Task<CodeAction> GetFixAsync(FixAllContext fixAllContext)
+        {
+            foreach (Document document in fixAllContext.Project.Documents.OrderBy(document => document.Name, StringComparer.Ordinal))
+            {
+                Observations.Add($"document {document.Name}: {(await fixAllContext.GetDocumentDiagnosticsAsync(document).ConfigureAwait(false)).Length}");
+            }
+
+            Observations.Add($"project-only: {(await fixAllContext.GetProjectDiagnosticsAsync(fixAllContext.Project).ConfigureAwait(false)).Length}");
+
+            foreach (Project project in fixAllContext.Solution.Projects.OrderBy(project => project.Name, StringComparer.Ordinal))
+            {
+                Observations.Add($"all {project.Name}: {(await fixAllContext.GetAllDiagnosticsAsync(project).ConfigureAwait(false)).Length}");
+            }
+
+            return null;
+        }
     }
 }

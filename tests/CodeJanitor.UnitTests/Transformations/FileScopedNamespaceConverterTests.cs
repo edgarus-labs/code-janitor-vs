@@ -31,10 +31,7 @@ public sealed class FileScopedNamespaceConverterTests
     private INamespaceScopeConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new FileScopedNamespaceConverter();
-    }
+    public void TestInitialize() => _converter = new FileScopedNamespaceConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -546,10 +543,7 @@ public sealed class FileScopedNamespaceConverterTests
     [DataRow("namespace A;", "namespace A\r\n{\r\n}", DisplayName = "single line without line break")]
     [DataRow("namespace A; class C { }\n", "namespace A\n{\n    class C { }\n}\n", DisplayName = "member on the declaration line")]
     [DataRow("namespace A;\n\nclass C { }\n\n\n", "namespace A\n{\n    class C { }\n}\n", DisplayName = "trailing blank lines")]
-    public void ConvertToBlockScoped_LineBreakEdgeCases(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
-    }
+    public void ConvertToBlockScoped_LineBreakEdgeCases(string input, string expected) => Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -559,10 +553,7 @@ public sealed class FileScopedNamespaceConverterTests
     [DataRow("namespace A;\n\nnamespace B\n{\n}\n", DisplayName = "file-scoped and block-scoped namespaces")]
     [DataRow("namespace A;\n\nclass C {\n", DisplayName = "syntax error")]
     [DataRow("#if true\nnamespace A;\n\nclass C { }\n#endif\n", DisplayName = "namespace inside #if")]
-    public void ConvertToBlockScoped_NotExactlyOneConvertibleFileScopedNamespace_ReturnsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.ConvertToBlockScoped(input));
-    }
+    public void ConvertToBlockScoped_NotExactlyOneConvertibleFileScopedNamespace_ReturnsUnchanged(string input) => Assert.AreEqual(input, _converter.ConvertToBlockScoped(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -611,10 +602,7 @@ public sealed class FileScopedNamespaceConverterTests
         "#if DEBUG\r\nusing System.Diagnostics;\r\n#endif\r\nnamespace A\r\n{\r\n    class C { }\r\n}\r\n",
         "#if DEBUG\r\nusing System.Diagnostics;\r\n#endif\r\nnamespace A;\r\n\r\nclass C { }\r\n",
         DisplayName = "disabled using directive before the namespace")]
-    public void ConvertToFileScoped_KeepsTheContentAroundTheBraces(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.ConvertToFileScoped(input));
-    }
+    public void ConvertToFileScoped_KeepsTheContentAroundTheBraces(string input, string expected) => Assert.AreEqual(expected, _converter.ConvertToFileScoped(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -626,10 +614,7 @@ public sealed class FileScopedNamespaceConverterTests
     [DataRow("#if DEBUG\r\nclass Helper { }\r\n#endif\r\nnamespace A\r\n{\r\n    class C { }\r\n}\r\n", DisplayName = "type disabled before the namespace")]
     [DataRow("#if DEBUG\r\nnamespace M { }\r\n#endif\r\nnamespace A\r\n{\r\n    class C { }\r\n}\r\n", DisplayName = "namespace disabled before the namespace")]
     [DataRow("#if DEBUG\r\nclass Helper { }\r\n#endif\r\nusing System;\r\n\r\nnamespace A\r\n{\r\n    class C { }\r\n}\r\n", DisplayName = "type disabled before the using directives")]
-    public void ConvertToFileScoped_LeavesTheFileUnchanged_WhenAFileScopedNamespaceCannotKeepItsContent(string input)
-    {
-        Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
-    }
+    public void ConvertToFileScoped_LeavesTheFileUnchanged_WhenAFileScopedNamespaceCannotKeepItsContent(string input) => Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -650,6 +635,143 @@ public sealed class FileScopedNamespaceConverterTests
         string input = "namespace A\n{\n  class C\n  {\n    int x;\n  }\n}\n";
 
         Assert.AreEqual("namespace A;\n\nclass C\n{\n  int x;\n}\n", new FileScopedNamespaceConverter(false, 2).ConvertToFileScoped(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(0)]
+    [DataRow(-4)]
+    public void Constructor_NonPositiveIndentSize_Throws(int indentSize)
+    {
+        ArgumentOutOfRangeException exception = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new FileScopedNamespaceConverter(null, indentSize));
+
+        Assert.AreEqual("indentSize", exception.ParamName);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("   \r\n\t\r\n", DisplayName = "whitespace-only file")]
+    [DataRow("namespace A\r\n{\r\n    class C { }\r\n", DisplayName = "missing closing brace")]
+    [DataRow("namespace A\r\n{\r\n    class C { }\r\n}\r\n#pragma warning disable CS0168\r\n;\r\n", DisplayName = "directive before the semicolon after the closing brace")]
+    [DataRow("#if true\r\nnamespace A\r\n{\r\n#else\r\nnamespace B\r\n{\r\n#endif\r\n    class C { }\r\n}\r\n", DisplayName = "#else in the body continues an #if before the namespace")]
+    [DataRow("#if true\r\nnamespace A\r\n{\r\n#endif\r\n    class C { }\r\n}\r\n", DisplayName = "#endif in the body closes an #if before the namespace")]
+    [DataRow("namespace A\r\n{\r\n    class C { }\r\n#if true\r\n    class D { }\r\n}\r\n", DisplayName = "#if in the body without #endif")]
+    [DataRow("using System;\r\n\r\nConsole.WriteLine(\"namespace X { }\");\r\n\r\nstatic int Add(int a, int b) => a + b;\r\n\r\nnamespace A\r\n{\r\n    class C { }\r\n}\r\n", DisplayName = "top-level statements before the namespace")]
+    [DataRow("using System;\r\n\r\nConsole.WriteLine(\"hello\");\r\n\r\nclass C { }\r\n", DisplayName = "top-level statements without namespace")]
+    [DataRow("namespace A.B\r\n{\r\n}\r\nnamespace A.C\r\n{\r\n}\r\n", DisplayName = "two namespaces")]
+    public void ConvertToFileScoped_NotConvertible_ReturnsUnchanged(string input) => Assert.AreEqual(input, _converter.ConvertToFileScoped(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("   \r\n\t\r\n", DisplayName = "whitespace-only file")]
+    [DataRow("using System;\r\n\r\nConsole.WriteLine(\"namespace A;\");\r\n", DisplayName = "top-level statements without namespace")]
+    [DataRow("#if DEBUG\r\nnamespace A;\r\n#else\r\nnamespace B;\r\n#endif\r\n\r\nclass C { }\r\n", DisplayName = "namespace between #if and #else")]
+    public void ConvertToBlockScoped_NotConvertible_ReturnsUnchanged(string input) => Assert.AreEqual(input, _converter.ConvertToBlockScoped(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("#if X\n#endif\nnamespace A;\n\nclass C { }\n", "#if X\n#endif\nnamespace A\n{\n    class C { }\n}\n", DisplayName = "closed #if block before the namespace")]
+    [DataRow("namespace A;\n   \n\t\nclass C { }\n", "namespace A\n{\n    class C { }\n}\n", DisplayName = "leading whitespace-only lines")]
+    [DataRow("namespace A;\r\rclass C { }\r", "namespace A\r{\r    class C { }\r}\r", DisplayName = "carriage-return line breaks")]
+    [DataRow("namespace A;\r", "namespace A\r{\r}\r", DisplayName = "single carriage return at the end")]
+    [DataRow("namespace A; // the namespace\n\nclass C { }\n", "namespace A // the namespace\n{\n    class C { }\n}\n", DisplayName = "comment after the semicolon")]
+    public void ConvertToBlockScoped_LineAndDirectiveEdgeCases(string input, string expected) => Assert.AreEqual(expected, _converter.ConvertToBlockScoped(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void ConvertToFileScoped_LinesIndentedLessThanOneLevel_KeepTheirText()
+    {
+        string input = "namespace A\n{\n    class C\n    {\n  // odd\n    }\n}\n";
+
+        Assert.AreEqual("namespace A;\n\nclass C\n{\n  // odd\n}\n", _converter.ConvertToFileScoped(input));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ConvertToFileScoped_RichBody_IsDedentedAndCompiles_AndRoundTrips()
+    {
+        string input =
+            "// <copyright file=\"Target.cs\">header</copyright>\r\n" +
+            "using System;\r\n" +
+            "using System.Threading.Tasks;\r\n" +
+            "\r\n" +
+            "namespace Company.App\r\n" +
+            "{\r\n" +
+            "    #region Types\r\n" +
+            "    /// <summary>A record.</summary>\r\n" +
+            "    public record Person(string Name);\r\n" +
+            "\r\n" +
+            "    public readonly record struct Point(int X, int Y);\r\n" +
+            "\r\n" +
+            "    [Obsolete(\"namespace X { }\")]\r\n" +
+            "    public partial class Repo<T> where T : class, new()\r\n" +
+            "    {\r\n" +
+            "#pragma warning disable CS0169\r\n" +
+            "        private T _item;\r\n" +
+            "#pragma warning restore CS0169\r\n" +
+            "\r\n" +
+            "        public string Describe(int x) => $\"{x}: }} namespace {{\";\r\n" +
+            "\r\n" +
+            "        public async Task<int> RunAsync()\r\n" +
+            "        {\r\n" +
+            "            Func<int, Task<int>> twice = async value => { await Task.Yield(); return value * 2; };\r\n" +
+            "            int Local(int y) => y + 1;\r\n" +
+            "            return Local(await twice(1));\r\n" +
+            "        }\r\n" +
+            "\r\n" +
+            "        public class Nested { }\r\n" +
+            "    }\r\n" +
+            "\r\n" +
+            "    public partial class Repo<T>\r\n" +
+            "    {\r\n" +
+            "    }\r\n" +
+            "    #endregion\r\n" +
+            "}\r\n";
+        string expected =
+            "// <copyright file=\"Target.cs\">header</copyright>\r\n" +
+            "using System;\r\n" +
+            "using System.Threading.Tasks;\r\n" +
+            "\r\n" +
+            "namespace Company.App;\r\n" +
+            "\r\n" +
+            "#region Types\r\n" +
+            "/// <summary>A record.</summary>\r\n" +
+            "public record Person(string Name);\r\n" +
+            "\r\n" +
+            "public readonly record struct Point(int X, int Y);\r\n" +
+            "\r\n" +
+            "[Obsolete(\"namespace X { }\")]\r\n" +
+            "public partial class Repo<T> where T : class, new()\r\n" +
+            "{\r\n" +
+            "#pragma warning disable CS0169\r\n" +
+            "    private T _item;\r\n" +
+            "#pragma warning restore CS0169\r\n" +
+            "\r\n" +
+            "    public string Describe(int x) => $\"{x}: }} namespace {{\";\r\n" +
+            "\r\n" +
+            "    public async Task<int> RunAsync()\r\n" +
+            "    {\r\n" +
+            "        Func<int, Task<int>> twice = async value => { await Task.Yield(); return value * 2; };\r\n" +
+            "        int Local(int y) => y + 1;\r\n" +
+            "        return Local(await twice(1));\r\n" +
+            "    }\r\n" +
+            "\r\n" +
+            "    public class Nested { }\r\n" +
+            "}\r\n" +
+            "\r\n" +
+            "public partial class Repo<T>\r\n" +
+            "{\r\n" +
+            "}\r\n" +
+            "#endregion\r\n";
+        const string IsExternalInit = "namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }\r\n";
+
+        string result = _converter.ConvertToFileScoped(input);
+
+        Assert.AreEqual(expected, result);
+        await AssertCompilesAsync(CompilingTestProject.CreateDocument(input, IsExternalInit), result);
+        Assert.AreEqual(
+            input.Replace("    #region Types\r\n", "#region Types\r\n").Replace("    #endregion\r\n", "#endregion\r\n"),
+            _converter.ConvertToBlockScoped(result));
     }
 
     private static Document CreateDebugDocument(string source)

@@ -174,8 +174,5 @@ public sealed class AiResultViewModel : Bindable
     /// the RequestClose event with the current instance as sender to signal a close request.
     /// </summary>
     /// <param name="parameter">The parameter.</param>
-    private void OnClose(object parameter)
-    {
-        RequestClose?.Invoke(this, EventArgs.Empty);
-    }
+    private void OnClose(object parameter) => RequestClose?.Invoke(this, EventArgs.Empty);
 }

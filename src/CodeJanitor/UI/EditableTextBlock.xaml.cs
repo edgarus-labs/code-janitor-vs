@@ -86,10 +86,7 @@ public partial class EditableTextBlock
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-    private void OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        IsEditing = !IsEditing;
-    }
+    private void OnMouseDoubleClick(object sender, MouseButtonEventArgs e) => IsEditing = !IsEditing;
 
     /// <summary>
     /// Handles the <see cref="OnKeyDown"/> event.
@@ -118,8 +115,5 @@ public partial class EditableTextBlock
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments.</param>
-    private void OnLostFocus(object sender, RoutedEventArgs e)
-    {
-        IsEditing = false;
-    }
+    private void OnLostFocus(object sender, RoutedEventArgs e) => IsEditing = false;
 }

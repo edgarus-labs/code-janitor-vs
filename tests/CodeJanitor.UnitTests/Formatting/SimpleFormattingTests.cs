@@ -12,17 +12,11 @@ namespace CodeJanitor.UnitTests.Formatting;
 public sealed class SimpleFormattingTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]
-    public void SimpleFormattingTests_DoesNotCreateText()
-    {
-        CommentFormatHelper.AssertEqualAfterFormat(string.Empty, string.Empty);
-    }
+    public void SimpleFormattingTests_DoesNotCreateText() => CommentFormatHelper.AssertEqualAfterFormat(string.Empty, string.Empty);
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]

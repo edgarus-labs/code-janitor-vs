@@ -11,10 +11,7 @@ namespace CodeJanitor.UnitTests.Helpers;
 public sealed class CodeItemTypeComparerTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     [TestMethod]
     public void ShouldSortItemsOfTheSameTypeByName()

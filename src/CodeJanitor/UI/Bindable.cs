@@ -24,7 +24,10 @@ public abstract class Bindable : INotifyPropertyChanged
     /// <returns>The property value if set, otherwise the default for its type.</returns>
     protected T GetPropertyValue<T>([CallerMemberName] string propertyName = null)
     {
-        if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
+        if (propertyName is null)
+        {
+            throw new ArgumentNullException(nameof(propertyName));
+        }
 
         if (_propertyBackingDictionary.TryGetValue(propertyName, out var value))
         {
@@ -44,9 +47,15 @@ public abstract class Bindable : INotifyPropertyChanged
     /// <returns>True if the value was changed, otherwise false.</returns>
     protected bool SetPropertyValue<T>(T newValue, [CallerMemberName] string propertyName = null)
     {
-        if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
+        if (propertyName is null)
+        {
+            throw new ArgumentNullException(nameof(propertyName));
+        }
 
-        if (EqualityComparer<T>.Default.Equals(newValue, GetPropertyValue<T>(propertyName))) return false;
+        if (EqualityComparer<T>.Default.Equals(newValue, GetPropertyValue<T>(propertyName)))
+        {
+            return false;
+        }
 
         _propertyBackingDictionary[propertyName] = newValue;
         RaisePropertyChanged(propertyName);
@@ -82,7 +91,10 @@ public abstract class Bindable : INotifyPropertyChanged
     /// <param name="propertyName">The name of the property.</param>
     protected void RaisePropertyChanged([CallerMemberName] string propertyName = null)
     {
-        if (propertyName is null) throw new ArgumentNullException(nameof(propertyName));
+        if (propertyName is null)
+        {
+            throw new ArgumentNullException(nameof(propertyName));
+        }
 
         var propertyChanged = PropertyChanged;
         if (propertyChanged is not null)

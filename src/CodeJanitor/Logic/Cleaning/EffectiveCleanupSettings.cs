@@ -21,6 +21,7 @@ internal sealed class EffectiveCleanupSettings
     private const string ConvertToFileScopedNamespaceSetting = "Cleaning_ConvertToFileScopedNamespace";
     private const string MoveUsingsOutsideNamespaceSetting = "Cleaning_MoveUsingsOutsideNamespace";
     private const string FileHeaderSetting = "Cleaning_UpdateFileHeaderCSharp";
+    private const string MakeFieldsReadonlySetting = "Cleaning_MakeFieldsReadonlyWhenSafe";
     private const int DefaultTabSize = 4;
     private const int DefaultIndentSize = 4;
 
@@ -220,10 +221,7 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name.</param>
     /// <returns>The effective value.</returns>
-    internal int GetInt32(string settingName)
-    {
-        return _repositoryOverrides.TryGetInt32(settingName, (int)Settings.Default[settingName]);
-    }
+    internal int GetInt32(string settingName) => _repositoryOverrides.TryGetInt32(settingName, (int)Settings.Default[settingName]);
 
     /// <summary>
     /// Records the boolean settings defined by plain .editorconfig options, which have no Roslyn rule counterpart.
@@ -401,6 +399,14 @@ internal sealed class EffectiveCleanupSettings
             overrides[rule.Key] = value + ":none";
         }
 
+        // "Make fields readonly" is Roslyn's IDE0044, whose semantic analysis sees every write, ref use and struct copy.
+        // .editorconfig, when it enforces the rule, reports it itself.
+        if (!_editorConfigKeys.ContainsKey(MakeFieldsReadonlySetting) && GetBoolean(MakeFieldsReadonlySetting))
+        {
+            overrides["dotnet_style_readonly_field"] = "true:suggestion";
+            overrides["dotnet_diagnostic.IDE0044.severity"] = "suggestion";
+        }
+
         return overrides;
     }
 
@@ -499,10 +505,7 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="key">The .editorconfig option name.</param>
     /// <returns>The value, or null when the option is undefined, not a positive integer or ignored.</returns>
-    private int? ReadPositiveInteger(string key)
-    {
-        return TryReadOption(key, ParsePositiveInteger, out var value) ? value : null;
-    }
+    private int? ReadPositiveInteger(string key) => TryReadOption(key, ParsePositiveInteger, out var value) ? value : null;
 
     /// <summary>
     /// Reads a plain .editorconfig option (one without a Roslyn rule) in the <c>value[:severity]</c> form.
@@ -688,10 +691,7 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="severity">The recognized severity suffix, or null without one.</param>
     /// <returns>True without a suffix or for <c>suggestion</c> or higher.</returns>
-    private static bool IsEnforcing(string severity)
-    {
-        return severity is null || (TryParseSeverity(severity, out var enforced) && enforced);
-    }
+    private static bool IsEnforcing(string severity) => severity is null || (TryParseSeverity(severity, out var enforced) && enforced);
 
     /// <summary>
     /// Parses an .editorconfig option severity suffix.
@@ -728,50 +728,35 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The parsed value, or null when unrecognized.</returns>
-    private static bool? ParseBoolean(string value)
-    {
-        return bool.TryParse(value, out var parsed) ? parsed : null;
-    }
+    private static bool? ParseBoolean(string value) => bool.TryParse(value, out var parsed) ? parsed : null;
 
     /// <summary>
     /// Parses <c>true</c> or <c>false</c> and inverts it, for options that allow what the cleanup step removes.
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The inverted value, or null when unrecognized.</returns>
-    private static bool? ParseInvertedBoolean(string value)
-    {
-        return bool.TryParse(value, out var parsed) ? !parsed : null;
-    }
+    private static bool? ParseInvertedBoolean(string value) => bool.TryParse(value, out var parsed) ? !parsed : null;
 
     /// <summary>
     /// Parses an expression body preference such as <c>csharp_style_expression_bodied_lambdas</c>.
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>True when expression bodies are preferred (always or on a single line), false when not, or null when unrecognized.</returns>
-    private static bool? ParseExpressionBodyPreference(string value)
-    {
-        return string.Equals(value, "when_on_single_line", StringComparison.OrdinalIgnoreCase) ? true : ParseBoolean(value);
-    }
+    private static bool? ParseExpressionBodyPreference(string value) => string.Equals(value, "when_on_single_line", StringComparison.OrdinalIgnoreCase) ? true : ParseBoolean(value);
 
     /// <summary>
     /// Parses a positive integer.
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>The parsed value, or null when not a positive integer.</returns>
-    private static int? ParsePositiveInteger(string value)
-    {
-        return int.TryParse(value, out var parsed) && parsed > 0 ? parsed : null;
-    }
+    private static int? ParsePositiveInteger(string value) => int.TryParse(value, out var parsed) && parsed > 0 ? parsed : null;
 
     /// <summary>
     /// Parses the <c>tab</c> value of <c>indent_size</c>.
     /// </summary>
     /// <param name="value">The option value.</param>
     /// <returns>True for <c>tab</c>, or null otherwise.</returns>
-    private static bool? ParseTabKeyword(string value)
-    {
-        return string.Equals(value, "tab", StringComparison.OrdinalIgnoreCase) ? true : null;
-    }
+    private static bool? ParseTabKeyword(string value) => string.Equals(value, "tab", StringComparison.OrdinalIgnoreCase) ? true : null;
 
     /// <summary>
     /// Parses <c>dotnet_style_prefer_collection_expression</c>.

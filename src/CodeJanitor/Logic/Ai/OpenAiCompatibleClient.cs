@@ -140,9 +140,20 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
             if (ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && bytes.Length == 4)
             {
                 // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-                if (bytes[0] == 10) return true;
-                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
-                if (bytes[0] == 192 && bytes[1] == 168) return true;
+                if (bytes[0] == 10)
+                {
+                    return true;
+                }
+
+                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+                {
+                    return true;
+                }
+
+                if (bytes[0] == 192 && bytes[1] == 168)
+                {
+                    return true;
+                }
             }
         }
 
@@ -731,10 +742,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// </summary>
     /// <param name="statusCode">The status code.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool IsTransientStatusCode(int statusCode)
-    {
-        return statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599);
-    }
+    private static bool IsTransientStatusCode(int statusCode) => statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599);
 
     private async Task<string> PrepareAuthenticationAsync()
     {
@@ -786,10 +794,7 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <param name="userPrompt">The user prompt.</param>
     /// <param name="maxTokens">The max tokens.</param>
     /// <returns>A string value produced by this method.</returns>
-    private string BuildRequestJson(string userPrompt, int maxTokens)
-    {
-        return BuildRequestJson(userPrompt, maxTokens, null);
-    }
+    private string BuildRequestJson(string userPrompt, int maxTokens) => BuildRequestJson(userPrompt, maxTokens, null);
 
     /// <summary>
     /// Builds and returns a serialized OpenAI-compatible chat completion request JSON string from the supplied prompt, token limit, and optional system prompt, applying a fallback default system message, a fixed low temperature of 0.2, non-streaming mode, and conditionally appending a `model` field and a `num_ctx` context-window hint when targeting a local endpoint.
@@ -1345,7 +1350,10 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
     /// <param name="generalBuilder">The general builder.</param>
     private static void ExtractStreamChunkPiece(object node, StringBuilder contentBuilder, StringBuilder reasoningBuilder, StringBuilder generalBuilder)
     {
-        if (node is null) return;
+        if (node is null)
+        {
+            return;
+        }
 
         if (node is string s)
         {

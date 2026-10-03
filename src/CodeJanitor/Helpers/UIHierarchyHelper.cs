@@ -27,7 +27,10 @@ internal static class UIHierarchyHelper
             throw new ArgumentNullException(nameof(parentItem));
         }
 
-        if (!parentItem.UIHierarchyItems.Expanded) return;
+        if (!parentItem.UIHierarchyItems.Expanded)
+        {
+            return;
+        }
 
         // Recurse to all children first.
         foreach (UIHierarchyItem childItem in parentItem.UIHierarchyItems)

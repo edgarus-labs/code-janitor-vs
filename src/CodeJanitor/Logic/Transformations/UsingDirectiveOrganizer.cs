@@ -27,10 +27,7 @@ public sealed class UsingDirectiveOrganizer : IUsingDirectiveOrganizer, ISourceT
     public string Name => "Sort using directives";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Organize(source);
-    }
+    public string Apply(string source) => Organize(source);
 
     /// <inheritdoc />
     public string Organize(string source)

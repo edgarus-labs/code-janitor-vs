@@ -157,8 +157,5 @@ public sealed class TreeViewBindableSelectedItemBehavior : Behavior<TreeView>
     /// The <see cref="System.Windows.RoutedPropertyChangedEventArgs&lt;Object&gt;" /> instance
     /// containing the event data.
     /// </param>
-    private void OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-    {
-        SelectedItem = e.NewValue;
-    }
+    private void OnSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) => SelectedItem = e.NewValue;
 }

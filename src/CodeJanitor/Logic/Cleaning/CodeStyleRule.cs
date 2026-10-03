@@ -79,6 +79,7 @@ internal sealed class CodeStyleRule
     internal string Normalize(string value)
     {
         var trimmed = value?.Trim();
+
         return Values.FirstOrDefault(entry => string.Equals(entry, trimmed, StringComparison.OrdinalIgnoreCase)) ?? trimmed;
     }
 }

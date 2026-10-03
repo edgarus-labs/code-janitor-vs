@@ -62,10 +62,7 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// <summary>
     /// Called to execute the command.
     /// </summary>
-    protected virtual void OnExecute()
-    {
-        OutputWindowHelper.InfoWriteLine($"{GetType().Name}.OnExecute invoked");
-    }
+    protected virtual void OnExecute() => OutputWindowHelper.InfoWriteLine($"{GetType().Name}.OnExecute invoked");
 
     /// <summary>
     /// Handles the BeforeQueryStatus event of the BaseCommand control.

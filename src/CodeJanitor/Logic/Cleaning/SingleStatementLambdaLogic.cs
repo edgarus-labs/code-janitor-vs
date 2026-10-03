@@ -22,10 +22,7 @@ internal sealed class SingleStatementLambdaLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SingleStatementLambdaLogic" /> class.</returns>
-    internal static SingleStatementLambdaLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new SingleStatementLambdaLogic(package));
-    }
+    internal static SingleStatementLambdaLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new SingleStatementLambdaLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SingleStatementLambdaLogic" /> class.

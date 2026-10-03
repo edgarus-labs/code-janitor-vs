@@ -15,10 +15,7 @@ public sealed class RemoveFinalNewlineConverter : ISourceTransformation
     public string Name => "Remove final newline";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Convert(source);
-    }
+    public string Apply(string source) => Convert(source);
 
     /// <summary>
     /// Removes the line breaks, and the blank lines between them, at the end of the given source.

@@ -11,17 +11,11 @@ namespace CodeJanitor.UnitTests.Formatting;
 public sealed class IgnorePrefixesTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]
-    public void IgnorePrefixesTests_DoesNotWrapSingleLine()
-    {
-        CommentFormatHelper.AssertEqualAfterFormat(@"TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", o => o.WrapColumn = 30);
-    }
+    public void IgnorePrefixesTests_DoesNotWrapSingleLine() => CommentFormatHelper.AssertEqualAfterFormat(@"TODO: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", o => o.WrapColumn = 30);
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]

@@ -99,6 +99,28 @@ public sealed record CreateRecipeCommand(
     }
 
     [TestMethod]
+    public void GenerateXmlDocumentationForSource_SourceWithLf_InsertsOnlyLf()
+    {
+        string source = "namespace Demo;\n\npublic class Sample\n{\n    public int Get(int x)\n    {\n        return x;\n    }\n}\n";
+
+        string updated = InvokeGenerateXmlDocumentation(source, _ => "Gets a value.", 10);
+
+        Assert.Contains("/// <summary>", updated);
+        Assert.DoesNotContain("\r", updated);
+    }
+
+    [TestMethod]
+    public void GenerateXmlDocumentationForSource_SourceWithCrLf_InsertsOnlyCrLf()
+    {
+        string source = "namespace Demo;\r\n\r\npublic class Sample\r\n{\r\n    public int Get(int x)\r\n    {\r\n        return x;\r\n    }\r\n}\r\n";
+
+        string updated = InvokeGenerateXmlDocumentation(source, _ => "Gets a value.", 10);
+
+        Assert.Contains("/// <summary>", updated);
+        Assert.AreEqual(updated.Split('\n').Length - 1, updated.Split(new[] { "\r\n" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [TestMethod]
     public void NormalizeSentence_StripsThinkingProcessAndDraftsFromReasoningModels()
     {
         string rawThinking = "Thinking Process: 1. **Analyze the Request:** * Input: C# type information. 2. **Determine Meaning:** Interface for CQRS. 3. **Drafting:** * Draft 1: Represents a command. * Draft 2: Defines a command contract.";

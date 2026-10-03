@@ -614,6 +614,7 @@
     <Compile Include="Helpers\CursorPositionRestorer.cs" />
     <Compile Include="Helpers\DocumentExtensions.cs" />
     <Compile Include="Helpers\EditorConfigHelper.cs" />
+    <Compile Include="Helpers\FileTextStyle.cs" />
     <Compile Include="Helpers\EditPointExtensions.cs" />
     <Compile Include="Helpers\EnumHelper.cs" />
     <Compile Include="Helpers\ExplicitInterfaceImplementationHelper.cs" />
@@ -742,10 +743,11 @@
     <Compile Include="Logic\Cleaning\TopLevelTypeSplitSkipReason.cs" />
     <Compile Include="Logic\Cleaning\TopLevelTypeToFileSplitFileProcessor.cs" />
     <Compile Include="Logic\Cleaning\TopLevelTypeToFileSplitPlanner.cs" />
-    <Compile Include="Logic\Cleaning\ReadonlyFieldLogic.cs" />
     <Compile Include="Logic\Cleaning\RazorFormatterLogic.cs" />
     <Compile Include="Logic\Cleaning\ReturnThrowBlankLinePaddingLogic.cs" />
+    <Compile Include="Logic\Cleaning\NullCheckPatternMatchingLogic.cs" />
     <Compile Include="Logic\Cleaning\SealedClassLogic.cs" />
+    <Compile Include="Logic\Cleaning\SemanticFileRewriter.cs" />
     <Compile Include="Logic\Cleaning\VarWhenApparentLogic.cs" />
     <Compile Include="Logic\Cleaning\InsertBlankLinePaddingLogic.cs" />
     <Compile Include="Logic\Cleaning\InsertExplicitAccessModifierLogic.cs" />
@@ -798,9 +800,7 @@
     <Compile Include="Logic\Transformations\UsingDirectivePlacementStatus.cs" />
     <Compile Include="Logic\Transformations\VarWhenApparentConverter.cs" />
     <Compile Include="Logic\Transformations\IFieldMutabilityConverter.cs" />
-    <Compile Include="Logic\Transformations\ReadonlyFieldConverter.cs" />
-    <Compile Include="Logic\Transformations\IClassSealingConverter.cs" />
-    <Compile Include="Logic\Transformations\SealedClassConverter.cs" />
+    <Compile Include="Logic\Transformations\ClassSealingConverter.cs" />
     <Compile Include="Logic\Transformations\IUsingDirectiveOrganizer.cs" />
     <Compile Include="Logic\Transformations\UsingDirectiveOrganizer.cs" />
     <Compile Include="Logic\Transformations\ISourceTransformation.cs" />

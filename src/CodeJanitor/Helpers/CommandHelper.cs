@@ -22,10 +22,7 @@ public sealed class CommandHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CommandHelper" /> class.</returns>
-    internal static CommandHelper GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CommandHelper(package));
-    }
+    internal static CommandHelper GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CommandHelper(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CommandHelper" /> class.
@@ -44,7 +41,10 @@ public sealed class CommandHelper
     public Command FindCommand(params string[] commandNames)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (commandNames is null || commandNames.Length == 0) return null;
+        if (commandNames is null || commandNames.Length == 0)
+        {
+            return null;
+        }
 
         return _package.IDE.Commands.OfType<Command>().FirstOrDefault(x => commandNames.Contains(x.Name));
     }

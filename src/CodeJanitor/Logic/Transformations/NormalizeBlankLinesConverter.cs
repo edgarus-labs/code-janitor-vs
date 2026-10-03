@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.CSharp;
 using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Transformations;
@@ -7,6 +8,10 @@ namespace CodeJanitor.Logic.Transformations;
 /// for BL-018). Pure and unit-testable. Safe alongside <c>InsertBlankLinePaddingLogic</c>, which
 /// adds at most one blank line at a time.
 /// </summary>
+/// <remarks>
+/// Blank lines that are part of a token (a verbatim/raw/interpolated string literal spanning lines)
+/// are content, not layout, and are never collapsed.
+/// </remarks>
 public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 {
     // Matches 3+ consecutive newlines (= 2+ blank lines), where intermediate lines may contain
@@ -15,14 +20,16 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
     private static readonly Regex _excessiveBlankLines =
         new Regex(@"\r?\n([^\S\r\n]*\r?\n){2,}", RegexOptions.Compiled);
 
+    // Matches 2+ blank lines at the very start of the file (no preceding line break).
+
+    private static readonly Regex _excessiveLeadingBlankLines =
+        new Regex(@"\A([^\S\r\n]*\r?\n){2,}", RegexOptions.Compiled);
+
     /// <inheritdoc />
     public string Name => "Normalize blank lines";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Normalize(source);
-    }
+    public string Apply(string source) => Normalize(source);
 
     /// <summary>
     /// Collapses any run of two or more consecutive blank lines to a single blank line.
@@ -34,13 +41,38 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
             return source;
         }
 
+        var result = _excessiveLeadingBlankLines.Replace(source, m => NewLineOf(m));
+        if (!_excessiveBlankLines.IsMatch(result))
+        {
+            return result;
+        }
+
+        // A run can only lie inside a token when that token is a multi-line string literal; since
+        // a run consists of whitespace and line breaks only, checking its first position suffices.
+
+        var root = CSharpSyntaxTree.ParseText(result).GetRoot();
+
+        // String literals of inactive #if branches are found by parsing each branch as a whole.
+        var literalSpans = root.ContainsDirectives ? RegionDirectiveRemover.FindMultiLineLiteralSpans(result) : null;
+
         // MatchEvaluator ensures the replacement uses the file's own line-ending style.
 
-        return _excessiveBlankLines.Replace(source, m =>
+        return _excessiveBlankLines.Replace(result, m =>
         {
-            var nl = m.Value.Contains("\r\n") ? "\r\n" : "\n";
+            if (root.FindToken(m.Index).Span.Contains(m.Index) ||
+                (literalSpans is not null && RegionDirectiveRemover.StartsInside(literalSpans, m.Index)))
+            {
+                return m.Value;
+            }
+
+            var nl = NewLineOf(m);
 
             return nl + nl;
         });
     }
+
+    /// <summary>
+    /// Returns the line break used in a matched run: CRLF when the run contains one, LF otherwise.
+    /// </summary>
+    private static string NewLineOf(Match match) => match.Value.Contains("\r\n") ? "\r\n" : "\n";
 }

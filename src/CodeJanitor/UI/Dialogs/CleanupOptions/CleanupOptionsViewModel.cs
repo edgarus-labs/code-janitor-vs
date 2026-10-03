@@ -84,10 +84,7 @@ internal sealed class CleanupOptionsViewModel : Bindable
     /// <summary>
     /// Persists temporary UI values into the temporary settings object.
     /// </summary>
-    internal void SaveTemporarySettings()
-    {
-        TemporaryCleaningSettingsViewModel.SaveSettings();
-    }
+    internal void SaveTemporarySettings() => TemporaryCleaningSettingsViewModel.SaveSettings();
 
     /// <summary>
     /// Creates a shallow copy of the source Settings object by copying all property values to a new instance, with no detected exceptions or side effects.

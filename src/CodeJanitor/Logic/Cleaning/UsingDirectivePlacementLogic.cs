@@ -39,10 +39,7 @@ internal sealed class UsingDirectivePlacementLogic
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A UsingDirectivePlacementLogic value produced by this method.</returns>
-    internal static UsingDirectivePlacementLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new UsingDirectivePlacementLogic(package));
-    }
+    internal static UsingDirectivePlacementLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new UsingDirectivePlacementLogic(package));
 
     private UsingDirectivePlacementLogic(CodeJanitorPackage package)
     {
@@ -154,12 +151,7 @@ internal sealed class UsingDirectivePlacementLogic
         Encoding encoding;
         try
         {
-            // Without a byte order mark the file is written back without one.
-            using (var reader = new StreamReader(filePath, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true))
-            {
-                originalText = await reader.ReadToEndAsync();
-                encoding = reader.CurrentEncoding;
-            }
+            originalText = FileTextStyle.ReadAllText(filePath, out encoding);
         }
         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
         {
@@ -181,7 +173,7 @@ internal sealed class UsingDirectivePlacementLogic
 
         try
         {
-            File.WriteAllText(filePath, movedText, encoding);
+            FileTextStyle.WriteAllText(filePath, movedText, encoding, originalText);
 
             return UsingsMoveOutcome.Moved;
         }

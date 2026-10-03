@@ -129,10 +129,7 @@ internal sealed class CommentLineXml : CommentLine
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool StartsWithInterpunction(string value)
-    {
-        return InterpunctionRegex.IsMatch(value);
-    }
+    private static bool StartsWithInterpunction(string value) => InterpunctionRegex.IsMatch(value);
 
     /// <summary>
     /// Returns the tag converted to lowercase or uppercase using invariant culture based on tagCase, or the original tag if no case conversion is requested, with no side effects or exceptions.
@@ -168,11 +165,15 @@ internal sealed class CommentLineXml : CommentLine
     {
         // All root level elements are always on their own line.
         if (e.Parent is null || e.Parent.Parent is null)
+        {
             return true;
+        }
 
         // Some special tags should also always be their own line.
         if (_formatterOptions.Xml.Tags.ContainsKey(e.Name.LocalName))
+        {
             return true;
+        }
 
         return false;
     }

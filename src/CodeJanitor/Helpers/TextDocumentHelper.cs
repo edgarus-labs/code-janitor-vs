@@ -173,7 +173,10 @@ internal static class TextDocumentHelper
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (point.Line <= 1) return;
+        if (point.Line <= 1)
+        {
+            return;
+        }
 
         point.LineUp(1);
         point.StartOfLine();
@@ -194,7 +197,10 @@ internal static class TextDocumentHelper
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (point.AtEndOfDocument) return;
+        if (point.AtEndOfDocument)
+        {
+            return;
+        }
 
         point.LineDown(1);
         point.StartOfLine();
@@ -217,7 +223,10 @@ internal static class TextDocumentHelper
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
-        if (textDocument is null) return;
+        if (textDocument is null)
+        {
+            return;
+        }
 
         try
         {
@@ -271,7 +280,10 @@ internal static class TextDocumentHelper
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
-        if (textDocument is null) return;
+        if (textDocument is null)
+        {
+            return;
+        }
 
         try
         {

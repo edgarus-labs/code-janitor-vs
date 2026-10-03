@@ -26,6 +26,7 @@ public sealed class ClosedFileWriteTests
     {
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n");
     }
 
     [TestCleanup]
@@ -35,6 +36,32 @@ public sealed class ClosedFileWriteTests
         {
             Directory.Delete(_tempDirectory, true);
         }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void SemanticFileRewriter_FileEditedDuringTheAnalysis_IsNotOverwritten()
+    {
+        string filePath = WriteFile("class Edited { }", new UTF8Encoding(false));
+        string reason = null;
+
+        bool written = SemanticFileRewriter.TryWriteRewrittenText(filePath, "class C { }", "sealed class C { }", notWritten => reason = notWritten);
+
+        Assert.IsFalse(written);
+        Assert.AreEqual("class Edited { }", File.ReadAllText(filePath));
+        Assert.IsNotNull(reason, "The user must be told why the file was left unchanged.");
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void SemanticFileRewriter_UnchangedFile_IsRewrittenKeepingItsByteOrderMark()
+    {
+        string filePath = WriteFile("class C { }", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        bool written = SemanticFileRewriter.TryWriteRewrittenText(filePath, "class C { }", "sealed class C { }", _ => Assert.Fail("The file must be written."));
+
+        Assert.IsTrue(written);
+        Assert.AreSequenceEqual(new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes("sealed class C { }")).ToArray(), File.ReadAllBytes(filePath));
     }
 
     [TestMethod]

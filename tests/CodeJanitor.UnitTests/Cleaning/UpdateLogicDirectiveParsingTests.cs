@@ -112,26 +112,14 @@ public sealed class UpdateLogicDirectiveParsingTests
     }
 
     [TestMethod]
-    public void BuildDirectiveNameSuffix_ReturnsEmpty_ForEmptyName()
-    {
-        Assert.AreEqual(string.Empty, UpdateLogic.BuildDirectiveNameSuffix(string.Empty));
-    }
+    public void BuildDirectiveNameSuffix_ReturnsEmpty_ForEmptyName() => Assert.AreEqual(string.Empty, UpdateLogic.BuildDirectiveNameSuffix(string.Empty));
 
     [TestMethod]
-    public void BuildDirectiveNameSuffix_PrependsSingleSpace_ForNonEmptyName()
-    {
-        Assert.AreEqual(" MyRegion", UpdateLogic.BuildDirectiveNameSuffix("MyRegion"));
-    }
+    public void BuildDirectiveNameSuffix_PrependsSingleSpace_ForNonEmptyName() => Assert.AreEqual(" MyRegion", UpdateLogic.BuildDirectiveNameSuffix("MyRegion"));
 
     [TestMethod]
-    public void BuildDirectiveNameSuffix_ReturnsEmpty_ForWhitespaceOnlyName()
-    {
-        Assert.AreEqual(string.Empty, UpdateLogic.BuildDirectiveNameSuffix("   \t  "));
-    }
+    public void BuildDirectiveNameSuffix_ReturnsEmpty_ForWhitespaceOnlyName() => Assert.AreEqual(string.Empty, UpdateLogic.BuildDirectiveNameSuffix("   \t  "));
 
     [TestMethod]
-    public void BuildDirectiveNameSuffix_TrimsNonEmptyName()
-    {
-        Assert.AreEqual(" MyRegion", UpdateLogic.BuildDirectiveNameSuffix("  MyRegion  "));
-    }
+    public void BuildDirectiveNameSuffix_TrimsNonEmptyName() => Assert.AreEqual(" MyRegion", UpdateLogic.BuildDirectiveNameSuffix("  MyRegion  "));
 }

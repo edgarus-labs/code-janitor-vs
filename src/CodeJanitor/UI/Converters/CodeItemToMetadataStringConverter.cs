@@ -39,7 +39,10 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var codeItem = value as BaseCodeItemElement;
-        if (codeItem is null) return string.Empty;
+        if (codeItem is null)
+        {
+            return string.Empty;
+        }
 
         try
         {
@@ -90,10 +93,7 @@ public sealed class CodeItemToMetadataStringConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
     /// <summary>
     /// Generates metadata strings for the specified element.

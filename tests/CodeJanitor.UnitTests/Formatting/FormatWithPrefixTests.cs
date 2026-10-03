@@ -10,10 +10,7 @@ namespace CodeJanitor.UnitTests.Formatting;
 public sealed class FormatWithPrefixTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]

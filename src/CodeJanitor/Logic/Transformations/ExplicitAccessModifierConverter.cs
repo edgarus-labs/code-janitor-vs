@@ -76,9 +76,26 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
             var visited = (ClassDeclarationSyntax)base.VisitClassDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses)))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Keyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
 
@@ -93,9 +110,26 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitStructDeclaration(StructDeclarationSyntax node)
         {
             var visited = (StructDeclarationSyntax)base.VisitStructDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs))) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs)))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Keyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
 
@@ -110,9 +144,26 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitInterfaceDeclaration(InterfaceDeclarationSyntax node)
         {
             var visited = (InterfaceDeclarationSyntax)base.VisitInterfaceDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces))) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces)))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Keyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
 
@@ -127,8 +178,21 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEnumDeclaration(EnumDeclarationSyntax node)
         {
             var visited = (EnumDeclarationSyntax)base.VisitEnumDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations))) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations)))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.EnumKeyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
 
@@ -136,16 +200,39 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         }
 
         /// <summary>
-        /// Visits a record declaration, and if the setting for explicit access modifiers on classes is enabled and the record lacks an access modifier or is not partial, returns a modified node with a default access modifier prepended and the keyword&apos;s leading trivia cleared; otherwise returns the base-visited node unchanged.
+        /// Visits a record declaration and, when the setting of its kind is enabled (structs for a <c>record struct</c>,
+        /// classes for a <c>record</c>/<c>record class</c>) and the record lacks an access modifier and is not partial,
+        /// returns a modified node with a default access modifier prepended and the keyword&apos;s leading trivia cleared;
+        /// otherwise returns the base-visited node unchanged.
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
         public override SyntaxNode VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             var visited = (RecordDeclarationSyntax)base.VisitRecordDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            var settingName = node.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword)
+                ? nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs)
+                : nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses);
+            if (!_settings.GetBoolean(settingName))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.ClassOrStructKeyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
 
@@ -160,8 +247,21 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitDelegateDeclaration(DelegateDeclarationSyntax node)
         {
             var visited = (DelegateDeclarationSyntax)base.VisitDelegateDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates))) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates)))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.DelegateKeyword);
             var newMods = PrependModifier(visited.Modifiers, DefaultAccessFor(node), leading, out _);
 
@@ -178,10 +278,31 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
             var visited = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields))) return visited;
-            if (!(node.Parent is TypeDeclarationSyntax)) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.FixedKeyword)) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax))
+            {
+                return visited;
+            }
+
+            if (IsNestedInInterface(node))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.FixedKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Declaration.Type);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -197,12 +318,36 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             var visited = (MethodDeclarationSyntax)base.VisitMethodDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods))) return visited;
-            if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
-            if (parentType is InterfaceDeclarationSyntax) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword)) return visited;
-            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax parentType))
+            {
+                return visited;
+            }
+
+            if (parentType is InterfaceDeclarationSyntax)
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
+            if (visited.ExplicitInterfaceSpecifier is not null)
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.ReturnType);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -217,10 +362,31 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
             var visited = (ConstructorDeclarationSyntax)base.VisitConstructorDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods))) return visited;
-            if (!(node.Parent is TypeDeclarationSyntax)) return visited;
-            if (HasModifier(visited.Modifiers, SyntaxKind.StaticKeyword)) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.StaticKeyword))
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Identifier);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -232,10 +398,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns>A SyntaxNode value produced by this method.</returns>
-        public override SyntaxNode VisitDestructorDeclaration(DestructorDeclarationSyntax node)
-        {
-            return base.VisitDestructorDeclaration(node);
-        }
+        public override SyntaxNode VisitDestructorDeclaration(DestructorDeclarationSyntax node) => base.VisitDestructorDeclaration(node);
 
         /// <summary>
         /// This method visits a property declaration and, when the setting is enabled, adds an explicit `private` access modifier to properties lacking one in non-interface types (skipping explicit interface implementations), while clearing the type&apos;s leading trivia.
@@ -245,11 +408,82 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             var visited = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties))) return visited;
-            if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
-            if (parentType is InterfaceDeclarationSyntax) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax parentType))
+            {
+                return visited;
+            }
+
+            if (parentType is InterfaceDeclarationSyntax)
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
+            if (visited.ExplicitInterfaceSpecifier is not null)
+            {
+                return visited;
+            }
+
+            var leading = FirstLeadingTrivia(visited.Modifiers, visited.Type);
+            var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
+
+            return visited.WithModifiers(newMods).WithType(visited.Type.WithLeadingTrivia(SyntaxTriviaList.Empty));
+        }
+
+        /// <summary>
+        /// Visits an indexer declaration and, like a property, adds an explicit <c>private</c> access modifier when the
+        /// properties setting is enabled and the indexer lacks one in a non-interface type (skipping explicit interface
+        /// implementations), while clearing the type&apos;s leading trivia.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>A SyntaxNode value produced by this method.</returns>
+        public override SyntaxNode VisitIndexerDeclaration(IndexerDeclarationSyntax node)
+        {
+            var visited = (IndexerDeclarationSyntax)base.VisitIndexerDeclaration(node);
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax parentType))
+            {
+                return visited;
+            }
+
+            if (parentType is InterfaceDeclarationSyntax)
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
+            if (visited.ExplicitInterfaceSpecifier is not null)
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Type);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -264,11 +498,36 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEventDeclaration(EventDeclarationSyntax node)
         {
             var visited = (EventDeclarationSyntax)base.VisitEventDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents))) return visited;
-            if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
-            if (parentType is InterfaceDeclarationSyntax) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
-            if (visited.ExplicitInterfaceSpecifier is not null) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax parentType))
+            {
+                return visited;
+            }
+
+            if (parentType is InterfaceDeclarationSyntax)
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
+            if (visited.ExplicitInterfaceSpecifier is not null)
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.EventKeyword);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -283,10 +542,31 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         public override SyntaxNode VisitEventFieldDeclaration(EventFieldDeclarationSyntax node)
         {
             var visited = (EventFieldDeclarationSyntax)base.VisitEventFieldDeclaration(node);
-            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents))) return visited;
-            if (!(node.Parent is TypeDeclarationSyntax parentType)) return visited;
-            if (parentType is InterfaceDeclarationSyntax) return visited;
-            if (HasAccessModifier(visited.Modifiers)) return visited;
+            if (!_settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents)))
+            {
+                return visited;
+            }
+
+            if (!(node.Parent is TypeDeclarationSyntax parentType))
+            {
+                return visited;
+            }
+
+            if (parentType is InterfaceDeclarationSyntax)
+            {
+                return visited;
+            }
+
+            if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.EventKeyword);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -296,7 +576,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         // ── Helpers ────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Returns true if the given modifier token list contains any access modifier keyword (public, internal, protected, or private), otherwise false, with no side effects.
+        /// Returns true if the given modifier token list contains any access modifier keyword (public, internal, protected, or private) or the file keyword, which excludes one, otherwise false, with no side effects.
         /// </summary>
         /// <param name="modifiers">The modifiers.</param>
         /// <returns>A bool value produced by this method.</returns>
@@ -306,8 +586,15 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
                 m.IsKind(SyntaxKind.PublicKeyword) ||
                 m.IsKind(SyntaxKind.InternalKeyword) ||
                 m.IsKind(SyntaxKind.ProtectedKeyword) ||
-                m.IsKind(SyntaxKind.PrivateKeyword));
+                m.IsKind(SyntaxKind.PrivateKeyword) ||
+                m.IsKind(SyntaxKind.FileKeyword));
         }
+
+        /// <summary>
+        /// Returns whether the declaration is a member of an interface, where types and fields are implicitly public
+        /// (and <c>private</c> is not allowed before C# 8), so no private default applies.
+        /// </summary>
+        private static bool IsNestedInInterface(MemberDeclarationSyntax node) => node.Parent is InterfaceDeclarationSyntax;
 
         /// <summary>
         /// Returns true if any modifier in the list matches the specified syntax kind, otherwise false, with no side effects.
@@ -315,10 +602,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// <param name="modifiers">The modifiers.</param>
         /// <param name="kind">The kind.</param>
         /// <returns>A bool value produced by this method.</returns>
-        private static bool HasModifier(SyntaxTokenList modifiers, SyntaxKind kind)
-        {
-            return modifiers.Any(m => m.IsKind(kind));
-        }
+        private static bool HasModifier(SyntaxTokenList modifiers, SyntaxKind kind) => modifiers.Any(m => m.IsKind(kind));
 
         /// <summary>Returns the default implicit access modifier for a declaration in its current context.</summary>
         private static SyntaxKind DefaultAccessFor(MemberDeclarationSyntax node)
@@ -329,10 +613,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         }
 
         /// <summary>Returns the leading trivia that belongs on the new first token of a declaration.</summary>
-        private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, SyntaxToken fallback)
-        {
-            return modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.LeadingTrivia;
-        }
+        private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, SyntaxToken fallback) => modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.LeadingTrivia;
 
         /// <summary>
         /// Returns the leading trivia of the first modifier token if modifiers exist, otherwise the leading trivia of the fallback type, with no side effects.
@@ -340,10 +621,7 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// <param name="modifiers">The modifiers.</param>
         /// <param name="fallback">The fallback.</param>
         /// <returns>A SyntaxTriviaList value produced by this method.</returns>
-        private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, TypeSyntax fallback)
-        {
-            return modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.GetLeadingTrivia();
-        }
+        private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, TypeSyntax fallback) => modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.GetLeadingTrivia();
 
         /// <summary>
         /// Builds a new modifier list with <paramref name="kind"/> prepended carrying

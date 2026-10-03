@@ -19,7 +19,7 @@ public static class PropertyInfoHelper<T>
     public static PropertyInfo GetPropertyInfo<TValue>(Expression<Func<T, TValue>> lambda)
     {
         return lambda.Body.NodeType == ExpressionType.MemberAccess
-                   ? ((MemberExpression)lambda.Body).Member as PropertyInfo
-                   : null;
+            ? ((MemberExpression)lambda.Body).Member as PropertyInfo
+            : null;
     }
 }

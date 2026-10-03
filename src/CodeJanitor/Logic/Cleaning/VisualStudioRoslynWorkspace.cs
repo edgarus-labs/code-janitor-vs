@@ -1,3 +1,4 @@
+using CodeJanitor.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -8,7 +9,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -253,13 +253,7 @@ internal sealed class VisualStudioRoslynWorkspace
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <returns>The file text.</returns>
-    internal static string ReadFileText(string filePath)
-    {
-        using (var reader = new StreamReader(filePath, detectEncodingFromByteOrderMarks: true))
-        {
-            return reader.ReadToEnd();
-        }
-    }
+    internal static string ReadFileText(string filePath) => FileTextStyle.ReadAllText(filePath, out _);
 
     /// <summary>
     /// Writes the new text of a closed file to disk, keeping its encoding and byte order mark, when the file still
@@ -276,13 +270,7 @@ internal sealed class VisualStudioRoslynWorkspace
             return ClosedFileWriteResult.NotWritable;
         }
 
-        string diskText;
-        Encoding encoding;
-        using (StreamReader reader = new StreamReader(filePath, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), detectEncodingFromByteOrderMarks: true))
-        {
-            diskText = reader.ReadToEnd();
-            encoding = reader.CurrentEncoding;
-        }
+        var diskText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
         if (!string.Equals(diskText, expectedText, StringComparison.Ordinal))
         {
@@ -291,7 +279,7 @@ internal sealed class VisualStudioRoslynWorkspace
 
         try
         {
-            File.WriteAllText(filePath, newText, encoding);
+            FileTextStyle.WriteAllText(filePath, newText, encoding, diskText);
         }
         catch (UnauthorizedAccessException)
         {

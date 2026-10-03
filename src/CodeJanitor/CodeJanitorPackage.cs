@@ -276,7 +276,10 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// </param>
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        if (!Settings.Default.General_DiagnosticsMode) return;
+        if (!Settings.Default.General_DiagnosticsMode)
+        {
+            return;
+        }
 
         OutputWindowHelper.ExceptionWriteLine("Diagnostics mode caught and marked as handled the following DispatcherUnhandledException raised in Visual Studio", e.Exception);
         e.Handled = true;
@@ -287,7 +290,10 @@ public sealed class CodeJanitorPackage : AsyncPackage
     /// </summary>
     private void OnSolutionClosedShowStartPage()
     {
-        if (!Settings.Default.General_ShowStartPageOnSolutionClose) return;
+        if (!Settings.Default.General_ShowStartPageOnSolutionClose)
+        {
+            return;
+        }
 
         IDE.ExecuteCommand("View.StartPage");
     }

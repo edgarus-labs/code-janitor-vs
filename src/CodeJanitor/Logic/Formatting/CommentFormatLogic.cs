@@ -36,7 +36,10 @@ internal sealed class CommentFormatLogic
     public void FormatComments(TextDocument textDocument)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!Settings.Default.Formatting_CommentRunDuringCleanup) return;
+        if (!Settings.Default.Formatting_CommentRunDuringCleanup)
+        {
+            return;
+        }
 
         FormatComments(textDocument, textDocument.StartPoint.CreateEditPoint(), textDocument.EndPoint.CreateEditPoint());
     }
@@ -99,8 +102,5 @@ internal sealed class CommentFormatLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CommentFormatLogic"/> class.</returns>
-    internal static CommentFormatLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CommentFormatLogic(package));
-    }
+    internal static CommentFormatLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CommentFormatLogic(package));
 }

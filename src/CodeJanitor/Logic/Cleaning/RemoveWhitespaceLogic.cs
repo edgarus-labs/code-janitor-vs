@@ -25,10 +25,7 @@ internal sealed class RemoveWhitespaceLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="RemoveWhitespaceLogic" /> class.</returns>
-    internal static RemoveWhitespaceLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new RemoveWhitespaceLogic(package));
-    }
+    internal static RemoveWhitespaceLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new RemoveWhitespaceLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RemoveWhitespaceLogic" /> class.
@@ -49,7 +46,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAtBottom))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAtBottom)))
+        {
+            return;
+        }
 
         EditPoint cursor = textDocument.EndPoint.CreateEditPoint();
         cursor.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
@@ -64,7 +64,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAtTop))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAtTop)))
+        {
+            return;
+        }
 
         EditPoint cursor = textDocument.StartPoint.CreateEditPoint();
         cursor.DeleteWhitespace(vsWhitespaceOptions.vsWhitespaceOptionsVertical);
@@ -79,7 +82,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAfterAttributes))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAfterAttributes)))
+        {
+            return;
+        }
 
         const string pattern = @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)";
         string replacement = @"$1" + Environment.NewLine;
@@ -118,7 +124,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAfterOpeningBrace))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesAfterOpeningBrace)))
+        {
+            return;
+        }
 
         const string pattern = @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}";
         string replacement = @"{$1" + Environment.NewLine;
@@ -135,7 +144,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingBrace))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingBrace)))
+        {
+            return;
+        }
 
         const string pattern = @"(\r?\n){2,}([ \t]*)\}";
         string replacement = Environment.NewLine + @"$2}";
@@ -152,7 +164,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingTags))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingTags)))
+        {
+            return;
+        }
 
         const string pattern = @"(\r?\n){2,}([ \t]*)</";
         string replacement = Environment.NewLine + @"$2</";
@@ -169,7 +184,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesBetweenChainedStatements))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankLinesBetweenChainedStatements)))
+        {
+            return;
+        }
 
         const string pattern = @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)";
         string replacement = Environment.NewLine + @"$2$3$4";
@@ -186,7 +204,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets)))
+        {
+            return;
+        }
 
         // Remove blank spaces before regular closing angle brackets.
         const string pattern = @"(\r?\n)*[ \t]+>\r?\n";
@@ -220,7 +241,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveEndOfLineWhitespace))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveEndOfLineWhitespace)))
+        {
+            return;
+        }
 
         const string pattern = @"[ \t]+\r?\n";
         string replacement = Environment.NewLine;
@@ -237,7 +261,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveMultipleConsecutiveBlankLines))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RemoveMultipleConsecutiveBlankLines)))
+        {
+            return;
+        }
 
         const string pattern = @"(\r?\n){3,}";
         string replacement = Environment.NewLine + Environment.NewLine;
@@ -256,7 +283,10 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (settings.InsertFinalNewline) return;
+        if (settings.InsertFinalNewline)
+        {
+            return;
+        }
 
         var startPoint = textDocument.StartPoint.CreateEditPoint();
         var originalText = startPoint.GetText(textDocument.EndPoint);

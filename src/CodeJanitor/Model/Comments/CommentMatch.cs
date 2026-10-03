@@ -99,19 +99,29 @@ internal sealed class CodeCommentMatch
     public bool TryAppend(CodeCommentMatch other)
     {
         if (other is null)
+        {
             return false;
+        }
 
         if (IsEmpty || other.IsEmpty)
+        {
             return false;
+        }
 
         if (other.IsList)
+        {
             return false;
+        }
 
         if (IsList && other.Indent < 1)
+        {
             return false;
+        }
 
         if (IsLiteral || other.IsLiteral)
+        {
             return false;
+        }
 
         Words.AddRange(other.Words);
         IsEmpty = Words.Count < 1;

@@ -109,18 +109,15 @@ public sealed class SourceTransformationPipelineTests
     [TestCategory("Transformations UnitTests")]
     public void AdaptedConverters_AreComposableInPipeline()
     {
-        // Verify that VarWhenApparentConverter, ReadonlyFieldConverter, SealedClassConverter,
-        // and FileScopedNamespaceConverter (which were adapted to implement ISourceTransformation)
+        // Verify that VarWhenApparentConverter and FileScopedNamespaceConverter
         // can be instantiated and composed in a pipeline with other blocks.
         SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
             new UsingDirectiveOrganizer(),
             new VarWhenApparentConverter(),
-            new ReadonlyFieldConverter(),
-            new SealedClassConverter(),
             new FileScopedNamespaceConverter());
 
-        // A simple example: namespace that gets converted to file-scoped. The var/readonly/sealed
-        // converters won't apply but should not disrupt the pipeline.
+        // A simple example: namespace that gets converted to file-scoped. The var
+        // converter won't apply but should not disrupt the pipeline.
         // FileScopedNamespaceConverter appends: header + "namespace N;" + newline + newline + dedented body + newline
         string input = "namespace N\n{\n\tusing B;\n\tusing A;\n}\n";
         string expected = "namespace N;\n\nusing A;\nusing B;\n";
@@ -130,11 +127,9 @@ public sealed class SourceTransformationPipelineTests
 
         // Verify all transformations are exposed with their names.
         List<string> names = pipeline.Transformations.Select(t => t.Name).ToList();
-        Assert.HasCount(5, names);
+        Assert.HasCount(3, names);
         Assert.Contains("Sort using directives", names);
         Assert.Contains("Var When Apparent", names);
-        Assert.Contains("Readonly Field", names);
-        Assert.Contains("Sealed Class", names);
         Assert.Contains("File-Scoped Namespace", names);
     }
 
@@ -262,8 +257,71 @@ public sealed class SourceTransformationPipelineTests
         Assert.IsTrue(preview.Steps.All(step => !step.Included));
     }
 
-    private static string repr(string s)
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void NullTransformationSequence_Throws() => Assert.ThrowsExactly<System.ArgumentNullException>(() => new SourceTransformationPipeline((IEnumerable<ISourceTransformation>)null));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void BlockReturningNull_LeavesTheTextOfThePreviousBlockForTheNextOne()
     {
-        return "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
+        SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
+            new TabToSpaceConverter(), new NullResultTransformation(), new EnsureFinalNewlineConverter());
+
+        SourceTransformationPipeline.PreviewResult preview = pipeline.Preview("\tclass C {}");
+
+        Assert.AreEqual("    class C {}\n", preview.UpdatedSource);
+        Assert.IsFalse(preview.Steps[1].Changed);
+        Assert.IsTrue(preview.Steps[1].Included);
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void Preview_ApplyWithChangesButNoWriter_Throws()
+    {
+        string source = "\tclass C {}";
+        SourceTransformationPipeline.PreviewResult preview = new SourceTransformationPipeline(new TabToSpaceConverter()).Preview(source);
+
+        Assert.ThrowsExactly<System.ArgumentNullException>(() => preview.TryApply(source, null));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void WhitespaceFlowOverATopLevelStatementsFile_ProducesCleanOutputWithoutAddedComments()
+    {
+        string input =
+            "\uFEFFusing System;  \r\n\r\n\r\n\r\n//Entry point\r\nConsole.WriteLine(\"hi\");\t\r\nRun();\r\n\r\n" +
+            "static int Run()\r\n{\r\n\tvar x = 1;\r\n\treturn x;\r\n}";
+        string expected =
+            "using System;\r\n\r\n// Entry point\r\nConsole.WriteLine(\"hi\");\r\nRun();\r\n\r\n" +
+            "static int Run()\r\n{\r\n    var x = 1;\r\n\r\n    return x;\r\n}\r\n";
+        SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
+            new ByteOrderMarkConverter(),
+            new RemoveTrailingWhitespaceConverter(),
+            new ReturnThrowBlankLinePaddingConverter(),
+            new CommentFormatConverter(),
+            new TabToSpaceConverter(),
+            new NormalizeBlankLinesConverter(),
+            new EnsureFinalNewlineConverter());
+        bool commentFormatting = CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup;
+        CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup = true;
+
+        try
+        {
+            Assert.AreEqual(expected, pipeline.Run(input));
+        }
+        finally
+        {
+            CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup = commentFormatting;
+        }
+    }
+
+    private sealed class NullResultTransformation : ISourceTransformation
+    {
+        public string Name => "Returns null";
+
+        public string Apply(string source) => null;
+    }
+
+    private static string repr(string s) => "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
 }

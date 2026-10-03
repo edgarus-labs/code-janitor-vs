@@ -29,10 +29,7 @@ internal sealed class ReturnThrowBlankLinePaddingLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="ReturnThrowBlankLinePaddingLogic" /> class.</returns>
-    internal static ReturnThrowBlankLinePaddingLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new ReturnThrowBlankLinePaddingLogic(package));
-    }
+    internal static ReturnThrowBlankLinePaddingLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new ReturnThrowBlankLinePaddingLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReturnThrowBlankLinePaddingLogic" /> class.

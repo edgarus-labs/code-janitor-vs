@@ -94,7 +94,10 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <param name="e">The <see cref="MouseEventArgs" /> instance containing the event data.</param>
     private void OnPreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (_dragCandidate is null || !_dragStartPoint.HasValue) return;
+        if (_dragCandidate is null || !_dragStartPoint.HasValue)
+        {
+            return;
+        }
 
         var delta = _dragStartPoint.Value - e.GetPosition(null);
         if (Math.Abs(delta.X) <= SystemParameters.MinimumHorizontalDragDistance &&
@@ -197,18 +200,30 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     /// <param name="e">The <see cref="DragEventArgs" /> instance containing the event data.</param>
     private void OnDrop(object sender, DragEventArgs e)
     {
-        if (!e.Data.GetDataPresent(typeof(object))) return;
+        if (!e.Data.GetDataPresent(typeof(object)))
+        {
+            return;
+        }
 
         var target = FindParentListBoxItem(e.OriginalSource);
-        if (target is null) return;
+        if (target is null)
+        {
+            return;
+        }
 
         var sourceData = e.Data.GetData(typeof(object));
         var targetData = target.DataContext;
 
-        if (sourceData is null || targetData is null || sourceData == targetData) return;
+        if (sourceData is null || targetData is null || sourceData == targetData)
+        {
+            return;
+        }
 
         var collection = AssociatedObject.ItemsSource as ObservableCollection<object>;
-        if (collection is null) return;
+        if (collection is null)
+        {
+            return;
+        }
 
         var sourceIndex = collection.IndexOf(sourceData);
         var targetIndex = collection.IndexOf(targetData);
@@ -248,7 +263,10 @@ public sealed class ListBoxReorderBehavior : Behavior<ListBox>
     private static ListBoxItem FindParentListBoxItem(object eventSource)
     {
         var source = eventSource as DependencyObject;
-        if (source is null) return null;
+        if (source is null)
+        {
+            return null;
+        }
 
         var listBoxItem = source.FindVisualAncestor<ListBoxItem>();
 

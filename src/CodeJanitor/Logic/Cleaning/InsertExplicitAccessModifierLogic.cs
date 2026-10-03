@@ -28,10 +28,7 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// Gets an instance of the <see cref="InsertExplicitAccessModifierLogic" /> class.
     /// </summary>
     /// <returns>An instance of the <see cref="InsertExplicitAccessModifierLogic" /> class.</returns>
-    internal static InsertExplicitAccessModifierLogic GetInstance()
-    {
-        return _instance ?? (_instance = new InsertExplicitAccessModifierLogic());
-    }
+    internal static InsertExplicitAccessModifierLogic GetInstance() => _instance ?? (_instance = new InsertExplicitAccessModifierLogic());
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InsertExplicitAccessModifierLogic" /> class.
@@ -49,7 +46,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses)))
+        {
+            return;
+        }
 
         foreach (var codeClass in classes.Select(x => x.CodeClass).Where(y => y is not null))
         {
@@ -78,7 +78,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates)))
+        {
+            return;
+        }
 
         foreach (var codeDelegate in delegates.Select(x => x.CodeDelegate).Where(y => y is not null))
         {
@@ -101,7 +104,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations)))
+        {
+            return;
+        }
 
         foreach (var codeEnum in enumerations.Select(x => x.CodeEnum).Where(y => y is not null))
         {
@@ -124,7 +130,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents)))
+        {
+            return;
+        }
 
         foreach (var codeEvent in events.Select(x => x.CodeEvent).Where(y => y is not null))
         {
@@ -167,7 +176,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields)))
+        {
+            return;
+        }
 
         foreach (var codeField in fields.Select(x => x.CodeVariable).Where(y => y is not null))
         {
@@ -211,7 +223,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces)))
+        {
+            return;
+        }
 
         foreach (var codeInterface in interfaces.Select(x => x.CodeInterface).Where(y => y is not null))
         {
@@ -234,7 +249,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods)))
+        {
+            return;
+        }
 
         foreach (var codeFunction in methods.Select(x => x.CodeFunction).Where(y => y is not null))
         {
@@ -307,7 +325,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties)))
+        {
+            return;
+        }
 
         foreach (var codeProperty in properties.Select(x => x.CodeProperty).Where(y => y is not null))
         {
@@ -350,7 +371,10 @@ internal sealed class InsertExplicitAccessModifierLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs)))
+        {
+            return;
+        }
 
         foreach (var codeStruct in structs.Select(x => x.CodeStruct).Where(y => y is not null))
         {
@@ -382,10 +406,7 @@ internal sealed class InsertExplicitAccessModifierLogic
     /// </summary>
     /// <param name="fieldDeclaration">The field declaration text.</param>
     /// <returns>True if the declaration contains the <c>fixed</c> keyword, otherwise false.</returns>
-    internal static bool IsFixedFieldDeclaration(string fieldDeclaration)
-    {
-        return IsKeywordSpecified(fieldDeclaration, "fixed");
-    }
+    internal static bool IsFixedFieldDeclaration(string fieldDeclaration) => IsKeywordSpecified(fieldDeclaration, "fixed");
 
     /// <summary>
     /// Determines whether the given method declaration text is for a generic method (i.e. one

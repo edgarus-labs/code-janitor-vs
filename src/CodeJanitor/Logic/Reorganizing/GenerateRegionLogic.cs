@@ -30,10 +30,7 @@ internal sealed class GenerateRegionLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="GenerateRegionLogic" /> class.</returns>
-    internal static GenerateRegionLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new GenerateRegionLogic(package));
-    }
+    internal static GenerateRegionLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new GenerateRegionLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GenerateRegionLogic" /> class.
@@ -237,10 +234,7 @@ internal sealed class GenerateRegionLogic
     /// <param name="codeItem">The code item.</param>
     /// <param name="region">The region.</param>
     /// <returns>True if the specified code item belongs in the specified region, otherwise false.</returns>
-    private bool CodeItemBelongsInRegion(BaseCodeItem codeItem, CodeItemRegion region)
-    {
-        return codeItem is not null && _regionComparerByName.Equals(region, ComposeRegionForCodeItem(codeItem));
-    }
+    private bool CodeItemBelongsInRegion(BaseCodeItem codeItem, CodeItemRegion region) => codeItem is not null && _regionComparerByName.Equals(region, ComposeRegionForCodeItem(codeItem));
 
     /// <summary>
     /// Composes a list of regions that should be present for the specified set of code items based on user settings.
@@ -324,10 +318,16 @@ internal sealed class GenerateRegionLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (codeItem is null) return null;
+        if (codeItem is null)
+        {
+            return null;
+        }
 
         var setting = MemberTypeSettingHelper.LookupByKind(codeItem.Kind);
-        if (setting is null) return null;
+        if (setting is null)
+        {
+            return null;
+        }
 
         var regionName = string.Empty;
 

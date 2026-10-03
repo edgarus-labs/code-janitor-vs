@@ -10,7 +10,7 @@ namespace CodeJanitor.Model.Comments.Options;
 /// </summary>
 public sealed class FormatterOptionsXml
 {
-    private readonly static FormatterOptionsXmlTag FormatterOptionsXmlTagOverrideSplitBeforeAfter = new FormatterOptionsXmlTag
+    private static readonly FormatterOptionsXmlTag FormatterOptionsXmlTagOverrideSplitBeforeAfter = new FormatterOptionsXmlTag
     {
         Split = XmlTagNewLine.BeforeAndAfter
     };
@@ -41,10 +41,7 @@ public sealed class FormatterOptionsXml
     /// </summary>
     /// <param name="tagName">The tag name.</param>
     /// <returns>A IXmlTagOptions value produced by this method.</returns>
-    public IXmlTagOptions GetTagOptions(string tagName)
-    {
-        return !Tags.TryGetValue(tagName, out var tag) ? Default : new XmlTagOptions(tag, Default);
-    }
+    public IXmlTagOptions GetTagOptions(string tagName) => !Tags.TryGetValue(tagName, out var tag) ? Default : new XmlTagOptions(tag, Default);
 
     /// <summary>
     /// Converts a Settings object into a FormatterOptionsXml instance, configuring XML doc comment formatting rules for tags such as summary, code, and list elements, with no side effects.

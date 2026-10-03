@@ -181,6 +181,19 @@ public sealed class ExplicitAccessModifierConverterTests
     }
 
     [TestMethod]
+    [DataRow("partial class C { partial int this[int i] { get; } }", DisplayName = "partial indexer")]
+    [DataRow("partial class C { partial int Value { get; } }", DisplayName = "partial property")]
+    [DataRow("partial class C { partial event System.EventHandler Changed; }", DisplayName = "partial event declaration")]
+    [DataRow("partial class C { partial event System.EventHandler Changed { add { } remove { } } }", DisplayName = "partial event implementation")]
+    [DataRow("partial class C { partial C(); }", DisplayName = "partial constructor")]
+    public void PartialMember_IsNotModified(string source)
+    {
+        // Both parts of a partial member must declare the same accessibility (CS8799): the other part may be in a file
+        // that is not cleaned, or generated.
+        Assert.AreEqual(source, _converter.Apply(source));
+    }
+
+    [TestMethod]
     public void StaticConstructor_IsNotModified()
     {
         string source = "class Foo { static Foo() { } }";
@@ -339,6 +352,26 @@ public sealed class ExplicitAccessModifierConverterTests
     }
 
     [TestMethod]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "internal record struct P;", DisplayName = "classes disabled: the record struct is still a struct")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "record struct P;", DisplayName = "structs disabled: the record struct stays as it is")]
+    public void RecordStruct_FollowsTheStructSetting(string disabledSetting, string expected)
+    {
+        Settings.Default[disabledSetting] = false;
+
+        Assert.AreEqual(expected, _converter.Apply("record struct P;"));
+    }
+
+    [TestMethod]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "record R;", DisplayName = "classes disabled: the record class stays as it is")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "internal record R;", DisplayName = "structs disabled: the record class is still a class")]
+    public void RecordClass_FollowsTheClassSetting(string disabledSetting, string expected)
+    {
+        Settings.Default[disabledSetting] = false;
+
+        Assert.AreEqual(expected, _converter.Apply("record R;"));
+    }
+
+    [TestMethod]
     public void GenericMethodWithAttributeOnTypeParameter_InsertsModifierWithoutCorruption()
     {
         // No explicit access modifier, so PrependModifier must actually run for both methods -
@@ -367,5 +400,233 @@ public sealed class ExplicitAccessModifierConverterTests
         Assert.DoesNotContain("private readonly (", result);
         Assert.DoesNotContain("private SomeBaseType", result);
         Assert.DoesNotContain("private GetFields", result);
+    }
+
+    [TestMethod]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses), "class C { } record R;", DisplayName = "classes and records")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs), "struct S { } record struct P;", DisplayName = "structs and record structs")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces), "interface I { }", DisplayName = "interfaces")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations), "enum E { A }", DisplayName = "enumerations")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates), "delegate void D();", DisplayName = "delegates")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields), "public class C { int _x; }", DisplayName = "fields")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods), "public class C { void M() { } C() { } }", DisplayName = "methods and constructors")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties), "public class C { int P { get; set; } int this[int i] => i; }", DisplayName = "properties and indexers")]
+    [DataRow(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents), "public class C { event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "events")]
+    public void DisabledKind_IsLeftWithoutModifier(string settingName, string source)
+    {
+        Settings.Default[settingName] = false;
+
+        Assert.AreEqual(source, _converter.Apply(source));
+    }
+
+    [TestMethod]
+    public void DeclarationsWithExplicitAccess_AreUnchanged()
+    {
+        string source =
+            "public class C\r\n" +
+            "{\r\n" +
+            "    private int _a;\r\n" +
+            "    protected internal static int _b;\r\n" +
+            "    internal C() { }\r\n" +
+            "    protected void M() { }\r\n" +
+            "    private protected int P { get; set; }\r\n" +
+            "    public event System.Action E;\r\n" +
+            "    protected event System.Action F { add { } remove { } }\r\n" +
+            "    private class N { }\r\n" +
+            "    protected struct S { }\r\n" +
+            "    internal interface I { }\r\n" +
+            "    private enum K { A }\r\n" +
+            "    public delegate void D();\r\n" +
+            "    private record R;\r\n" +
+            "}\r\n" +
+            "internal struct T { }\r\n" +
+            "public interface J { }\r\n" +
+            "internal enum L { B }\r\n" +
+            "public delegate int G();\r\n" +
+            "public record Q(int X);\r\n";
+
+        Assert.AreEqual(source, _converter.Apply(source));
+    }
+
+    [TestMethod]
+    [DataRow("partial class C { }", DisplayName = "partial class")]
+    [DataRow("partial struct S { }", DisplayName = "partial struct")]
+    [DataRow("partial interface I { }", DisplayName = "partial interface")]
+    [DataRow("partial record R;", DisplayName = "partial record")]
+    [DataRow("public partial class C { partial void M(); }", DisplayName = "partial method")]
+    [DataRow("public class C { static C() { } ~C() { } }", DisplayName = "static constructor and finalizer")]
+    [DataRow("public class C : I { void I.M() { } int I.P => 1; int I.this[int i] => i; event System.Action I.E { add { } remove { } } }", DisplayName = "explicit interface implementations")]
+    [DataRow("public interface I { void M(); int P { get; } int this[int i] { get; } event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "interface members")]
+    [DataRow("public class C { public static C operator +(C a, C b) => a; }", DisplayName = "operators")]
+    [DataRow("namespace N { int x; void M() { } int P { get; set; } event System.Action E; event System.Action F { add { } remove { } } }", DisplayName = "members directly in a namespace")]
+    [DataRow("namespace N { N() { } }", DisplayName = "constructor-like member directly in a namespace")]
+    [DataRow("using System;\r\nConsole.WriteLine(1);\r\nstatic void Local() { }\r\nint value = 2;\r\n", DisplayName = "top-level statements and local functions")]
+    [DataRow("public class C { private void M() { void Local() { } int x = 0; } }", DisplayName = "local function and local inside a method body")]
+    public void DeclarationThatMustNotReceiveAModifier_IsUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
+
+    [TestMethod]
+    [DataRow("static class C { }", "internal static class C { }", DisplayName = "static class")]
+    [DataRow("abstract record R;", "internal abstract record R;", DisplayName = "abstract record")]
+    [DataRow("readonly struct S { }", "internal readonly struct S { }", DisplayName = "readonly struct")]
+    [DataRow("readonly record struct P(int X);", "internal readonly record struct P(int X);", DisplayName = "readonly record struct")]
+    [DataRow("unsafe delegate void D(int* p);", "internal unsafe delegate void D(int* p);", DisplayName = "unsafe delegate")]
+    [DataRow("public class B { enum E { } } public class D : B { new enum E { } }", "public class B { private enum E { } } public class D : B { private new enum E { } }", DisplayName = "new enum")]
+    [DataRow("public class C { static readonly int _x; }", "public class C { private static readonly int _x; }", DisplayName = "static readonly field")]
+    [DataRow("public class C { static void M() { } async System.Threading.Tasks.Task N() { } }", "public class C { private static void M() { } private async System.Threading.Tasks.Task N() { } }", DisplayName = "static and async methods")]
+    [DataRow("public unsafe class C { unsafe C(int* p) { } }", "public unsafe class C { private unsafe C(int* p) { } }", DisplayName = "unsafe constructor")]
+    [DataRow("public class C { static int P { get; } }", "public class C { private static int P { get; } }", DisplayName = "static property")]
+    [DataRow("public class C { int this[int i] => i; }", "public class C { private int this[int i] => i; }", DisplayName = "indexer")]
+    [DataRow("public struct S { int this[int i] { get { return i; } } }", "public struct S { private int this[int i] { get { return i; } } }", DisplayName = "indexer in a struct")]
+    [DataRow("public unsafe class C { unsafe int this[int i] => i; }", "public unsafe class C { private unsafe int this[int i] => i; }", DisplayName = "unsafe indexer")]
+    [DataRow("public class C { static event System.Action E; static event System.Action F { add { } remove { } } }", "public class C { private static event System.Action E; private static event System.Action F { add { } remove { } } }", DisplayName = "static events")]
+    [DataRow("public class C { interface I { } struct S { } delegate void D(); record struct P; }", "public class C { private interface I { } private struct S { } private delegate void D(); private record struct P; }", DisplayName = "nested type kinds")]
+    [DataRow("public struct S { int _x; void M() { } int P => 1; class N { } }", "public struct S { private int _x; private void M() { } private int P => 1; private class N { } }", DisplayName = "struct members")]
+    [DataRow("public record R { int _x; R(int x) { _x = x; } enum K { A } }", "public record R { private int _x; private R(int x) { _x = x; } private enum K { A } }", DisplayName = "record members")]
+    [DataRow("class G<T> where T : new() { T Make() => new T(); }", "internal class G<T> where T : new() { private T Make() => new T(); }", DisplayName = "generic class with constraints")]
+    public void ExistingNonAccessModifiers_FollowTheInsertedAccessModifier(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
+
+    [TestMethod]
+    public void TopLevelStatementsFile_ModifiesOnlyTheTypesAfterTheStatements()
+    {
+        string source =
+            "using System;\r\n" +
+            "\r\n" +
+            "var greeter = new Greeter();\r\n" +
+            "Console.WriteLine(greeter.Greet());\r\n" +
+            "\r\n" +
+            "static string Name() => \"world\";\r\n" +
+            "\r\n" +
+            "class Greeter\r\n" +
+            "{\r\n" +
+            "    string Greet() => \"Hello\";\r\n" +
+            "}\r\n";
+        string expected = source
+            .Replace("class Greeter\r\n", "internal class Greeter\r\n")
+            .Replace("    string Greet()", "    private string Greet()");
+
+        Assert.AreEqual(expected, _converter.Apply(source));
+    }
+
+    [TestMethod]
+    [DataRow("\r\n", DisplayName = "CRLF")]
+    [DataRow("\n", DisplayName = "LF")]
+    public void CommentsAttributesDirectivesAndIndentation_StayInFrontOfTheDeclaration(string newLine)
+    {
+        string source =
+            "namespace N;" + newLine +
+            newLine +
+            "/// <summary>Documented.</summary>" + newLine +
+            "class Documented" + newLine +
+            "{" + newLine +
+            "\t// A field." + newLine +
+            "\t[System.NonSerialized]" + newLine +
+            "\tint _x;" + newLine +
+            newLine +
+            "\t#region Methods" + newLine +
+            "\t/// <summary>Does it.</summary>" + newLine +
+            "\tstatic void M() { }" + newLine +
+            "\t#endregion" + newLine +
+            "}" + newLine +
+            newLine +
+            "[System.Flags]" + newLine +
+            "enum Options { None = 0 }" + newLine +
+            newLine +
+            "#if !NEVER" + newLine +
+            "struct Active { }" + newLine +
+            "#endif" + newLine +
+            newLine +
+            "#if NEVER" + newLine +
+            "struct Inactive { }" + newLine +
+            "#endif" + newLine;
+        string expected = source
+            .Replace("class Documented", "internal class Documented")
+            .Replace("\tint _x;", "\tprivate int _x;")
+            .Replace("\tstatic void M()", "\tprivate static void M()")
+            .Replace("enum Options", "internal enum Options")
+            .Replace("struct Active", "internal struct Active");
+
+        Assert.AreEqual(expected, _converter.Apply(source));
+    }
+
+    [TestMethod]
+    public void FileWithSyntaxErrors_ModifiesTheValidDeclarationsAndKeepsTheRestVerbatim()
+    {
+        string source = "class C { int _x; void M( { int y = ; } }";
+        string expected = "internal class C { private int _x; private void M( { int y = ; } }";
+
+        Assert.AreEqual(expected, _converter.Apply(source));
+    }
+
+    [TestMethod]
+    public async System.Threading.Tasks.Task ModifiedDeclarations_CompileWithoutNewErrors()
+    {
+        string source =
+            "using System;\r\n" +
+            "namespace Demo\r\n" +
+            "{\r\n" +
+            "    delegate void Handler(int value);\r\n" +
+            "    enum Kind { A, B }\r\n" +
+            "    interface IShape { double Area(); }\r\n" +
+            "    struct Point { int _x; Point(int x) { _x = x; } static Point Create() => new Point(1); }\r\n" +
+            "    class Circle : IShape\r\n" +
+            "    {\r\n" +
+            "        static int s_count;\r\n" +
+            "        double _radius;\r\n" +
+            "        event Handler Changed;\r\n" +
+            "        event Action Moved { add { } remove { } }\r\n" +
+            "        Circle(double radius) { _radius = radius; s_count++; }\r\n" +
+            "        static Circle() { }\r\n" +
+            "        public double Area() => Math.PI * _radius * _radius;\r\n" +
+            "        double IShape_Area() => Area();\r\n" +
+            "        Kind Kind { get; set; }\r\n" +
+            "        class Nested { }\r\n" +
+            "        void Raise() { Changed?.Invoke(s_count); }\r\n" +
+            "    }\r\n" +
+            "}\r\n";
+        Microsoft.CodeAnalysis.Document document = CodeJanitor.UnitTests.Transformations.CompilingTestProject.CreateDocument(source);
+        string expected = source
+            .Replace("    delegate void Handler", "    internal delegate void Handler")
+            .Replace("    enum Kind", "    internal enum Kind")
+            .Replace("    interface IShape", "    internal interface IShape")
+            .Replace("    struct Point { int _x; Point(int x) { _x = x; } static Point Create()", "    internal struct Point { private int _x; private Point(int x) { _x = x; } private static Point Create()")
+            .Replace("    class Circle", "    internal class Circle")
+            .Replace("        static int s_count;", "        private static int s_count;")
+            .Replace("        double _radius;", "        private double _radius;")
+            .Replace("        event Handler Changed;", "        private event Handler Changed;")
+            .Replace("        event Action Moved", "        private event Action Moved")
+            .Replace("        Circle(double radius)", "        private Circle(double radius)")
+            .Replace("        double IShape_Area()", "        private double IShape_Area()")
+            .Replace("        Kind Kind { get; set; }", "        private Kind Kind { get; set; }")
+            .Replace("        class Nested", "        private class Nested")
+            .Replace("        void Raise()", "        private void Raise()");
+
+        string output = _converter.Apply(source);
+
+        Assert.AreEqual(expected, output);
+        Assert.IsEmpty(await CodeJanitor.UnitTests.Transformations.CompilingTestProject.GetCompileErrorsAsync(document, output));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("public interface I { enum E { A } }", DisplayName = "enum in interface")]
+    [DataRow("public interface I { class N { } }", DisplayName = "class in interface")]
+    [DataRow("public interface I { struct S { } }", DisplayName = "struct in interface")]
+    [DataRow("public interface I { interface J { } }", DisplayName = "interface in interface")]
+    [DataRow("public interface I { record R; }", DisplayName = "record in interface")]
+    [DataRow("public interface I { delegate void D(); }", DisplayName = "delegate in interface")]
+    [DataRow("public interface I { static int x; }", DisplayName = "field in interface")]
+    [DataRow("file class F { }", DisplayName = "file-local class")]
+    [DataRow("file struct S { }", DisplayName = "file-local struct")]
+    [DataRow("file enum E { A }", DisplayName = "file-local enum")]
+    [DataRow("file delegate void D();", DisplayName = "file-local delegate")]
+    public void DeclarationWhoseDefaultIsNotPrivateOrInternal_IsUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void MembersOfClassNestedInInterface_GetPrivate()
+    {
+        string source = "public interface I { class N { int _x; } }";
+
+        Assert.AreEqual("public interface I { class N { private int _x; } }", _converter.Apply(source));
     }
 }

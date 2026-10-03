@@ -64,19 +64,13 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// </summary>
     /// <param name="other">The other.</param>
     /// <returns>A bool value produced by this method.</returns>
-    public bool Equals(string other)
-    {
-        return string.Equals(ToString(), other);
-    }
+    public bool Equals(string other) => string.Equals(ToString(), other);
 
     /// <summary>
     /// Returns the string representation of the internal builder with trailing whitespace removed, with no side effects or exceptions.
     /// </summary>
     /// <returns>A string value produced by this method.</returns>
-    public override string ToString()
-    {
-        return _builder.ToString().TrimEnd();
-    }
+    public override string ToString() => _builder.ToString().TrimEnd();
 
     /// <summary>
     /// Aligns param tag OpenTag strings by padding to the longest param tag length, but only when there are multiple param tags and the first is not split after opening, modifying the OpenTag values in place.
@@ -104,10 +98,7 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// Appends the character&apos;s string representation by delegating to the Append(string) overload, modifying the underlying buffer or output state.
     /// </summary>
     /// <param name="value">The value.</param>
-    private void Append(char value)
-    {
-        Append(value.ToString());
-    }
+    private void Append(char value) => Append(value.ToString());
 
     /// <summary>
     /// Append value to current line. When line is still empty, this first writes the comment
@@ -181,7 +172,9 @@ internal sealed class CommentFormatter : IEquatable<string>
         }
 
         if (line.Content is null)
+        {
             return true;
+        }
 
         var matches = _commentOptions.Regex.Matches(line.Content).OfType<Match>().Select(x => new CodeCommentMatch(x, _formatterOptions)).ToList();
 
@@ -342,7 +335,9 @@ internal sealed class CommentFormatter : IEquatable<string>
         {
             // Tags containing literal content with multiple with should always be on their own line.
             if (xml.Content.Contains('\n'))
+            {
                 split = XmlTagNewLine.Always;
+            }
         }
         else if ((split == XmlTagNewLine.Default || split == XmlTagNewLine.Content) && xml.Lines.Count > 1)
         {
@@ -388,7 +383,10 @@ internal sealed class CommentFormatter : IEquatable<string>
             for (int i = 0; i < literals.Length; i++)
             {
                 if (i > 0)
+                {
                     NewLine(true);
+                }
+
                 Append(literals[i].TrimEnd(), true);
             }
         }
@@ -400,7 +398,9 @@ internal sealed class CommentFormatter : IEquatable<string>
             foreach (var line in xml.Lines)
             {
                 if (!Format(line, xmlTagLength, xml.TagOptions.SpaceContent))
+                {
                     split |= XmlTagNewLine.BeforeClose | XmlTagNewLine.AfterClose;
+                }
             }
         }
 
@@ -460,8 +460,5 @@ internal sealed class CommentFormatter : IEquatable<string>
     /// </summary>
     /// <param name="word">The string to return the length of.</param>
     /// <returns>The length of the string.</returns>
-    private int WordLength(string word)
-    {
-        return word is null ? 0 : word.Length + word.Count(c => c == '\t') * (_formatterOptions.TabSize - 1);
-    }
+    private int WordLength(string word) => word is null ? 0 : word.Length + word.Count(c => c == '\t') * (_formatterOptions.TabSize - 1);
 }
