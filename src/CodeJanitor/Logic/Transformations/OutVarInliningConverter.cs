@@ -135,16 +135,20 @@ public sealed class OutVarInliningConverter : ISourceTransformation
         /// Determines whether expression variables declared inside the node are scoped to the node itself rather than to
         /// the enclosing statement.
         /// </summary>
-        private static bool StartsOwnVariableScope(SyntaxNode node) =>
-            node is AnonymousFunctionExpressionSyntax ||
-            node is QueryExpressionSyntax ||
-            node is SwitchExpressionArmSyntax;
+        private static bool StartsOwnVariableScope(SyntaxNode node)
+        {
+            return node is AnonymousFunctionExpressionSyntax ||
+                node is QueryExpressionSyntax ||
+                node is SwitchExpressionArmSyntax;
+        }
 
         /// <summary>
         /// Determines whether the trivia contains a preprocessor directive (or code a directive disabled).
         /// </summary>
-        private static bool HasDirective(SyntaxTriviaList trivia) =>
-            trivia.Any(t => t.IsDirective || t.IsKind(SyntaxKind.DisabledTextTrivia));
+        private static bool HasDirective(SyntaxTriviaList trivia)
+        {
+            return trivia.Any(t => t.IsDirective || t.IsKind(SyntaxKind.DisabledTextTrivia));
+        }
 
         /// <summary>
         /// Builds the leading trivia of the call that replaces the removed declaration: the declaration's own leading
@@ -184,10 +188,12 @@ public sealed class OutVarInliningConverter : ISourceTransformation
         /// <summary>
         /// Determines whether the trivia is a comment.
         /// </summary>
-        private static bool IsComment(SyntaxTrivia trivia) =>
-            trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
-            trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
-            trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-            trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+        private static bool IsComment(SyntaxTrivia trivia)
+        {
+            return trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+                trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+                trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+                trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+        }
     }
 }

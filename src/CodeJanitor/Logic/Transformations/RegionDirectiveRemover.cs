@@ -159,10 +159,10 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
         }
 
         // The directives inside an inactive branch split its text into several disabled-text trivia, so
-        // the whole branch (up to its #elif, #else or #endif) is parsed on its own instead. Only the outermost
-        // inactive directives are handled: the parse of a branch sees the directives nested in it again, but
-        // the enclosing parse has already handled those, and handling them twice would reparse the same text
-        // once per subset of its enclosing branches.
+        // the whole branch (up to its #elif, #else or #endif) is parsed on its own instead. The tree keeps every
+        // directive, those nested in inactive branches included, so each inactive branch is parsed once from here:
+        // the parse of a branch sees its nested directives again but does not handle them, which would reparse
+        // the same text once per enclosing branch.
         if (isBranchParse)
         {
             return;

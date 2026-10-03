@@ -268,8 +268,10 @@ public sealed class StringInterpolationConverter : ISourceTransformation
             return true;
         }
 
-        private static bool IsRepeatable(ExpressionSyntax expression) =>
-            expression is LiteralExpressionSyntax or IdentifierNameSyntax or ThisExpressionSyntax;
+        private static bool IsRepeatable(ExpressionSyntax expression)
+        {
+            return expression is LiteralExpressionSyntax or IdentifierNameSyntax or ThisExpressionSyntax;
+        }
 
         /// <summary>
         /// Collects the names of the identifiers an expression assigns, increments, decrements or passes by reference.
@@ -352,11 +354,14 @@ public sealed class StringInterpolationConverter : ISourceTransformation
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>A string value produced by this method.</returns>
-        private static string EscapeForInterpolatedString(string text) => text
+        private static string EscapeForInterpolatedString(string text)
+        {
+            return text
                 .Replace("\\", "\\\\")
                 .Replace("\"", "\\\"")
                 .Replace("\r", "\\r")
                 .Replace("\n", "\\n")
                 .Replace("\t", "\\t");
+        }
     }
 }

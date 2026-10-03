@@ -32,6 +32,7 @@ public sealed class ParallelHeadlessCleanupTests
 
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n");
     }
 
     [TestCleanup]
@@ -73,7 +74,7 @@ public sealed class ParallelHeadlessCleanupTests
         };
 
         IOException error = await Assert.ThrowsExactlyAsync<IOException>(
-            () => CodeJanitor.UI.Dialogs.CleanupProgress.CleanupProgressViewModel.RunSemanticStepsAsync(steps, () => changedCount++));
+            () => CodeCleanupManager.RunSemanticStepsAsync(steps, () => changedCount++));
 
         Assert.AreEqual("sealing failed", error.Message);
         Assert.AreEqual(1, changedCount, "The file rewritten by the first step must be counted as changed.");
@@ -103,6 +104,39 @@ public sealed class ParallelHeadlessCleanupTests
         {
             File.SetAttributes(filePath, FileAttributes.Normal);
         }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void TryRunHeadlessPreCleanupForCSharpCore_WritingTheOriginalFailsAfterTheSplit_KeepsEveryTypeOnDisk()
+    {
+        Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields = true;
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string fields = string.Concat(Enumerable.Range(0, 2000).Select(index => $"    int _f{index};\r\n"));
+        string original = "class Foo\r\n{\r\n" + fields + "}\r\n\r\nclass Bar { }\r\n";
+        File.WriteAllText(filePath, original);
+
+        // The cleaned original is longer than the file: a byte-range lock past its end (and past the read-ahead of the
+        // buffered reads) lets the original be read, opened and truncated for writing, and then fails the write itself.
+        const int BlockSize = 4096;
+        long lockOffset = ((original.Length / BlockSize) + 2) * BlockSize;
+        using (FileStream locker = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        {
+            locker.Lock(lockOffset, BlockSize);
+            try
+            {
+                CodeCleanupManager.GetInstance(null!).TryRunHeadlessPreCleanupForCSharpCore(filePath);
+            }
+            finally
+            {
+                locker.Unlock(lockOffset, BlockSize);
+            }
+        }
+
+        string onDisk = string.Concat(Directory.GetFiles(_tempDirectory, "*.cs").Select(File.ReadAllText));
+        Assert.IsTrue(onDisk.Contains("class Foo") && onDisk.Contains("_f1999;"), "Foo and all its fields must still be declared in a file on disk.");
+        Assert.IsTrue(onDisk.Contains("class Bar"), "Bar must still be declared in a file on disk.");
     }
 
     [TestMethod]

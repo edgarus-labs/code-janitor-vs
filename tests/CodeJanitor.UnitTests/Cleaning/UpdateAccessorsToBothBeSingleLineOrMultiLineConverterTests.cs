@@ -184,8 +184,8 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
     {
         string source = "class C\r\n{\r\n    int P\r\n    {\r\n        get\r\n        {\r\n            return _p;\r\n        }\r\n        set { _p = value; // keep\r\n        } }\r\n}\r\n";
 
-        string result = _converter.Apply(source);
+        string expected = "class C\r\n{\r\n    int P\r\n    {\r\n        get\r\n        {\r\n            return _p;\r\n        }\r\n        set\r\n        {\r\n            _p = value; // keep\r\n        } }\r\n}\r\n";
 
-        Assert.DoesNotContain("\r\n\r\n", result, result);
+        Assert.AreEqual(expected, _converter.Apply(source));
     }
 }

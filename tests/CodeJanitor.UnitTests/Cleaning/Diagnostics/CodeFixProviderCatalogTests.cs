@@ -168,13 +168,13 @@ public sealed class CodeFixProviderCatalogTests
     }
 
     private static IEnumerable<MetadataReference> GetFrameworkReferences()
-        // Everything the test process already loaded, including the Roslyn assemblies and their facades, so the
-        // emitted fixers derive from the very CodeFixProvider type the catalog checks against.
-        => AppDomain.CurrentDomain.GetAssemblies()
+    {
+        return AppDomain.CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
             .GroupBy(assembly => assembly.GetName().Name, StringComparer.OrdinalIgnoreCase)
             .Select(group => (MetadataReference)MetadataReference.CreateFromFile(group.First().Location))
             .ToList();
+    }
 
     private sealed class LoadFromPathLoader : IAnalyzerAssemblyLoader
     {

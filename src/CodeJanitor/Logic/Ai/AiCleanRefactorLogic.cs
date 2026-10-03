@@ -101,10 +101,12 @@ internal sealed class AiCleanRefactorLogic
     /// <param name="memberName">The member name.</param>
     /// <param name="codeSnippet">The code snippet.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string BuildRefactorPrompt(string memberName, string codeSnippet) => $@"Refactor the following C# code for '{memberName}' to follow modern Clean Code standards:
+    private static string BuildRefactorPrompt(string memberName, string codeSnippet)
+    {
+        return $@"Refactor the following C# code for '{memberName}' to follow modern Clean Code standards:
 
 ```csharp
-{codeSnippet}
+        {codeSnippet}
 ```
 
 Refactoring Goals:
@@ -113,6 +115,7 @@ Refactoring Goals:
 3. Apply modern C# pattern matching, null checks, and idiomatic constructs.
 4. Keep exact business semantics and error handling intact.
 5. Provide a summary of key changes made, followed by the complete refactored C# method.";
+    }
 
     /// <summary>
     /// Extracts a trimmed C# code snippet from an AI response by locating a ```csharp fenced block or a generic ``` block (skipping a short language identifier after the opening fence), returning the inner content or the trimmed original string if none is found, with no side effects.

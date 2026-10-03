@@ -320,10 +320,13 @@ public static class GitHubCopilotDetector
     /// <summary>
     /// Detects the presence and active state of GitHub Copilot in the current environment.
     /// </summary>
-    public static CopilotDetectionResult DetectCopilotStatus() => DetectCopilotStatus(
+    public static CopilotDetectionResult DetectCopilotStatus()
+    {
+        return DetectCopilotStatus(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             TryExtractVsGitHubToken);
+    }
 
     internal static CopilotDetectionResult DetectCopilotStatus(string userProfile, string localAppData, Func<string> readCredentialManagerToken)
     {

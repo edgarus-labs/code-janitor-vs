@@ -186,10 +186,12 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// (<c>Capacity = 5</c>, <c>[0] = 1</c>) and complex element initializers (<c>{ 1, 2 }</c>) have no element form,
         /// and a range element without a start (<c>..3</c>) would read as a spread element (<c>[..3]</c>).
         /// </summary>
-        private static bool HasOnlyPlainElements(InitializerExpressionSyntax initializer) =>
-            initializer is null ||
-            !initializer.Expressions.Any(e => e is AssignmentExpressionSyntax || e is InitializerExpressionSyntax ||
-                                              e is RangeExpressionSyntax { LeftOperand: null });
+        private static bool HasOnlyPlainElements(InitializerExpressionSyntax initializer)
+        {
+            return initializer is null ||
+                !initializer.Expressions.Any(e => e is AssignmentExpressionSyntax || e is InitializerExpressionSyntax ||
+                                                  e is RangeExpressionSyntax { LeftOperand: null });
+        }
 
         /// <summary>
         /// Determines whether replacing the creation expression would discard a comment or directive: everything outside
@@ -205,10 +207,12 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
                 (token != last && HasCommentOutside(token.TrailingTrivia, initializer)));
         }
 
-        private static bool HasCommentOutside(SyntaxTriviaList trivia, InitializerExpressionSyntax initializer) =>
-            trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) &&
-                            !t.IsKind(SyntaxKind.EndOfLineTrivia) &&
-                            (initializer is null || !initializer.Span.Contains(t.Span)));
+        private static bool HasCommentOutside(SyntaxTriviaList trivia, InitializerExpressionSyntax initializer)
+        {
+            return trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) &&
+                !t.IsKind(SyntaxKind.EndOfLineTrivia) &&
+                (initializer is null || !initializer.Span.Contains(t.Span)));
+        }
 
         /// <summary>
         /// Builds a collection expression from the initializer's elements (an empty one for <see langword="null" />).
@@ -245,8 +249,10 @@ public sealed class CollectionExpressionConverter : ISourceTransformation
         /// Determines whether the declared array type can be the target of a collection expression built from the
         /// created array: a single-dimensional array whose ranks (including those of jagged element arrays) match.
         /// </summary>
-        private static bool IsSingleDimensionalArrayOfSameShape(ArrayTypeSyntax declaredArrayType, ArrayTypeSyntax createdArrayType) =>
-            declaredArrayType.RankSpecifiers[0].Rank == 1 &&
-            declaredArrayType.RankSpecifiers.Select(r => r.Rank).SequenceEqual(createdArrayType.RankSpecifiers.Select(r => r.Rank));
+        private static bool IsSingleDimensionalArrayOfSameShape(ArrayTypeSyntax declaredArrayType, ArrayTypeSyntax createdArrayType)
+        {
+            return declaredArrayType.RankSpecifiers[0].Rank == 1 &&
+                declaredArrayType.RankSpecifiers.Select(r => r.Rank).SequenceEqual(createdArrayType.RankSpecifiers.Select(r => r.Rank));
+        }
     }
 }

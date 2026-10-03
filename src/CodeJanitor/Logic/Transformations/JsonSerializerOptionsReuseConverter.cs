@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Transformations;
 
@@ -63,11 +64,17 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
                 }
 
                 // A positional null is ambiguous between the JsonSerializerOptions and JsonTypeInfo/JsonSerializerContext
-                // overloads (CS0121); naming the argument keeps the options overload selected.
-                var replacement = argument.WithExpression(
-                    SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)
-                                 .WithTriviaFrom(argument.Expression));
-                if (argument.NameColon is null)
+                // overloads (CS0121); naming the argument keeps the options overload selected. A named argument followed by
+                // a positional one needs C# 7.2, so there the null is cast to the options type as written instead.
+                var nullLiteral = SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression);
+                var replacement = argument.WithExpression(nullLiteral.WithTriviaFrom(argument.Expression));
+                if (argument.NameColon is null && IsFollowedByPositionalArgument(updatedArgumentList, i))
+                {
+                    var optionsType = ((ObjectCreationExpressionSyntax)argument.Expression).Type.WithoutTrivia();
+                    replacement = argument.WithExpression(
+                        SyntaxFactory.CastExpression(optionsType, nullLiteral).WithTriviaFrom(argument.Expression));
+                }
+                else if (argument.NameColon is null)
                 {
                     replacement = replacement
                         .WithNameColon(SyntaxFactory.NameColon(SyntaxFactory.IdentifierName("options"))
@@ -82,6 +89,17 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
             }
 
             return changed ? node.WithArgumentList(updatedArgumentList) : node;
+        }
+
+        /// <summary>
+        /// Determines whether an argument after the one at <paramref name="index" /> is passed by position.
+        /// </summary>
+        /// <param name="argumentList">The argument list.</param>
+        /// <param name="index">The index of the argument.</param>
+        /// <returns>True when a later argument has no name.</returns>
+        private static bool IsFollowedByPositionalArgument(ArgumentListSyntax argumentList, int index)
+        {
+            return argumentList.Arguments.Skip(index + 1).Any(argument => argument.NameColon is null);
         }
 
         /// <summary>

@@ -6,7 +6,6 @@ using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Model;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
-using CodeJanitor.UI.Dialogs.CleanupProgress;
 using CodeJanitor.UI.Enumerations;
 using EnvDTE;
 using Microsoft.CodeAnalysis;
@@ -376,6 +375,7 @@ internal sealed class CodeCleanupManager
         var headlessResult = HeadlessCleanupResult.NotApplicable;
         var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
         var changedBySemanticSteps = false;
+        var countedWhenRewritten = false;
 
         if (!wasOpen)
         {
@@ -384,8 +384,8 @@ internal sealed class CodeCleanupManager
             // their result. A file that only the headless-only branch below finishes is counted as changed as soon as a
             // step rewrites it, so it is counted even when a later step fails. When editor cleanup is required the file
             // is counted as an editor item by CleanupDocument instead, and must not be counted as changed as well.
-            var countedWhenRewritten = !RequiresEditorCleanupForCSharp();
-            await CleanupProgressViewModel.RunSemanticStepsAsync(
+            countedWhenRewritten = !RequiresEditorCleanupForCSharp();
+            await RunSemanticStepsAsync(
                 new Func<Task<bool>>[]
                 {
                     async () =>
@@ -433,6 +433,7 @@ internal sealed class CodeCleanupManager
         if (headlessResult != HeadlessCleanupResult.NotApplicable && !RequiresEditorCleanupForCSharp())
         {
             // A file rewritten by the semantic steps was already counted as changed.
+            var countedAsNoOp = false;
             if (!changedBySemanticSteps)
             {
                 if (headlessResult == HeadlessCleanupResult.Changed)
@@ -442,18 +443,28 @@ internal sealed class CodeCleanupManager
                 else
                 {
                     _cleanupExecutionStats.HeadlessNoOpItems++;
+                    countedAsNoOp = true;
                 }
             }
 
             // Diagnostic cleanup runs after the headless cleanup, against the file it wrote.
             await RunDiagnosticCleanupAsync(projectItem);
-            await RunXmlDocumentationDuringCleanupAsync(projectItem);
+            if (await RunXmlDocumentationDuringCleanupAsync(projectItem) && countedAsNoOp)
+            {
+                RecountNoOpAsChanged();
+            }
 
             stopwatch.Stop();
             OutputWindowHelper.DiagnosticWriteLine(
                 $"CodeCleanupManager.Cleanup for '{projectItem.Name}' took {stopwatch.ElapsedMilliseconds}ms (openedByCleanup: False, headlessOnly: True, changed: {headlessResult == HeadlessCleanupResult.Changed})");
 
             return;
+        }
+
+        // The editor cleanup below counts the file as an editor item instead of a changed one.
+        if (changedBySemanticSteps && countedWhenRewritten)
+        {
+            UncountHeadlessChanged();
         }
 
         // Attempt to open the document if not already opened.
@@ -586,7 +597,7 @@ internal sealed class CodeCleanupManager
 
             if (splitChanged || fileHadBom || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
             {
-                FileTextStyle.WriteAllText(projectItemFileName, transformedSource, targetEncoding, diskSource);
+                FileTextStyle.ReplaceAllText(projectItemFileName, transformedSource, targetEncoding, diskSource);
 
                 return new HeadlessPreCleanupOutcome
                 {
@@ -1084,15 +1095,18 @@ internal sealed class CodeCleanupManager
     /// <param name="transformation">The skipped transformation.</param>
     /// <param name="skipMessage">The warning explaining why the transformation is skipped.</param>
     /// <returns>The pipeline step.</returns>
-    private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage) => new DelegateSourceTransformation(transformation.Name, source =>
-                                                                                                                                       {
-                                                                                                                                           if (transformation.Apply(source) != source)
-                                                                                                                                           {
-                                                                                                                                               OutputWindowHelper.WarningWriteLine(skipMessage);
-                                                                                                                                           }
+    private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage)
+    {
+        return new DelegateSourceTransformation(transformation.Name, source =>
+        {
+            if (transformation.Apply(source) != source)
+            {
+                OutputWindowHelper.WarningWriteLine(skipMessage);
+            }
 
-                                                                                                                                           return source;
-                                                                                                                                       });
+            return source;
+        });
+    }
 
     /// <summary>
     /// Transformations for a file produced by the top-level type split.
@@ -1177,9 +1191,12 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader) => source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
+    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
+    {
+        return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
             ? source
             : settingsFileHeader + source;
+    }
 
     /// <summary>
     /// Replaces the leading header in the source with the trimmed settings header if they differ, otherwise returns the original source unchanged.
@@ -1381,18 +1398,15 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Attempts to run code cleanup on the specified document.
+    /// Attempts to run code cleanup on the specified document, without the AI XML documentation step: the cleanup of
+    /// the active document and the automatic cleanup on save never add AI-generated documentation.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
     internal void Cleanup(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        var xmlDocumentationItem = CleanupWithoutXmlDocumentation(document);
-        if (xmlDocumentationItem is not null)
-        {
-            ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(xmlDocumentationItem));
-        }
+        CleanupDocument(document, usingsLeftInPlace: false, semanticStepsDone: false);
     }
 
     /// <summary>
@@ -1568,8 +1582,10 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with sealed classes.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
-    internal Task<bool> SealClassesWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
-        _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
+    internal Task<bool> SealClassesWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
+    {
+        return _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
+    }
 
     /// <summary>
     /// Converts the null checks of a closed C# project item that are safe to convert to pattern matching, when its
@@ -1580,23 +1596,25 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with converted null checks.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
-    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
-        _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
+    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
+    {
+        return _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
+    }
 
     /// <summary>
     /// Adds AI-generated XML documentation to a cleaned file (open in the editor or closed on disk), when AI XML
     /// documentation is enabled with "Run during cleanup". The AI requests run off the UI thread.
     /// </summary>
     /// <param name="projectItem">The project item.</param>
-    /// <returns>A task.</returns>
-    internal async Task RunXmlDocumentationDuringCleanupAsync(ProjectItem projectItem)
+    /// <returns>True when the XML documentation changed the file.</returns>
+    internal async Task<bool> RunXmlDocumentationDuringCleanupAsync(ProjectItem projectItem)
     {
         if (!Settings.Default.Cleaning_AiXmlDocumentationEnabled || !Settings.Default.Cleaning_AiXmlDocumentationRunDuringCleanup)
         {
-            return;
+            return false;
         }
 
-        await _aiXmlDocumentationLogic.ApplyXmlDocumentationAsync(projectItem);
+        return await _aiXmlDocumentationLogic.ApplyXmlDocumentationAsync(projectItem);
     }
 
     /// <summary>
@@ -1769,8 +1787,7 @@ internal sealed class CodeCleanupManager
             var notDeletedFiles = TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(splitResult.CreatedFiles);
             if (notDeletedFiles.Count > 0)
             {
-                OutputWindowHelper.WarningWriteLine(
-                    $"These file(s) created by the top-level type split could not be removed and duplicate types of '{filePath}'; delete them: {string.Join(", ", notDeletedFiles)}");
+                OutputWindowHelper.WarningWriteLine(TopLevelTypeToFileSplitFileProcessor.FormatNotDeletedFilesWarning(filePath, notDeletedFiles));
             }
 
             throw;
@@ -1820,12 +1837,55 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
+    /// Runs the semantic steps of one file in order and calls <paramref name="onFileChanged" /> as soon as a step
+    /// rewrote it, so the file is counted as changed even when a later step throws (the exception propagates).
+    /// <paramref name="onFileChanged" /> may be called once per rewriting step; the caller counts each file once.
+    /// </summary>
+    /// <param name="steps">The steps; each returns true when it rewrote the file.</param>
+    /// <param name="onFileChanged">Records the file as changed.</param>
+    /// <returns>A task.</returns>
+    internal static async Task RunSemanticStepsAsync(IReadOnlyList<Func<Task<bool>>> steps, Action onFileChanged)
+    {
+        foreach (var step in steps)
+        {
+            if (await step())
+            {
+                onFileChanged();
+            }
+        }
+    }
+
+    /// <summary>
     /// Thread-safely increments the count of headless changed items.
     /// </summary>
     internal void IncrementHeadlessChanged()
     {
         lock (_cleanupStatsLock)
         {
+            _cleanupExecutionStats.HeadlessChangedItems++;
+        }
+    }
+
+    /// <summary>
+    /// Thread-safely removes a file from the count of headless changed items, when it is counted elsewhere after all.
+    /// </summary>
+    internal void UncountHeadlessChanged()
+    {
+        lock (_cleanupStatsLock)
+        {
+            _cleanupExecutionStats.HeadlessChangedItems--;
+        }
+    }
+
+    /// <summary>
+    /// Thread-safely moves a file counted as a headless no-op item to the headless changed items, when a later step
+    /// changed it.
+    /// </summary>
+    internal void RecountNoOpAsChanged()
+    {
+        lock (_cleanupStatsLock)
+        {
+            _cleanupExecutionStats.HeadlessNoOpItems--;
             _cleanupExecutionStats.HeadlessChangedItems++;
         }
     }

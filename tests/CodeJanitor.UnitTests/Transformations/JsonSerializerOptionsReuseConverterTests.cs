@@ -192,20 +192,51 @@ public sealed class JsonSerializerOptionsReuseConverterTests
         string expected = input
             .Replace(", options: new JsonSerializerOptions()", ", options: null")
             .Replace(", new JsonSerializerOptions()", ", options: null");
-        string jsonAssemblyDirectory = Path.GetDirectoryName(Assembly.Load("System.Text.Json").Location);
-        MetadataReference[] references = new[]
-        {
-            "System.Text.Json", "System.Memory", "System.Buffers", "System.Numerics.Vectors", "System.Runtime.CompilerServices.Unsafe",
-            "System.Threading.Tasks.Extensions", "System.Text.Encodings.Web", "Microsoft.Bcl.AsyncInterfaces", "System.IO.Pipelines"
-        }
-        .Select(name => (MetadataReference)MetadataReference.CreateFromFile(Path.Combine(jsonAssemblyDirectory, name + ".dll")))
-        .ToArray();
-        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, references);
+        Document document = CompilingTestProject.CreateDocument(input, LanguageVersion.Latest, GetJsonReferences());
 
         string result = _converter.Apply(input);
 
         Assert.AreEqual(expected, result);
         Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, input), "the input must compile before the conversion");
         Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, result));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(LanguageVersion.CSharp7_1, DisplayName = "C# 7.1")]
+    [DataRow(LanguageVersion.Latest, DisplayName = "latest language version")]
+    public async System.Threading.Tasks.Task OptionsFollowedByAPositionalArgument_ConvertedCallCompilesInEveryLanguageVersion(LanguageVersion languageVersion)
+    {
+        string input =
+            "using System.IO;\r\n" +
+            "using System.Text.Json;\r\n" +
+            "using System.Threading;\r\n" +
+            "using System.Threading.Tasks;\r\n" +
+            "class C\r\n" +
+            "{\r\n" +
+            "    Task SerializeAsync(Stream s, object v, CancellationToken ct) => JsonSerializer.SerializeAsync(s, v, new JsonSerializerOptions(), ct);\r\n" +
+            "    ValueTask<C> DeserializeAsync(Stream s, CancellationToken ct) => JsonSerializer.DeserializeAsync<C>(s, new System.Text.Json.JsonSerializerOptions(), ct);\r\n" +
+            "}\r\n";
+        Document document = CompilingTestProject.CreateDocument(input, languageVersion, GetJsonReferences());
+
+        string result = _converter.Apply(input);
+
+        Assert.DoesNotContain("new JsonSerializerOptions()", result, result);
+        Assert.DoesNotContain("new System.Text.Json.JsonSerializerOptions()", result, result);
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, input), "the input must compile before the conversion");
+        Assert.IsEmpty(await CompilingTestProject.GetCompileErrorsAsync(document, result));
+    }
+
+    private static MetadataReference[] GetJsonReferences()
+    {
+        string jsonAssemblyDirectory = Path.GetDirectoryName(Assembly.Load("System.Text.Json").Location);
+
+        return new[]
+        {
+            "System.Text.Json", "System.Memory", "System.Buffers", "System.Numerics.Vectors", "System.Runtime.CompilerServices.Unsafe",
+            "System.Threading.Tasks.Extensions", "System.Text.Encodings.Web", "Microsoft.Bcl.AsyncInterfaces", "System.IO.Pipelines"
+        }
+        .Select(name => (MetadataReference)MetadataReference.CreateFromFile(Path.Combine(jsonAssemblyDirectory, name + ".dll")))
+        .ToArray();
     }
 }

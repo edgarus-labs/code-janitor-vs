@@ -300,7 +300,9 @@ internal sealed class VisualStudioRoslynWorkspace
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <returns>The document ids, possibly none.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath) => solution.GetDocumentIdsWithFilePath(filePath)
+    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath)
+    {
+        return solution.GetDocumentIdsWithFilePath(filePath)
             .Select(id => solution.GetDocument(id))
             .Where(document => document is not null && document.Project.Language == LanguageNames.CSharp)
             .OrderBy(document => string.Equals(document.Project.FilePath, projectFilePath, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
@@ -308,6 +310,7 @@ internal sealed class VisualStudioRoslynWorkspace
             .ThenBy(document => document.Project.Name, StringComparer.Ordinal)
             .Select(document => document.Id)
             .ToList();
+    }
 
     private static List<Project> FindProjectsInClosestDirectory(Solution solution, string filePath)
     {

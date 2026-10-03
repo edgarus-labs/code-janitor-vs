@@ -885,11 +885,15 @@ public sealed class DiagnosticCleanupEngine
 
         public (CodeFixProvider Provider, string EquivalenceKey) GroupKey => (Provider, Action?.EquivalenceKey);
 
-        public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives) =>
-            new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null, null);
+        public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives)
+        {
+            return new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null, null);
+        }
 
-        public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason, string detail = null) =>
-            new FixPlan(actionable, null, null, false, reason, detail);
+        public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason, string detail = null)
+        {
+            return new FixPlan(actionable, null, null, false, reason, detail);
+        }
     }
 
     private sealed class FixAttempt
@@ -921,11 +925,15 @@ public sealed class DiagnosticCleanupEngine
         public static FixAttempt Accepted(
             Solution solution,
             ImmutableArray<ActionableDiagnostic> fixedDiagnostics,
-            ImmutableArray<CodeActionOperation> postApplyOperations) =>
-            new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null, null);
+            ImmutableArray<CodeActionOperation> postApplyOperations)
+        {
+            return new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null, null);
+        }
 
-        public static FixAttempt Rejected(UnresolvedDiagnosticReason reason, string detail = null) =>
-            new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason, detail);
+        public static FixAttempt Rejected(UnresolvedDiagnosticReason reason, string detail = null)
+        {
+            return new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason, detail);
+        }
     }
 
     /// <summary>

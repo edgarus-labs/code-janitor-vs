@@ -104,9 +104,12 @@ public sealed class UpdateSingleLineMethodsConverter : ISourceTransformation
         /// </summary>
         /// <param name="body">The body, from the original tree.</param>
         /// <returns>A bool value produced by this method.</returns>
-        private bool IsSingleLineMethodBody(BlockSyntax body) => body.Statements.Count > 0
+        private bool IsSingleLineMethodBody(BlockSyntax body)
+        {
+            return body.Statements.Count > 0
                 && _text.Lines.GetLineFromPosition(body.OpenBraceToken.SpanStart).LineNumber
                     == _text.Lines.GetLineFromPosition(body.CloseBraceToken.SpanStart).LineNumber;
+        }
 
         /// <summary>
         /// Puts the opening brace, every statement and the closing brace of the method body on their

@@ -16,7 +16,10 @@ public static class PropertyInfoHelper<T>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     /// <param name="lambda">The lambda.</param>
     /// <returns>The property info for the referenced property, otherwise null.</returns>
-    public static PropertyInfo GetPropertyInfo<TValue>(Expression<Func<T, TValue>> lambda) => lambda.Body.NodeType == ExpressionType.MemberAccess
-                   ? ((MemberExpression)lambda.Body).Member as PropertyInfo
-                   : null;
+    public static PropertyInfo GetPropertyInfo<TValue>(Expression<Func<T, TValue>> lambda)
+    {
+        return lambda.Body.NodeType == ExpressionType.MemberAccess
+            ? ((MemberExpression)lambda.Body).Member as PropertyInfo
+            : null;
+    }
 }

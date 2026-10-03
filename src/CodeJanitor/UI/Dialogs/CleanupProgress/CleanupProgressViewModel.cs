@@ -147,12 +147,14 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// Posts a progress update to the UI thread without waiting for it.
     /// </summary>
     /// <param name="state">The progress state.</param>
-    private void ReportProgress(ProgressReportState state) =>
+    private void ReportProgress(ProgressReportState state)
+    {
         _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             OnProgressChanged(state);
         });
+    }
 
     /// <summary>
     /// Runs <paramref name="action" /> on the UI thread through the joinable task factory, so it is also serviced while
@@ -217,6 +219,9 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             // set is only read during the parallel pass, which does not count these files again.
             var filesChangedBySemanticSteps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            // Files counted as no-op by the parallel pass, counted as changed instead when the XML documentation changes them.
+            var noOpItems = new ConcurrentDictionary<WorkItem, bool>();
+
             // A file whose semantic step or headless cleanup failed is recorded as failed once: the later passes leave it
             // alone, as they would record their own failures for the same file and inflate the failure count.
             var failedItems = new ConcurrentDictionary<WorkItem, bool>();
@@ -226,7 +231,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
 
                 try
                 {
-                    await RunSemanticStepsAsync(
+                    await CodeCleanupManager.RunSemanticStepsAsync(
                         new Func<Task<bool>>[]
                         {
                             () => CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken),
@@ -297,6 +302,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                             else
                             {
                                 CodeCleanupManager.IncrementHeadlessNoOp();
+                                noOpItems.TryAdd(workItem, true);
                             }
                         }
 
@@ -344,7 +350,10 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     try
                     {
                         await CodeCleanupManager.RunDiagnosticCleanupAsync(workItem.ProjectItem);
-                        await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(workItem.ProjectItem);
+                        if (await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(workItem.ProjectItem) && noOpItems.ContainsKey(workItem))
+                        {
+                            CodeCleanupManager.RecountNoOpAsChanged();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -411,18 +420,29 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
 
             try
             {
-                if (item is EnvDTE.ProjectItem projectItem)
+                object batchItem = item;
+                var projectItem = await RunOnMainThreadAsync(() =>
+                {
+                    ThreadHelper.ThrowIfNotOnUIThread();
+
+                    return batchItem as EnvDTE.ProjectItem;
+                });
+                if (projectItem is not null)
                 {
                     await CodeCleanupManager.CleanupAsync(projectItem, cancellationToken);
                 }
                 else
                 {
-                    // The document is converted to its static type first, so the cleanup call is bound at compile time
-                    // rather than at run time on the dynamic item. The editor cleanup runs on the UI thread; the AI XML
-                    // documentation step then runs from this thread, so its requests neither block Visual Studio nor
-                    // the Cancel button.
-                    EnvDTE.Document document = item;
-                    var xmlDocumentationItem = await RunOnMainThreadAsync(() => CodeCleanupManager.CleanupWithoutXmlDocumentation(document));
+                    // The document is converted to its static type on the UI thread, which owns the COM object, so the
+                    // cleanup call is bound at compile time rather than at run time on the dynamic item. The editor
+                    // cleanup runs on the UI thread; the AI XML documentation step then runs from this thread, so its
+                    // requests neither block Visual Studio nor the Cancel button.
+                    var xmlDocumentationItem = await RunOnMainThreadAsync(() =>
+                    {
+                        ThreadHelper.ThrowIfNotOnUIThread();
+
+                        return CodeCleanupManager.CleanupWithoutXmlDocumentation((EnvDTE.Document)batchItem);
+                    });
                     if (xmlDocumentationItem is not null)
                     {
                         await CodeCleanupManager.RunXmlDocumentationDuringCleanupAsync(xmlDocumentationItem);
@@ -663,24 +683,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
         /// Gets the unique name of the project that contains the file, or null when unknown.
         /// </summary>
         public string ProjectKey { get; }
-    }
-
-    /// <summary>
-    /// Runs the semantic steps of one file in order and calls <paramref name="onFileChanged" /> as soon as a step
-    /// rewrote it, so the file is counted as changed even when a later step throws (the exception propagates).
-    /// <paramref name="onFileChanged" /> may be called once per rewriting step; the caller counts each file once.
-    /// </summary>
-    /// <param name="steps">The steps; each returns true when it rewrote the file.</param>
-    /// <param name="onFileChanged">Records the file as changed.</param>
-    internal static async Task RunSemanticStepsAsync(IReadOnlyList<Func<Task<bool>>> steps, Action onFileChanged)
-    {
-        foreach (var step in steps)
-        {
-            if (await step())
-            {
-                onFileChanged();
-            }
-        }
     }
 
     /// <summary>

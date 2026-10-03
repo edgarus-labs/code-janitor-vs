@@ -1899,12 +1899,15 @@ public sealed class DiagnosticCleanupEngineTests
             _failingStep = failingStep;
         }
 
-        public override FixAllProvider GetFixAllProvider() => _failingStep switch
+        public override FixAllProvider GetFixAllProvider()
         {
-            FixAllFailure.GetFixAllProvider => throw new System.MissingMethodException("GetFixAllProvider"),
-            FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
-            _ => null,
-        };
+            return _failingStep switch
+            {
+                FixAllFailure.GetFixAllProvider => throw new System.MissingMethodException("GetFixAllProvider"),
+                FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
+                _ => null,
+            };
+        }
 
         public override async System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context)
         {

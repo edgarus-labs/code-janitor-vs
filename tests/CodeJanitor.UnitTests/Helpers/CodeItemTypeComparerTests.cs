@@ -75,11 +75,14 @@ public sealed class CodeItemTypeComparerTests
         Assert.IsLessThan(0, result);
     }
 
-    private static T Create<T>(string name, int offset) where T : BaseCodeItem, new() => new T
+    private static T Create<T>(string name, int offset) where T : BaseCodeItem, new()
     {
-        Name = name,
-        StartOffset = offset
-    };
+        return new T
+        {
+            Name = name,
+            StartOffset = offset
+        };
+    }
 
     private static CodeItemMethod CreateExplicitMethod(string interfaceName, string methodName, int offset)
     {

@@ -129,8 +129,8 @@ This file records changes made in Code Janitor after the project became an indep
 	proxy or mock (`Mock<Foo>`, `Substitute.For<Foo>()`) compiles once sealed but fails at run time; turn off Seal
 	Classes for such projects.
 - Fixed the AI XML documentation option "Run during cleanup" having no effect: cleanup now adds the AI-generated
-	XML documentation to each file it cleans up, open or closed, except in the automatic cleanup on save. Canceling
-	a cleanup batch also stops its XML documentation.
+	XML documentation to each file a cleanup batch cleans up, open or closed. Cleanup Active Document and the
+	automatic cleanup on save never add it. Canceling a cleanup batch also stops its XML documentation.
 - Fixed "Inline out variable declarations" dropping the declared type (`Enum.TryParse(text, out var value)` no longer
 	compiled, and overloaded or `dynamic` arguments changed meaning); the inlined declaration now keeps its type
 	(`out DayOfWeek value`). Consecutive declarations before one call are all inlined.
@@ -238,7 +238,8 @@ This file records changes made in Code Janitor after the project became an indep
 	null checks (`const` initializers, default parameter values, attribute arguments, `case` labels), where
 	`is null` does not compile, are left unchanged.
 - Fixed "Reuse `JsonSerializerOptions`" replacing an argument with a positional `null` that is ambiguous
-	between overloads (`CS0121`); the argument is now named `options:`.
+	between overloads (`CS0121`); the argument is now named `options:`, or cast to the options type when a positional
+	argument follows it (`(JsonSerializerOptions)null, ct`), which compiles in every C# version.
 - Fixed explicit access modifier insertion adding `private` to types and fields nested in interfaces and
 	adding an access modifier to `file`-scoped types.
 - Fixed region removal and "Update `#endregion` directives" changing lines inside multi-line string literals

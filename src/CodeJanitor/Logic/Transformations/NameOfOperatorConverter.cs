@@ -150,9 +150,11 @@ public sealed class NameOfOperatorConverter : ISourceTransformation
             }
         }
 
-        private static bool IsStringExpression(ExpressionSyntax expression) =>
-            expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression) ||
-            expression is InterpolatedStringExpressionSyntax;
+        private static bool IsStringExpression(ExpressionSyntax expression)
+        {
+            return expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression) ||
+                expression is InterpolatedStringExpressionSyntax;
+        }
 
         /// <summary>
         /// Walks up the syntax tree from the given node and collects parameter identifier names from each enclosing method, constructor, local function, or lambda into a case-sensitive HashSet, stopping when the root is reached.

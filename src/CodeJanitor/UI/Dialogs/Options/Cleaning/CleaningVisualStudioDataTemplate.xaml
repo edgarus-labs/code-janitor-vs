@@ -4,24 +4,24 @@
 	xmlns:p="clr-namespace:CodeJanitor.Properties"
 	xmlns:cnv="clr-namespace:CodeJanitor.UI.Converters"
 	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Cleaning">
-    <DataTemplate DataType="{x:Type local:CleaningVisualStudioViewModel}">
-        <StackPanel>
-            <CheckBox Content="{x:Static p:Resources.RunFormatDocument}" IsChecked="{Binding RunVisualStudioFormatDocument}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioFormatDocumentCommand], Converter={x:Static cnv:NullToBooleanConverter.IsNull}}" />
-            <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioFormatDocumentCommand]}" />
+	<DataTemplate DataType="{x:Type local:CleaningVisualStudioViewModel}">
+		<StackPanel>
+			<CheckBox Content="{x:Static p:Resources.RunFormatDocument}" IsChecked="{Binding RunVisualStudioFormatDocument}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioFormatDocumentCommand], Converter={x:Static cnv:NullToBooleanConverter.IsNull}}" />
+			<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioFormatDocumentCommand]}" />
 
-            <CheckBox Content="{x:Static p:Resources.RunRemoveAndSortUsingStatements}" IsChecked="{Binding RunVisualStudioRemoveAndSortUsingStatements}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioRemoveAndSortUsingStatements], Converter={x:Static cnv:NullToBooleanConverter.IsNull}}" />
-            <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioRemoveAndSortUsingStatements]}" />
-            <CheckBox
+			<CheckBox Content="{x:Static p:Resources.RunRemoveAndSortUsingStatements}" IsChecked="{Binding RunVisualStudioRemoveAndSortUsingStatements}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioRemoveAndSortUsingStatements], Converter={x:Static cnv:NullToBooleanConverter.IsNull}}" />
+			<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_RunVisualStudioRemoveAndSortUsingStatements]}" />
+			<CheckBox
 				Margin="35,5,5,5"
 				Content="{x:Static p:Resources.SkipDuringAutomaticCleanupOnSave}"
 				IsChecked="{Binding SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave}"
 				IsEnabled="{Binding RunVisualStudioRemoveAndSortUsingStatements}" />
 
-            <StackPanel Margin="30,5,5,10" IsEnabled="{Binding RunVisualStudioRemoveUnusedUsingStatements}">
-                <TextBlock Margin="5,5,5,0" Text="{x:Static p:Resources.UsingStatementsToReInsertWhenRemovedExUsingSystem}" />
-                <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UsingStatementsToReinsertWhenRemovedExpression, Converter={x:Static cnv:StringReplaceConverter.DoublePipeToNewLine}, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock FontStyle="Italic" Text="{x:Static p:Resources.PlaceEachUsingStatementOnASeparateLine}" />
-            </StackPanel>
-        </StackPanel>
-    </DataTemplate>
+			<StackPanel Margin="30,5,5,10" IsEnabled="{Binding RunVisualStudioRemoveUnusedUsingStatements}">
+				<TextBlock Margin="5,5,5,0" Text="{x:Static p:Resources.UsingStatementsToReInsertWhenRemovedExUsingSystem}" />
+				<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UsingStatementsToReinsertWhenRemovedExpression, Converter={x:Static cnv:StringReplaceConverter.DoublePipeToNewLine}, UpdateSourceTrigger=PropertyChanged}" />
+				<TextBlock FontStyle="Italic" Text="{x:Static p:Resources.PlaceEachUsingStatementOnASeparateLine}" />
+			</StackPanel>
+		</StackPanel>
+	</DataTemplate>
 </ResourceDictionary>

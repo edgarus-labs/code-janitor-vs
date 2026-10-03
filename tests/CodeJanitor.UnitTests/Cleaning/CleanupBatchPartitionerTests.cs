@@ -191,60 +191,66 @@ public sealed class CleanupBatchPartitionerTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CleanupProgressViewModel_BuildVerificationCannotStart_TheDialogStillCloses() => RunOnVisualStudioUIThread(() =>
-                                                                                                     {
-                                                                                                         DTE2 ide = Substitute.For<DTE2>();
-                                                                                                         ide.Events.Returns(_ => throw new COMException("The build events are not available."));
-                                                                                                         CodeJanitorPackage package = CreatePackage(ide);
+    public void CleanupProgressViewModel_BuildVerificationCannotStart_TheDialogStillCloses()
+    {
+        RunOnVisualStudioUIThread(() =>
+        {
+            DTE2 ide = Substitute.For<DTE2>();
+            ide.Events.Returns(_ => throw new COMException("The build events are not available."));
+            CodeJanitorPackage package = CreatePackage(ide);
 
-                                                                                                         WithPackage(package, () =>
-                                                                                                         {
-                                                                                                             CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
-                                                                                                             try
-                                                                                                             {
-                                                                                                                 CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
+            WithPackage(package, () =>
+            {
+                CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
+                try
+                {
+                    CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
 
-                                                                                                                 // A changed file makes the batch start the build verification when it completes on this thread's
-                                                                                                                 // dispatcher, which only runs once the dispatcher is pumped below.
-                                                                                                                 manager.IncrementHeadlessChanged();
-                                                                                                                 WaitForBatch(viewModel);
+                    // A changed file makes the batch start the build verification when it completes on this thread's
+                    // dispatcher, which only runs once the dispatcher is pumped below.
+                    manager.IncrementHeadlessChanged();
+                    WaitForBatch(viewModel);
 
-                                                                                                                 Assert.IsTrue(viewModel.DialogResult, "The dialog must close when the build verification cannot be started.");
-                                                                                                                 _ = ide.Received().Events;
-                                                                                                             }
-                                                                                                             finally
-                                                                                                             {
-                                                                                                                 manager.ResetCleanupExecutionStats();
-                                                                                                             }
-                                                                                                         });
-                                                                                                     });
+                    Assert.IsTrue(viewModel.DialogResult, "The dialog must close when the build verification cannot be started.");
+                    _ = ide.Received().Events;
+                }
+                finally
+                {
+                    manager.ResetCleanupExecutionStats();
+                }
+            });
+        });
+    }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CleanupProgressViewModel_CompletingTheBatchThrows_TheDialogStillCloses() => RunOnVisualStudioUIThread(() =>
-                                                                                                 {
-                                                                                                     // Reading the solution fails while the batch completes, e.g. because the solution was closed meanwhile.
-                                                                                                     DTE2 ide = Substitute.For<DTE2>();
-                                                                                                     ide.Solution.Returns(_ => throw new COMException("The solution is closed."));
-                                                                                                     CodeJanitorPackage package = CreatePackage(ide);
+    public void CleanupProgressViewModel_CompletingTheBatchThrows_TheDialogStillCloses()
+    {
+        RunOnVisualStudioUIThread(() =>
+        {
+            // Reading the solution fails while the batch completes, e.g. because the solution was closed meanwhile.
+            DTE2 ide = Substitute.For<DTE2>();
+            ide.Solution.Returns(_ => throw new COMException("The solution is closed."));
+            CodeJanitorPackage package = CreatePackage(ide);
 
-                                                                                                     WithPackage(package, () =>
-                                                                                                     {
-                                                                                                         CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
-                                                                                                         try
-                                                                                                         {
-                                                                                                             CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
-                                                                                                             manager.IncrementHeadlessChanged();
-                                                                                                             WaitForBatch(viewModel);
+            WithPackage(package, () =>
+            {
+                CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
+                try
+                {
+                    CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
+                    manager.IncrementHeadlessChanged();
+                    WaitForBatch(viewModel);
 
-                                                                                                             Assert.IsTrue(viewModel.DialogResult, "The dialog must close even when completing the batch fails.");
-                                                                                                         }
-                                                                                                         finally
-                                                                                                         {
-                                                                                                             manager.ResetCleanupExecutionStats();
-                                                                                                         }
-                                                                                                     });
-                                                                                                 });
+                    Assert.IsTrue(viewModel.DialogResult, "The dialog must close even when completing the batch fails.");
+                }
+                finally
+                {
+                    manager.ResetCleanupExecutionStats();
+                }
+            });
+        });
+    }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]

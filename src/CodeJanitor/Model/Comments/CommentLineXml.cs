@@ -137,9 +137,12 @@ internal sealed class CommentLineXml : CommentLine
     /// <param name="tag">The tag.</param>
     /// <param name="tagCase">The tag case.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string TagCase(string tag, XmlTagCase tagCase) => tagCase == XmlTagCase.LowerCase ? tag.ToLowerInvariant() :
+    private static string TagCase(string tag, XmlTagCase tagCase)
+    {
+        return tagCase == XmlTagCase.LowerCase ? tag.ToLowerInvariant() :
             tagCase == XmlTagCase.UpperCase ? tag.ToUpperInvariant() :
             tag;
+    }
 
     /// <summary>
     /// If there is text left in the buffer, parse and append it as a comment line.

@@ -451,11 +451,13 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
         ("System.Timers", new[] { "Timer" }),
         ("System.Net.Http", new[] { "HttpClient" }));
 
-    private static Dictionary<string, string[]> BuildKnownReferenceTypeNamespaces(params (string Namespace, string[] Names)[] entries) =>
-        entries
+    private static Dictionary<string, string[]> BuildKnownReferenceTypeNamespaces(params (string Namespace, string[] Names)[] entries)
+    {
+        return entries
             .SelectMany(entry => entry.Names.Select(name => (Name: name, entry.Namespace)))
             .GroupBy(pair => pair.Name, System.StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Select(pair => pair.Namespace).ToArray(), System.StringComparer.Ordinal);
+    }
 
     /// <summary>
     /// Determines whether the declared type is syntactically known not to be a mutable struct: a predefined type, an
@@ -535,12 +537,14 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     /// usings of other files are invisible from a single syntax tree, so an unqualified name relying on them is not
     /// recognised.
     /// </summary>
-    private static bool IsNamespaceImported(SyntaxNode root, string namespaceName) =>
-        root.DescendantNodes().OfType<UsingDirectiveSyntax>().Any(directive =>
+    private static bool IsNamespaceImported(SyntaxNode root, string namespaceName)
+    {
+        return root.DescendantNodes().OfType<UsingDirectiveSyntax>().Any(directive =>
             directive.Alias == null &&
             directive.StaticKeyword.IsKind(SyntaxKind.None) &&
             directive.Name != null &&
             string.Concat(directive.Name.DescendantTokens().Select(t => t.ValueText)) == namespaceName);
+    }
 
     /// <summary>
     /// Determines whether a name looks like a conventionally named interface: <c>I</c> followed by an upper-case letter
@@ -548,14 +552,18 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
     /// abbreviations such as <c>ID</c> or <c>IO</c>, and names containing digits such as <c>IPv4Address</c> - are far
     /// more likely to be structs declared elsewhere.
     /// </summary>
-    private static bool FollowsInterfaceNamingConvention(string name) =>
-        name.Length > 2 && name[0] == 'I' && char.IsUpper(name[1]) && char.IsLower(name[2]) && !name.Any(char.IsDigit);
+    private static bool FollowsInterfaceNamingConvention(string name)
+    {
+        return name.Length > 2 && name[0] == 'I' && char.IsUpper(name[1]) && char.IsLower(name[2]) && !name.Any(char.IsDigit);
+    }
 
     /// <summary>
     /// Gets the number of type parameters of a type or delegate declaration.
     /// </summary>
-    private static int GetArity(SyntaxNode declaration) =>
-        declaration is TypeDeclarationSyntax typeDeclaration ? typeDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
-        declaration is DelegateDeclarationSyntax delegateDeclaration ? delegateDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
-        0;
+    private static int GetArity(SyntaxNode declaration)
+    {
+        return declaration is TypeDeclarationSyntax typeDeclaration ? typeDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
+            declaration is DelegateDeclarationSyntax delegateDeclaration ? delegateDeclaration.TypeParameterList?.Parameters.Count ?? 0 :
+            0;
+    }
 }

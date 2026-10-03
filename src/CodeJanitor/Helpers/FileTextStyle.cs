@@ -18,19 +18,24 @@ internal static class FileTextStyle
     private const string Lf = "\n";
     private const string CrLf = "\r\n";
     private const string Cr = "\r";
+    private const int Latin1CodePage = 28591;
 
     private static readonly Regex LineBreak = new Regex("\r\n|\r|\n", RegexOptions.Compiled);
 
     /// <summary>
-    /// Reads a file as text, detecting its encoding from the byte order mark. A file without one is read as UTF-8
-    /// and reported as UTF-8 without a byte order mark, so writing it back does not add one.
+    /// Reads a file as text, detecting its encoding from the byte order mark. A file without one is read as Latin-1
+    /// when .editorconfig <c>charset</c> is <c>latin1</c>, and otherwise as UTF-8 reported without a byte order mark,
+    /// so writing it back does not add one.
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="encoding">The encoding the file had, including whether it had a byte order mark.</param>
     /// <returns>The file text.</returns>
     internal static string ReadAllText(string filePath, out Encoding encoding)
     {
-        using (var reader = new StreamReader(filePath, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true))
+        var charset = ParseCharset(EditorConfigHelper.LoadOptions(filePath));
+        var encodingWithoutByteOrderMark = charset?.CodePage == Latin1CodePage ? charset : new UTF8Encoding(false);
+
+        using (var reader = new StreamReader(filePath, encodingWithoutByteOrderMark, detectEncodingFromByteOrderMarks: true))
         {
             var text = reader.ReadToEnd();
             encoding = reader.CurrentEncoding;
@@ -60,6 +65,34 @@ internal static class FileTextStyle
         var styledText = lineEnding is null ? text : NormalizeLineEndings(text, lineEnding);
 
         File.WriteAllText(filePath, styledText, ParseCharset(options) ?? encoding);
+    }
+
+    /// <summary>
+    /// Replaces the text of an existing file as <see cref="WriteAllText" /> writes it, but atomically: the text is
+    /// written to a temporary file next to it first, which then replaces the file. A write that fails leaves the file
+    /// as it was.
+    /// </summary>
+    /// <param name="filePath">The path of the existing file.</param>
+    /// <param name="text">The text to write.</param>
+    /// <param name="encoding">The encoding to use when .editorconfig does not name one.</param>
+    /// <param name="originalText">The text the file had before the change.</param>
+    internal static void ReplaceAllText(string filePath, string text, Encoding encoding, string originalText)
+    {
+        var tempFilePath = filePath + ".codejanitor.tmp." + Guid.NewGuid().ToString("N");
+        try
+        {
+            WriteAllText(tempFilePath, text, encoding, originalText, filePath);
+            File.Replace(tempFilePath, filePath, null);
+        }
+        catch
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+
+            throw;
+        }
     }
 
     /// <summary>
@@ -200,6 +233,9 @@ internal static class FileTextStyle
 
             case "utf-16be":
                 return new UnicodeEncoding(true, true);
+
+            case "latin1":
+                return Encoding.GetEncoding(Latin1CodePage);
 
             default:
                 return null;

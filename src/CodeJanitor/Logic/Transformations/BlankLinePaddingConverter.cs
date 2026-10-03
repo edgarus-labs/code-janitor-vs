@@ -247,12 +247,18 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         return count == 0 ? startLine : tree.GetLineSpan(attachedComments[count - 1].Span).StartLinePosition.Line;
     }
 
-    private static bool IsComment(SyntaxTrivia trivia) => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
-               trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
-               IsDocumentationComment(trivia);
+    private static bool IsComment(SyntaxTrivia trivia)
+    {
+        return trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+            trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
+            IsDocumentationComment(trivia);
+    }
 
-    private static bool IsDocumentationComment(SyntaxTrivia trivia) => trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
-               trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+    private static bool IsDocumentationComment(SyntaxTrivia trivia)
+    {
+        return trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+            trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+    }
 
     /// <summary>
     /// The line holding the last character of the trivia; a single-line documentation comment includes its final line break.
@@ -516,36 +522,39 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// Returns true if any of the listed blank-line padding settings is enabled in the effective settings, otherwise false, with no side effects.
     /// </summary>
     /// <returns>A bool value produced by this method.</returns>
-    private bool AnySettingEnabled() => _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEnumerations)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEnumerations)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEvents)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEvents)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeInterfaces)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterInterfaces)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeMethods)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterMethods)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeNamespaces)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterNamespaces)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeStructs)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterStructs)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)) ||
-               _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments));
+    private bool AnySettingEnabled()
+    {
+        return _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEnumerations)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEnumerations)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEvents)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEvents)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsSingleLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsSingleLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeFieldsMultiLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterFieldsMultiLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeInterfaces)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterInterfaces)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeMethods)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterMethods)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeNamespaces)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterNamespaces)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesSingleLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesSingleLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforePropertiesMultiLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterPropertiesMultiLine)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeStructs)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterStructs)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)) ||
+            _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments));
+    }
 }

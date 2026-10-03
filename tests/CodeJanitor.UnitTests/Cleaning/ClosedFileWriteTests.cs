@@ -26,6 +26,7 @@ public sealed class ClosedFileWriteTests
     {
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n");
     }
 
     [TestCleanup]

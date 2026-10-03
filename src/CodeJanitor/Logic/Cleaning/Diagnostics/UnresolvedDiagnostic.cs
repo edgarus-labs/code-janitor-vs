@@ -84,6 +84,8 @@ public sealed class UnresolvedDiagnostic
     public string Detail { get; }
 
     /// <inheritdoc />
-    public override string ToString() =>
-        $"{FilePath}({Line}): {Severity} {DiagnosticId} [{Category}] {Reason}: {Message}" + (Detail.Length == 0 ? string.Empty : $" ({Detail})");
+    public override string ToString()
+    {
+        return $"{FilePath}({Line}): {Severity} {DiagnosticId} [{Category}] {Reason}: {Message}" + (Detail.Length == 0 ? string.Empty : $" ({Detail})");
+    }
 }

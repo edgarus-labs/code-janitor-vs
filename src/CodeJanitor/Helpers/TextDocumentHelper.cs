@@ -311,16 +311,19 @@ internal static class TextDocumentHelper
     /// <param name="textDocument">The text document.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <param name="replacementString">The replacement string.</param>
-    internal static void SubstituteAllStringMatches(TextDocument textDocument, string patternString, string replacementString) => UIThread.Run(() =>
-                                                                                                                                       {
-                                                                                                                                           ThreadHelper.ThrowIfNotOnUIThread();
+    internal static void SubstituteAllStringMatches(TextDocument textDocument, string patternString, string replacementString)
+    {
+        UIThread.Run(() =>
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
 
-                                                                                                                                           if (TryGetTextBufferAt(textDocument.Parent.FullName, out ITextBuffer textBuffer))
-                                                                                                                                           {
-                                                                                                                                               IFinder finder = GetFinder(patternString, replacementString, textBuffer);
-                                                                                                                                               ReplaceAll(textBuffer, finder.FindForReplaceAll());
-                                                                                                                                           }
-                                                                                                                                       });
+            if (TryGetTextBufferAt(textDocument.Parent.FullName, out ITextBuffer textBuffer))
+            {
+                IFinder finder = GetFinder(patternString, replacementString, textBuffer);
+                ReplaceAll(textBuffer, finder.FindForReplaceAll());
+            }
+        });
+    }
 
     /// <summary>
     /// Substitutes all occurrences in the specified text selection of the specified pattern
@@ -329,16 +332,19 @@ internal static class TextDocumentHelper
     /// <param name="textSelection">The text selection.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <param name="replacementString">The replacement string.</param>
-    internal static void SubstituteAllStringMatches(TextSelection textSelection, string patternString, string replacementString) => UIThread.Run(() =>
-                                                                                                                                         {
-                                                                                                                                             ThreadHelper.ThrowIfNotOnUIThread();
+    internal static void SubstituteAllStringMatches(TextSelection textSelection, string patternString, string replacementString)
+    {
+        UIThread.Run(() =>
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
 
-                                                                                                                                             if (TryGetTextBufferAt(textSelection.Parent.Parent.FullName, out ITextBuffer textBuffer))
-                                                                                                                                             {
-                                                                                                                                                 IFinder finder = GetFinder(patternString, replacementString, textBuffer);
-                                                                                                                                                 ReplaceAll(textBuffer, finder.FindForReplaceAll(GetSnapshotSpanForTextSelection(textBuffer.CurrentSnapshot, textSelection)));
-                                                                                                                                             }
-                                                                                                                                         });
+            if (TryGetTextBufferAt(textSelection.Parent.Parent.FullName, out ITextBuffer textBuffer))
+            {
+                IFinder finder = GetFinder(patternString, replacementString, textBuffer);
+                ReplaceAll(textBuffer, finder.FindForReplaceAll(GetSnapshotSpanForTextSelection(textBuffer.CurrentSnapshot, textSelection)));
+            }
+        });
+    }
 
     /// <summary>
     /// Substitutes all occurrences between the specified start and end points of the specified
@@ -348,16 +354,19 @@ internal static class TextDocumentHelper
     /// <param name="endPoint">The end point.</param>
     /// <param name="patternString">The pattern string.</param>
     /// <param name="replacementString">The replacement string.</param>
-    internal static void SubstituteAllStringMatches(EditPoint startPoint, EditPoint endPoint, string patternString, string replacementString) => UIThread.Run(() =>
-                                                                                                                                                      {
-                                                                                                                                                          ThreadHelper.ThrowIfNotOnUIThread();
+    internal static void SubstituteAllStringMatches(EditPoint startPoint, EditPoint endPoint, string patternString, string replacementString)
+    {
+        UIThread.Run(() =>
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
 
-                                                                                                                                                          if (TryGetTextBufferAt(startPoint.Parent.Parent.FullName, out ITextBuffer textBuffer))
-                                                                                                                                                          {
-                                                                                                                                                              IFinder finder = GetFinder(patternString, replacementString, textBuffer);
-                                                                                                                                                              ReplaceAll(textBuffer, finder.FindForReplaceAll(GetSnapshotSpanForExtent(textBuffer.CurrentSnapshot, startPoint, endPoint)));
-                                                                                                                                                          }
-                                                                                                                                                      });
+            if (TryGetTextBufferAt(startPoint.Parent.Parent.FullName, out ITextBuffer textBuffer))
+            {
+                IFinder finder = GetFinder(patternString, replacementString, textBuffer);
+                ReplaceAll(textBuffer, finder.FindForReplaceAll(GetSnapshotSpanForExtent(textBuffer.CurrentSnapshot, startPoint, endPoint)));
+            }
+        });
+    }
 
     /// <summary>
     /// We need to analyze the C# method and produce exactly one concise summary sentence. Plain text only, no XML, no quotes. Mention key behavior and side effects. Method: GetEditPointForSnapshotPosition takes TextDocument, ITextSnapshot, int position. It throws ThreadHelper.ThrowIfNotOnUIThread() (so it ensures UI thread). Creates an edit point from textDocument. Gets line from snapshot at position. Moves edit point to line (line number + 1) and offset (position - line start + 1). Returns edit point. Side effects: creates an EditPoint object, moves it, no modifications to document. It&apos;s a helper to convert snapshot position to EditPoint coordinates (1-based line and offset). The method assumes UI thread. We need one concise summary sentence. Mention key behavior and side effects. For example: &quot;Creates a TextDocument edit point and moves it to the 1-based line and offset corresponding to the given snapshot position, requiring UI thread access and returning the positioned edit point without modifying the document.&quot; But need to be concise. Let&apos;s craft. Ensure no XML, no quotes. Plain text. Final: &quot;Creates an EditPoint from the document, moves it to the line and character offset computed from.

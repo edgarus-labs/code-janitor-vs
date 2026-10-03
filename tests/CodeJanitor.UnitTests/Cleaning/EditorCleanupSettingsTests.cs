@@ -126,14 +126,20 @@ public sealed class EditorCleanupSettingsTests
     /// <summary>
     /// Writes a root .editorconfig with the specified C# options into the test directory.
     /// </summary>
-    private void WriteEditorConfig(params string[] options) => File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
+    private void WriteEditorConfig(params string[] options)
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
             "root = true\r\n\r\n[*.cs]\r\n" + string.Join("\r\n", options) + "\r\n");
+    }
 
     /// <summary>
     /// Writes a .codejanitor repository policy with the specified cleanup entries into the test directory.
     /// </summary>
-    private void WriteRepositoryPolicy(string cleanupEntries) => File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
+    private void WriteRepositoryPolicy(string cleanupEntries)
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
             "{ \"cleanup\": { " + cleanupEntries + " } }");
+    }
 
     private sealed class TestCodeItem : BaseCodeItem
     {

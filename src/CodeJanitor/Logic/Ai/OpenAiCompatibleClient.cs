@@ -405,12 +405,15 @@ internal sealed class OpenAiCompatibleClient : IAiChatClient
 
         internal List<string> AvailableModels { get; set; } = [];
 
-        internal ConnectionTestResult ToConnectionTestResult() => new ConnectionTestResult
+        internal ConnectionTestResult ToConnectionTestResult()
         {
-            Succeeded = Succeeded,
-            ErrorMessage = ErrorMessage,
-            AvailableModels = AvailableModels
-        };
+            return new ConnectionTestResult
+            {
+                Succeeded = Succeeded,
+                ErrorMessage = ErrorMessage,
+                AvailableModels = AvailableModels
+            };
+        }
     }
 
     private async Task<ModelsFetchResult> QueryModelsEndpointAsync(HttpClient httpClient, string url, CancellationToken cancellationToken)

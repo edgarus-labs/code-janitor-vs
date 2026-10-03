@@ -229,20 +229,23 @@ public sealed class FormattingViewModel : OptionsPageViewModel
     /// <summary>
     /// Formats `UnformattedPreviewText` using `CodeComment.Format` with configurable wrapping and XML comment options, then assigns the result to the `CommentPreviewText` property as its only side effect.
     /// </summary>
-    private void UpdatePreviewText() => CommentPreviewText = CodeComment.Format(UnformattedPreviewText, null, o =>
-                                             {
-                                                 o.WrapColumn = CommentWrapColumn;
-                                                 o.SkipWrapOnLastWord = CommentSkipWrapOnLastWord;
+    private void UpdatePreviewText()
+    {
+        CommentPreviewText = CodeComment.Format(UnformattedPreviewText, null, o =>
+        {
+            o.WrapColumn = CommentWrapColumn;
+            o.SkipWrapOnLastWord = CommentSkipWrapOnLastWord;
 
-                                                 o.Xml.AlignParamTags = CommentXmlAlignParamTags;
+            o.Xml.AlignParamTags = CommentXmlAlignParamTags;
 
-                                                 o.Xml.Default.Case = CommentXmlTagsToLowerCase ? XmlTagCase.LowerCase : XmlTagCase.Keep;
-                                                 o.Xml.Default.Indent = CommentXmlValueIndent;
-                                                 o.Xml.Default.KeepTogether = CommentXmlKeepTagsTogether;
-                                                 o.Xml.Default.SpaceContent = CommentXmlSpaceTags;
-                                                 o.Xml.Default.SpaceSelfClosing = CommentXmlSpaceSingleTags;
+            o.Xml.Default.Case = CommentXmlTagsToLowerCase ? XmlTagCase.LowerCase : XmlTagCase.Keep;
+            o.Xml.Default.Indent = CommentXmlValueIndent;
+            o.Xml.Default.KeepTogether = CommentXmlKeepTagsTogether;
+            o.Xml.Default.SpaceContent = CommentXmlSpaceTags;
+            o.Xml.Default.SpaceSelfClosing = CommentXmlSpaceSingleTags;
 
-                                                 o.Xml.Default.Split = CommentXmlSplitAllTags ? XmlTagNewLine.Always : XmlTagNewLine.Content;
-                                                 o.Xml.Tags["summary"] = new FormatterOptionsXmlTag { Split = CommentXmlSplitSummaryTagToMultipleLines ? XmlTagNewLine.Always : XmlTagNewLine.Content };
-                                             });
+            o.Xml.Default.Split = CommentXmlSplitAllTags ? XmlTagNewLine.Always : XmlTagNewLine.Content;
+            o.Xml.Tags["summary"] = new FormatterOptionsXmlTag { Split = CommentXmlSplitSummaryTagToMultipleLines ? XmlTagNewLine.Always : XmlTagNewLine.Content };
+        });
+    }
 }

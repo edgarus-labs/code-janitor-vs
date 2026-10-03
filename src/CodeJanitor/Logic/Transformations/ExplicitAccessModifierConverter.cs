@@ -555,12 +555,15 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         /// </summary>
         /// <param name="modifiers">The modifiers.</param>
         /// <returns>A bool value produced by this method.</returns>
-        private static bool HasAccessModifier(SyntaxTokenList modifiers) => modifiers.Any(m =>
-                                                                                         m.IsKind(SyntaxKind.PublicKeyword) ||
-                                                                                         m.IsKind(SyntaxKind.InternalKeyword) ||
-                                                                                         m.IsKind(SyntaxKind.ProtectedKeyword) ||
-                                                                                         m.IsKind(SyntaxKind.PrivateKeyword) ||
-                                                                                         m.IsKind(SyntaxKind.FileKeyword));
+        private static bool HasAccessModifier(SyntaxTokenList modifiers)
+        {
+            return modifiers.Any(m =>
+                m.IsKind(SyntaxKind.PublicKeyword) ||
+                m.IsKind(SyntaxKind.InternalKeyword) ||
+                m.IsKind(SyntaxKind.ProtectedKeyword) ||
+                m.IsKind(SyntaxKind.PrivateKeyword) ||
+                m.IsKind(SyntaxKind.FileKeyword));
+        }
 
         /// <summary>
         /// Returns whether the declaration is a member of an interface, where types and fields are implicitly public
@@ -577,9 +580,12 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
         private static bool HasModifier(SyntaxTokenList modifiers, SyntaxKind kind) => modifiers.Any(m => m.IsKind(kind));
 
         /// <summary>Returns the default implicit access modifier for a declaration in its current context.</summary>
-        private static SyntaxKind DefaultAccessFor(MemberDeclarationSyntax node) => node.Parent is TypeDeclarationSyntax
+        private static SyntaxKind DefaultAccessFor(MemberDeclarationSyntax node)
+        {
+            return node.Parent is TypeDeclarationSyntax
                 ? SyntaxKind.PrivateKeyword
                 : SyntaxKind.InternalKeyword;
+        }
 
         /// <summary>Returns the leading trivia that belongs on the new first token of a declaration.</summary>
         private static SyntaxTriviaList FirstLeadingTrivia(SyntaxTokenList modifiers, SyntaxToken fallback) => modifiers.Count > 0 ? modifiers[0].LeadingTrivia : fallback.LeadingTrivia;

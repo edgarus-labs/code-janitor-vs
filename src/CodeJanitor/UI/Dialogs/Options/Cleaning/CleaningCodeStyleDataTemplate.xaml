@@ -3,54 +3,54 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:converters="clr-namespace:CodeJanitor.UI.Converters"
 	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Cleaning">
-    <DataTemplate DataType="{x:Type local:CodeStyleRuleOptionViewModel}">
-        <StackPanel>
-            <Grid IsEnabled="{Binding EditorConfigOverride, Converter={x:Static converters:NullToBooleanConverter.IsNull}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="220" />
-                </Grid.ColumnDefinitions>
-                <CheckBox IsChecked="{Binding IsEnabled}" ToolTip="{Binding Key}">
-                    <TextBlock>
+	<DataTemplate DataType="{x:Type local:CodeStyleRuleOptionViewModel}">
+		<StackPanel>
+			<Grid IsEnabled="{Binding EditorConfigOverride, Converter={x:Static converters:NullToBooleanConverter.IsNull}}">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*" />
+					<ColumnDefinition Width="220" />
+				</Grid.ColumnDefinitions>
+				<CheckBox IsChecked="{Binding IsEnabled}" ToolTip="{Binding Key}">
+					<TextBlock>
 						<Run Text="{Binding Description, Mode=OneWay}" />
 						<Run Foreground="Gray" Text="{Binding Key, Mode=OneWay, StringFormat=({0})}" />
-                    </TextBlock>
-                </CheckBox>
-                <ComboBox
+					</TextBlock>
+				</CheckBox>
+				<ComboBox
 					Grid.Column="1"
 					Margin="5,0,0,5"
 					IsEnabled="{Binding IsEnabled}"
 					ItemsSource="{Binding Values}"
 					SelectedItem="{Binding Value}"
 					Visibility="{Binding IsFreeText, Converter={x:Static converters:BooleanToVisibilityConverter.Inverse}}" />
-                <TextBox
+				<TextBox
 					Grid.Column="1"
 					Margin="5,0,0,5"
 					IsEnabled="{Binding IsEnabled}"
 					Text="{Binding Value, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
 					ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"
 					Visibility="{Binding IsFreeText, Converter={x:Static converters:BooleanToVisibilityConverter.Default}}" />
-            </Grid>
-            <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverride}" />
-        </StackPanel>
-    </DataTemplate>
+			</Grid>
+			<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverride}" />
+		</StackPanel>
+	</DataTemplate>
 
-    <DataTemplate DataType="{x:Type local:CleaningCodeStyleViewModel}">
-        <StackPanel>
-            <TextBlock Margin="5,0,5,10" TextWrapping="Wrap">
+	<DataTemplate DataType="{x:Type local:CleaningCodeStyleViewModel}">
+		<StackPanel>
+			<TextBlock Margin="5,0,5,10" TextWrapping="Wrap">
 				Roslyn code-style rules applied by the Roslyn code fixes during cleanup. A rule that the solution's .editorconfig
 				sets to suggestion, warning or error wins; a rule it sets to none or silent, or does not set, follows this page
 				(or the repository .codejanitor codeStyle section). A fix that would add a compiler error is not applied.
-            </TextBlock>
-            <ItemsControl ItemsSource="{Binding Groups}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <GroupBox Header="{Binding Header}">
-                            <ItemsControl ItemsSource="{Binding Rules}" />
-                        </GroupBox>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
-    </DataTemplate>
+			</TextBlock>
+			<ItemsControl ItemsSource="{Binding Groups}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<GroupBox Header="{Binding Header}">
+							<ItemsControl ItemsSource="{Binding Rules}" />
+						</GroupBox>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</StackPanel>
+	</DataTemplate>
 </ResourceDictionary>

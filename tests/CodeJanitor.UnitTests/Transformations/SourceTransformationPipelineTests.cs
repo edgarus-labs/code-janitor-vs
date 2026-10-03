@@ -110,7 +110,6 @@ public sealed class SourceTransformationPipelineTests
     public void AdaptedConverters_AreComposableInPipeline()
     {
         // Verify that VarWhenApparentConverter, ReadonlyFieldConverter and FileScopedNamespaceConverter
-        // (which were adapted to implement ISourceTransformation)
         // can be instantiated and composed in a pipeline with other blocks.
         SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
             new UsingDirectiveOrganizer(),

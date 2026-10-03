@@ -5,7 +5,6 @@ using Microsoft.VisualStudio.Threading;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Document = Microsoft.CodeAnalysis.Document;
@@ -138,10 +137,7 @@ internal sealed class SemanticFileRewriter
         string originalText;
         try
         {
-            using (var reader = new StreamReader(filePath, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true))
-            {
-                originalText = await reader.ReadToEndAsync();
-            }
+            originalText = FileTextStyle.ReadAllText(filePath, out _);
         }
         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
         {
@@ -246,11 +242,15 @@ internal sealed class SemanticFileRewriter
         }
     }
 
-    private void WriteNotRewrittenWarning(string filePath, string reason) =>
+    private void WriteNotRewrittenWarning(string filePath, string reason)
+    {
         OutputWindowHelper.WarningWriteLine($"{_notRewrittenWarning} in '{filePath}': {reason}");
+    }
 
-    private void WriteRewrittenInfo(string filePath) =>
+    private void WriteRewrittenInfo(string filePath)
+    {
         OutputWindowHelper.InfoWriteLine($"{_rewrittenInfo} in '{filePath}'.");
+    }
 
     /// <summary>
     /// Runs the step on <paramref name="currentText" /> and returns the rewritten text, or null when the step changed

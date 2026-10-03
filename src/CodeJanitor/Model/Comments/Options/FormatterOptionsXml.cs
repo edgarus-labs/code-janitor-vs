@@ -48,22 +48,25 @@ public sealed class FormatterOptionsXml
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A FormatterOptionsXml value produced by this method.</returns>
-    internal static FormatterOptionsXml FromSettings(Settings settings) => new FormatterOptionsXml
+    internal static FormatterOptionsXml FromSettings(Settings settings)
     {
-        AlignParamTags = settings.Formatting_CommentXmlAlignParamTags,
-        Default = XmlTagOptions.FromSettings(settings),
-        Tags = new Dictionary<string, FormatterOptionsXmlTag>
+        return new FormatterOptionsXml
         {
-            ["summary"] = new FormatterOptionsXmlTag { Split = settings.Formatting_CommentXmlSplitSummaryTagToMultipleLines ? XmlTagNewLine.Always : XmlTagNewLine.Default },
-            ["copyright"] = new FormatterOptionsXmlTag { Split = XmlTagNewLine.Always, Indent = CodeCommentHelper.CopyrightExtraIndent },
-            ["code"] = new FormatterOptionsXmlTag { Split = XmlTagNewLine.BeforeAndAfter, Literal = true },
-            ["p"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-            ["para"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-            ["list"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-            ["listheader"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-            ["item"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-            ["term"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-            ["description"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
-        }
-    };
+            AlignParamTags = settings.Formatting_CommentXmlAlignParamTags,
+            Default = XmlTagOptions.FromSettings(settings),
+            Tags = new Dictionary<string, FormatterOptionsXmlTag>
+            {
+                ["summary"] = new FormatterOptionsXmlTag { Split = settings.Formatting_CommentXmlSplitSummaryTagToMultipleLines ? XmlTagNewLine.Always : XmlTagNewLine.Default },
+                ["copyright"] = new FormatterOptionsXmlTag { Split = XmlTagNewLine.Always, Indent = CodeCommentHelper.CopyrightExtraIndent },
+                ["code"] = new FormatterOptionsXmlTag { Split = XmlTagNewLine.BeforeAndAfter, Literal = true },
+                ["p"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+                ["para"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+                ["list"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+                ["listheader"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+                ["item"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+                ["term"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+                ["description"] = FormatterOptionsXmlTagOverrideSplitBeforeAfter,
+            }
+        };
+    }
 };

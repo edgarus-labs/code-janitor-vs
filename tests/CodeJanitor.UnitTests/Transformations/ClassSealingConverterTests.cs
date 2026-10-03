@@ -49,27 +49,39 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassImplementingInterface_BecomesSealed() => Assert.AreEqual(
+    public async Task ClassImplementingInterface_BecomesSealed()
+    {
+        Assert.AreEqual(
             "internal sealed class Foo : System.IDisposable { public void Dispose() { } }",
             await SealAsync("internal class Foo : System.IDisposable { public void Dispose() { } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task NestedClass_IsNotSealed_OnlyTopLevelConsidered() => Assert.AreEqual(
+    public async Task NestedClass_IsNotSealed_OnlyTopLevelConsidered()
+    {
+        Assert.AreEqual(
             "internal sealed class Outer { internal class Inner { } }",
             await SealAsync("internal class Outer { internal class Inner { } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ProtectedOverride_DoesNotPreventSealing() => Assert.AreEqual(
+    public async Task ProtectedOverride_DoesNotPreventSealing()
+    {
+        Assert.AreEqual(
             "public class B { protected virtual void M() { } } public sealed class A : B { protected override void M() { } }",
             await SealAsync("public class B { protected virtual void M() { } } public class A : B { protected override void M() { } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task PublicOverride_DoesNotPreventSealing() => Assert.AreEqual(
+    public async Task PublicOverride_DoesNotPreventSealing()
+    {
+        Assert.AreEqual(
             "public sealed class A { public override string ToString() => \"A\"; }",
             await SealAsync("public class A { public override string ToString() => \"A\"; }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -112,9 +124,12 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassWithDerivedClassInSameFile_BaseStaysUnsealed_DerivedBecomesSealed() => Assert.AreEqual(
+    public async Task ClassWithDerivedClassInSameFile_BaseStaysUnsealed_DerivedBecomesSealed()
+    {
+        Assert.AreEqual(
             "public class Animal { } public sealed class Dog : Animal { }",
             await SealAsync("public class Animal { } public class Dog : Animal { }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -142,33 +157,48 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task GenericBase_DerivedThroughClosedConstruction_StaysUnsealed() => Assert.AreEqual(
+    public async Task GenericBase_DerivedThroughClosedConstruction_StaysUnsealed()
+    {
+        Assert.AreEqual(
             "public class Box<T> { } public sealed class IntBox : Box<int> { }",
             await SealAsync("public class Box<T> { } public class IntBox : Box<int> { }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task QualifiedBaseTypes_IdentifyTheBaseClass() => Assert.AreEqual(
+    public async Task QualifiedBaseTypes_IdentifyTheBaseClass()
+    {
+        Assert.AreEqual(
             "namespace N { class Animal { } sealed class Dog : global::N.Animal { } sealed class Cat : N.Animal { } }",
             await SealAsync("namespace N { class Animal { } class Dog : global::N.Animal { } class Cat : N.Animal { } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task SameNameInAnotherNamespace_DoesNotPreventSealing() => Assert.AreEqual(
+    public async Task SameNameInAnotherNamespace_DoesNotPreventSealing()
+    {
+        Assert.AreEqual(
             "namespace X { public class A { } } namespace Y { public sealed class A { } public sealed class D : X.A { } }",
             await SealAsync("namespace X { public class A { } } namespace Y { public class A { } public class D : X.A { } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassUsedInGenericConstraintInSameFile_StaysUnsealed() => Assert.AreEqual(
+    public async Task ClassUsedInGenericConstraintInSameFile_StaysUnsealed()
+    {
+        Assert.AreEqual(
             "public class Result { } public sealed class Handler<T> where T : Result { }",
             await SealAsync("public class Result { } public class Handler<T> where T : Result { }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassUsedInNullableGenericConstraintInSameFile_StaysUnsealed() => Assert.AreEqual(
+    public async Task ClassUsedInNullableGenericConstraintInSameFile_StaysUnsealed()
+    {
+        Assert.AreEqual(
             "#nullable enable\r\npublic class Result { } public sealed class Handler<T> where T : Result? { }",
             await SealAsync("#nullable enable\r\npublic class Result { } public class Handler<T> where T : Result? { }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -196,15 +226,21 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task GenericClassUsedInConstraintThroughClosedConstruction_StaysUnsealed() => Assert.AreEqual(
+    public async Task GenericClassUsedInConstraintThroughClosedConstruction_StaysUnsealed()
+    {
+        Assert.AreEqual(
             "public class Box<T> { } public sealed class Handler<T> where T : Box<int> { }",
             await SealAsync("public class Box<T> { } public class Handler<T> where T : Box<int> { }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task GenericClassWithOwnConstraints_BecomesSealed() => Assert.AreEqual(
+    public async Task GenericClassWithOwnConstraints_BecomesSealed()
+    {
+        Assert.AreEqual(
             "public sealed class Repository<T> where T : class, new() { public T Create() => new T(); }",
             await SealAsync("public class Repository<T> where T : class, new() { public T Create() => new T(); }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -212,15 +248,21 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task FileLocalClassWithDerivedFileLocalClass_BaseStaysUnsealed() => Assert.AreEqual(
+    public async Task FileLocalClassWithDerivedFileLocalClass_BaseStaysUnsealed()
+    {
+        Assert.AreEqual(
             "file class Base { } file sealed class Derived : Base { }",
             await SealAsync("file class Base { } file class Derived : Base { }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassInFileWithCompileErrors_IsSealedWithoutAddingErrors() => Assert.AreEqual(
+    public async Task ClassInFileWithCompileErrors_IsSealedWithoutAddingErrors()
+    {
+        Assert.AreEqual(
             "public sealed class Foo { public void M() { int x = ; } }",
             await SealAsync("public class Foo { public void M() { int x = ; } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -302,10 +344,13 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassReferencedOutsideConstraints_BecomesSealed() => Assert.AreEqual(
+    public async Task ClassReferencedOutsideConstraints_BecomesSealed()
+    {
+        Assert.AreEqual(
             "public sealed class Settings { } public sealed class Consumer { Settings _s = new Settings(); System.Collections.Generic.List<Settings> _all; Settings Get() => (Settings)null; }",
             await SealAsync(
                 "public class Settings { } public class Consumer { Settings _s = new Settings(); System.Collections.Generic.List<Settings> _all; Settings Get() => (Settings)null; }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -343,20 +388,23 @@ public sealed class ClassSealingConverterTests
     [DataRow("bool M(System.Collections.Generic.IEnumerable<Foo> foos) => foos is System.Collections.Generic.IEnumerable<IBar>;", DisplayName = "is of a variant interface type argument")]
     [DataRow("object M(System.Action<IBar> use) => (System.Action<Foo>)use;", DisplayName = "contravariant delegate type argument")]
     public async Task ClassConvertedOnlyThroughAnInterfaceOrContravariantTypeArgument_BecomesSealed(string use)
-        // Any interface converts explicitly to any other, and a contravariant type argument only needs reference
-        // types: these conversions do not depend on the class being unsealed.
-        => Assert.AreEqual(
+    {
+        Assert.AreEqual(
             "public sealed class Foo { }",
             await SealAsync("public class Foo { }", "public interface IBar { } public static class Use { public static " + use + " }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("object M(Foo[] foos) => (System.Collections.Generic.IList<Foo>)foos;", DisplayName = "array of the class to a generic interface of the class")]
     [DataRow("object M(System.Collections.Generic.IList<Foo> foos) => (Foo[])foos;", DisplayName = "generic interface of the class to an array of the class")]
     [DataRow("object M(System.Collections.Generic.IList<IBar> bars) => (IBar[])bars;", DisplayName = "generic interface of an interface to an array of the interface")]
-    public async Task ClassInArrayConvertedWithAGenericInterfaceOfItself_BecomesSealed(string use) => Assert.AreEqual(
+    public async Task ClassInArrayConvertedWithAGenericInterfaceOfItself_BecomesSealed(string use)
+    {
+        Assert.AreEqual(
             "public sealed class Foo { }",
             await SealAsync("public class Foo { }", "public interface IBar { } public static class Use { public static " + use + " }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -651,11 +699,14 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassConvertedToAnInterfaceItImplements_BecomesSealed() => Assert.AreEqual(
+    public async Task ClassConvertedToAnInterfaceItImplements_BecomesSealed()
+    {
+        Assert.AreEqual(
             "public interface IBar { } public sealed class Foo : IBar { }",
             await SealAsync(
                 "public interface IBar { } public class Foo : IBar { }",
                 "public static class Use { public static object M(Foo foo) => (IBar)foo; public static bool N(IBar bar) => bar is Foo foo; }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -668,9 +719,12 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task VirtualMemberOfANestedType_DoesNotPreventSealingTheOuterClass() => Assert.AreEqual(
+    public async Task VirtualMemberOfANestedType_DoesNotPreventSealingTheOuterClass()
+    {
+        Assert.AreEqual(
             "public sealed class Outer { public class Inner { public virtual void M() { } } }",
             await SealAsync("public class Outer { public class Inner { public virtual void M() { } } }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -698,15 +752,21 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassImplementingAnInterfaceWithADefaultMember_BecomesSealed() => Assert.AreEqual(
+    public async Task ClassImplementingAnInterfaceWithADefaultMember_BecomesSealed()
+    {
+        Assert.AreEqual(
             "public interface IGreeter { string Name { get; } string Greet() => \"Hi \" + Name; } public sealed class Greeter : IGreeter { public string Name => \"x\"; }",
             await SealAsync("public interface IGreeter { string Name { get; } string Greet() => \"Hi \" + Name; } public class Greeter : IGreeter { public string Name => \"x\"; }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task ClassWithOnlyStaticMembersAndSealedOverrides_BecomesSealed() => Assert.AreEqual(
+    public async Task ClassWithOnlyStaticMembersAndSealedOverrides_BecomesSealed()
+    {
+        Assert.AreEqual(
             "public sealed class Tools { public static int Count; public static void Run() { } public sealed override string ToString() => \"t\"; }",
             await SealAsync("public class Tools { public static int Count; public static void Run() { } public sealed override string ToString() => \"t\"; }"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -811,9 +871,12 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task InactiveCodeNotNamingTheClass_DoesNotPreventSealing() => Assert.AreEqual(
+    public async Task InactiveCodeNotNamingTheClass_DoesNotPreventSealing()
+    {
+        Assert.AreEqual(
             "public sealed class Widget { }",
             await SealAsync("public class Widget { }", "#if LEGACY\r\npublic class WidgetFactory { string _name = \"Widget\"; }\r\n#endif\r\n"));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

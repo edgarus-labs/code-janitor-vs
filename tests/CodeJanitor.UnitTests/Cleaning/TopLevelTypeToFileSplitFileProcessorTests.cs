@@ -19,8 +19,10 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     public void TestInitialize()
     {
         _processor = new TopLevelTypeToFileSplitFileProcessor();
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
+        string isolationDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
+        _tempDirectory = Path.Combine(isolationDirectory, "Work");
         Directory.CreateDirectory(_tempDirectory);
+        File.WriteAllText(Path.Combine(isolationDirectory, ".editorconfig"), "root = true\n");
     }
 
     [TestCleanup]
@@ -28,9 +30,10 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     {
         Settings.Default.Reset();
 
-        if (Directory.Exists(_tempDirectory))
+        string isolationDirectory = Path.GetDirectoryName(_tempDirectory);
+        if (Directory.Exists(isolationDirectory))
         {
-            Directory.Delete(_tempDirectory, true);
+            Directory.Delete(isolationDirectory, true);
         }
     }
 
@@ -347,6 +350,72 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
         {
             lockOnFirstFile?.Dispose();
         }
+    }
+
+    [TestMethod]
+    public void Apply_WhenTheRollbackCannotDeleteAFile_ReportsThatFile()
+    {
+        List<string> warnings = new List<string>();
+        TopLevelTypeToFileSplitFileProcessor processor = new TopLevelTypeToFileSplitFileProcessor(reportWarning: warnings.Add);
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        string firstCreated = null;
+        FileStream lockOnFirstFile = null;
+        int transformCalls = 0;
+        try
+        {
+            Assert.Throws<Exception>(() => processor.Apply(
+                "class Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n",
+                filePath,
+                Encoding.UTF8,
+                null,
+                transformCreatedFile: (text, path) =>
+                {
+                    if (++transformCalls == 1)
+                    {
+                        firstCreated = path;
+                    }
+                    else
+                    {
+                        lockOnFirstFile = new FileStream(firstCreated, FileMode.Open, FileAccess.Read, FileShare.None);
+                        Directory.CreateDirectory(path);
+                    }
+
+                    return text;
+                }));
+
+            Assert.HasCount(1, warnings);
+            Assert.Contains(firstCreated, warnings[0]);
+            Assert.Contains(filePath, warnings[0]);
+        }
+        finally
+        {
+            lockOnFirstFile?.Dispose();
+        }
+    }
+
+    [TestMethod]
+    public void Apply_WhenTheRollbackDeletesEveryFile_ReportsNothing()
+    {
+        List<string> warnings = new List<string>();
+        TopLevelTypeToFileSplitFileProcessor processor = new TopLevelTypeToFileSplitFileProcessor(reportWarning: warnings.Add);
+        int transformCalls = 0;
+
+        Assert.Throws<Exception>(() => processor.Apply(
+            "class Foo { }\r\nclass Bar { }\r\nclass Baz { }\r\n",
+            Path.Combine(_tempDirectory, "Foo.cs"),
+            Encoding.UTF8,
+            null,
+            transformCreatedFile: (text, path) =>
+            {
+                if (++transformCalls == 2)
+                {
+                    Directory.CreateDirectory(path);
+                }
+
+                return text;
+            }));
+
+        Assert.IsEmpty(warnings);
     }
 
     [TestMethod]

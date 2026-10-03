@@ -62,14 +62,17 @@ public sealed class XmlTagOptions : IXmlTagOptions
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <returns>A XmlTagOptions value produced by this method.</returns>
-    internal static XmlTagOptions FromSettings(Settings settings) => new XmlTagOptions
+    internal static XmlTagOptions FromSettings(Settings settings)
     {
-        Case = settings.Formatting_CommentXmlTagsToLowerCase ? XmlTagCase.LowerCase : XmlTagCase.Keep,
-        Indent = settings.Formatting_CommentXmlValueIndent,
-        KeepTogether = settings.Formatting_CommentXmlKeepTagsTogether,
-        Literal = false,
-        SpaceContent = settings.Formatting_CommentXmlSpaceTags,
-        SpaceSelfClosing = settings.Formatting_CommentXmlSpaceSingleTags,
-        Split = settings.Formatting_CommentXmlSplitAllTags ? XmlTagNewLine.Always : XmlTagNewLine.Default
-    };
+        return new XmlTagOptions
+        {
+            Case = settings.Formatting_CommentXmlTagsToLowerCase ? XmlTagCase.LowerCase : XmlTagCase.Keep,
+            Indent = settings.Formatting_CommentXmlValueIndent,
+            KeepTogether = settings.Formatting_CommentXmlKeepTagsTogether,
+            Literal = false,
+            SpaceContent = settings.Formatting_CommentXmlSpaceTags,
+            SpaceSelfClosing = settings.Formatting_CommentXmlSpaceSingleTags,
+            Split = settings.Formatting_CommentXmlSplitAllTags ? XmlTagNewLine.Always : XmlTagNewLine.Default
+        };
+    }
 }

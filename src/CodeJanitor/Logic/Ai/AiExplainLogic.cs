@@ -76,10 +76,12 @@ internal sealed class AiExplainLogic
     /// <param name="memberName">The member name.</param>
     /// <param name="codeSnippet">The code snippet.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string BuildExplainPrompt(string memberName, string codeSnippet) => $@"Analyze the following C# code for member '{memberName}':
+    private static string BuildExplainPrompt(string memberName, string codeSnippet)
+    {
+        return $@"Analyze the following C# code for member '{memberName}':
 
 ```csharp
-{codeSnippet}
+        {codeSnippet}
 ```
 
 Please structure your response in clear markdown format using the following sections:
@@ -94,7 +96,8 @@ A concise summary explaining the business purpose, inputs, and outputs in plain 
 ### 3. Step-by-step Refactoring & Decomposition
 - Concrete recommendations on how to simplify and decompose this code (e.g. Extract Method, Guard Clauses, Pattern Matching).
 - A clean, modern C# code example demonstrating the decomposed/refactored version.
-";
+        ";
+    }
 
     /// <summary>
     /// Creates an `OpenAiCompatibleClient` from user settings, returning `null` when the endpoint is unconfigured, decrypting the API key via `SecretProtectionHelper.UnprotectForCurrentUser` (with fallback to a static `ApiKey` field if decryption yields empty), applying defaults for the header (`Authorization`), timeout (30s), and context window (131072 tokens), and constructing the client with the resolved endpoint, key, header, model, timeout, and token values.

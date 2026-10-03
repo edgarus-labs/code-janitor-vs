@@ -58,8 +58,10 @@ internal sealed class NullCheckPatternMatchingLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-    internal void ConvertWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings) =>
+    internal void ConvertWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings)
+    {
         _rewriter.Rewrite(textDocument, settings);
+    }
 
     /// <summary>
     /// Converts the null checks of a closed C# file that are safe to convert, when enabled in the effective settings,
@@ -70,8 +72,10 @@ internal sealed class NullCheckPatternMatchingLogic
     /// <param name="cancellationToken">Cancels the analysis (together with the disposal of the package); the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled; the file is left unchanged.</exception>
-    internal Task<bool> ConvertWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
-        _rewriter.RewriteAsync(projectItem, cancellationToken);
+    internal Task<bool> ConvertWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
+    {
+        return _rewriter.RewriteAsync(projectItem, cancellationToken);
+    }
 
     /// <summary>
     /// Resolves every C# document of the file in the Visual Studio workspace with <paramref name="currentText" /> and

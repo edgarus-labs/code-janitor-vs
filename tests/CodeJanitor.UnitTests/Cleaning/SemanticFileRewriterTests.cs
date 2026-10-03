@@ -59,6 +59,28 @@ public sealed class SemanticFileRewriterTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public void RewriteClosedFile_EditorConfigCharsetLatin1_AnalyzesAndWritesTheLatin1Text()
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n\n[*]\ncharset = latin1\n");
+        Encoding latin1 = Encoding.GetEncoding(28591);
+        string filePath = WriteFile("class C { } // é", latin1);
+        string analyzedText = null;
+        SemanticFileRewriter rewriter = CreateRewriter((_, _, currentText, _) =>
+        {
+            analyzedText = currentText;
+
+            return Task.FromResult("sealed " + currentText);
+        });
+
+        bool rewritten = Rewrite(rewriter, filePath, isDocumentOpen: () => false, CancellationToken.None);
+
+        Assert.AreEqual("class C { } // é", analyzedText);
+        Assert.IsTrue(rewritten);
+        Assert.AreSequenceEqual(latin1.GetBytes("sealed class C { } // é"), File.ReadAllBytes(filePath));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public void RewriteClosedFile_AnalysisCanceled_ThrowsAndLeavesTheFileUnchanged()
     {
         string filePath = WriteFile(Original, new UTF8Encoding(false));

@@ -253,9 +253,12 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="members">The contained members.</param>
     /// <param name="directive">The directive.</param>
     /// <returns>The owning member, or null when the directive is outside every member.</returns>
-    private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive) => members.FirstOrDefault(x => TryGetTrailingEndRegion(x, out var nextToken, out var triviaCount)
+    private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive)
+    {
+        return members.FirstOrDefault(x => TryGetTrailingEndRegion(x, out var nextToken, out var triviaCount)
                                                                                                                                                       && nextToken.LeadingTrivia[triviaCount - 1].Span.Contains(directive.SpanStart))
             ?? members.FirstOrDefault(x => x.FullSpan.Contains(directive.SpanStart));
+    }
 
     /// <summary>
     /// Finds the #endregion closing a region opened inside <paramref name="member"/> when it is the first directive
@@ -398,9 +401,12 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>True when the member can be moved into its own file.</returns>
-    private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member) => member is BaseTypeDeclarationSyntax typeDeclaration
+    private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member)
+    {
+        return member is BaseTypeDeclarationSyntax typeDeclaration
             ? !HasPartialModifier(typeDeclaration.Modifiers)
             : member is DelegateDeclarationSyntax;
+    }
 
     /// <summary>
     /// Returns true if the modifier list contains a partial keyword token, otherwise false, with no side effects or exceptions.

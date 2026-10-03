@@ -23,6 +23,7 @@ public sealed class FileTextStyleTests
     {
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n");
     }
 
     [TestCleanup]
@@ -181,6 +182,49 @@ public sealed class FileTextStyleTests
         string filePath = Path.Combine(_tempDirectory, "Sample.cs");
 
         Assert.AreEqual(Environment.NewLine, FileTextStyle.ResolveLineEnding(filePath, "class C { }"));
+    }
+
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    public void ReadAndWrite_EditorConfigCharsetLatin1_KeepsTheLatin1Bytes()
+    {
+        WriteEditorConfig("charset = latin1");
+        Encoding latin1 = Encoding.GetEncoding(28591);
+        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
+        File.WriteAllBytes(filePath, latin1.GetBytes("class C { } // é\n"));
+
+        string text = FileTextStyle.ReadAllText(filePath, out Encoding encoding);
+        FileTextStyle.WriteAllText(filePath, text.Replace("class C", "class D"), encoding, text);
+
+        Assert.AreEqual("class C { } // é\n", text);
+        Assert.AreSequenceEqual(latin1.GetBytes("class D { } // é\n"), File.ReadAllBytes(filePath));
+    }
+
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    public void ReplaceAllText_ReplacesTheTextInTheStyleOfTheFile()
+    {
+        string filePath = CreateFile("class C { }\r\n", withBom: true);
+        string original = FileTextStyle.ReadAllText(filePath, out Encoding encoding);
+
+        FileTextStyle.ReplaceAllText(filePath, "class D { }\n", encoding, original);
+
+        Assert.AreSequenceEqual(Bom.Concat(Encoding.UTF8.GetBytes("class D { }\r\n")).ToArray(), File.ReadAllBytes(filePath));
+        Assert.AreSequenceEqual(new[] { ".editorconfig", "Sample.cs" }, Directory.GetFiles(_tempDirectory).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    public void ReplaceAllText_WhenTheWriteFails_LeavesTheFileUnchanged()
+    {
+        string filePath = CreateFile("class C { }\n", withBom: false);
+        byte[] originalBytes = File.ReadAllBytes(filePath);
+        Encoding asciiThatThrows = Encoding.GetEncoding("us-ascii", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+
+        Assert.Throws<EncoderFallbackException>(() => FileTextStyle.ReplaceAllText(filePath, "class D { } // é\n", asciiThatThrows, "class C { }\n"));
+
+        Assert.AreSequenceEqual(originalBytes, File.ReadAllBytes(filePath));
+        Assert.AreSequenceEqual(new[] { ".editorconfig", "Sample.cs" }, Directory.GetFiles(_tempDirectory).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
     }
 
     private static void RewriteWith(string filePath, string newText)

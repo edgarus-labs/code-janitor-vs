@@ -34,15 +34,18 @@ public sealed class ProgressViewModelTests
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
-    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher() => RunOnVisualStudioUIThread(pump =>
-                                                                                                                              {
-                                                                                                                                  CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
+    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher()
+    {
+        RunOnVisualStudioUIThread(pump =>
+        {
+            CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
 
-                                                                                                                                  bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
+            bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
 
-                                                                                                                                  Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
-                                                                                                                                  Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
-                                                                                                                              });
+            Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
+            Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
+        });
+    }
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
@@ -155,6 +158,7 @@ public sealed class ProgressViewModelTests
                     bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
 
                     Assert.IsTrue(completed, "The batch must complete.");
+                    Assert.IsTrue(File.Exists(Path.Combine(directory, "Bar.cs")), "The failure must come from the headless cleanup, after its split.");
                     Assert.AreEqual(1, manager.GetCleanupExecutionStats().FailedItems, "A failed file must be counted once, not once per pass.");
                     Assert.HasCount(1, messages);
                     Assert.Contains("1 failed item(s)", messages[0]);

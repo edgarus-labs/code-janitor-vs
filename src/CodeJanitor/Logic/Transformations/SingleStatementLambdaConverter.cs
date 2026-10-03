@@ -95,8 +95,10 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         }
 
         /// <summary>
-        /// Determines whether the <c>delegate</c> keyword carries a comment or directive that a lambda has no place
-        /// for. Trivia before the first token of the expression moves to the lambda and is not lost.
+        /// Determines whether the header carries a comment or directive that a lambda has no place for: on the
+        /// <c>delegate</c> keyword, or after the parameter list when the open brace is on the next line (only the line
+        /// break moves behind the arrow). Trivia before the first token of the expression moves to the lambda and is
+        /// not lost.
         /// </summary>
         private static bool LosesHeaderTrivia(AnonymousMethodExpressionSyntax node)
         {
@@ -104,6 +106,12 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
             var trivia = node.Modifiers.Count > 0
                 ? keyword.LeadingTrivia.Concat(keyword.TrailingTrivia)
                 : keyword.TrailingTrivia;
+
+            var parameterListTrivia = node.ParameterList?.CloseParenToken.TrailingTrivia ?? SyntaxTriviaList.Empty;
+            if (parameterListTrivia.Any(SyntaxKind.EndOfLineTrivia))
+            {
+                trivia = trivia.Concat(parameterListTrivia);
+            }
 
             return trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
         }
@@ -260,11 +268,13 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
         /// <summary>
         /// Determines whether the node declares a function body that a <c>return</c> statement returns from.
         /// </summary>
-        private static bool IsFunction(SyntaxNode node) =>
-            node is BaseMethodDeclarationSyntax ||
-            node is LocalFunctionStatementSyntax ||
-            node is AccessorDeclarationSyntax ||
-            node is AnonymousFunctionExpressionSyntax;
+        private static bool IsFunction(SyntaxNode node)
+        {
+            return node is BaseMethodDeclarationSyntax ||
+                node is LocalFunctionStatementSyntax ||
+                node is AccessorDeclarationSyntax ||
+                node is AnonymousFunctionExpressionSyntax;
+        }
 
         /// <summary>
         /// Gets the declared return type of a synchronous method, operator, local function, property or indexer

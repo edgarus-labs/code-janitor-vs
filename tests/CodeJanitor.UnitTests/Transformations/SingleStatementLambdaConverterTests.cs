@@ -104,6 +104,8 @@ public sealed class SingleStatementLambdaConverterTests
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { Action a = delegate /* keep */ { Foo(); }; static void Foo() { } }", DisplayName = "comment after the delegate keyword")]
     [DataRow("class C { Action<int> a = delegate /* keep */ (int x) { Foo(); }; static void Foo() { } }", DisplayName = "comment after the delegate keyword before parameters")]
+    [DataRow("class C\r\n{\r\n    Action<int> a = delegate (int x) // keep\r\n    {\r\n        Foo(x);\r\n    };\r\n    static void Foo(int x) { }\r\n}", DisplayName = "line comment after the parameters, brace on the next line")]
+    [DataRow("class C\r\n{\r\n    Action<int> a = delegate (int x) /* keep */\r\n    {\r\n        Foo(x);\r\n    };\r\n    static void Foo(int x) { }\r\n}", DisplayName = "block comment after the parameters, brace on the next line")]
     public void AnonymousMethodWithCommentInItsHeader_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]

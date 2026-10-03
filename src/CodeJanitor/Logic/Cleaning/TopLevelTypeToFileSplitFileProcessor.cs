@@ -51,10 +51,17 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     }
 
     private readonly TopLevelTypeToFileSplitPlanner _planner;
+    private readonly Action<string> _reportWarning;
 
-    internal TopLevelTypeToFileSplitFileProcessor(TopLevelTypeToFileSplitPlanner planner = null)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TopLevelTypeToFileSplitFileProcessor" /> class.
+    /// </summary>
+    /// <param name="planner">The planner; a new one when null.</param>
+    /// <param name="reportWarning">Receives the warnings of <see cref="Apply" />; the output pane when null.</param>
+    internal TopLevelTypeToFileSplitFileProcessor(TopLevelTypeToFileSplitPlanner planner = null, Action<string> reportWarning = null)
     {
         _planner = planner ?? new TopLevelTypeToFileSplitPlanner();
+        _reportWarning = reportWarning ?? OutputWindowHelper.WarningWriteLine;
     }
 
     /// <summary>
@@ -101,7 +108,11 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
         }
         catch
         {
-            DeleteCreatedFiles(createdFiles);
+            var notDeletedFiles = DeleteCreatedFiles(createdFiles);
+            if (notDeletedFiles.Count > 0)
+            {
+                _reportWarning(FormatNotDeletedFilesWarning(filePath, notDeletedFiles));
+            }
 
             throw;
         }
@@ -132,6 +143,17 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
         }
 
         return notDeleted;
+    }
+
+    /// <summary>
+    /// Formats the warning that files created by the split could not be deleted and duplicate types of the original.
+    /// </summary>
+    /// <param name="filePath">The path of the split file.</param>
+    /// <param name="notDeletedFiles">The created files that could not be deleted.</param>
+    /// <returns>The warning.</returns>
+    internal static string FormatNotDeletedFilesWarning(string filePath, IEnumerable<string> notDeletedFiles)
+    {
+        return $"These file(s) created by the top-level type split could not be removed and duplicate types of '{filePath}'; delete them: {string.Join(", ", notDeletedFiles)}";
     }
 
     /// <summary>
