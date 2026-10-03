@@ -7,6 +7,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using CodeJanitor.Logic.Ai;
 using CodeJanitor.Logic.Cleaning;
@@ -170,6 +171,59 @@ public sealed class ProgressViewModelTests
             CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
             Settings.Default.Reset();
             Directory.Delete(directory, true);
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("UI UnitTests")]
+    public void CodeCleanupManager_FileRewrittenBySemanticStepThatFallsBackToTheEditor_IsNotCountedAsChanged()
+    {
+        string isolationDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(isolationDirectory, "Work");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(isolationDirectory, ".editorconfig"), "root = true\n");
+        Settings.Default.Reset();
+        Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
+        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
+        try
+        {
+            string filePath = Path.Combine(directory, "Foo.cs");
+            File.WriteAllText(filePath, "class Foo { }\r\nclass Bar { }\r\n");
+            Directory.CreateDirectory(Path.Combine(directory, "Bar.cs"));
+
+            RunOnVisualStudioUIThread(pump =>
+            {
+                // The split cannot write Bar.cs, which is a directory, so the headless cleanup fails after the
+                // semantic step rewrote the file, and the file goes on to the editor cleanup, which cannot open it.
+                DTE2 ide = Substitute.For<DTE2>();
+                CodeJanitorPackage package = CreatePackage(ide);
+                EnvDTE.ProjectItem projectItem = Substitute.For<EnvDTE.ProjectItem>();
+                projectItem.FileNames[1].Returns(filePath);
+                projectItem.Document.Returns((EnvDTE.Document)null);
+
+                WithManagerPackage(package, manager =>
+                {
+                    manager.ResetCleanupExecutionStats();
+
+                    Task cleanup = manager.CleanupAvailableProjectItemAsync(
+                        projectItem,
+                        new Func<EnvDTE.ProjectItem, CancellationToken, Task<bool>>[] { (_, _) => Task.FromResult(true) },
+                        CancellationToken.None);
+
+                    Assert.IsTrue(pump.PumpUntil(() => cleanup.IsCompleted, PumpTimeout), "The cleanup must complete.");
+                    Assert.AreEqual(TaskStatus.RanToCompletion, cleanup.Status, cleanup.Exception?.ToString());
+
+                    CodeCleanupManager.CleanupExecutionStats stats = manager.GetCleanupExecutionStats();
+                    Assert.AreEqual(1, stats.FailedItems, "The file the editor cleanup cannot open must be counted as failed.");
+                    Assert.AreEqual(0, stats.HeadlessChangedItems, "A file left to the editor cleanup must not also be counted as changed.");
+                });
+            });
+        }
+        finally
+        {
+            CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
+            Settings.Default.Reset();
+            Directory.Delete(isolationDirectory, true);
         }
     }
 

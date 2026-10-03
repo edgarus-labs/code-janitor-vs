@@ -362,6 +362,29 @@ internal sealed class CodeCleanupManager
             return;
         }
 
+        await CleanupAvailableProjectItemAsync(
+            projectItem,
+            new Func<ProjectItem, CancellationToken, Task<bool>>[] { SealClassesWhenSafeAsync, ConvertNullChecksWhenSafeAsync },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs code cleanup on a project item that can be cleaned up, as <see cref="CleanupAsync" /> does.
+    /// </summary>
+    /// <param name="projectItem">The project item for cleanup.</param>
+    /// <param name="rewriteSteps">
+    /// The semantic steps that run on a closed file after the using directive placement; each returns true when it
+    /// rewrote the file.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the semantic steps of a closed file.</param>
+    /// <exception cref="OperationCanceledException">A semantic step was canceled; the file is left unchanged.</exception>
+    internal async Task CleanupAvailableProjectItemAsync(
+        ProjectItem projectItem,
+        IReadOnlyList<Func<ProjectItem, CancellationToken, Task<bool>>> rewriteSteps,
+        CancellationToken cancellationToken)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
         // Instrumentation for BL-018: measure per-item cleanup cost and whether the document
         // had to be opened by cleanup (opening documents is the primary performance concern).
         var stopwatch = Stopwatch.StartNew();
@@ -385,18 +408,19 @@ internal sealed class CodeCleanupManager
             // step rewrites it, so it is counted even when a later step fails. When editor cleanup is required the file
             // is counted as an editor item by CleanupDocument instead, and must not be counted as changed as well.
             countedWhenRewritten = !RequiresEditorCleanupForCSharp();
-            await RunSemanticStepsAsync(
-                new Func<Task<bool>>[]
+            var semanticSteps = new List<Func<Task<bool>>>
+            {
+                async () =>
                 {
-                    async () =>
-                    {
-                        usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
+                    usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
 
-                        return usingsMoveOutcome == UsingsMoveOutcome.Moved;
-                    },
-                    () => _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken),
-                    () => _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken),
+                    return usingsMoveOutcome == UsingsMoveOutcome.Moved;
                 },
+            };
+            semanticSteps.AddRange(rewriteSteps.Select(step => (Func<Task<bool>>)(() => step(projectItem, cancellationToken))));
+
+            await RunSemanticStepsAsync(
+                semanticSteps,
                 () =>
                 {
                     if (!changedBySemanticSteps)
