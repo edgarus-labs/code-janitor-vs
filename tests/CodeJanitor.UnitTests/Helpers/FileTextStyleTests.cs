@@ -202,6 +202,46 @@ public sealed class FileTextStyleTests
 
     [TestMethod]
     [TestCategory("Helpers UnitTests")]
+    public void Write_CharsetLatin1_TextOutsideLatin1_KeepsTheEncodingOfTheFileInsteadOfReplacingCharacters()
+    {
+        WriteEditorConfig("charset = latin1");
+        string filePath = CreateFile("class C { } // €\n", withBom: true);
+
+        RewriteWith(filePath, "class D { } // €\n");
+
+        Assert.AreSequenceEqual(Bom.Concat(Encoding.UTF8.GetBytes("class D { } // €\n")).ToArray(), File.ReadAllBytes(filePath));
+    }
+
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    public void Write_Latin1File_TextOutsideLatin1_ThrowsAndLeavesTheFileUnchanged()
+    {
+        WriteEditorConfig("charset = latin1");
+        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
+        byte[] originalBytes = Encoding.GetEncoding(28591).GetBytes("class C { } // é\n");
+        File.WriteAllBytes(filePath, originalBytes);
+        string text = FileTextStyle.ReadAllText(filePath, out Encoding encoding);
+
+        Assert.Throws<IOException>(() => FileTextStyle.WriteAllText(filePath, "class D { } // € é\n", encoding, text));
+
+        Assert.AreSequenceEqual(originalBytes, File.ReadAllBytes(filePath));
+    }
+
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    [DataRow("utf-16le", false)]
+    [DataRow("utf-16be", true)]
+    public void Read_CharsetUtf16_FileWithoutBom_IsDecodedWithTheCharset(string charset, bool bigEndian)
+    {
+        WriteEditorConfig("charset = " + charset);
+        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
+        File.WriteAllBytes(filePath, new UnicodeEncoding(bigEndian, false).GetBytes("class C { } // é\n"));
+
+        Assert.AreEqual("class C { } // é\n", FileTextStyle.ReadAllText(filePath, out _));
+    }
+
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
     public void ReplaceAllText_ReplacesTheTextInTheStyleOfTheFile()
     {
         string filePath = CreateFile("class C { }\r\n", withBom: true);

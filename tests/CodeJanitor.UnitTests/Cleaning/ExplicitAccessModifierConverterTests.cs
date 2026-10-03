@@ -181,6 +181,19 @@ public sealed class ExplicitAccessModifierConverterTests
     }
 
     [TestMethod]
+    [DataRow("partial class C { partial int this[int i] { get; } }", DisplayName = "partial indexer")]
+    [DataRow("partial class C { partial int Value { get; } }", DisplayName = "partial property")]
+    [DataRow("partial class C { partial event System.EventHandler Changed; }", DisplayName = "partial event declaration")]
+    [DataRow("partial class C { partial event System.EventHandler Changed { add { } remove { } } }", DisplayName = "partial event implementation")]
+    [DataRow("partial class C { partial C(); }", DisplayName = "partial constructor")]
+    public void PartialMember_IsNotModified(string source)
+    {
+        // Both parts of a partial member must declare the same accessibility (CS8799): the other part may be in a file
+        // that is not cleaned, or generated.
+        Assert.AreEqual(source, _converter.Apply(source));
+    }
+
+    [TestMethod]
     public void StaticConstructor_IsNotModified()
     {
         string source = "class Foo { static Foo() { } }";

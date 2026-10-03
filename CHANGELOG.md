@@ -87,8 +87,8 @@ This file records changes made in Code Janitor after the project became an indep
 	Document": their Roslyn equivalents run on the closed file with the same settings (including the
 	auto-save skip and the using statements to reinsert). A closed file whose cleanup changes only that
 	file is written straight to disk; a file opened meanwhile, read-only or under source control checkout
-	goes through Visual Studio as before. Such changes are logged in the output pane and are not counted
-	as diagnostic fixes in the cleanup summary.
+	goes through Visual Studio as before. Such changes are logged in the output pane in Diagnostics Mode and
+	are not counted as diagnostic fixes in the cleanup summary.
 - Splitting top-level types into their own files now also moves structs (and record structs); classes,
 	interfaces, records, enums and delegates were already split. Partial types stay in place.
 - Cleanup skip reasons and informational messages (batch completed/canceled, build verification passed, repository
@@ -119,11 +119,13 @@ This file records changes made in Code Janitor after the project became an indep
 	("Move top-level types to separate files"); it was sealed only by the next cleanup of the created file.
 - Fixed "Seal Classes" sealing a class that code elsewhere in the solution casts, `as`-converts or pattern-matches
 	to or from an interface it does not implement (`CS0030`, `CS0039`, `CS8121`), including through arrays and generic
-	collection interfaces (`(IList<IBar>)foos`, `foos as IEnumerable<IBar>`), or that code in an inactive `#if`
-	branch derives from, overrides or names.
+	collection interfaces (`(IList<IBar>)foos`, `foos as IEnumerable<IBar>`), or whose project, or a project
+	referencing it, contains an inactive `#if` branch.
 - Fixed "Seal Classes" sealing classes it could not prove unused: cleanup is skipped with a warning while the
-	solution is loading or a project is unloaded or failed to load, because such projects are missing from the Roslyn
-	workspace and their derived classes, generic constraints and casts would go unseen. Documents produced by source
+	solution is loading, a project is unloaded or failed to load, or Visual Studio cannot tell whether that is the
+	case, because such projects are missing from the Roslyn workspace and their derived classes, generic constraints
+	and casts would go unseen. Classes of a project that a project outside the Roslyn workspace (for example C++/CLI)
+	references, directly or through other projects, are not sealed. Documents produced by source
 	generators are scanned like written files. The solution-wide scans are cached per project version instead of per
 	solution snapshot, so a batch rescans only what a rewritten file changed. Known limit: a class used as a runtime
 	proxy or mock (`Mock<Foo>`, `Substitute.For<Foo>()`) compiles once sealed but fails at run time; turn off Seal
@@ -225,9 +227,12 @@ This file records changes made in Code Janitor after the project became an indep
 	the call unchanged), not parenthesizing conditional expressions and `global::` names in holes, copying
 	placeholders with spaces or an empty format (`{1, 10}`, `{0 }`, `{0:}`) as literal text, and dropping comments in
 	the call. Calls whose arguments have side effects are converted only when every argument is still evaluated
-	exactly once and in order: only literals, `this` and plain identifiers may be repeated, reordered or dropped, a
-	member read such as `DateTime.Now` is never duplicated, and an identifier is not moved across an argument that
-	assigns, increments or passes it `ref`/`out`.
+	exactly once and in order: only literals, `this` and locals or parameters in scope may be repeated, reordered or
+	dropped (any other name may be a property), a member read such as `DateTime.Now` is never duplicated, and a local
+	is not moved across an argument that assigns, increments or passes it `ref`/`out`. A call is also left unchanged
+	when a hole other than a literal comes before an argument that calls a method, creates an object, assigns,
+	increments or awaits: `string.Format` formats its arguments after evaluating all of them, an interpolated string
+	formats each hole before evaluating the next.
 - Fixed pattern-matching null checks changing behavior or breaking compilation: the conversion now runs on
 	the Visual Studio Roslyn workspace and changes a check only when `==`/`!=` binds to the built-in operator
 	(no user-defined or lifted operator from any file, project or referenced assembly, e.g.
@@ -239,7 +244,9 @@ This file records changes made in Code Janitor after the project became an indep
 	`is null` does not compile, are left unchanged.
 - Fixed "Reuse `JsonSerializerOptions`" replacing an argument with a positional `null` that is ambiguous
 	between overloads (`CS0121`); the argument is now named `options:`, or cast to the options type when a positional
-	argument follows it (`(JsonSerializerOptions)null, ct`), which compiles in every C# version.
+	argument follows it (`(JsonSerializerOptions)null, ct`), which compiles in every C# version, or when the call is not
+	known to be on `System.Text.Json.JsonSerializer`. An options allocation passed as the first argument (the value)
+	is left unchanged.
 - Fixed explicit access modifier insertion adding `private` to types and fields nested in interfaces and
 	adding an access modifier to `file`-scoped types.
 - Fixed region removal and "Update `#endregion` directives" changing lines inside multi-line string literals
@@ -266,7 +273,8 @@ This file records changes made in Code Janitor after the project became an indep
 	padding applies only to statements of a braced block; top-level statements and `switch` sections are not padded.
 - Fixed explicit access modifier insertion treating a `record struct` as a class (it now follows the Structs
 	setting; `record` and `record class` follow Classes) and skipping indexers without an access modifier (they
-	get `private` under the Properties setting).
+	get `private` under the Properties setting). Partial properties, indexers, events and constructors are left
+	unchanged, like partial methods: both parts must declare the same accessibility.
 - Fixed region removal and "Update `#endregion` directives" taking exponential time on deeply nested inactive `#if`
 	branches and allocating a substring per line.
 - Fixed "Move top-level types to separate files" leaving the files it created on disk, next to the unchanged

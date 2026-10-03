@@ -23,9 +23,9 @@ internal static class FileTextStyle
     private static readonly Regex LineBreak = new Regex("\r\n|\r|\n", RegexOptions.Compiled);
 
     /// <summary>
-    /// Reads a file as text, detecting its encoding from the byte order mark. A file without one is read as Latin-1
-    /// when .editorconfig <c>charset</c> is <c>latin1</c>, and otherwise as UTF-8 reported without a byte order mark,
-    /// so writing it back does not add one.
+    /// Reads a file as text, detecting its encoding from the byte order mark. A file without one is read with the
+    /// encoding .editorconfig <c>charset</c> names when it is <c>latin1</c>, <c>utf-16le</c> or <c>utf-16be</c>, and
+    /// otherwise as UTF-8 reported without a byte order mark, so writing it back does not add one.
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="encoding">The encoding the file had, including whether it had a byte order mark.</param>
@@ -33,7 +33,7 @@ internal static class FileTextStyle
     internal static string ReadAllText(string filePath, out Encoding encoding)
     {
         var charset = ParseCharset(EditorConfigHelper.LoadOptions(filePath));
-        var encodingWithoutByteOrderMark = charset?.CodePage == Latin1CodePage ? charset : new UTF8Encoding(false);
+        var encodingWithoutByteOrderMark = charset is null || charset is UTF8Encoding ? new UTF8Encoding(false) : charset;
 
         using (var reader = new StreamReader(filePath, encodingWithoutByteOrderMark, detectEncodingFromByteOrderMarks: true))
         {
@@ -45,10 +45,11 @@ internal static class FileTextStyle
     }
 
     /// <summary>
-    /// Writes text to a file. The encoding is the one .editorconfig <c>charset</c> names, otherwise
-    /// <paramref name="encoding" />. The line endings are the ones <c>end_of_line</c> names; without that option the
-    /// text takes the line endings of <paramref name="originalText" /> when it uses a single kind, and is written as
-    /// it is when the original mixed several kinds.
+    /// Writes text to a file. The encoding is the one .editorconfig <c>charset</c> names when it can represent every
+    /// character of the text, otherwise <paramref name="encoding" />. The line endings are the ones
+    /// <c>end_of_line</c> names; without that option the text takes the line endings of
+    /// <paramref name="originalText" /> when it uses a single kind, and is written as it is when the original mixed
+    /// several kinds.
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <param name="text">The text to write.</param>
@@ -58,13 +59,48 @@ internal static class FileTextStyle
     /// The path whose .editorconfig applies, when the text is first written to a temporary file next to its final
     /// location; defaults to <paramref name="filePath" />.
     /// </param>
+    /// <exception cref="IOException">
+    /// Neither encoding can represent every character of the text (for example <c>€</c> in a Latin-1 file); the file is
+    /// left unchanged.
+    /// </exception>
     internal static void WriteAllText(string filePath, string text, Encoding encoding, string originalText, string styleFilePath = null)
     {
         var options = EditorConfigHelper.LoadOptions(styleFilePath ?? filePath);
         var lineEnding = ParseEndOfLine(options) ?? GetUniformLineEnding(originalText);
         var styledText = lineEnding is null ? text : NormalizeLineEndings(text, lineEnding);
+        var charset = ParseCharset(options);
+        var targetEncoding = charset is not null && EncodesWithoutLoss(charset, styledText) ? charset : encoding;
+        if (!EncodesWithoutLoss(targetEncoding, styledText))
+        {
+            throw new IOException(
+                $"'{styleFilePath ?? filePath}' cannot be written as {targetEncoding.WebName} without replacing characters that encoding cannot represent; it was left unchanged.");
+        }
 
-        File.WriteAllText(filePath, styledText, ParseCharset(options) ?? encoding);
+        File.WriteAllText(filePath, styledText, targetEncoding);
+    }
+
+    /// <summary>
+    /// Determines whether writing <paramref name="text" /> with <paramref name="encoding" /> keeps every character:
+    /// Unicode encodings represent all of them, an encoding whose fallback throws reports a loss itself, and any other
+    /// encoding would silently replace what it cannot represent.
+    /// </summary>
+    private static bool EncodesWithoutLoss(Encoding encoding, string text)
+    {
+        if (encoding is UTF8Encoding || encoding is UnicodeEncoding || encoding is UTF32Encoding || encoding.EncoderFallback is EncoderExceptionFallback)
+        {
+            return true;
+        }
+
+        try
+        {
+            Encoding.GetEncoding(encoding.CodePage, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback).GetByteCount(text);
+
+            return true;
+        }
+        catch (EncoderFallbackException)
+        {
+            return false;
+        }
     }
 
     /// <summary>

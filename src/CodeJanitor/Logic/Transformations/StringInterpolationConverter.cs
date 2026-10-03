@@ -124,7 +124,11 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                 return visited;
             }
 
-            if (!PreservesEvaluation(formatArgs, matches) || LosesComments(visited, formatArgs, matches))
+            var originalArguments = node.ArgumentList.Arguments;
+            var repeatable = formatArgs
+                .Select((argument, index) => IsRepeatable(argument, originalArguments[index + 1].Expression))
+                .ToArray();
+            if (!PreservesEvaluation(formatArgs, repeatable, matches) || LosesComments(visited, formatArgs, matches))
             {
                 return visited;
             }
@@ -203,16 +207,24 @@ public sealed class StringInterpolationConverter : ISourceTransformation
         }
 
         /// <summary>
-        /// Determines whether moving the arguments into the interpolation holes keeps the program's behaviour: every
-        /// argument that is not a literal, <c>this</c> or a plain identifier (a member access may run a property getter,
-        /// so it counts too) is evaluated exactly once and in its original order, and a plain identifier is not read on
-        /// the other side of an argument that assigns, increments or passes it by reference than it was originally.
-        /// Literals, <c>this</c> and identifiers may otherwise be repeated, reordered or dropped.
+        /// Determines whether moving the arguments into the interpolation holes keeps the program's behaviour:
+        /// <list type="bullet">
+        /// <item>every argument that is not repeatable (see <see cref="IsRepeatable" />) is evaluated exactly once and in
+        /// its original order: any other expression, an unqualified name included, may run a property getter;</item>
+        /// <item>a local or parameter is not read on the other side of an argument that assigns, increments or passes it
+        /// by reference than it was originally;</item>
+        /// <item>every hole before an argument that can change state (a call, an object creation, an assignment, an
+        /// increment or decrement, an await) is a literal: <c>string.Format</c> formats the arguments after evaluating all
+        /// of them, while an interpolated string formats each hole before evaluating the next, so the change could show
+        /// in the text of an earlier hole.</item>
+        /// </list>
+        /// Repeatable arguments may otherwise be repeated, reordered or dropped.
         /// </summary>
         /// <remarks>
-        /// Without a semantic model an identifier may still be a field changed by a called method, which is not detected.
+        /// Without a semantic model a local may still be changed by a called method through a closure or a reference,
+        /// which is not detected.
         /// </remarks>
-        private static bool PreservesEvaluation(ExpressionSyntax[] formatArgs, MatchCollection matches)
+        private static bool PreservesEvaluation(ExpressionSyntax[] formatArgs, bool[] repeatable, MatchCollection matches)
         {
             var holes = matches.Cast<Match>()
                 .Where(match => match.Groups[1].Success)
@@ -220,10 +232,17 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                 .ToList();
             var useCounts = new int[formatArgs.Length];
             var lastEvaluatedOnce = -1;
+            var earlierHoleIsFormatted = false;
             foreach (var index in holes)
             {
+                if (earlierHoleIsFormatted && CanChangeState(formatArgs[index]))
+                {
+                    return false;
+                }
+
+                earlierHoleIsFormatted |= !(formatArgs[index] is LiteralExpressionSyntax);
                 useCounts[index]++;
-                if (IsRepeatable(formatArgs[index]))
+                if (repeatable[index])
                 {
                     continue;
                 }
@@ -238,7 +257,7 @@ public sealed class StringInterpolationConverter : ISourceTransformation
 
             for (var i = 0; i < formatArgs.Length; i++)
             {
-                if (useCounts[i] == 0 && !IsRepeatable(formatArgs[i]))
+                if (useCounts[i] == 0 && !repeatable[i])
                 {
                     return false;
                 }
@@ -268,9 +287,161 @@ public sealed class StringInterpolationConverter : ISourceTransformation
             return true;
         }
 
-        private static bool IsRepeatable(ExpressionSyntax expression)
+        /// <summary>
+        /// Determines whether evaluating the argument has no effect and always gives the same value between two
+        /// evaluations that no other argument separates: a literal, <c>this</c>, or the name of a local or parameter in
+        /// scope. Any other name may be a property, whose getter can do anything.
+        /// </summary>
+        /// <param name="argument">The argument as rewritten so far.</param>
+        /// <param name="originalArgument">The same argument in the analyzed tree, whose ancestors are the scopes.</param>
+        private static bool IsRepeatable(ExpressionSyntax argument, ExpressionSyntax originalArgument)
         {
-            return expression is LiteralExpressionSyntax or IdentifierNameSyntax or ThisExpressionSyntax;
+            return argument is LiteralExpressionSyntax ||
+                argument is ThisExpressionSyntax ||
+                (originalArgument is IdentifierNameSyntax identifier && IsLocalOrParameter(identifier));
+        }
+
+        /// <summary>
+        /// Determines whether the identifier names a parameter of a function that contains it, the <c>value</c> of an
+        /// accessor, or a local whose scope contains it and that is declared before it.
+        /// </summary>
+        private static bool IsLocalOrParameter(IdentifierNameSyntax identifier)
+        {
+            var name = identifier.Identifier.ValueText;
+            var position = identifier.SpanStart;
+
+            foreach (var ancestor in identifier.Ancestors())
+            {
+                if (ancestor is BaseTypeDeclarationSyntax)
+                {
+                    return false;
+                }
+
+                if (DeclaresParameter(ancestor, name) || DeclaresLocal(ancestor, name, position))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool DeclaresParameter(SyntaxNode node, string name)
+        {
+            switch (node)
+            {
+                case BaseMethodDeclarationSyntax method:
+                    return HasParameter(method.ParameterList, name);
+                case LocalFunctionStatementSyntax localFunction:
+                    return HasParameter(localFunction.ParameterList, name);
+                case ParenthesizedLambdaExpressionSyntax lambda:
+                    return HasParameter(lambda.ParameterList, name);
+                case SimpleLambdaExpressionSyntax lambda:
+                    return lambda.Parameter.Identifier.ValueText == name;
+                case AnonymousMethodExpressionSyntax anonymousMethod:
+                    return HasParameter(anonymousMethod.ParameterList, name);
+                case IndexerDeclarationSyntax indexer:
+                    return HasParameter(indexer.ParameterList, name);
+                case AccessorDeclarationSyntax accessor:
+                    return name == "value" && !accessor.IsKind(SyntaxKind.GetAccessorDeclaration);
+                default:
+                    return false;
+            }
+        }
+
+        private static bool HasParameter(BaseParameterListSyntax parameterList, string name)
+        {
+            return parameterList is not null && parameterList.Parameters.Any(parameter => parameter.Identifier.ValueText == name);
+        }
+
+        /// <summary>
+        /// Determines whether <paramref name="scope" /> declares a local named <paramref name="name" /> before
+        /// <paramref name="position" /> whose scope is <paramref name="scope" />: a declaration statement or an
+        /// expression variable (pattern, <c>out var</c>, deconstruction) of a block, switch section or expression body,
+        /// the variable of a loop, <c>using</c> or <c>fixed</c> statement, of a <c>catch</c> clause, or of a query.
+        /// </summary>
+        private static bool DeclaresLocal(SyntaxNode scope, string name, int position)
+        {
+            switch (scope)
+            {
+                case ForEachStatementSyntax forEach:
+                    return forEach.Identifier.ValueText == name;
+                case ForEachVariableStatementSyntax forEachVariable:
+                    return DeclaresExpressionVariable(forEachVariable.Variable, scope, name, position);
+                case ForStatementSyntax forStatement:
+                    return DeclaresVariable(forStatement.Declaration, name) ||
+                        forStatement.Initializers.Any(initializer => DeclaresExpressionVariable(initializer, scope, name, position));
+                case UsingStatementSyntax usingStatement:
+                    return DeclaresVariable(usingStatement.Declaration, name);
+                case FixedStatementSyntax fixedStatement:
+                    return DeclaresVariable(fixedStatement.Declaration, name);
+                case CatchClauseSyntax catchClause:
+                    return catchClause.Declaration?.Identifier.ValueText == name;
+                case QueryExpressionSyntax query:
+                    return query.FromClause.Identifier.ValueText == name ||
+                        query.DescendantNodes().Any(node =>
+                            (node is FromClauseSyntax from && from.Identifier.ValueText == name) ||
+                            (node is LetClauseSyntax let && let.Identifier.ValueText == name) ||
+                            (node is JoinClauseSyntax join && (join.Identifier.ValueText == name || join.Into?.Identifier.ValueText == name)) ||
+                            (node is QueryContinuationSyntax continuation && continuation.Identifier.ValueText == name));
+                case BlockSyntax _:
+                case SwitchSectionSyntax _:
+                case ArrowExpressionClauseSyntax _:
+                case LambdaExpressionSyntax _:
+                    return scope.ChildNodes()
+                        .OfType<LocalDeclarationStatementSyntax>()
+                        .Any(statement => statement.SpanStart < position && DeclaresVariable(statement.Declaration, name)) ||
+                        DeclaresExpressionVariable(scope, scope, name, position);
+                default:
+                    return false;
+            }
+        }
+
+        private static bool DeclaresVariable(VariableDeclarationSyntax declaration, string name)
+        {
+            return declaration is not null && declaration.Variables.Any(variable => variable.Identifier.ValueText == name);
+        }
+
+        /// <summary>
+        /// Determines whether <paramref name="node" /> contains, before <paramref name="position" />, an expression
+        /// variable named <paramref name="name" /> whose nearest enclosing scope is <paramref name="scope" />.
+        /// </summary>
+        private static bool DeclaresExpressionVariable(SyntaxNode node, SyntaxNode scope, string name, int position)
+        {
+            return node.DescendantNodes()
+                .OfType<SingleVariableDesignationSyntax>()
+                .Any(designation =>
+                    designation.SpanStart < position &&
+                    designation.Identifier.ValueText == name &&
+                    designation.Ancestors().FirstOrDefault(IsExpressionVariableScope) == scope);
+        }
+
+        private static bool IsExpressionVariableScope(SyntaxNode node)
+        {
+            return node is BlockSyntax ||
+                node is SwitchSectionSyntax ||
+                node is ArrowExpressionClauseSyntax ||
+                node is LambdaExpressionSyntax ||
+                node is ForEachVariableStatementSyntax ||
+                node is ForStatementSyntax ||
+                node is MemberDeclarationSyntax;
+        }
+
+        /// <summary>
+        /// Determines whether evaluating the expression can change the state of objects: it calls a method, creates
+        /// an object, assigns, increments, decrements or awaits.
+        /// </summary>
+        private static bool CanChangeState(ExpressionSyntax expression)
+        {
+            return expression.DescendantNodesAndSelf().Any(node =>
+                node is InvocationExpressionSyntax ||
+                node is BaseObjectCreationExpressionSyntax ||
+                node is AssignmentExpressionSyntax ||
+                node is AwaitExpressionSyntax ||
+                node.IsKind(SyntaxKind.PreIncrementExpression) ||
+                node.IsKind(SyntaxKind.PreDecrementExpression) ||
+                node.IsKind(SyntaxKind.PostIncrementExpression) ||
+                node.IsKind(SyntaxKind.PostDecrementExpression));
         }
 
         /// <summary>

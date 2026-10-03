@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -12,6 +13,8 @@ namespace CodeJanitor.Logic.Cleaning;
 /// </summary>
 internal sealed class TopLevelTypeToFileSplitFileProcessor
 {
+    private static readonly Regex UniqueSuffix = new Regex(@"~\d+$", RegexOptions.Compiled);
+
     /// <summary>
     /// Represents the outcome of an apply operation, capturing whether a change occurred, the updated source content, any newly created files, and the reason for skipping if no changes were made.
     /// </summary>
@@ -184,7 +187,10 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
         {
             FileTextStyle.WriteAllText(tempFilePath, content, targetEncoding, null, targetFilePath);
 
+            // The planned name may already carry a suffix (Name~1.cs); the next free name continues the suffixes of the
+            // type's own name. A C# identifier has no '~', so the suffix is unambiguous.
             var targetFileName = Path.GetFileName(targetFilePath);
+            var typeFileName = UniqueSuffix.Replace(Path.GetFileNameWithoutExtension(targetFileName), string.Empty) + Path.GetExtension(targetFileName);
             var takenFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var filePath = targetFilePath;
             while (true)
@@ -198,7 +204,7 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
                 catch (IOException) when (File.Exists(filePath))
                 {
                     takenFileNames.Add(Path.GetFileName(filePath));
-                    filePath = Path.Combine(directoryPath ?? string.Empty, TopLevelTypeToFileSplitPlanner.MakeFileNameUnique(targetFileName, takenFileNames));
+                    filePath = Path.Combine(directoryPath ?? string.Empty, TopLevelTypeToFileSplitPlanner.MakeFileNameUnique(typeFileName, takenFileNames));
                 }
             }
         }

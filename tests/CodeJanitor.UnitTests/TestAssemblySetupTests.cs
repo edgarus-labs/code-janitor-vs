@@ -1,7 +1,5 @@
 using System;
 using System.IO;
-using CodeJanitor.Helpers;
-using CodeJanitor.Properties;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests;

@@ -85,6 +85,7 @@
     <Compile Include="Cleaning\RepositoryCleanupSettingsTests.cs" />
     <Compile Include="Cleaning\CleanupBatchPartitionerTests.cs" />
     <Compile Include="Cleaning\ClosedFileWriteTests.cs" />
+    <Compile Include="Cleaning\SealedClassLogicTests.cs" />
     <Compile Include="Cleaning\SemanticFileRewriterTests.cs" />
     <Compile Include="Cleaning\ParallelHeadlessCleanupTests.cs" />
     <Compile Include="Cleaning\RemoveXmlDocumentationLogicTests.cs" />

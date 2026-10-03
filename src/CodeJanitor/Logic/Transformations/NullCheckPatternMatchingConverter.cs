@@ -116,6 +116,7 @@ public sealed class NullCheckPatternMatchingConverter
         foreach (var check in root.DescendantNodes().OfType<BinaryExpressionSyntax>())
         {
             if (!TryGetComparedOperand(check, out var operand) ||
+                !IsSyntacticallyConvertible(check, operand) ||
                 !IsReferenceEqualityCheck(check, operand, semanticModel, cancellationToken))
             {
                 continue;
@@ -154,6 +155,72 @@ public sealed class NullCheckPatternMatchingConverter
         }
 
         return operand is not null;
+    }
+
+    /// <summary>
+    /// Determines whether the check can be written as a pattern where it is: not in an expression-bodied non-async
+    /// lambda or a query-expression clause, not with another equality as its operand, and not with <c>null</c> on the
+    /// left and comments or directives between the operands, which the pattern could not keep in place.
+    /// </summary>
+    private static bool IsSyntacticallyConvertible(BinaryExpressionSyntax check, ExpressionSyntax operand)
+    {
+        // An unparenthesized operand of == or != can only be another equality: `a == b == null` would become
+        // `a == (b is null)`, and parenthesizing it gives `(a == b) is null`, which does not compile for bool (CS0037).
+        if (IsUnsafeForPatternMatching(check) ||
+            operand.IsKind(SyntaxKind.EqualsExpression) ||
+            operand.IsKind(SyntaxKind.NotEqualsExpression))
+        {
+            return false;
+        }
+
+        return check.Right.IsKind(SyntaxKind.NullLiteralExpression) || !HasCommentsBetweenOperands(check);
+    }
+
+    /// <summary>Returns whether comments or directives separate the operands of the check from its operator.</summary>
+    private static bool HasCommentsBetweenOperands(BinaryExpressionSyntax check)
+    {
+        return HasCommentOrDirective(check.Left.GetTrailingTrivia())
+            || HasCommentOrDirective(check.OperatorToken.LeadingTrivia)
+            || HasCommentOrDirective(check.OperatorToken.TrailingTrivia)
+            || HasCommentOrDirective(check.Right.GetLeadingTrivia());
+    }
+
+    /// <summary>Returns whether the trivia list contains a comment, directive or other non-whitespace trivia.</summary>
+    private static bool HasCommentOrDirective(SyntaxTriviaList trivia) => trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
+
+    /// <summary>
+    /// Determines whether the given null-check node sits in a syntax position where the C# compiler
+    /// could reject an `is`/`is not` pattern-matching operator if the surrounding lambda or query ends up
+    /// converted to an Expression tree (CS8122). Block-bodied lambdas, async lambdas, and anonymous methods
+    /// can never be compiled to expression trees (CS0834/CS1989/CS1946), so they are always safe; an
+    /// expression-bodied non-async lambda or a query-expression clause is conservatively treated as unsafe
+    /// (its delegate or expression-tree conversion is not analyzed).
+    /// </summary>
+    /// <param name="node">The node.</param>
+    /// <returns>True if rewriting to a pattern-matching operator here could break compilation; otherwise, false.</returns>
+    private static bool IsUnsafeForPatternMatching(SyntaxNode node)
+    {
+        foreach (var ancestor in node.Ancestors())
+        {
+            switch (ancestor)
+            {
+                case LambdaExpressionSyntax lambda:
+                    return lambda.ExpressionBody is not null && !lambda.Modifiers.Any(SyntaxKind.AsyncKeyword);
+
+                case QueryClauseSyntax:
+                case SelectOrGroupClauseSyntax:
+                    return true;
+
+                case AnonymousMethodExpressionSyntax:
+                case LocalFunctionStatementSyntax:
+                case BaseMethodDeclarationSyntax:
+                case AccessorDeclarationSyntax:
+                case BasePropertyDeclarationSyntax:
+                    return false;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -216,46 +283,23 @@ public sealed class NullCheckPatternMatchingConverter
             var isNotEquals = visitedNode.IsKind(SyntaxKind.NotEqualsExpression);
 
             ExpressionSyntax targetExpr;
-            bool nullOnRight;
 
             if (visitedNode.Right.IsKind(SyntaxKind.NullLiteralExpression))
             {
                 targetExpr = visitedNode.Left;
-                nullOnRight = true;
             }
             else if (visitedNode.Left.IsKind(SyntaxKind.NullLiteralExpression))
             {
                 targetExpr = visitedNode.Right;
-                nullOnRight = false;
             }
             else
             {
                 return visitedNode;
             }
 
-            if (IsUnsafeForPatternMatching(node))
-            {
-                return visitedNode;
-            }
-
-            // An unparenthesized operand of == or != can only be another equality: `a == b == null` would become
-            // `a == (b is null)`, and parenthesizing it gives `(a == b) is null`, which does not compile for bool (CS0037).
-            if (targetExpr.IsKind(SyntaxKind.EqualsExpression) || targetExpr.IsKind(SyntaxKind.NotEqualsExpression))
-            {
-                return visitedNode;
-            }
-
-            // Comments or directives between the operands are kept in place when the null literal is on the right;
-            // with `null` on the left they cannot keep their position, so such a check is left alone.
-            var keepInnerTrivia = HasCommentOrDirective(visitedNode.Left.GetTrailingTrivia())
-                || HasCommentOrDirective(visitedNode.OperatorToken.LeadingTrivia)
-                || HasCommentOrDirective(visitedNode.OperatorToken.TrailingTrivia)
-                || HasCommentOrDirective(visitedNode.Right.GetLeadingTrivia());
-            if (keepInnerTrivia && !nullOnRight)
-            {
-                return visitedNode;
-            }
-
+            // Comments or directives between the operands are kept in place; the convertible checks have the null
+            // literal on the right when there are any (see IsSyntacticallyConvertible).
+            var keepInnerTrivia = HasCommentsBetweenOperands(visitedNode);
             if (!keepInnerTrivia)
             {
                 targetExpr = targetExpr.WithoutTrivia();
@@ -311,44 +355,6 @@ public sealed class NullCheckPatternMatchingConverter
             }
 
             return isPatternExpr;
-        }
-
-        /// <summary>Returns whether the trivia list contains a comment, directive or other non-whitespace trivia.</summary>
-        private static bool HasCommentOrDirective(SyntaxTriviaList trivia) => trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
-
-        /// <summary>
-        /// Determines whether the given null-check node sits in a syntax position where the C# compiler
-        /// could reject an `is`/`is not` pattern-matching operator if the surrounding lambda or query ends up
-        /// converted to an Expression tree (CS8122). Block-bodied lambdas, async lambdas, and anonymous methods
-        /// can never be compiled to expression trees (CS0834/CS1989/CS1946), so they are always safe; an
-        /// expression-bodied non-async lambda or a query-expression clause is conservatively treated as unsafe
-        /// (its delegate or expression-tree conversion is not analyzed).
-        /// </summary>
-        /// <param name="node">The node.</param>
-        /// <returns>True if rewriting to a pattern-matching operator here could break compilation; otherwise, false.</returns>
-        private static bool IsUnsafeForPatternMatching(SyntaxNode node)
-        {
-            foreach (var ancestor in node.Ancestors())
-            {
-                switch (ancestor)
-                {
-                    case LambdaExpressionSyntax lambda:
-                        return lambda.ExpressionBody is not null && !lambda.Modifiers.Any(SyntaxKind.AsyncKeyword);
-
-                    case QueryClauseSyntax:
-                    case SelectOrGroupClauseSyntax:
-                        return true;
-
-                    case AnonymousMethodExpressionSyntax:
-                    case LocalFunctionStatementSyntax:
-                    case BaseMethodDeclarationSyntax:
-                    case AccessorDeclarationSyntax:
-                    case BasePropertyDeclarationSyntax:
-                        return false;
-                }
-            }
-
-            return false;
         }
     }
 }

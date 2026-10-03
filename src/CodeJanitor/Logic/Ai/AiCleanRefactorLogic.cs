@@ -106,7 +106,7 @@ internal sealed class AiCleanRefactorLogic
         return $@"Refactor the following C# code for '{memberName}' to follow modern Clean Code standards:
 
 ```csharp
-        {codeSnippet}
+{codeSnippet}
 ```
 
 Refactoring Goals:

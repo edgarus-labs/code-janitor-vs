@@ -81,7 +81,7 @@ internal sealed class AiExplainLogic
         return $@"Analyze the following C# code for member '{memberName}':
 
 ```csharp
-        {codeSnippet}
+{codeSnippet}
 ```
 
 Please structure your response in clear markdown format using the following sections:
@@ -96,7 +96,7 @@ A concise summary explaining the business purpose, inputs, and outputs in plain 
 ### 3. Step-by-step Refactoring & Decomposition
 - Concrete recommendations on how to simplify and decompose this code (e.g. Extract Method, Guard Clauses, Pattern Matching).
 - A clean, modern C# code example demonstrating the decomposed/refactored version.
-        ";
+";
     }
 
     /// <summary>

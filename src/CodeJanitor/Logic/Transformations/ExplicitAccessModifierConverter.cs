@@ -382,6 +382,11 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
                 return visited;
             }
 
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             var leading = FirstLeadingTrivia(visited.Modifiers, visited.Identifier);
             var newMods = PrependModifier(visited.Modifiers, SyntaxKind.PrivateKeyword, leading, out _);
 
@@ -419,6 +424,11 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
             }
 
             if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
             {
                 return visited;
             }
@@ -464,6 +474,11 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
                 return visited;
             }
 
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             if (visited.ExplicitInterfaceSpecifier is not null)
             {
                 return visited;
@@ -503,6 +518,11 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
                 return visited;
             }
 
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
+            {
+                return visited;
+            }
+
             if (visited.ExplicitInterfaceSpecifier is not null)
             {
                 return visited;
@@ -538,6 +558,11 @@ public sealed class ExplicitAccessModifierConverter : ISourceTransformation
             }
 
             if (HasAccessModifier(visited.Modifiers))
+            {
+                return visited;
+            }
+
+            if (HasModifier(visited.Modifiers, SyntaxKind.PartialKeyword))
             {
                 return visited;
             }

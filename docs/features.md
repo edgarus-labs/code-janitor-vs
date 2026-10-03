@@ -92,13 +92,18 @@ file. A class is left unchanged when:
   element type, or compares with `==`/`!=` to or from an interface the class does not implement, including
   through arrays, tuple elements, covariant delegate type arguments and generic collection interfaces (sealing
   would turn these into compile errors);
-- its declaration contains code excluded by a preprocessor directive, or code in an inactive `#if` branch anywhere
-  in the solution derives from, overrides or names it;
-- a project written in another language than C# references its project (only C# is analyzed).
+- its project, or a project referencing it, contains code excluded by a preprocessor directive (an inactive `#if`
+  branch is compiled by other build configurations and can derive from, constrain or convert the class without
+  naming it);
+- a project written in another language than C# references its project, directly or through other projects
+  (only C# is analyzed); for projects outside the Roslyn workspace, such as C++/CLI projects, this is read from
+  their `ProjectReference` items, whatever their conditions.
 
 Documents produced by source generators are analyzed like written files. The step is skipped for a file, with
-a warning in the output pane, while the solution is loading or a project is unloaded or failed to load, because
-such a project could contain a class that derives from the sealed one. The analysis cannot see runtime uses: a
+a warning in the output pane, while the solution is loading or a project is unloaded or failed to load, when
+Visual Studio cannot tell whether that is the case, or when a `ProjectReference` of a project outside the Roslyn
+workspace names its project with an MSBuild property or a wildcard, because such a project could contain a class
+that derives from the sealed one. The analysis cannot see runtime uses: a
 class that a test project mocks or proxies (`Mock<Foo>`, `Substitute.For<Foo>()`) compiles once sealed but fails
 at run time, so turn **Seal Classes** off for such projects.
 

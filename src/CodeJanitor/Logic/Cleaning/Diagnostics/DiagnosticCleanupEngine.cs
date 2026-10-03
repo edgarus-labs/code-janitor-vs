@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -54,7 +55,8 @@ namespace CodeJanitor.Logic.Cleaning.Diagnostics;
 /// never abort the cleanup: the affected diagnostics are reported as <see cref="UnresolvedDiagnosticReason.FixProviderFailed" />
 /// and the other fixes still apply; a provider that failed while registering fixes for a diagnostic id is not asked again
 /// for that id in the same run. Roslyn binding failures (see <see cref="VisualStudioRoslynWorkspace.IsRoslynBindingFailure" />)
-/// are never attributed to a provider: they propagate, because the host Roslyn cannot be used at all. Only cancellation
+/// are never attributed to a provider: they propagate, because the host Roslyn cannot be used at all. An invalid cast
+/// thrown by the provider's own code is a provider bug, not a binding failure. Only cancellation
 /// and those failures propagate to the caller. Analyzer failures are reported by Roslyn
 /// without a source location, so they never become actionable.
 /// </para>
@@ -446,7 +448,7 @@ public sealed class DiagnosticCleanupEngine
                 {
                     chosen = await GetFirstApplicableActionAsync(document, provider, actionable.Diagnostic, cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception exception) when (!VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception))
+                catch (Exception exception) when (!IsHostBindingFailure(exception, provider))
                 {
                     // Canceling the cleanup wins over whatever the interrupted provider threw.
                     cancellationToken.ThrowIfCancellationRequested();
@@ -468,6 +470,19 @@ public sealed class DiagnosticCleanupEngine
             return providerFailure is null
                 ? FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.NoApplicableCodeAction)
                 : FixPlan.Unfixable(actionable, UnresolvedDiagnosticReason.FixProviderFailed, providerFailure);
+        }
+
+        /// <summary>
+        /// Determines whether an exception thrown while <paramref name="provider" /> worked reports that the host
+        /// Roslyn cannot be bound (see <see cref="VisualStudioRoslynWorkspace.IsRoslynBindingFailure" />). An
+        /// <see cref="InvalidCastException" /> thrown by the code of the provider's own assembly is a bug of the
+        /// provider instead.
+        /// </summary>
+        private static bool IsHostBindingFailure(Exception exception, CodeFixProvider provider)
+        {
+            return VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception) &&
+                !(exception is InvalidCastException &&
+                  new StackTrace(exception, fNeedFileInfo: false).GetFrame(0)?.GetMethod()?.DeclaringType?.Assembly == provider.GetType().Assembly);
         }
 
         /// <summary>
@@ -574,7 +589,7 @@ public sealed class DiagnosticCleanupEngine
 
                 operations = await action.GetOperationsAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception) when (!VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception))
+            catch (Exception exception) when (!IsHostBindingFailure(exception, first.Provider))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 

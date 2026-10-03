@@ -144,8 +144,9 @@ internal sealed class TopLevelTypeToFileSplitPlanner
 
     /// <summary>
     /// Removes the <c>global using</c> directives: they apply to the whole compilation and stay in the original file,
-    /// repeated in a split-out file they are reported as duplicates (CS8933). The file header, which the parser
-    /// attaches to the first directive, is kept.
+    /// repeated in a split-out file they are reported as duplicates (CS8933). The leading trivia of a removed directive
+    /// (the file header, which the parser attaches to the first directive, region and other preprocessor directives,
+    /// comments) moves to the next token that is kept, so no directive loses its pair.
     /// </summary>
     /// <param name="root">The root of a generated file.</param>
     /// <returns>The root without global using directives.</returns>
@@ -156,13 +157,31 @@ internal sealed class TopLevelTypeToFileSplitPlanner
             return root;
         }
 
-        var header = root.Externs.Count == 0 && !root.Usings[0].GlobalKeyword.IsKind(SyntaxKind.None)
-            ? root.Usings[0].GetLeadingTrivia()
-            : default;
-        var stripped = root.WithUsings(SyntaxFactory.List(root.Usings.Where(x => x.GlobalKeyword.IsKind(SyntaxKind.None))));
-        var firstToken = stripped.GetFirstToken();
+        var kept = new List<UsingDirectiveSyntax>();
+        var carried = SyntaxTriviaList.Empty;
+        foreach (var directive in root.Usings)
+        {
+            if (!directive.GlobalKeyword.IsKind(SyntaxKind.None))
+            {
+                carried = carried.AddRange(directive.GetLeadingTrivia());
+                continue;
+            }
 
-        return stripped.ReplaceToken(firstToken, firstToken.WithLeadingTrivia(header.AddRange(firstToken.LeadingTrivia)));
+            kept.Add(directive.WithLeadingTrivia(carried.AddRange(directive.GetLeadingTrivia())));
+            carried = SyntaxTriviaList.Empty;
+        }
+
+        var stripped = root.WithUsings(SyntaxFactory.List(kept));
+        if (carried.Count == 0)
+        {
+            return stripped;
+        }
+
+        var nextToken = stripped.AttributeLists.FirstOrDefault()?.GetFirstToken() ??
+            stripped.Members.FirstOrDefault()?.GetFirstToken() ??
+            stripped.EndOfFileToken;
+
+        return stripped.ReplaceToken(nextToken, nextToken.WithLeadingTrivia(carried.AddRange(nextToken.LeadingTrivia)));
     }
 
     /// <summary>

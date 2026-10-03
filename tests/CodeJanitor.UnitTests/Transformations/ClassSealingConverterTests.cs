@@ -424,6 +424,46 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    [DataRow("Library", DisplayName = "the class's project")]
+    [DataRow("Middle", DisplayName = "a project depending on the class's project")]
+    public async Task ClassOfAProjectUsedByAProjectOutsideTheWorkspace_StaysUnsealed(string referencedOutside)
+    {
+        // A C++/CLI project, for example, is not in the Roslyn workspace: its derived classes go unseen.
+        string input = "namespace Demo { public class Foo { } }";
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document target = AddProject(ref solution, "Library", input);
+        Document middle = AddProject(ref solution, "Middle", "public class Other { }");
+        solution = solution
+            .AddProjectReference(middle.Project.Id, new ProjectReference(target.Project.Id))
+            .WithProjectFilePath(target.Project.Id, @"C:\Repo\Library\Library.csproj")
+            .WithProjectFilePath(middle.Project.Id, @"C:\Repo\Middle\Middle.csproj");
+
+        string result = await new ClassSealingConverter().SealWhenSafeAsync(
+            new[] { solution.GetDocument(target.Id) },
+            new[] { $@"c:\repo\{referencedOutside.ToLowerInvariant()}\{referencedOutside}.csproj" },
+            CancellationToken.None);
+
+        Assert.AreEqual(input, result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassOfAProjectNotUsedByTheProjectsOutsideTheWorkspace_BecomesSealed()
+    {
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document target = AddProject(ref solution, "Library", "namespace Demo { public class Foo { } }");
+        solution = solution.WithProjectFilePath(target.Project.Id, @"C:\Repo\Library\Library.csproj");
+
+        string result = await new ClassSealingConverter().SealWhenSafeAsync(
+            new[] { solution.GetDocument(target.Id) },
+            new[] { @"C:\Repo\Other\Other.csproj" },
+            CancellationToken.None);
+
+        Assert.AreEqual("namespace Demo { public sealed class Foo { } }", result);
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async Task ClassOfAProjectNotReferencedByTheNonCSharpProject_BecomesSealed()
     {
         Solution solution = new AdhocWorkspace(NonCSharpLanguageHost).CurrentSolution;
@@ -442,12 +482,10 @@ public sealed class ClassSealingConverterTests
             ref solution,
             "Library",
             "public class Foo { }",
-            "public interface IBar { } public static class Use { public static object M(Foo foo) => (IBar)foo; }",
-            "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\n");
-        Project project = solution.GetProject(converted.Project.Id);
-        Document inactive = project.AddDocument("Widget.cs", SourceText.From("public class Widget { }"));
-        Document free = inactive.Project.AddDocument("Free.cs", SourceText.From("public class Free { }"));
+            "public interface IBar { } public static class Use { public static object M(Foo foo) => (IBar)foo; }");
+        Document free = solution.GetProject(converted.Project.Id).AddDocument("Free.cs", SourceText.From("public class Free { }"));
         solution = free.Project.Solution;
+        Document inactive = AddProject(ref solution, "Legacy", "public class Widget { }", "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\n");
         Document[] documents = { solution.GetDocument(converted.Id), solution.GetDocument(inactive.Id), solution.GetDocument(free.Id) };
         string[] expected = { "public class Foo { }", "public class Widget { }", "public sealed class Free { }" };
         ClassSealingConverter shared = new ClassSealingConverter();
@@ -552,17 +590,15 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task InactiveCodeScan_ReadsSourceGeneratedDocuments()
+    public async Task InactiveCodeOfASourceGeneratedDocument_KeepsTheClassUnsealed()
     {
         // Inactive code of generated files is compiled by the builds that define its symbols, like written files.
         Solution solution = new AdhocWorkspace().CurrentSolution;
         Document library = AddProject(ref solution, "Library", "public class Widget { }");
         solution = AddSourceGenerator(solution, library.Project.Id, "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\n");
 
-        HashSet<string> identifiers = await new ClassSealingConverter().GetInactiveCodeIdentifiersAsync(solution, CancellationToken.None);
-
         Assert.HasCount(1, await solution.GetProject(library.Project.Id).GetSourceGeneratedDocumentsAsync(TestContext.CancellationToken), "The generator must add its file.");
-        Assert.Contains("Widget", identifiers);
+        Assert.AreEqual("public class Widget { }", await SealAsync(solution.GetDocument(library.Id)));
     }
 
     [TestMethod]
@@ -871,11 +907,60 @@ public sealed class ClassSealingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public async Task InactiveCodeNotNamingTheClass_DoesNotPreventSealing()
+    public async Task ClassConvertedInInactiveCodeWithoutBeingNamed_StaysUnsealed()
     {
+        // A TRACE_WIDGETS build casts the field to an interface Widget does not implement: CS0030 once Widget is sealed.
+        string input = "public class Widget { }";
+
         Assert.AreEqual(
-            "public sealed class Widget { }",
-            await SealAsync("public class Widget { }", "#if LEGACY\r\npublic class WidgetFactory { string _name = \"Widget\"; }\r\n#endif\r\n"));
+            input,
+            await SealAsync(
+                input,
+                "public interface ITraceable { }\r\n" +
+                "public static class Diagnostics\r\n" +
+                "{\r\n" +
+                "    public static Widget Current = new Widget();\r\n" +
+                "#if TRACE_WIDGETS\r\n" +
+                "    public static object Trace() => (ITraceable)Current;\r\n" +
+                "#endif\r\n" +
+                "}\r\n"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassDerivedInInactiveCodeThroughAnAlias_StaysUnsealed()
+    {
+        // A LEGACY build derives from Widget through the alias: CS0509 once Widget is sealed.
+        string input = "public class Widget { }";
+
+        Assert.AreEqual(input, await SealAsync(input, "using W = Widget;\r\n#if LEGACY\r\npublic class OldWidget : W { }\r\n#endif\r\n"));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task ClassUsedInInactiveCodeOfADependentProject_StaysUnsealed()
+    {
+        string input = "namespace Demo { public interface ITraceable { } public class Widget { } }";
+        Document consumer = CompilingTestProject.CreateDocumentReferencingProject(
+            "namespace Consumer { public static class Use { public static Demo.Widget Current;\r\n#if TRACE_WIDGETS\r\n public static object Trace() => (Demo.ITraceable)Current;\r\n#endif\r\n} }",
+            new[] { input });
+        Document document = consumer.Project.Solution.Projects
+            .Single(project => project.Name == "ReferencedProject")
+            .Documents.Single();
+
+        Assert.AreEqual(input, await SealAsync(document));
+    }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public async Task InactiveCodeOfAProjectNotReferencingTheClass_DoesNotPreventSealing()
+    {
+        // Only the project of the class and the projects referencing it can use the class.
+        Solution solution = new AdhocWorkspace().CurrentSolution;
+        Document target = AddProject(ref solution, "Library", "public class Widget { }");
+        AddProject(ref solution, "Unrelated", "#if LEGACY\r\npublic class OldWidget : Widget { }\r\n#endif\r\npublic class Other { }\r\n");
+
+        Assert.AreEqual("public sealed class Widget { }", await SealAsync(solution.GetDocument(target.Id)));
     }
 
     [TestMethod]

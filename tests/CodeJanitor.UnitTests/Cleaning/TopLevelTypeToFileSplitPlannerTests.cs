@@ -245,6 +245,20 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
     }
 
     [TestMethod]
+    [DataRow("global using System;\n#region Shared\nglobal using System.Linq;\n#endregion\n\nnamespace Demo;\nclass Foo { }\nclass Bar { }\n", DisplayName = "region opened before a later global using")]
+    [DataRow("#region Shared\nglobal using System;\n#endregion\nglobal using System.Linq;\n\nnamespace Demo;\nclass Foo { }\nclass Bar { }\n", DisplayName = "region closed before a later global using")]
+    public void CreatePlan_RegionAroundGlobalUsings_KeepsTheRegionDirectivesBalancedInTheGeneratedFile(string source)
+    {
+        TopLevelTypeToFileSplitPlanner.SplitPlan plan = _planner.CreatePlan(source, Path.Combine(_tempDirectory, "Foo.cs"));
+
+        string generated = plan.NewFiles.Single().Content;
+        StringAssert.Contains(generated, "class Bar");
+        Assert.IsEmpty(
+            Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(generated).GetDiagnostics().Select(diagnostic => diagnostic.ToString()).ToList(),
+            generated);
+    }
+
+    [TestMethod]
     public void CreatePlan_OnlyGlobalUsings_LeavesTheGeneratedFileWithoutUsings()
     {
         string source = "// Header\nglobal using System;\n\nclass Foo { }\n\nclass Bar { }\n";

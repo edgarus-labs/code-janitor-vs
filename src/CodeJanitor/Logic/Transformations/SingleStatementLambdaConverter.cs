@@ -67,7 +67,8 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                 ? SyntaxFactory.TriviaList(lineBreak)
                 : SyntaxFactory.TriviaList(SyntaxFactory.Space);
 
-            if (lineBreak.Count > 0 && node.ParameterList is not null)
+            var spaceAfterParameters = lineBreak.Count > 0 && node.ParameterList is not null;
+            if (spaceAfterParameters)
             {
                 parameterList = parameterList.WithTrailingTrivia(SyntaxFactory.Space);
             }
@@ -76,7 +77,7 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                 parameterList,
                 expression.WithTriviaFrom(node.Block));
 
-            var leadingArrowTrivia = parameterList.Parameters.Count == 0
+            var leadingArrowTrivia = parameterList.Parameters.Count == 0 && !spaceAfterParameters
                 ? SyntaxFactory.TriviaList(SyntaxFactory.Space)
                 : SyntaxTriviaList.Empty;
 

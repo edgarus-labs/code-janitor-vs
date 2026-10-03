@@ -210,15 +210,26 @@ public class C
     [DataRow("class C { string M(int x) => string.Format(\"{0}\", /* keep */ x); }", DisplayName = "comment before an argument")]
     [DataRow("class C { string M(int x, int y) => string.Format(\"{0}\", x /* keep */, y); }", DisplayName = "comment after an unused argument")]
     [DataRow("class C { string M(int x) => string.Format(\"{0}\", x /* keep */); }", DisplayName = "comment before the closing parenthesis")]
+    [DataRow("class C { int _n; int Next => ++_n; string M() => string.Format(\"{0}-{0}\", Next); }", DisplayName = "property read twice through an unqualified name")]
+    [DataRow("using static System.DateTime; class C { string M() => string.Format(\"{0:HH}:{0:mm}\", Now); }", DisplayName = "property read twice through using static")]
+    [DataRow("class C { int _n; int Next => ++_n; string M(int x) => string.Format(\"{1}\", Next, x); }", DisplayName = "unused property read through an unqualified name")]
+    [DataRow("class C { int _n; int Next => ++_n; string M() { { var Next = 1; } return string.Format(\"{0}-{0}\", Next); } }", DisplayName = "property named like a local of another scope")]
+    [DataRow("class C { string M(System.Text.StringBuilder sb) => string.Format(\"{0}{1}\", sb, sb.Append(\"!\")); }", DisplayName = "object formatted before an argument that changes it")]
+    [DataRow("class C { string M(int a) => string.Format(\"{1}-{0}-{1}\", Next(), a); int Next() => 0; }", DisplayName = "variable formatted before a call")]
+    [DataRow("class C { string M(int i, int j) => string.Format(\"{0} {1}\", i, i++); }", DisplayName = "variable formatted before its own increment")]
     public void FormatCallWhoseConversionWouldChangeSideEffectsOrDropComments_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { string M() => string.Format(\"{0}-{0}\", 5); }", "class C { string M() => $\"{5}-{5}\"; }", DisplayName = "repeated literal")]
     [DataRow("class C { string M(int a, int b) => string.Format(\"{0}\", a, b); }", "class C { string M(int a, int b) => $\"{a}\"; }", DisplayName = "unused side-effect-free argument")]
-    [DataRow("class C { string M(int a) => string.Format(\"{1}-{0}-{1}\", Next(), a); int Next() => 0; }", "class C { string M(int a) => $\"{a}-{Next()}-{a}\"; int Next() => 0; }", DisplayName = "repeated side-effect-free argument beside a single call")]
-    [DataRow("class C { string M(int i, int j) => string.Format(\"{0} {1}\", i, i++); }", "class C { string M(int i, int j) => $\"{i} {i++}\"; }", DisplayName = "variable read before its own increment, in argument order")]
+    [DataRow("class C { string M(int a) => string.Format(\"{0} {1}-{1}\", Next(), a); int Next() => 0; }", "class C { string M(int a) => $\"{Next()} {a}-{a}\"; int Next() => 0; }", DisplayName = "repeated side-effect-free argument after a single call")]
     [DataRow("class C { string M(int i) => string.Format(\"{0} {1}\", i++, i); }", "class C { string M(int i) => $\"{i++} {i}\"; }", DisplayName = "variable read after its own increment, in argument order")]
+    [DataRow("class C { string M() { var a = Get(); return string.Format(\"{0}-{0}\", a); } int Get() => 0; }", "class C { string M() { var a = Get(); return $\"{a}-{a}\"; } int Get() => 0; }", DisplayName = "repeated local")]
+    [DataRow("class C { string _s; int P { set => _s = string.Format(\"{0}{0}\", value); } }", "class C { string _s; int P { set => _s = $\"{value}{value}\"; } }", DisplayName = "repeated setter value")]
+    [DataRow("class C { System.Func<int, string> F = x => string.Format(\"{0}-{0}\", x); }", "class C { System.Func<int, string> F = x => $\"{x}-{x}\"; }", DisplayName = "repeated lambda parameter")]
+    [DataRow("class C { string M(object o) => o is int n ? string.Format(\"{0}-{0}\", n) : \"\"; }", "class C { string M(object o) => o is int n ? $\"{n}-{n}\" : \"\"; }", DisplayName = "repeated pattern variable")]
+    [DataRow("class C { string M(int[] items) { foreach (var item in items) { return string.Format(\"{0}{0}\", item); } return null; } }", "class C { string M(int[] items) { foreach (var item in items) { return $\"{item}{item}\"; } return null; } }", DisplayName = "repeated foreach variable")]
     [DataRow("class C { string M(int i, int j) => string.Format(\"{1} {0}\", i, j++); }", "class C { string M(int i, int j) => $\"{j++} {i}\"; }", DisplayName = "variable read moved around an unrelated increment")]
     public void FormatCallWhoseEvaluationIsPreserved_BecomesAnInterpolatedString(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 

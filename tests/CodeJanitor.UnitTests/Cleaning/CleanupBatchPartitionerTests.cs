@@ -96,9 +96,11 @@ public sealed class CleanupBatchPartitionerTests
     public async Task RunPerGroupAsync_ItemsOfDifferentGroups_AreProcessedAtTheSameTime()
     {
         int started = 0;
+        int timedOut = 0;
         TaskCompletionSource<bool> bothStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Each item only completes once the item of the other group has started too: sequential processing never gets there.
+        // Each item waits for the item of the other group to start too: with sequential processing the first item gives
+        // up waiting, so the test fails instead of waiting forever.
         await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "b1" }, item => item.Substring(0, 1), 4, CancellationToken.None, async item =>
         {
             if (Interlocked.Increment(ref started) == 2)
@@ -106,10 +108,14 @@ public sealed class CleanupBatchPartitionerTests
                 bothStarted.TrySetResult(true);
             }
 
-            await bothStarted.Task;
+            if (await Task.WhenAny(bothStarted.Task, Task.Delay(TimeSpan.FromSeconds(10))) != bothStarted.Task)
+            {
+                Interlocked.Increment(ref timedOut);
+            }
         });
 
         Assert.AreEqual(2, started);
+        Assert.AreEqual(0, timedOut, "An item waited in vain for the item of the other group: the groups were processed one after the other.");
     }
 
     [TestMethod]

@@ -189,6 +189,24 @@ public sealed class AiFeaturesLogicTests
     }
 
     [TestMethod]
+    [DataRow(typeof(AiExplainLogic), "BuildExplainPrompt", DisplayName = "explain")]
+    [DataRow(typeof(AiCodeReviewLogic), "BuildReviewPrompt", DisplayName = "code review")]
+    [DataRow(typeof(AiCleanRefactorLogic), "BuildRefactorPrompt", DisplayName = "clean refactor")]
+    [DataRow(typeof(AiTestGeneratorLogic), "BuildTestPrompt", DisplayName = "test generation")]
+    public void Prompt_SendsTheCodeAsWritten_WithoutPaddingAddedToTheTemplate(System.Type logicType, string methodName)
+    {
+        MethodInfo method = logicType.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
+        object[] arguments = method.GetParameters().Length == 2
+            ? new object[] { "Target", "int M() => 1;" }
+            : new object[] { "Target", "int M() => 1;", "MSTest", "NSubstitute" };
+
+        string prompt = ((string)method.Invoke(null, arguments)).Replace("\r\n", "\n");
+
+        Assert.Contains("```csharp\nint M() => 1;\n```", prompt);
+        Assert.AreEqual(prompt.TrimEnd(' ', '\t'), prompt, "The prompt must not end with indentation of the source code.");
+    }
+
+    [TestMethod]
     public async Task AiFeatures_WhenEndpointNotConfigured_ReturnConfigurationNotice()
     {
         CodeJanitor.Properties.Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl = string.Empty;

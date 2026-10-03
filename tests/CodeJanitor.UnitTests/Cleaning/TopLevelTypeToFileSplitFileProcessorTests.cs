@@ -197,6 +197,27 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     }
 
     [TestMethod]
+    public void Apply_SuffixedTargetFileAppearingAfterPlanning_TheTypeGetsTheNextSuffixOfItsOwnName()
+    {
+        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
+        File.WriteAllText(Path.Combine(_tempDirectory, "Bar.cs"), "existing");
+
+        TopLevelTypeToFileSplitFileProcessor.ApplyResult result = _processor.Apply(
+            "class Foo { }\r\nclass Bar { }\r\n",
+            filePath,
+            Encoding.UTF8,
+            null,
+            transformCreatedFile: (text, path) =>
+            {
+                File.WriteAllText(Path.Combine(_tempDirectory, "Bar~1.cs"), "content written by someone else");
+
+                return text;
+            });
+
+        Assert.AreEqual(Path.Combine(_tempDirectory, "Bar~2.cs"), result.CreatedFiles.Single());
+    }
+
+    [TestMethod]
     public void Apply_TargetFileAppearingAfterPlanning_IsKeptAndTheTypeGetsTheNextFreeName()
     {
         string filePath = Path.Combine(_tempDirectory, "Foo.cs");

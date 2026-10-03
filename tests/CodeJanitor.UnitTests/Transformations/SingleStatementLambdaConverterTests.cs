@@ -126,6 +126,10 @@ public sealed class SingleStatementLambdaConverterTests
         "class C\r\n{\r\n    Action a = delegate\r\n    {\r\n        Foo();\r\n    };\r\n    static void Foo() { }\r\n}",
         "class C\r\n{\r\n    Action a = () =>\r\n    Foo();\r\n    static void Foo() { }\r\n}",
         DisplayName = "without parameters")]
+    [DataRow(
+        "class C\r\n{\r\n    Action a = delegate ()\r\n    {\r\n        Foo();\r\n    };\r\n    static void Foo() { }\r\n}",
+        "class C\r\n{\r\n    Action a = () =>\r\n    Foo();\r\n    static void Foo() { }\r\n}",
+        DisplayName = "with an empty parameter list")]
     public void AllmanAnonymousMethod_KeepsTheArrowOnTheHeaderLine(string input, string expected)
     {
         string result = _converter.Apply(input);

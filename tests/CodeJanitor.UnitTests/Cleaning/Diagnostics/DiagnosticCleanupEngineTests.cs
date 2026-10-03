@@ -927,6 +927,23 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    [DataRow(true, DisplayName = "while registering its fixes")]
+    [DataRow(false, DisplayName = "while computing its fix")]
+    public async Task CleanupAsync_ProviderWithACastBug_ReportsTheDiagnosticAsProviderFailure(bool failsWhileRegistering)
+    {
+        using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0052", out DocumentId documentId);
+        Solution solution = workspace.CreateSolution();
+
+        DiagnosticCleanupResult result = await CleanupAsync(solution, documentId, new CastBugLegacyFieldCodeFixProvider("CJT0052", failsWhileRegistering));
+
+        Assert.AreSame(solution, result.ChangedSolution);
+        UnresolvedDiagnostic unresolved = result.Unresolved.Single();
+        Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
+        Assert.Contains(nameof(CastBugLegacyFieldCodeFixProvider), unresolved.Detail);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_ProviderExceptionMessageWithNewlines_YieldsASingleLineDetail()
     {
         using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0048", out DocumentId documentId);
@@ -1884,6 +1901,36 @@ public sealed class DiagnosticCleanupEngineTests
 
         public override System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context)
             => throw new System.InvalidOperationException("first line\r\nsecond line\nthird line");
+    }
+
+    /// <summary>
+    /// Casts a value to a type it does not have, like a third-party provider with a bug, while registering its fixes or
+    /// while computing the registered fix.
+    /// </summary>
+    private sealed class CastBugLegacyFieldCodeFixProvider : LegacyFieldCodeFixProviderBase
+    {
+        private readonly bool _failsWhileRegistering;
+
+        public CastBugLegacyFieldCodeFixProvider(string diagnosticId, bool failsWhileRegistering)
+            : base(diagnosticId)
+        {
+            _failsWhileRegistering = failsWhileRegistering;
+        }
+
+        public override System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context)
+        {
+            object document = context.Document;
+            if (_failsWhileRegistering)
+            {
+                _ = (SyntaxNode)document;
+            }
+
+            context.RegisterCodeFix(
+                CodeAction.Create("Rename", _ => System.Threading.Tasks.Task.FromResult((Document)(object)context.Span.ToString()), "CastBugLegacyField"),
+                context.Diagnostics);
+
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
     }
 
     /// <summary>

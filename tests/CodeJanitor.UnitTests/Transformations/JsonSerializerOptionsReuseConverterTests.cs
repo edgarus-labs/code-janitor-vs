@@ -53,7 +53,30 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     [TestCategory("Transformations UnitTests")]
     [DataRow("using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, new JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, options: null); }", DisplayName = "generic deserialize")]
     [DataRow("using System.Text.Json; class C { object M(string s) => JsonSerializer.Deserialize(s, typeof(C), new JsonSerializerOptions()); }", "using System.Text.Json; class C { object M(string s) => JsonSerializer.Deserialize(s, typeof(C), options: null); }", DisplayName = "deserialize with type")]
+    [DataRow("using System.Text.Json; class C { T M<T>(object v) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, new JsonSerializerOptions()), new JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(object v) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, options: null), options: null); }", DisplayName = "nested positional calls")]
     public void PositionalOptions_BecomeNamedNull(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        "class C { string M(object v) => JsonSerializer.Serialize(v, new JsonSerializerOptions()); }",
+        "class C { string M(object v) => JsonSerializer.Serialize(v, (JsonSerializerOptions)null); }",
+        DisplayName = "receiver not known to be System.Text.Json")]
+    [DataRow(
+        "using System.Text.Json; static class JsonSerializer { public static string Serialize(object value, JsonSerializerOptions settings) => \"\"; } class C { string M(object v) => JsonSerializer.Serialize(v, new JsonSerializerOptions()); }",
+        "using System.Text.Json; static class JsonSerializer { public static string Serialize(object value, JsonSerializerOptions settings) => \"\"; } class C { string M(object v) => JsonSerializer.Serialize(v, (JsonSerializerOptions)null); }",
+        DisplayName = "own JsonSerializer type whose parameter has another name")]
+    public void PositionalOptionsOfAnotherJsonSerializer_BecomeCastNull(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    public void OptionsAllocationPassedAsTheValue_IsUnchanged()
+    {
+        // The first argument of a System.Text.Json serializer call is the value (or JSON, or stream), never the options.
+        string input = "using System.Text.Json; class C { string M() => JsonSerializer.Serialize(new JsonSerializerOptions()); }";
+
+        Assert.AreEqual(input, _converter.Apply(input));
+    }
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

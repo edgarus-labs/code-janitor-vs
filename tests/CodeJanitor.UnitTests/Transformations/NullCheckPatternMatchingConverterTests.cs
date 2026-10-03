@@ -671,6 +671,9 @@ class C
     [DataRow("class C { bool M(object a) => a == null; }", LanguageVersion.CSharp8, 0, DisplayName = "equality before C# 9")]
     [DataRow("class C { bool M(object a) => a != null; }", LanguageVersion.CSharp9, 0, DisplayName = "inequality in C# 9")]
     [DataRow("class C { bool M(int a) => a != null; }", LanguageVersion.CSharp8, 0, DisplayName = "inequality that would not convert anyway")]
+    [DataRow("class C { object M(object[] items) => System.Linq.Enumerable.Where(items, x => x != null); }", LanguageVersion.CSharp8, 0, DisplayName = "inequality in an expression-bodied lambda, never converted")]
+    [DataRow("class C { bool M(object a, object b) => a == b != null; }", LanguageVersion.CSharp8, 0, DisplayName = "inequality whose operand is an equality, never converted")]
+    [DataRow("class C { bool M(object a) => null /* left */ != a; }", LanguageVersion.CSharp8, 0, DisplayName = "inequality with null on the left and a comment, never converted")]
     public async Task InequalityChecksLeftUnchangedForTheLanguageVersion_AreReported(string input, LanguageVersion languageVersion, int expectedReports)
     {
         List<string> reports = [];

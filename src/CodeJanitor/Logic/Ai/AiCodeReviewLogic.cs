@@ -81,7 +81,7 @@ internal sealed class AiCodeReviewLogic
         return $@"Perform a comprehensive, professional code review on the following C# code for '{targetName}':
 
 ```csharp
-        {codeSnippet}
+{codeSnippet}
 ```
 
 Please structure your review as follows:
@@ -101,7 +101,7 @@ A 1-2 sentence overall verdict on code health and quality.
 ### 💡 Clean Code & Maintainability Tips
 - Naming, method decomposition, and modern C# idioms.
 - Concrete fix recommendations.
-        ";
+";
     }
 
     /// <summary>

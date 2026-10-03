@@ -89,7 +89,7 @@ internal sealed class AiTestGeneratorLogic
         return $@"Generate a comprehensive suite of unit tests for the following C# code ('{memberOrClassName}') using {testFramework} and {mockingLib}:
 
 ```csharp
-        {codeSnippet}
+{codeSnippet}
 ```
 
 Requirements:
