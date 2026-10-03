@@ -111,11 +111,14 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     /// Best-effort removal of the files this processor created, so that the original source (which still contains
     /// the moved types) is not left with duplicate declarations in sibling files. Used when a later write failed, and
     /// by callers that fail to persist the updated original source after <see cref="Apply" /> returned.
-    /// Only the given paths (those returned by the writer) are deleted, and failures are swallowed to keep the original exception.
+    /// Only the given paths (those returned by the writer) are deleted. A file that cannot be deleted does not throw, so
+    /// that the original exception surfaces; it is returned instead, for the caller to report.
     /// </summary>
     /// <param name="createdFiles">The files created so far.</param>
-    internal static void DeleteCreatedFiles(IEnumerable<string> createdFiles)
+    /// <returns>The files that could not be deleted.</returns>
+    internal static IReadOnlyList<string> DeleteCreatedFiles(IEnumerable<string> createdFiles)
     {
+        var notDeleted = new List<string>();
         foreach (var createdFile in createdFiles)
         {
             try
@@ -124,9 +127,11 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                // Cleanup is best effort; the original failure is the one to surface.
+                notDeleted.Add(createdFile);
             }
         }
+
+        return notDeleted;
     }
 
     /// <summary>

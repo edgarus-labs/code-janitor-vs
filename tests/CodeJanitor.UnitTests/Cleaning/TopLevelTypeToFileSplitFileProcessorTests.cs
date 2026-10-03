@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -360,6 +361,25 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
         TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(new[] { first, second });
 
         Assert.AreSequenceEqual(new[] { untouched }, Directory.GetFiles(_tempDirectory));
+    }
+
+    [TestMethod]
+    public void DeleteCreatedFiles_FileThatCannotBeDeleted_IsReturnedAndKept()
+    {
+        string locked = Path.Combine(_tempDirectory, "Locked.cs");
+        string deletable = Path.Combine(_tempDirectory, "Deletable.cs");
+        File.WriteAllText(locked, "class Locked { }");
+        File.WriteAllText(deletable, "class Deletable { }");
+
+        IReadOnlyList<string> notDeleted;
+        using (new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            notDeleted = TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(new[] { locked, deletable });
+        }
+
+        Assert.AreSequenceEqual(new[] { locked }, notDeleted);
+        Assert.IsTrue(File.Exists(locked));
+        Assert.IsFalse(File.Exists(deletable));
     }
 
     [TestMethod]

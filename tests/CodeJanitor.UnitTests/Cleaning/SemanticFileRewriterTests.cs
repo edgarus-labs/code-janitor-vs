@@ -152,8 +152,8 @@ public sealed class SemanticFileRewriterTests
     {
         // Singletons are created by the CodeCleanupManager constructor, outside any try/catch: a host whose Roslyn
         // cannot be bound must fail only inside the deferred workspace method, where it is reported as a warning.
-        // Creating the converter loads its ConditionalWeakTable<Solution, ...> field type, which binds
-        // Microsoft.CodeAnalysis.Workspaces.
+        // Creating the converter loads its field types (AsyncCache<SyntaxTree, ...> and
+        // ConditionalWeakTable<SyntaxTree, ...>), which bind the Roslyn assemblies.
         ConstructorInfo constructor = typeof(SealedClassLogic).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
 
         Assert.IsFalse(CreatesInstanceOf(constructor, typeof(ClassSealingConverter)), "The constructor must not create the ClassSealingConverter.");

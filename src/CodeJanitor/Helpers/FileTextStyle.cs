@@ -63,6 +63,18 @@ internal static class FileTextStyle
     }
 
     /// <summary>
+    /// Gets the encoding a write to the file uses: the one .editorconfig <c>charset</c> names, otherwise
+    /// <paramref name="encoding" />.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <param name="encoding">The encoding used when .editorconfig does not name one.</param>
+    /// <returns>The encoding.</returns>
+    internal static Encoding ResolveEncoding(string filePath, Encoding encoding)
+    {
+        return ParseCharset(EditorConfigHelper.LoadOptions(filePath)) ?? encoding;
+    }
+
+    /// <summary>
     /// Gets the line ending to use for text generated for a file: .editorconfig <c>end_of_line</c>, otherwise the
     /// dominant line ending of the text, otherwise <see cref="Environment.NewLine" />.
     /// </summary>

@@ -577,11 +577,12 @@ internal sealed class CodeCleanupManager
 
             var transformedSource = CreateHeadlessCSharpPipeline(originalSource, projectItemFileName, settings).Run(originalSource);
             var removeByteOrderMark = settings.GetBoolean(nameof(Settings.Cleaning_RemoveByteOrderMark));
-            var fileHadBom = removeByteOrderMark &&
-                             RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
             var targetEncoding = removeByteOrderMark
                 ? new UTF8Encoding(false)
                 : encoding;
+            var fileHadBom = removeByteOrderMark &&
+                             FileTextStyle.ResolveEncoding(projectItemFileName, targetEncoding).GetPreamble().Length == 0 &&
+                             RemoveByteOrderMarkLogic.HasByteOrderMark(File.ReadAllBytes(projectItemFileName));
 
             if (splitChanged || fileHadBom || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
             {
@@ -606,13 +607,16 @@ internal sealed class CodeCleanupManager
         {
             // The original file was not persisted, so it still declares the moved types: the files created for them
             // would duplicate their declarations (CS0101).
-            var removedFileCount = createdFiles.Count;
-            TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(createdFiles);
+            var notDeletedFiles = TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(createdFiles);
+            var removedFileCount = createdFiles.Count - notDeletedFiles.Count;
             createdFiles.Clear();
 
             OutputWindowHelper.WarningWriteLine(
                 $"Headless C# pre-cleanup skipped for '{projectItemFileName}' due to an error: {ex.Message}" +
-                (removedFileCount > 0 ? $" The {removedFileCount} file(s) created by the top-level type split were removed." : string.Empty));
+                (removedFileCount > 0 ? $" The {removedFileCount} file(s) created by the top-level type split were removed." : string.Empty) +
+                (notDeletedFiles.Count > 0
+                    ? $" These file(s) created by the top-level type split could not be removed and duplicate types of the original file; delete them: {string.Join(", ", notDeletedFiles)}"
+                    : string.Empty));
 
             return new HeadlessPreCleanupOutcome { Result = HeadlessCleanupResult.NotApplicable, CreatedFiles = createdFiles };
         }
@@ -1798,7 +1802,12 @@ internal sealed class CodeCleanupManager
         }
         catch
         {
-            TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(splitResult.CreatedFiles);
+            var notDeletedFiles = TopLevelTypeToFileSplitFileProcessor.DeleteCreatedFiles(splitResult.CreatedFiles);
+            if (notDeletedFiles.Count > 0)
+            {
+                OutputWindowHelper.WarningWriteLine(
+                    $"These file(s) created by the top-level type split could not be removed and duplicate types of '{filePath}'; delete them: {string.Join(", ", notDeletedFiles)}");
+            }
 
             throw;
         }

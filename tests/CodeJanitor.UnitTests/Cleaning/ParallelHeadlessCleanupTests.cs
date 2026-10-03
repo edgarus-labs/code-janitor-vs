@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
@@ -41,6 +43,21 @@ public sealed class ParallelHeadlessCleanupTests
         {
             Directory.Delete(_tempDirectory, true);
         }
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void TryRunHeadlessPreCleanupForCSharpCore_RemoveBomEnabledAndEditorConfigRequiresBom_LeavesAnUpToDateFileUnchanged()
+    {
+        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n\n[*.cs]\ncharset = utf-8-bom\n");
+        string filePath = Path.Combine(_tempDirectory, "WithBom.cs");
+        byte[] content = new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes("namespace Demo;\r\n\r\npublic class C { }\r\n")).ToArray();
+        File.WriteAllBytes(filePath, content);
+
+        CodeCleanupManager.HeadlessPreCleanupOutcome outcome = CodeCleanupManager.GetInstance(null).TryRunHeadlessPreCleanupForCSharpCore(filePath);
+
+        Assert.AreEqual(CodeCleanupManager.HeadlessCleanupResult.NoChanges, outcome.Result);
+        Assert.AreSequenceEqual(content, File.ReadAllBytes(filePath));
     }
 
     [TestMethod]

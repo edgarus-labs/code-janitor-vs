@@ -981,7 +981,7 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
     <value>Converts hardcoded parameter name strings in argument exceptions and methods to nameof(...) expressions.</value>
   </data>
   <data name="InlineOutVariableDeclarations" xml:space="preserve">
-    <value>Inline 'out' variable declarations ('out var ...')</value>
+    <value>Inline 'out' variable declarations ('out T x')</value>
   </data>
   <data name="InlineOutVariableDeclarationsToolTip" xml:space="preserve">
     <value>Inlines separate uninitialized local variable declarations directly into out arguments.</value>
