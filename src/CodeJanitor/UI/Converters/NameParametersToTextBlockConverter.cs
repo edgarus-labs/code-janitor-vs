@@ -103,10 +103,7 @@ public sealed class NameParametersToTextBlockConverter : IMultiValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
 
     /// <summary>
     /// Creates the inlines for the name, including highlighted sections.

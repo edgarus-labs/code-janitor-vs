@@ -273,17 +273,11 @@ public sealed class XmlFormattingTests
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]
-    public void XmlFormattingTests_DoNotAutoCollapseTags()
-    {
-        CommentFormatHelper.AssertEqualAfterFormat("<xml></xml>");
-    }
+    public void XmlFormattingTests_DoNotAutoCollapseTags() => CommentFormatHelper.AssertEqualAfterFormat("<xml></xml>");
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]
-    public void XmlFormattingTests_DoNotAutoExpandTags()
-    {
-        CommentFormatHelper.AssertEqualAfterFormat("<xml/>", o => o.Xml.Default.SpaceSelfClosing = false);
-    }
+    public void XmlFormattingTests_DoNotAutoExpandTags() => CommentFormatHelper.AssertEqualAfterFormat("<xml/>", o => o.Xml.Default.SpaceSelfClosing = false);
 
     [TestMethod]
     [TestCategory("Formatting UnitTests")]

@@ -129,10 +129,7 @@ public sealed class BuildProgressViewModel : Bindable
     /// </summary>
     /// <param name="parameter">The command parameter.</param>
     /// <returns>True if the command can be executed, otherwise false.</returns>
-    private bool OnCancelBuildCommandCanExecute(object parameter)
-    {
-        return IsBuildActive;
-    }
+    private bool OnCancelBuildCommandCanExecute(object parameter) => IsBuildActive;
 
     /// <summary>
     /// Called when the <see cref="CancelBuildCommand" /> needs to be executed.
@@ -158,7 +155,10 @@ public sealed class BuildProgressViewModel : Bindable
     /// </summary>
     private void UpdateTaskbarStatus()
     {
-        if (!Settings.Default.Progressing_ShowProgressOnWindowsTaskbar) return;
+        if (!Settings.Default.Progressing_ShowProgressOnWindowsTaskbar)
+        {
+            return;
+        }
 
         var progressState = TaskbarItemProgressState.None;
         if (IsBuildActive)

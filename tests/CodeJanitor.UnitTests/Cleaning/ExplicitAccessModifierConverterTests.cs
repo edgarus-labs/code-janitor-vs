@@ -449,10 +449,7 @@ public sealed class ExplicitAccessModifierConverterTests
     [DataRow("namespace N { N() { } }", DisplayName = "constructor-like member directly in a namespace")]
     [DataRow("using System;\r\nConsole.WriteLine(1);\r\nstatic void Local() { }\r\nint value = 2;\r\n", DisplayName = "top-level statements and local functions")]
     [DataRow("public class C { private void M() { void Local() { } int x = 0; } }", DisplayName = "local function and local inside a method body")]
-    public void DeclarationThatMustNotReceiveAModifier_IsUnchanged(string source)
-    {
-        Assert.AreEqual(source, _converter.Apply(source));
-    }
+    public void DeclarationThatMustNotReceiveAModifier_IsUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
 
     [TestMethod]
     [DataRow("static class C { }", "internal static class C { }", DisplayName = "static class")]
@@ -473,10 +470,7 @@ public sealed class ExplicitAccessModifierConverterTests
     [DataRow("public struct S { int _x; void M() { } int P => 1; class N { } }", "public struct S { private int _x; private void M() { } private int P => 1; private class N { } }", DisplayName = "struct members")]
     [DataRow("public record R { int _x; R(int x) { _x = x; } enum K { A } }", "public record R { private int _x; private R(int x) { _x = x; } private enum K { A } }", DisplayName = "record members")]
     [DataRow("class G<T> where T : new() { T Make() => new T(); }", "internal class G<T> where T : new() { private T Make() => new T(); }", DisplayName = "generic class with constraints")]
-    public void ExistingNonAccessModifiers_FollowTheInsertedAccessModifier(string source, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(source));
-    }
+    public void ExistingNonAccessModifiers_FollowTheInsertedAccessModifier(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
 
     [TestMethod]
     public void TopLevelStatementsFile_ModifiesOnlyTheTypesAfterTheStatements()
@@ -612,10 +606,7 @@ public sealed class ExplicitAccessModifierConverterTests
     [DataRow("file struct S { }", DisplayName = "file-local struct")]
     [DataRow("file enum E { A }", DisplayName = "file-local enum")]
     [DataRow("file delegate void D();", DisplayName = "file-local delegate")]
-    public void DeclarationWhoseDefaultIsNotPrivateOrInternal_IsUnchanged(string source)
-    {
-        Assert.AreEqual(source, _converter.Apply(source));
-    }
+    public void DeclarationWhoseDefaultIsNotPrivateOrInternal_IsUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]

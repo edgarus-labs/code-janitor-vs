@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -254,10 +253,7 @@ internal sealed class VisualStudioRoslynWorkspace
     /// </summary>
     /// <param name="filePath">The file path.</param>
     /// <returns>The file text.</returns>
-    internal static string ReadFileText(string filePath)
-    {
-        return FileTextStyle.ReadAllText(filePath, out _);
-    }
+    internal static string ReadFileText(string filePath) => FileTextStyle.ReadAllText(filePath, out _);
 
     /// <summary>
     /// Writes the new text of a closed file to disk, keeping its encoding and byte order mark, when the file still
@@ -304,9 +300,7 @@ internal sealed class VisualStudioRoslynWorkspace
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <returns>The document ids, possibly none.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath)
-    {
-        return solution.GetDocumentIdsWithFilePath(filePath)
+    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath) => solution.GetDocumentIdsWithFilePath(filePath)
             .Select(id => solution.GetDocument(id))
             .Where(document => document is not null && document.Project.Language == LanguageNames.CSharp)
             .OrderBy(document => string.Equals(document.Project.FilePath, projectFilePath, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
@@ -314,7 +308,6 @@ internal sealed class VisualStudioRoslynWorkspace
             .ThenBy(document => document.Project.Name, StringComparer.Ordinal)
             .Select(document => document.Id)
             .ToList();
-    }
 
     private static List<Project> FindProjectsInClosestDirectory(Solution solution, string filePath)
     {

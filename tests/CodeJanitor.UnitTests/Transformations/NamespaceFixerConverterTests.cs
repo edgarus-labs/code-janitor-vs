@@ -12,10 +12,7 @@ public sealed class NamespaceFixerConverterTests
     private NamespaceFixerConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new NamespaceFixerConverter();
-    }
+    public void TestInitialize() => _converter = new NamespaceFixerConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -69,10 +66,7 @@ public sealed class NamespaceFixerConverterTests
     [DataRow(null)]
     [DataRow("")]
     [DataRow("   \r\n\t")]
-    public void FixNamespace_EmptyOrWhitespaceSource_ReturnsItUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.FixNamespace(input, "New.Namespace"));
-    }
+    public void FixNamespace_EmptyOrWhitespaceSource_ReturnsItUnchanged(string input) => Assert.AreEqual(input, _converter.FixNamespace(input, "New.Namespace"));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

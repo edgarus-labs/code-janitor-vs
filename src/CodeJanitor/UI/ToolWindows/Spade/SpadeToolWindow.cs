@@ -154,10 +154,7 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     /// <summary>
     /// Clears the search by setting NameFilter to null, which removes any active name-based filtering; no exceptions are thrown.
     /// </summary>
-    public override void ClearSearch()
-    {
-        NameFilter = null;
-    }
+    public override void ClearSearch() => NameFilter = null;
 
     /// <summary>
     /// This method verifies the caller is on the UI thread, then closes the Frame as an IVsWindowFrame using FRAMECLOSE_NoSave, causing the window to close without.
@@ -363,7 +360,10 @@ public sealed class SpadeToolWindow : ToolWindowPane, IVsWindowFrameNotify3
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!IsVisible) return;
+        if (!IsVisible)
+        {
+            return;
+        }
 
         _viewModel.Document = Document;
         _viewModel.IsLoading = false;

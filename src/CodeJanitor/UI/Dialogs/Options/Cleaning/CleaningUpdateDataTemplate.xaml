@@ -5,150 +5,150 @@
 	xmlns:converters="clr-namespace:CodeJanitor.UI.Converters"
 	xmlns:local="clr-namespace:CodeJanitor.UI.Dialogs.Options.Cleaning"
 	xmlns:enums="clr-namespace:CodeJanitor.UI.Enumerations">
-	<DataTemplate DataType="{x:Type local:CleaningUpdateViewModel}">
-		<StackPanel>
-			<GroupBox Header="Code Style">
-				<StackPanel>
-					<CheckBox Content="{x:Static p:Resources.UpdateAccessorsToBothBeSingleLineOrMultiLineSA1504}" IsChecked="{Binding UpdateAccessorsToBothBeSingleLineOrMultiLine}" />
-					<CheckBox Content="{x:Static p:Resources.UpdateEndregionTagsWithRegionName}" IsChecked="{Binding UpdateEndRegionDirectives}" />
-					<TextBlock Margin="35,0,5,10" Text="{x:Static p:Resources.ExEndregionMethods}" />
-					<CheckBox Content="{x:Static p:Resources.UpdateSingleLineMethodsByPlacingBracesOnSeparateLinesSA1502}" IsChecked="{Binding UpdateSingleLineMethods}" />
-					<CheckBox Content="Convert block-scoped namespace to file-scoped (C# 10+; .editorconfig csharp__style__namespace__declarations takes precedence)" IsChecked="{Binding ConvertToFileScopedNamespace}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToFileScopedNamespace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToFileScopedNamespace]}" />
-					<CheckBox Content="Move using directives outside namespace (to top of file; namespace-relative names are fully qualified; usings stay in place if the move is not safe; .editorconfig csharp__using__directive__placement takes precedence)" IsChecked="{Binding MoveUsingsOutsideNamespace}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_MoveUsingsOutsideNamespace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_MoveUsingsOutsideNamespace]}" />
-					<CheckBox Content="Move extra top-level C# types into their own files (skip partial, nested, and non-region preprocessor cases)" IsChecked="{Binding MoveTopLevelTypesToSeparateFiles}" />
-					<CheckBox Content="Convert local variables to 'var' when the type is apparent" IsChecked="{Binding ConvertToVarWhenApparent}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToVarWhenApparent], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToVarWhenApparent]}" />
-					<CheckBox Content="Convert List&lt;T&gt;/array initializations to collection expressions ([] / [a, b, c])" IsChecked="{Binding ConvertToCollectionExpressions}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToCollectionExpressions], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToCollectionExpressions]}" />
-					<CheckBox Content="CA1869: replace direct JsonSerializerOptions allocations in JsonSerializer calls with null (conservative)" IsChecked="{Binding ReuseJsonSerializerOptionsForCA1869}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ReuseJsonSerializerOptionsForCA1869], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ReuseJsonSerializerOptionsForCA1869]}" />
-					<CheckBox Content="Simplify single-statement lambda blocks to expression lambdas (remove braces/return)" IsChecked="{Binding SimplifySingleStatementLambdas}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas]}" />
-					<CheckBox Content="Add 'readonly' to fields never written outside their constructor" IsChecked="{Binding MakeFieldsReadonlyWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe]}" />
-					<CheckBox Content="Add 'sealed' to classes with no virtual or protected members that no class in the solution derives from" IsChecked="{Binding SealClassesWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe]}" />
-					<CheckBox
+    <DataTemplate DataType="{x:Type local:CleaningUpdateViewModel}">
+        <StackPanel>
+            <GroupBox Header="Code Style">
+                <StackPanel>
+                    <CheckBox Content="{x:Static p:Resources.UpdateAccessorsToBothBeSingleLineOrMultiLineSA1504}" IsChecked="{Binding UpdateAccessorsToBothBeSingleLineOrMultiLine}" />
+                    <CheckBox Content="{x:Static p:Resources.UpdateEndregionTagsWithRegionName}" IsChecked="{Binding UpdateEndRegionDirectives}" />
+                    <TextBlock Margin="35,0,5,10" Text="{x:Static p:Resources.ExEndregionMethods}" />
+                    <CheckBox Content="{x:Static p:Resources.UpdateSingleLineMethodsByPlacingBracesOnSeparateLinesSA1502}" IsChecked="{Binding UpdateSingleLineMethods}" />
+                    <CheckBox Content="Convert block-scoped namespace to file-scoped (C# 10+; .editorconfig csharp__style__namespace__declarations takes precedence)" IsChecked="{Binding ConvertToFileScopedNamespace}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToFileScopedNamespace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToFileScopedNamespace]}" />
+                    <CheckBox Content="Move using directives outside namespace (to top of file; namespace-relative names are fully qualified; usings stay in place if the move is not safe; .editorconfig csharp__using__directive__placement takes precedence)" IsChecked="{Binding MoveUsingsOutsideNamespace}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_MoveUsingsOutsideNamespace], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_MoveUsingsOutsideNamespace]}" />
+                    <CheckBox Content="Move extra top-level C# types into their own files (skip partial, nested, and non-region preprocessor cases)" IsChecked="{Binding MoveTopLevelTypesToSeparateFiles}" />
+                    <CheckBox Content="Convert local variables to 'var' when the type is apparent" IsChecked="{Binding ConvertToVarWhenApparent}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToVarWhenApparent], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToVarWhenApparent]}" />
+                    <CheckBox Content="Convert List&lt;T&gt;/array initializations to collection expressions ([] / [a, b, c])" IsChecked="{Binding ConvertToCollectionExpressions}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToCollectionExpressions], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToCollectionExpressions]}" />
+                    <CheckBox Content="CA1869: replace direct JsonSerializerOptions allocations in JsonSerializer calls with null (conservative)" IsChecked="{Binding ReuseJsonSerializerOptionsForCA1869}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_ReuseJsonSerializerOptionsForCA1869], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ReuseJsonSerializerOptionsForCA1869]}" />
+                    <CheckBox Content="Simplify single-statement lambda blocks to expression lambdas (remove braces/return)" IsChecked="{Binding SimplifySingleStatementLambdas}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SimplifySingleStatementLambdas]}" />
+                    <CheckBox Content="Add 'readonly' to fields never written outside their constructor" IsChecked="{Binding MakeFieldsReadonlyWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_MakeFieldsReadonlyWhenSafe]}" />
+                    <CheckBox Content="Add 'sealed' to classes with no virtual or protected members that no class in the solution derives from" IsChecked="{Binding SealClassesWhenSafe}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_SealClassesWhenSafe]}" />
+                    <CheckBox
 						Content="{x:Static p:Resources.ConvertToPatternMatchingNullChecks}"
 						IsChecked="{Binding ConvertToPatternMatchingNullChecks}"
 						IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToPatternMatchingNullChecks], Converter={x:Static converters:NullToBooleanConverter.IsNull}}"
 						ToolTip="{x:Static p:Resources.ConvertToPatternMatchingNullChecksToolTip}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToPatternMatchingNullChecks]}" />
-					<CheckBox
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToPatternMatchingNullChecks]}" />
+                    <CheckBox
 						Content="{x:Static p:Resources.ConvertStringFormatToInterpolation}"
 						IsChecked="{Binding ConvertStringFormatToInterpolation}"
 						ToolTip="{x:Static p:Resources.ConvertStringFormatToInterpolationToolTip}" />
-					<CheckBox
+                    <CheckBox
 						Content="{x:Static p:Resources.ConvertToStringNameOf}"
 						IsChecked="{Binding ConvertToStringNameOf}"
 						IsEnabled="{Binding EditorConfigOverrides[Cleaning_ConvertToStringNameOf], Converter={x:Static converters:NullToBooleanConverter.IsNull}}"
 						ToolTip="{x:Static p:Resources.ConvertToStringNameOfToolTip}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToStringNameOf]}" />
-					<CheckBox
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_ConvertToStringNameOf]}" />
+                    <CheckBox
 						Content="{x:Static p:Resources.InlineOutVariableDeclarations}"
 						IsChecked="{Binding InlineOutVariableDeclarations}"
 						IsEnabled="{Binding EditorConfigOverrides[Cleaning_InlineOutVariableDeclarations], Converter={x:Static converters:NullToBooleanConverter.IsNull}}"
 						ToolTip="{x:Static p:Resources.InlineOutVariableDeclarationsToolTip}" />
-					<TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_InlineOutVariableDeclarations]}" />
-					<CheckBox Content="Insert a blank line before 'return' and 'throw' statements that end a block of logic" IsChecked="{Binding InsertBlankLineBeforeReturnAndThrowStatements}" />
-					<CheckBox Content="Format Razor components (.razor) in safe mode" IsChecked="{Binding FormatRazorComponents}" />
-				</StackPanel>
-			</GroupBox>
-			<GroupBox Header="{x:Static p:Resources.FileHeader}">
-				<StackPanel>
-					<Grid>
-						<Grid.RowDefinitions>
-							<RowDefinition />
-							<RowDefinition />
-						</Grid.RowDefinitions>
-						<RadioButton
+                    <TextBlock Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_InlineOutVariableDeclarations]}" />
+                    <CheckBox Content="Insert a blank line before 'return' and 'throw' statements that end a block of logic" IsChecked="{Binding InsertBlankLineBeforeReturnAndThrowStatements}" />
+                    <CheckBox Content="Format Razor components (.razor) in safe mode" IsChecked="{Binding FormatRazorComponents}" />
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="{x:Static p:Resources.FileHeader}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <RadioButton
 							Grid.Row="0"
 							Content="Insert"
 							GroupName="HeaderMode"
 							IsChecked="{Binding HeaderUpdateMode, Converter={x:Static converters:EnumToBooleanConverter.Default}, ConverterParameter={x:Static enums:HeaderUpdateMode.Insert}}"
 							ToolTip="Inserts a new header if the one already present is different. If no header is present, the defined header is simply inserted." />
-						<RadioButton
+                        <RadioButton
 							Grid.Row="1"
 							Content="Replace"
 							GroupName="HeaderMode"
 							IsChecked="{Binding HeaderUpdateMode, Converter={x:Static converters:EnumToBooleanConverter.Default}, ConverterParameter={x:Static enums:HeaderUpdateMode.Replace}}"
 							ToolTip="Replaces the existing header. If no header is present, the defined header is simply inserted." />
-					</Grid>
-					<TabControl Margin="0,5">
-						<TabItem Header="C#">
-							<StackPanel Orientation="Vertical">
-								<TextBlock Margin="0,0,7,7" Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_UpdateFileHeaderCSharp]}" />
-								<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderCSharp, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_UpdateFileHeaderCSharp], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
-								<GroupBox Margin="5,0,5,5" Header="Position">
-									<Grid>
-										<Grid.RowDefinitions>
-											<RowDefinition />
-											<RowDefinition />
-										</Grid.RowDefinitions>
-										<RadioButton
+                    </Grid>
+                    <TabControl Margin="0,5">
+                        <TabItem Header="C#">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Margin="0,0,7,7" Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_UpdateFileHeaderCSharp]}" />
+                                <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderCSharp, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_UpdateFileHeaderCSharp], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+                                <GroupBox Margin="5,0,5,5" Header="Position">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                        </Grid.RowDefinitions>
+                                        <RadioButton
 											Grid.Row="0"
 											Content="Start of document"
 											GroupName="HeaderInsertStyle"
 											IsChecked="{Binding HeaderPosition, Converter={x:Static converters:EnumToBooleanConverter.Default}, ConverterParameter={x:Static enums:HeaderPosition.DocumentStart}}" />
-										<RadioButton
+                                        <RadioButton
 											Grid.Row="1"
 											Content="After usings"
 											GroupName="HeaderInsertStyle"
 											IsChecked="{Binding HeaderPosition, Converter={x:Static converters:EnumToBooleanConverter.Default}, ConverterParameter={x:Static enums:HeaderPosition.AfterUsings}}" />
-									</Grid>
-								</GroupBox>
-							</StackPanel>
-						</TabItem>
-						<TabItem Header="C++">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderCPlusPlus, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="F#">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderFSharp, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="VB">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderVisualBasic, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="PHP">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderPHP, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="PowerShell">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderPowerShell, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="R">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderR, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="JSON">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderJSON, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="XAML">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderXAML, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="XML">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderXML, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="HTML">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderHTML, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="CSS">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderCSS, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="LESS">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderLESS, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="SCSS">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderSCSS, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="JavaScript">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderJavaScript, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-						<TabItem Header="TypeScript">
-							<TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderTypeScript, UpdateSourceTrigger=PropertyChanged}" />
-						</TabItem>
-					</TabControl>
-				</StackPanel>
-			</GroupBox>
-		</StackPanel>
-	</DataTemplate>
+                                    </Grid>
+                                </GroupBox>
+                            </StackPanel>
+                        </TabItem>
+                        <TabItem Header="C++">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderCPlusPlus, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="F#">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderFSharp, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="VB">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderVisualBasic, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="PHP">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderPHP, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="PowerShell">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderPowerShell, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="R">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderR, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="JSON">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderJSON, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="XAML">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderXAML, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="XML">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderXML, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="HTML">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderHTML, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="CSS">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderCSS, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="LESS">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderLESS, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="SCSS">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderSCSS, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="JavaScript">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderJavaScript, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                        <TabItem Header="TypeScript">
+                            <TextBox Style="{DynamicResource TextBoxMultiLine}" Text="{Binding UpdateFileHeaderTypeScript, UpdateSourceTrigger=PropertyChanged}" />
+                        </TabItem>
+                    </TabControl>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+    </DataTemplate>
 </ResourceDictionary>

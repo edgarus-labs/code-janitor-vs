@@ -29,10 +29,7 @@ internal sealed class CollectionExpressionLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CollectionExpressionLogic" /> class.</returns>
-    internal static CollectionExpressionLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CollectionExpressionLogic(package));
-    }
+    internal static CollectionExpressionLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CollectionExpressionLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CollectionExpressionLogic" /> class.

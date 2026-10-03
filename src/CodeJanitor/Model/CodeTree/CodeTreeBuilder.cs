@@ -225,21 +225,18 @@ internal static class CodeTreeBuilder
     /// </summary>
     /// <param name="codeItems">The code items.</param>
     /// <param name="nameFilter">The name filter.</param>
-    private static void RecursivelyFilter(SetCodeItems codeItems, string nameFilter)
-    {
-        codeItems.RemoveAll(codeItem =>
-        {
-            var codeItemParent = codeItem as ICodeItemParent;
-            if (codeItemParent is not null)
-            {
-                RecursivelyFilter(codeItemParent.Children, nameFilter);
-                if (codeItemParent.Children.Any())
-                {
-                    return false;
-                }
-            }
+    private static void RecursivelyFilter(SetCodeItems codeItems, string nameFilter) => codeItems.RemoveAll(codeItem =>
+                                                                                             {
+                                                                                                 var codeItemParent = codeItem as ICodeItemParent;
+                                                                                                 if (codeItemParent is not null)
+                                                                                                 {
+                                                                                                     RecursivelyFilter(codeItemParent.Children, nameFilter);
+                                                                                                     if (codeItemParent.Children.Any())
+                                                                                                     {
+                                                                                                         return false;
+                                                                                                     }
+                                                                                                 }
 
-            return codeItem.Name.IndexOf(nameFilter, StringComparison.InvariantCultureIgnoreCase) < 0;
-        });
-    }
+                                                                                                 return codeItem.Name.IndexOf(nameFilter, StringComparison.InvariantCultureIgnoreCase) < 0;
+                                                                                             });
 }

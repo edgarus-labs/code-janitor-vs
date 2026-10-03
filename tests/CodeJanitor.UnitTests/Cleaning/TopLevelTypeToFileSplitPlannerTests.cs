@@ -330,7 +330,7 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
 
         Assert.AreEqual(expectSplit, plan.HasChanges);
         Document document = CompilingTestProject.CreateDocument(plan.UpdatedSource, plan.NewFiles.Select(x => x.Content).ToArray());
-        Assert.IsEmpty(document.Project.GetCompilationAsync().Result.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.IsEmpty(document.Project.GetCompilationAsync(TestContext.CancellationToken).Result.GetDiagnostics(TestContext.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
     }
 
     [TestMethod]
@@ -392,4 +392,6 @@ public sealed class TopLevelTypeToFileSplitPlannerTests
         Assert.AreEqual("class Foo { }\n", relative.UpdatedSource);
         Assert.AreEqual("Bar.cs", root.NewFiles.Single().FilePath);
     }
+
+    public TestContext TestContext { get; set; }
 }

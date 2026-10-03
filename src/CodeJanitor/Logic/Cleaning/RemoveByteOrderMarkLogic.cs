@@ -32,10 +32,7 @@ internal sealed class RemoveByteOrderMarkLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of <see cref="RemoveByteOrderMarkLogic" />.</returns>
-    internal static RemoveByteOrderMarkLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new RemoveByteOrderMarkLogic(package));
-    }
+    internal static RemoveByteOrderMarkLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new RemoveByteOrderMarkLogic(package));
 
     private RemoveByteOrderMarkLogic(CodeJanitorPackage package)
     {
@@ -236,10 +233,7 @@ internal sealed class RemoveByteOrderMarkLogic
     /// </summary>
     /// <param name="text">The text to check.</param>
     /// <returns>True if text begins with U+FEFF, otherwise false.</returns>
-    internal static bool HasByteOrderMark(string text)
-    {
-        return !string.IsNullOrEmpty(text) && text[0] == BomChar;
-    }
+    internal static bool HasByteOrderMark(string text) => !string.IsNullOrEmpty(text) && text[0] == BomChar;
 
     /// <summary>
     /// Strips the Unicode BOM character U+FEFF from the start of the string if present.

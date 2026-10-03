@@ -32,10 +32,7 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>A string value produced by this method.</returns>
-    internal static string FakeToSpace(string value)
-    {
-        return value.Replace(KeepTogetherSpacer, Spacer);
-    }
+    internal static string FakeToSpace(string value) => value.Replace(KeepTogetherSpacer, Spacer);
 
     /// <summary>
     /// Get the comment prefix (regex) for the given document's language.
@@ -115,7 +112,9 @@ internal static class CodeCommentHelper
         var settings = package.IDE.Properties["Environment", "TaskList"];
         var tokens = settings.Item("CommentTokens").Value as string[];
         if (tokens is null || tokens.Length < 1)
+        {
             return Enumerable.Empty<string>();
+        }
 
         // Tokens values are written like "NAME:PRIORITY". We want only the names, and require
         // that they are followed by a semicolon and a space.
@@ -128,10 +127,7 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="point">The point.</param>
     /// <returns>A bool value produced by this method.</returns>
-    internal static bool IsCommentLine(EditPoint point)
-    {
-        return LineMatchesRegex(point, GetCommentRegex(point.GetCodeLanguage())).Success;
-    }
+    internal static bool IsCommentLine(EditPoint point) => LineMatchesRegex(point, GetCommentRegex(point.GetCodeLanguage())).Success;
 
     /// <summary>
     /// Gets the current line from the EditPoint, runs the regex match against it, and returns the resulting Match without modifying state or throwing.
@@ -152,8 +148,5 @@ internal static class CodeCommentHelper
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>A string value produced by this method.</returns>
-    internal static string SpaceToFake(string value)
-    {
-        return value.Replace(Spacer, KeepTogetherSpacer);
-    }
+    internal static string SpaceToFake(string value) => value.Replace(Spacer, KeepTogetherSpacer);
 }

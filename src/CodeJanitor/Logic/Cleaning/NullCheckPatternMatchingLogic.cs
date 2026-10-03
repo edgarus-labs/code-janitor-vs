@@ -35,10 +35,7 @@ internal sealed class NullCheckPatternMatchingLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="NullCheckPatternMatchingLogic" /> class.</returns>
-    internal static NullCheckPatternMatchingLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new NullCheckPatternMatchingLogic(package));
-    }
+    internal static NullCheckPatternMatchingLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new NullCheckPatternMatchingLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NullCheckPatternMatchingLogic" /> class.
@@ -90,7 +87,7 @@ internal sealed class NullCheckPatternMatchingLogic
 
         var convertedText = await _rewriter.RewriteInWorkspaceAsync(filePath, projectFilePath, currentText, converter.ConvertAsync, cancellationToken);
 
-        if (skipped != null)
+        if (skipped is not null)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             OutputWindowHelper.DiagnosticWriteLine($"NullCheckPatternMatchingLogic in '{filePath}': {skipped}");

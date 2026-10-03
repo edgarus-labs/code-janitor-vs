@@ -69,10 +69,7 @@ internal sealed class CursorPositionRestorer : IDisposable
     /// Performs application-defined tasks associated with freeing, releasing, or resetting
     /// unmanaged resources.
     /// </summary>
-    public void Dispose()
-    {
-        RestoreCursorPosition();
-    }
+    public void Dispose() => RestoreCursorPosition();
 
     /// <summary>
     /// Gets or sets the text document.

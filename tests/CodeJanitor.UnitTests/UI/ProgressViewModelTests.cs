@@ -34,18 +34,15 @@ public sealed class ProgressViewModelTests
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
-    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher()
-    {
-        RunOnVisualStudioUIThread(pump =>
-        {
-            CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
+    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher() => RunOnVisualStudioUIThread(pump =>
+                                                                                                                              {
+                                                                                                                                  CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
 
-            bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
+                                                                                                                                  bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
 
-            Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
-            Assert.IsTrue(viewModel.DialogResult == true, "The batch must complete.");
-        });
-    }
+                                                                                                                                  Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
+                                                                                                                                  Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
+                                                                                                                              });
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
@@ -61,7 +58,7 @@ public sealed class ProgressViewModelTests
                 bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
 
                 Assert.IsTrue(completed, "The canceled batch must complete.");
-                Assert.IsTrue(viewModel.DialogResult == true, "The canceled batch must complete.");
+                Assert.IsTrue(viewModel.DialogResult, "The canceled batch must complete.");
                 Assert.IsFalse(AiXmlDocumentationLogic.RunToken.IsCancellationRequested, "A canceled batch must not cancel the XML documentation of later single-document cleanups.");
             });
         }
@@ -104,7 +101,7 @@ public sealed class ProgressViewModelTests
             {
                 DTE2 ide = Substitute.For<DTE2>();
                 CodeJanitorPackage package = CreatePackage(ide);
-                List<string> errors = new List<string>();
+                List<string> errors = [];
 
                 XmlDocProgressViewModel viewModel = new XmlDocProgressViewModel(package, Array.Empty<EnvDTE.ProjectItem>(), errors.Add);
 
@@ -149,7 +146,7 @@ public sealed class ProgressViewModelTests
                 CodeJanitorPackage package = CreatePackage(ide);
                 EnvDTE.ProjectItem projectItem = Substitute.For<EnvDTE.ProjectItem>();
                 projectItem.FileNames[1].Returns(filePath);
-                List<string> messages = new List<string>();
+                List<string> messages = [];
 
                 WithManagerPackage(package, manager =>
                 {

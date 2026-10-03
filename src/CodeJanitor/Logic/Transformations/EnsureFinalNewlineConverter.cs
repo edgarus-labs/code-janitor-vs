@@ -15,10 +15,7 @@ public sealed class EnsureFinalNewlineConverter : ISourceTransformation
     public string Name => "Ensure final newline";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Convert(source);
-    }
+    public string Apply(string source) => Convert(source);
 
     /// <summary>
     /// Appends a final line break to the given source when it does not already end with one.

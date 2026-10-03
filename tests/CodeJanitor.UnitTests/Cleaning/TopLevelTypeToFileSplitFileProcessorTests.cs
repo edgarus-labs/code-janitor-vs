@@ -236,7 +236,7 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
                 return text;
             }));
 
-        Assert.IsTrue(exception is IOException || exception is UnauthorizedAccessException, exception.ToString());
+        Assert.IsTrue(exception is IOException or UnauthorizedAccessException, exception.ToString());
         Assert.IsTrue(Directory.Exists(occupiedPath));
         Assert.IsEmpty(Directory.GetFiles(_tempDirectory));
     }
@@ -304,7 +304,7 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
             }));
 
         Assert.AreEqual(2, transformCalls);
-        Assert.IsTrue(exception is IOException || exception is UnauthorizedAccessException, exception.ToString());
+        Assert.IsTrue(exception is IOException or UnauthorizedAccessException, exception.ToString());
         Assert.IsTrue(Directory.Exists(blockedPath), "The blocked target is the directory that caused the failure.");
         Assert.IsEmpty(Directory.GetFiles(_tempDirectory), "The first file written before the failure must be deleted again.");
     }
@@ -339,7 +339,7 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
                     return text;
                 }));
 
-            Assert.IsTrue(exception is IOException || exception is UnauthorizedAccessException, exception.ToString());
+            Assert.IsTrue(exception is IOException or UnauthorizedAccessException, exception.ToString());
             Assert.IsNotNull(lockOnFirstFile, "The second file must have been attempted.");
             Assert.IsTrue(File.Exists(firstCreated), "A file that cannot be deleted stays; the rollback must not mask the write failure.");
         }

@@ -161,18 +161,12 @@ public sealed class SpadeViewModel : Bindable
     /// <summary>
     /// Requests a refresh.
     /// </summary>
-    public void RequestRefresh()
-    {
-        RequestingRefresh?.Invoke(this, EventArgs.Empty);
-    }
+    public void RequestRefresh() => RequestingRefresh?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Requests an asynchronous update of the organized code items.
     /// </summary>
-    private void RequestUpdatedOrganizedCodeItems()
-    {
-        _codeTreeBuilderAsync.RetrieveCodeTreeAsync(new CodeTreeRequest(Document, RawCodeItems, SortOrder, NameFilter));
-    }
+    private void RequestUpdatedOrganizedCodeItems() => _codeTreeBuilderAsync.RetrieveCodeTreeAsync(new CodeTreeRequest(Document, RawCodeItems, SortOrder, NameFilter));
 
     /// <summary>
     /// Attempts to update the organized code items collection based on the specified snapshot.

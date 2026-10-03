@@ -31,10 +31,7 @@ public sealed class RemoveXmlDocumentationLogic
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>An instance of <see cref="RemoveXmlDocumentationLogic"/>.</returns>
-    public static RemoveXmlDocumentationLogic GetInstance(CodeJanitorPackage package)
-    {
-        return new RemoveXmlDocumentationLogic(package);
-    }
+    public static RemoveXmlDocumentationLogic GetInstance(CodeJanitorPackage package) => new RemoveXmlDocumentationLogic(package);
 
     /// <summary>
     /// Determines whether a ProjectItem is a valid C# file that can be processed.

@@ -18,10 +18,7 @@ public sealed class BlankLinePaddingConverterTests
     }
 
     [TestCleanup]
-    public void TestCleanup()
-    {
-        DisableAllSettings();
-    }
+    public void TestCleanup() => DisableAllSettings();
 
     [TestMethod]
     public void DoesNotSeparateDocumentationCommentFromItsMember()
@@ -88,10 +85,7 @@ public sealed class BlankLinePaddingConverterTests
     }
 
     [TestMethod]
-    public void NullSource_ReturnsUnchanged()
-    {
-        Assert.IsNull(_converter.Apply(null));
-    }
+    public void NullSource_ReturnsUnchanged() => Assert.IsNull(_converter.Apply(null));
 
     [TestMethod]
     public void BeforeMethod_InsertsBlankLine()
@@ -215,10 +209,7 @@ public sealed class BlankLinePaddingConverterTests
     }
 
     [TestMethod]
-    public void Name_DescribesTheCleanup()
-    {
-        Assert.AreEqual("Insert blank line padding", _converter.Name);
-    }
+    public void Name_DescribesTheCleanup() => Assert.AreEqual("Insert blank line padding", _converter.Name);
 
     [TestMethod]
     [DataRow("BeforeClasses", "enum E { A }\nclass C { }", "enum E { A }\n\nclass C { }")]

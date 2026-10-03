@@ -320,7 +320,7 @@ public sealed class ClassSealingConverter
             {
                 // The candidate as seen by the compilation of the scanned project.
                 var similar = SymbolFinder.FindSimilarSymbols(candidate, conversions.Compilation, cancellationToken).FirstOrDefault();
-                if (similar != null && conversions.Classes.Contains(similar.OriginalDefinition))
+                if (similar is not null && conversions.Classes.Contains(similar.OriginalDefinition))
                 {
                     converted.Add(candidate);
                 }
@@ -379,19 +379,24 @@ public sealed class ClassSealingConverter
         {
             case CastExpressionSyntax cast:
                 return (semanticModel.GetTypeInfo(cast.Expression, cancellationToken).Type, semanticModel.GetTypeInfo(cast.Type, cancellationToken).Type);
+
             case BinaryExpressionSyntax equality when equality.IsKind(SyntaxKind.EqualsExpression) || equality.IsKind(SyntaxKind.NotEqualsExpression):
                 return semanticModel.GetOperation(equality, cancellationToken) is IBinaryOperation { OperatorMethod: null }
                     ? (semanticModel.GetTypeInfo(equality.Left, cancellationToken).Type, semanticModel.GetTypeInfo(equality.Right, cancellationToken).Type)
                     : (null, null);
             case BinaryExpressionSyntax binary:
                 return (semanticModel.GetTypeInfo(binary.Left, cancellationToken).Type, semanticModel.GetTypeInfo(binary.Right, cancellationToken).Type);
+
             case ForEachStatementSyntax forEach:
                 return (semanticModel.GetForEachStatementInfo(forEach).ElementType, semanticModel.GetTypeInfo(forEach.Type, cancellationToken).Type);
+
             case PatternSyntax pattern when semanticModel.GetOperation(pattern, cancellationToken) is IPatternOperation operation:
                 return (operation.InputType, operation.NarrowedType);
+
             case CaseSwitchLabelSyntax label when label.Parent?.Parent is SwitchStatementSyntax switchStatement &&
                                                   semanticModel.GetSymbolInfo(label.Value, cancellationToken).Symbol is ITypeSymbol type:
                 return (semanticModel.GetTypeInfo(switchStatement.Expression, cancellationToken).Type, type);
+
             default:
                 return (null, null);
         }

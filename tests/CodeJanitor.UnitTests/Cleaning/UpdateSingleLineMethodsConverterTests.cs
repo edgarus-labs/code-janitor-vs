@@ -26,10 +26,7 @@ public sealed class UpdateSingleLineMethodsConverterTests
     }
 
     [TestCleanup]
-    public void TestCleanup()
-    {
-        Settings.Default.Cleaning_UpdateSingleLineMethods = false;
-    }
+    public void TestCleanup() => Settings.Default.Cleaning_UpdateSingleLineMethods = false;
 
     [TestMethod]
     public void SettingDisabled_ReturnsUnchanged()
@@ -102,10 +99,7 @@ public sealed class UpdateSingleLineMethodsConverterTests
     [DataRow("class C\r\n{\r\n#if NEVER_DEFINED\r\n    void M() { A(); }\r\n#endif\r\n}\r\n", DisplayName = "disabled preprocessor branch")]
     [DataRow("partial class C\r\n{\r\n    partial void M();\r\n}\r\n", DisplayName = "partial method declaration")]
     [DataRow("class C\r\n{\r\n    extern void M();\r\n}\r\n", DisplayName = "extern method")]
-    public void MethodsThatAreNotSingleLineBlockBodies_AreUnchanged(string source)
-    {
-        Assert.AreEqual(source, _converter.Apply(source));
-    }
+    public void MethodsThatAreNotSingleLineBlockBodies_AreUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
 
     [TestMethod]
     public async Task SingleLineMethods_AreSpreadSoEveryStatementHasItsOwnLine_AndTheFileStillCompiles()
@@ -118,20 +112,20 @@ public sealed class UpdateSingleLineMethodsConverterTests
 
         IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(CompilingTestProject.CreateDocument(source), result);
         Assert.IsEmpty(errors, string.Join(Environment.NewLine, errors));
-        SyntaxTree tree = CSharpSyntaxTree.ParseText(result);
-        Dictionary<string, MethodDeclarationSyntax> methods = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+        SyntaxTree tree = CSharpSyntaxTree.ParseText(result, cancellationToken: TestContext.CancellationToken);
+        Dictionary<string, MethodDeclarationSyntax> methods = tree.GetRoot(TestContext.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>()
             .ToDictionary(method => method.Identifier.Text);
-        CollectionAssert.AreEqual(new[] { "return _x;" }, methods["Get"].Body.Statements.Select(s => s.ToString()).ToArray());
-        CollectionAssert.AreEqual(new[] { "_x = v;", "Log(v);" }, methods["Set"].Body.Statements.Select(s => s.ToString()).ToArray());
+        Assert.AreSequenceEqual(new[] { "return _x;" }, methods["Get"].Body.Statements.Select(s => s.ToString()).ToArray());
+        Assert.AreSequenceEqual(new[] { "_x = v;", "Log(v);" }, methods["Set"].Body.Statements.Select(s => s.ToString()).ToArray());
         foreach (string name in new[] { "Get", "Set" })
         {
             BlockSyntax body = methods[name].Body;
             int[] lines = new[] { body.OpenBraceToken.Span }
                 .Concat(body.Statements.Select(statement => statement.Span))
                 .Concat(new[] { body.CloseBraceToken.Span })
-                .Select(span => tree.GetLineSpan(span).StartLinePosition.Line)
+                .Select(span => tree.GetLineSpan(span, TestContext.CancellationToken).StartLinePosition.Line)
                 .ToArray();
-            Assert.AreEqual(lines.Length, lines.Distinct().Count(), name + " still has several parts on one line:\r\n" + result);
+            Assert.HasCount(lines.Length, lines.Distinct(), name + " still has several parts on one line:\r\n" + result);
         }
 
         Assert.Contains("void Log(int v) { }", result);
@@ -178,8 +172,7 @@ public sealed class UpdateSingleLineMethodsConverterTests
         "class C\n{\n    int M() { return 1; }\r\n    void N() { }\n}\n",
         "class C\n{\n    int M()\r\n    {\r\n        return 1;\r\n    }\r\n    void N() { }\n}\n",
         DisplayName = "LF file whose single-line method sits on a CRLF line")]
-    public void SingleLineMethod_IsSpreadWithTheFileIndentationAndLineBreaks(string source, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(source));
-    }
+    public void SingleLineMethod_IsSpreadWithTheFileIndentationAndLineBreaks(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
+
+    public TestContext TestContext { get; set; }
 }

@@ -262,10 +262,7 @@ public sealed class SourceTransformationPipelineTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void NullTransformationSequence_Throws()
-    {
-        Assert.ThrowsExactly<System.ArgumentNullException>(() => new SourceTransformationPipeline((IEnumerable<ISourceTransformation>)null));
-    }
+    public void NullTransformationSequence_Throws() => Assert.ThrowsExactly<System.ArgumentNullException>(() => new SourceTransformationPipeline((IEnumerable<ISourceTransformation>)null));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -329,8 +326,5 @@ public sealed class SourceTransformationPipelineTests
         public string Apply(string source) => null;
     }
 
-    private static string repr(string s)
-    {
-        return "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
-    }
+    private static string repr(string s) => "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
 }

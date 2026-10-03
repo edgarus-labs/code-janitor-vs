@@ -21,10 +21,7 @@ public sealed class GitHubCopilotDetectorTests
     private const string ChatResponse = "{\"choices\":[{\"message\":{\"content\":\"OK\"}}]}";
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        GitHubCopilotDetector.ResetCopilotSessionCache();
-    }
+    public void TestInitialize() => GitHubCopilotDetector.ResetCopilotSessionCache();
 
     private static string ExchangeResponseExpiringIn(TimeSpan lifetime)
     {

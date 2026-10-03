@@ -79,8 +79,5 @@ internal sealed class SpadeContextRemoveRegionCommand : BaseCommand
     /// </summary>
     /// <param name="region">The region.</param>
     /// <returns>True if the region can be removed, otherwise false.</returns>
-    private static bool IsRemoveableRegion(CodeItemRegion region)
-    {
-        return !region.IsPseudoGroup && region.StartLine > 0 && region.EndLine > 0;
-    }
+    private static bool IsRemoveableRegion(CodeItemRegion region) => !region.IsPseudoGroup && region.StartLine > 0 && region.EndLine > 0;
 }

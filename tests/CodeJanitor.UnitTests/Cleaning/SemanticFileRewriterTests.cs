@@ -192,8 +192,8 @@ public sealed class SemanticFileRewriterTests
         return false;
     }
 
-    private static SemanticFileRewriter CreateRewriter(Func<string, string, string, CancellationToken, Task<string>> rewriteInWorkspaceAsync) =>
-        new SemanticFileRewriter(null, "Cleaning_SealClassesWhenSafe", "Nothing was rewritten", "Rewrote nothing", "Rewrote", rewriteInWorkspaceAsync);
+    private static SemanticFileRewriter CreateRewriter(Func<string, string, string, CancellationToken, Task<string>> rewriteInWorkspaceAsync)
+        => new SemanticFileRewriter(null, "Cleaning_SealClassesWhenSafe", "Nothing was rewritten", "Rewrote nothing", "Rewrote", rewriteInWorkspaceAsync);
 
     /// <summary>
     /// Runs <see cref="SemanticFileRewriter.RewriteClosedFileAsync" /> on a thread that stands in for the Visual Studio

@@ -119,7 +119,7 @@ public sealed class RoslynDocumentCleanupTests
 
         Document cleaned = await RoslynDocumentCleanup.ApplyAsync(workspace.CreateSolution().GetDocument(documentId), true, false, null, CancellationToken.None);
 
-        Assert.StartsWith("using System;\r\nusing System.Collections.Generic;\r\n\r\nnamespace Demo;", (await cleaned.GetTextAsync()).ToString());
+        Assert.StartsWith("using System;\r\nusing System.Collections.Generic;\r\n\r\nnamespace Demo;", (await cleaned.GetTextAsync(TestContext.CancellationToken)).ToString());
     }
 
     [TestMethod]
@@ -211,4 +211,6 @@ public sealed class RoslynDocumentCleanupTests
 
         return (await cleaned.GetTextAsync()).ToString();
     }
+
+    public TestContext TestContext { get; set; }
 }

@@ -58,10 +58,7 @@ public sealed class TabToSpaceConverter : ISourceTransformation
     public string Name => "Convert tabs to spaces";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Convert(source);
-    }
+    public string Apply(string source) => Convert(source);
 
     /// <summary>
     /// Converts indentation/whitespace tabs to spaces in the given C# source, leaving tabs inside

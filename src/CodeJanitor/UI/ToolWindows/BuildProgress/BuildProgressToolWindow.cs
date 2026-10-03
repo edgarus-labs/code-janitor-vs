@@ -92,10 +92,7 @@ public sealed class BuildProgressToolWindow : ToolWindowPane
     /// <summary>
     /// Closes the associated IVsWindowFrame without saving, discarding any pending changes via FRAMECLOSE_NoSave.
     /// </summary>
-    public void Close()
-    {
-        (Frame as IVsWindowFrame).CloseFrame((uint)__FRAMECLOSE.FRAMECLOSE_NoSave);
-    }
+    public void Close() => (Frame as IVsWindowFrame).CloseFrame((uint)__FRAMECLOSE.FRAMECLOSE_NoSave);
 
     /// <summary>
     /// This method can be overriden by the derived class to execute any code that needs to run

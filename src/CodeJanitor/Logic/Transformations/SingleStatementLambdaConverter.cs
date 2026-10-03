@@ -232,8 +232,10 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                     {
                         case VariableDeclaratorSyntax declarator when declarator.Parent is VariableDeclarationSyntax declaration:
                             return declaration.Type;
+
                         case PropertyDeclarationSyntax property:
                             return property.Type;
+
                         default:
                             return null;
                     }
@@ -275,16 +277,22 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
             {
                 case MethodDeclarationSyntax method when !method.Modifiers.Any(SyntaxKind.AsyncKeyword):
                     return method.ReturnType;
+
                 case LocalFunctionStatementSyntax localFunction when !localFunction.Modifiers.Any(SyntaxKind.AsyncKeyword):
                     return localFunction.ReturnType;
+
                 case OperatorDeclarationSyntax @operator:
                     return @operator.ReturnType;
+
                 case ConversionOperatorDeclarationSyntax conversion:
                     return conversion.Type;
+
                 case BasePropertyDeclarationSyntax property when property is PropertyDeclarationSyntax || property is IndexerDeclarationSyntax:
                     return property.Type;
+
                 case AccessorDeclarationSyntax accessor when accessor.IsKind(SyntaxKind.GetAccessorDeclaration):
                     return GetReturnType(accessor.Parent?.Parent);
+
                 case AnonymousFunctionExpressionSyntax outerLambda when !outerLambda.AsyncKeyword.IsKind(SyntaxKind.AsyncKeyword):
                     var outerTarget = UnwrapTypeName(GetTargetType(outerLambda), out _);
                     return outerTarget is GenericNameSyntax func && func.Identifier.ValueText == "Func"
@@ -313,13 +321,16 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                 case "Action":
                 case "EventHandler":
                     return true;
+
                 case "Func":
                 case "Predicate":
                 case "Comparison":
                 case "Converter":
                     return arity > 0;
+
                 case "Expression":
                     return arity == 1;
+
                 default:
                     return false;
             }
@@ -343,12 +354,15 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
                 case QualifiedNameSyntax qualified:
                     name = qualified.Right;
                     break;
+
                 case AliasQualifiedNameSyntax aliasQualified:
                     name = aliasQualified.Name;
                     break;
+
                 case SimpleNameSyntax simple:
                     name = simple;
                     break;
+
                 default:
                     return null;
             }
@@ -387,8 +401,10 @@ public sealed class SingleStatementLambdaConverter : ISourceTransformation
             {
                 case IdentifierNameSyntax identifier:
                     return identifier.Identifier.ValueText == "Action";
+
                 case GenericNameSyntax generic:
                     return generic.Identifier.ValueText == "Func" && generic.TypeArgumentList.Arguments.Count == 1;
+
                 default:
                     return false;
             }

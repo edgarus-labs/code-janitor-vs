@@ -25,10 +25,7 @@ internal sealed class CodeReorganizationAvailabilityLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeReorganizationAvailabilityLogic"/> class.</returns>
-    internal static CodeReorganizationAvailabilityLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeReorganizationAvailabilityLogic(package));
-    }
+    internal static CodeReorganizationAvailabilityLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeReorganizationAvailabilityLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeReorganizationAvailabilityLogic"/> class.
@@ -109,7 +106,10 @@ internal sealed class CodeReorganizationAvailabilityLogic
     private bool IsDocumentExcludedBecausePreprocessorConditionals(Document document, bool allowUserPrompts)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!HasPreprocessorConditionalCompilationDirectives(document)) return false;
+        if (!HasPreprocessorConditionalCompilationDirectives(document))
+        {
+            return false;
+        }
 
         switch ((AskYesNo)Settings.Default.Reorganizing_PerformWhenPreprocessorConditionals)
         {

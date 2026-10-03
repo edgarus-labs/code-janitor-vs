@@ -24,10 +24,7 @@ public sealed class IndentationGuardTests
     [DataRow("#if NEVER\nclass Old { }\n#endif\n|class C { }\n", DisplayName = "line after disabled text")]
     [DataRow("class C { }\n#if NEVER\nclass Old { }\n|", DisplayName = "end of a file that ends in disabled text")]
     [DataRow("System.Console.WriteLine(\n|    \"top-level\");\n", DisplayName = "continuation line of a top-level statement")]
-    public void CanChangeIndentation_OutsideStringsCommentsAndDisabledText(string markedSource)
-    {
-        Assert.IsTrue(CanChangeIndentation(markedSource));
-    }
+    public void CanChangeIndentation_OutsideStringsCommentsAndDisabledText(string markedSource) => Assert.IsTrue(CanChangeIndentation(markedSource));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -40,10 +37,7 @@ public sealed class IndentationGuardTests
     [DataRow("class C\n{\n    /** <summary>\n|     * doc</summary> */\n    int x;\n}\n", DisplayName = "multi-line documentation comment")]
     [DataRow("#if NEVER\nclass Old\n{\n|    int x;\n}\n#endif\n", DisplayName = "disabled text")]
     [DataRow("#if NEVER\n|class Old { }\n#endif\n", DisplayName = "first line of disabled text")]
-    public void CannotChangeIndentation_InsideStringsCommentsAndDisabledText(string markedSource)
-    {
-        Assert.IsFalse(CanChangeIndentation(markedSource));
-    }
+    public void CannotChangeIndentation_InsideStringsCommentsAndDisabledText(string markedSource) => Assert.IsFalse(CanChangeIndentation(markedSource));
 
     private static bool CanChangeIndentation(string markedSource)
     {

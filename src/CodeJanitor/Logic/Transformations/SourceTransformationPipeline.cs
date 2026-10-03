@@ -44,10 +44,7 @@ public sealed class SourceTransformationPipeline
     /// Runs every transformation in order and returns the final source text. Empty or null input
     /// is returned unchanged.
     /// </summary>
-    public string Run(string source)
-    {
-        return Execute(source, null, null);
-    }
+    public string Run(string source) => Execute(source, null, null);
 
     public PreviewResult Preview(string source, ISet<int> excludedTransformations = null)
     {

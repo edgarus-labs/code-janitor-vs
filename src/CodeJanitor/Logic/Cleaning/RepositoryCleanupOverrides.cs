@@ -79,10 +79,7 @@ internal sealed class RepositoryCleanupOverrides
     /// <param name="settingName">The Visual Studio setting property name.</param>
     /// <param name="fallback">The fallback value.</param>
     /// <returns>The effective value.</returns>
-    internal bool TryGetBoolean(string settingName, bool fallback)
-    {
-        return _values.TryGetValue(settingName, out var value) && value is bool boolean ? boolean : fallback;
-    }
+    internal bool TryGetBoolean(string settingName, bool fallback) => _values.TryGetValue(settingName, out var value) && value is bool boolean ? boolean : fallback;
 
     /// <summary>
     /// Gets an overridden string setting value, falling back when the repository policy does not define it.
@@ -90,10 +87,7 @@ internal sealed class RepositoryCleanupOverrides
     /// <param name="settingName">The Visual Studio setting property name.</param>
     /// <param name="fallback">The fallback value.</param>
     /// <returns>The effective value.</returns>
-    internal string TryGetString(string settingName, string fallback)
-    {
-        return _values.TryGetValue(settingName, out var value) && value is string text ? text : fallback;
-    }
+    internal string TryGetString(string settingName, string fallback) => _values.TryGetValue(settingName, out var value) && value is string text ? text : fallback;
 
     /// <summary>
     /// Gets an overridden integer setting value, falling back when the repository policy does not define it.
@@ -101,8 +95,5 @@ internal sealed class RepositoryCleanupOverrides
     /// <param name="settingName">The Visual Studio setting property name.</param>
     /// <param name="fallback">The fallback value.</param>
     /// <returns>The effective value.</returns>
-    internal int TryGetInt32(string settingName, int fallback)
-    {
-        return _values.TryGetValue(settingName, out var value) && value is int number ? number : fallback;
-    }
+    internal int TryGetInt32(string settingName, int fallback) => _values.TryGetValue(settingName, out var value) && value is int number ? number : fallback;
 }

@@ -40,10 +40,7 @@ internal sealed class SealedClassLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SealedClassLogic" /> class.</returns>
-    internal static SealedClassLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new SealedClassLogic(package));
-    }
+    internal static SealedClassLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new SealedClassLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SealedClassLogic" /> class.
@@ -90,7 +87,7 @@ internal sealed class SealedClassLogic
     private Task<string> SealInWorkspaceAsync(string filePath, string projectFilePath, string currentText, CancellationToken cancellationToken)
     {
         var incompleteSolutionReason = GetIncompleteSolutionReason();
-        if (incompleteSolutionReason != null)
+        if (incompleteSolutionReason is not null)
         {
             throw new InvalidOperationException(incompleteSolutionReason);
         }
@@ -122,7 +119,7 @@ internal sealed class SealedClassLogic
 
         var anyProject = Guid.Empty;
         if (ErrorHandler.Succeeded(solution.GetProjectEnum((uint)__VSENUMPROJFLAGS.EPF_UNLOADEDINSOLUTION, ref anyProject, out var unloadedProjects)) &&
-            unloadedProjects != null &&
+            unloadedProjects is not null &&
             ErrorHandler.Succeeded(unloadedProjects.Next(1, new IVsHierarchy[1], out var fetched)) &&
             fetched > 0)
         {

@@ -92,6 +92,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
         }
 
         afterKeyword = i;
+
         return true;
     }
 
@@ -111,6 +112,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
             case UnicodeCategory.DecimalDigitNumber:
             case UnicodeCategory.ConnectorPunctuation:
                 return true;
+
             default:
                 return false;
         }
@@ -126,6 +128,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
     {
         var spans = new List<TextSpan>();
         AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(source).GetRoot(), 0, spans);
+
         return spans;
     }
 
@@ -230,8 +233,5 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
         return contentEnd;
     }
 
-    private static bool ContainsLineBreak(string source, TextSpan span)
-    {
-        return span.Length > 0 && source.IndexOfAny(LineBreakCharacters, span.Start, span.Length) >= 0;
-    }
+    private static bool ContainsLineBreak(string source, TextSpan span) => span.Length > 0 && source.IndexOfAny(LineBreakCharacters, span.Start, span.Length) >= 0;
 }

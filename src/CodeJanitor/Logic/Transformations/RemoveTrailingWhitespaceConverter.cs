@@ -23,10 +23,7 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
     public string Name => "Remove trailing whitespace";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Convert(source);
-    }
+    public string Apply(string source) => Convert(source);
 
     /// <summary>
     /// Removes trailing whitespace from the given C# source.
@@ -63,7 +60,7 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
             copied = end;
         }
 
-        if (result == null)
+        if (result is null)
         {
             return source;
         }

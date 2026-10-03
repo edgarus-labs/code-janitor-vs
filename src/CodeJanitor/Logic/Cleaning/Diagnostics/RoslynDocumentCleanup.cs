@@ -78,7 +78,7 @@ internal static class RoslynDocumentCleanup
         }
 
         SourceText text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-        List<TextChange> removals = new List<TextChange>();
+        var removals = new List<TextChange>();
         foreach (Diagnostic diagnostic in semanticModel.GetDiagnostics(cancellationToken: cancellationToken))
         {
             if (diagnostic.Id != UnnecessaryUsingDiagnosticId || !diagnostic.Location.IsInSource)
@@ -105,7 +105,7 @@ internal static class RoslynDocumentCleanup
 
         // Removing the using directives of a block leaves the blank line that separated the block from the code; when
         // the removed lines start the file or follow a blank line, drop the blank lines after them as well.
-        List<TextChange> changes = new List<TextChange>();
+        var changes = new List<TextChange>();
         foreach (TextSpan block in MergeAdjacent(removals.Select(change => change.Span).Distinct().OrderBy(span => span.Start)))
         {
             int end = block.End;
@@ -165,10 +165,7 @@ internal static class RoslynDocumentCleanup
     /// </summary>
     /// <param name="line">The line.</param>
     /// <returns>True for an empty or whitespace-only line.</returns>
-    private static bool IsBlank(TextLine line)
-    {
-        return string.IsNullOrWhiteSpace(line.ToString());
-    }
+    private static bool IsBlank(TextLine line) => string.IsNullOrWhiteSpace(line.ToString());
 
     /// <summary>
     /// Gets the span of the lines a using directive occupies, including the line break of its last line, when those

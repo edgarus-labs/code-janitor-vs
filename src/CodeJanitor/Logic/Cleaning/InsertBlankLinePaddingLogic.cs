@@ -26,10 +26,7 @@ internal sealed class InsertBlankLinePaddingLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="InsertBlankLinePaddingLogic" /> class.</returns>
-    internal static InsertBlankLinePaddingLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new InsertBlankLinePaddingLogic(package));
-    }
+    internal static InsertBlankLinePaddingLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new InsertBlankLinePaddingLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InsertBlankLinePaddingLogic" /> class.
@@ -205,7 +202,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeRegionTags)))
+        {
+            return;
+        }
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -232,7 +232,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterRegionTags)))
+        {
+            return;
+        }
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -259,7 +262,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeEndRegionTags)))
+        {
+            return;
+        }
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -286,7 +292,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags)))
+        {
+            return;
+        }
 
         foreach (var region in regions.Where(x => !x.IsInvalidated))
         {
@@ -367,7 +376,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)))
+        {
+            return;
+        }
 
         const string pattern = @"(^[ \t]*)(break;|return([ \t][^;]*)?;)\r?\n([ \t]*)(case|default)";
         string replacement = @"$1$2" + Environment.NewLine + Environment.NewLine + @"$4$5";
@@ -385,7 +397,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)))
+        {
+            return;
+        }
 
         const string pattern = @"(^[ \t]*(?!//)[^ \t\r\n\{].*\r?\n)([ \t]*//)(?!//)";
         string replacement = @"$1" + Environment.NewLine + @"$2";
@@ -402,7 +417,10 @@ internal sealed class InsertBlankLinePaddingLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors)))
+        {
+            return;
+        }
 
         foreach (var property in properties)
         {

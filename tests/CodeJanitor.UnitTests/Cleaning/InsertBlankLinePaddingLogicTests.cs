@@ -18,10 +18,7 @@ public sealed class InsertBlankLinePaddingLogicTests
     }
 
     [TestCleanup]
-    public void TestCleanup()
-    {
-        DisableAllSettings();
-    }
+    public void TestCleanup() => DisableAllSettings();
 
     [TestMethod]
     [DataRow(KindCodeItem.Class, "Cleaning_InsertBlankLinePaddingBeforeClasses")]
@@ -80,10 +77,7 @@ public sealed class InsertBlankLinePaddingLogicTests
         Assert.IsFalse(_logic.ShouldBeFollowedByBlankLine(new TestCodeItem(KindCodeItem.Class)));
     }
 
-    private static void SetSetting(string settingName, bool value)
-    {
-        typeof(Settings).GetProperty(settingName).SetValue(Settings.Default, value);
-    }
+    private static void SetSetting(string settingName, bool value) => typeof(Settings).GetProperty(settingName).SetValue(Settings.Default, value);
 
     private static void DisableAllSettings()
     {

@@ -57,9 +57,8 @@ public sealed class EditorConfigHelperTests
 
         IReadOnlyDictionary<string, string> options = EditorConfigHelper.LoadOptions(Path.Combine(nested, "Sample.cs"));
 
-        CollectionAssert.AreEquivalent(
-            new Dictionary<string, string> { ["indent_size"] = "2" },
-            options.ToDictionary(entry => entry.Key, entry => entry.Value));
+        Assert.AreSequenceEqual(
+            new Dictionary<string, string> { ["indent_size"] = "2" }, options.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -124,9 +123,8 @@ public sealed class EditorConfigHelperTests
 
         IReadOnlyDictionary<string, string> options = EditorConfigHelper.LoadOptions(Path.Combine(_tempDirectory, "Sample.cs"));
 
-        CollectionAssert.AreEquivalent(
-            new Dictionary<string, string> { ["indent_style"] = "tab", ["tab_width"] = "6" },
-            options.ToDictionary(entry => entry.Key, entry => entry.Value));
+        Assert.AreSequenceEqual(
+            new Dictionary<string, string> { ["indent_style"] = "tab", ["tab_width"] = "6" }, options.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -170,7 +168,7 @@ public sealed class EditorConfigHelperTests
     [DataRow("Sample\0.cs", DisplayName = "path with a null character")]
     public void BlankOrInvalidPath_YieldsNoOptions_AndNoDefiningFile(string filePath)
     {
-        Assert.AreEqual(0, EditorConfigHelper.LoadOptions(filePath).Count);
+        Assert.IsEmpty(EditorConfigHelper.LoadOptions(filePath));
         Assert.IsNull(EditorConfigHelper.FindDefiningConfigPath(filePath, "indent_size"));
     }
 
@@ -284,8 +282,5 @@ public sealed class EditorConfigHelperTests
         return path;
     }
 
-    private string CreateDirectory(params string[] segments)
-    {
-        return Directory.CreateDirectory(Path.Combine(new[] { _tempDirectory }.Concat(segments).ToArray())).FullName;
-    }
+    private string CreateDirectory(params string[] segments) => Directory.CreateDirectory(Path.Combine(new[] { _tempDirectory }.Concat(segments).ToArray())).FullName;
 }

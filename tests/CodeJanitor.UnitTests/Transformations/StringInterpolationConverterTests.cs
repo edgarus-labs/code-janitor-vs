@@ -12,17 +12,11 @@ public sealed class StringInterpolationConverterTests
     private StringInterpolationConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new StringInterpolationConverter();
-    }
+    public void TestInitialize() => _converter = new StringInterpolationConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Name_IsNotEmpty()
-    {
-        Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
-    }
+    public void Name_IsNotEmpty() => Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -194,10 +188,7 @@ public class C
     [DataRow("class C { string M(object[] a) => string.Format(\"{0}{1}\", a); }", DisplayName = "second placeholder out of range with an array argument")]
     [DataRow("class C { string M(int x) => System.Text.StringBuilder.Format(\"{0}\", x); }", DisplayName = "qualified non-string receiver")]
     [DataRow("class C\r\n{\r\n    // string.Format(\"{0}\", x)\r\n    string A = \"string.Format(\\\"{0}\\\", x)\";\r\n}\r\n", DisplayName = "code-like text in comment and literal")]
-    public void CallThatCannotBecomeAnInterpolatedString_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void CallThatCannotBecomeAnInterpolatedString_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -219,10 +210,7 @@ public class C
     [DataRow("class C { string M(int x) => string.Format(\"{0}\", /* keep */ x); }", DisplayName = "comment before an argument")]
     [DataRow("class C { string M(int x, int y) => string.Format(\"{0}\", x /* keep */, y); }", DisplayName = "comment after an unused argument")]
     [DataRow("class C { string M(int x) => string.Format(\"{0}\", x /* keep */); }", DisplayName = "comment before the closing parenthesis")]
-    public void FormatCallWhoseConversionWouldChangeSideEffectsOrDropComments_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void FormatCallWhoseConversionWouldChangeSideEffectsOrDropComments_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -232,10 +220,7 @@ public class C
     [DataRow("class C { string M(int i, int j) => string.Format(\"{0} {1}\", i, i++); }", "class C { string M(int i, int j) => $\"{i} {i++}\"; }", DisplayName = "variable read before its own increment, in argument order")]
     [DataRow("class C { string M(int i) => string.Format(\"{0} {1}\", i++, i); }", "class C { string M(int i) => $\"{i++} {i}\"; }", DisplayName = "variable read after its own increment, in argument order")]
     [DataRow("class C { string M(int i, int j) => string.Format(\"{1} {0}\", i, j++); }", "class C { string M(int i, int j) => $\"{j++} {i}\"; }", DisplayName = "variable read moved around an unrelated increment")]
-    public void FormatCallWhoseEvaluationIsPreserved_BecomesAnInterpolatedString(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void FormatCallWhoseEvaluationIsPreserved_BecomesAnInterpolatedString(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -254,10 +239,7 @@ public class C
     [DataRow("class C { string M(int x) => string.Format(\"{0 }\", x); }", "class C { string M(int x) => $\"{x}\"; }", DisplayName = "placeholder with trailing space")]
     [DataRow("class C { string M(int a) => string.Format(\"[{0:}]\", a); }", "class C { string M(int a) => $\"[{a}]\"; }", DisplayName = "empty format")]
     [DataRow("class C { string M(double a) => string.Format(\"{0 ,5}|{0, -5 :N2}\", a); }", "class C { string M(double a) => $\"{a,5}|{a,-5:N2}\"; }", DisplayName = "spaces around the alignment")]
-    public void FormatCallWithLiteralFormat_BecomesAnInterpolatedString(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void FormatCallWithLiteralFormat_BecomesAnInterpolatedString(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -341,19 +323,13 @@ public class C
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { string M(bool f) => string.Format(\"{0}\", f ? \"y\" : \"n\"); }", "class C { string M(bool f) => $\"{(f ? \"y\" : \"n\")}\"; }", DisplayName = "conditional operator")]
     [DataRow("class C { string M(int x) => string.Format(\"{0}\", global::System.Math.Abs(x)); }", "class C { string M(int x) => $\"{(global::System.Math.Abs(x))}\"; }", DisplayName = "alias-qualified name")]
-    public void ArgumentWithTopLevelColon_IsParenthesized(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void ArgumentWithTopLevelColon_IsParenthesized(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { string M(int x) => string.Format(\"{{0}} {0}\", x); }", "class C { string M(int x) => $\"{{0}} {x}\"; }", DisplayName = "escaped braces around a digit")]
     [DataRow("class C { string M(int x) => string.Format(\"{{{0}}}\", x); }", "class C { string M(int x) => $\"{{{x}}}\"; }", DisplayName = "placeholder inside escaped braces")]
-    public void EscapedBracesAroundDigit_StayLiteral(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void EscapedBracesAroundDigit_StayLiteral(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

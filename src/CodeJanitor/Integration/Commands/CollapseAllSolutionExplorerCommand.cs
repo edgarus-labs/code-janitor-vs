@@ -52,7 +52,10 @@ internal sealed class CollapseAllSolutionExplorerCommand : BaseCommand
     internal void OnSolutionOpened()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!Settings.Default.Collapsing_CollapseSolutionWhenOpened) return;
+        if (!Settings.Default.Collapsing_CollapseSolutionWhenOpened)
+        {
+            return;
+        }
 
         var topItem = TopUIHierarchyItem;
         if (topItem is null || topItem.UIHierarchyItems.Count == 0)

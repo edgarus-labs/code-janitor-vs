@@ -12,10 +12,7 @@ public sealed class RemoveFinalNewlineConverterTests
     private RemoveFinalNewlineConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new RemoveFinalNewlineConverter();
-    }
+    public void TestInitialize() => _converter = new RemoveFinalNewlineConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -25,10 +22,7 @@ public sealed class RemoveFinalNewlineConverterTests
     [DataRow("class C {}\n  \n\t\n", "class C {}", DisplayName = "blank lines with whitespace")]
     [DataRow("class C {}  \n", "class C {}  ", DisplayName = "whitespace of the last line is kept")]
     [DataRow("// comment\r\n", "// comment", DisplayName = "comment on the last line")]
-    public void FinalLineBreaks_AreRemoved(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Convert(input));
-    }
+    public void FinalLineBreaks_AreRemoved(string input, string expected) => Assert.AreEqual(expected, _converter.Convert(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -63,8 +57,5 @@ public sealed class RemoveFinalNewlineConverterTests
     [DataRow("a\r", "a", DisplayName = "carriage return only")]
     [DataRow("var s = \"\"\"\n  x\n  \"\"\";\n", "var s = \"\"\"\n  x\n  \"\"\";", DisplayName = "raw string before the final line break")]
     [DataRow("Console.WriteLine();\n#endregion\n\n", "Console.WriteLine();\n#endregion", DisplayName = "directive on the last line")]
-    public void EdgeFiles(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Convert(input));
-    }
+    public void EdgeFiles(string input, string expected) => Assert.AreEqual(expected, _converter.Convert(input));
 }

@@ -288,7 +288,7 @@ public sealed class StringInterpolationConverter : ISourceTransformation
                     _ => null
                 };
 
-                if (target == null)
+                if (target is null)
                 {
                     continue;
                 }
@@ -352,14 +352,11 @@ public sealed class StringInterpolationConverter : ISourceTransformation
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>A string value produced by this method.</returns>
-        private static string EscapeForInterpolatedString(string text)
-        {
-            return text
+        private static string EscapeForInterpolatedString(string text) => text
                 .Replace("\\", "\\\\")
                 .Replace("\"", "\\\"")
                 .Replace("\r", "\\r")
                 .Replace("\n", "\\n")
                 .Replace("\t", "\\t");
-        }
     }
 }

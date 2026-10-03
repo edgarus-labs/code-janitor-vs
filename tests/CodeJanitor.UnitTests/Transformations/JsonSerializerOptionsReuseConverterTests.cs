@@ -1,9 +1,9 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using CodeJanitor.Logic.Transformations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -17,10 +17,7 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     private ISourceTransformation _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new JsonSerializerOptionsReuseConverter();
-    }
+    public void TestInitialize() => _converter = new JsonSerializerOptionsReuseConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -56,10 +53,7 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     [TestCategory("Transformations UnitTests")]
     [DataRow("using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, new JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(string s) => JsonSerializer.Deserialize<T>(s, options: null); }", DisplayName = "generic deserialize")]
     [DataRow("using System.Text.Json; class C { object M(string s) => JsonSerializer.Deserialize(s, typeof(C), new JsonSerializerOptions()); }", "using System.Text.Json; class C { object M(string s) => JsonSerializer.Deserialize(s, typeof(C), options: null); }", DisplayName = "deserialize with type")]
-    public void PositionalOptions_BecomeNamedNull(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void PositionalOptions_BecomeNamedNull(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -111,10 +105,7 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     [DataRow("class C { string M(object v, JsonSerializerOptions o) => JsonSerializer.Serialize(v, o); }", DisplayName = "options variable")]
     [DataRow("class C { static readonly JsonSerializerOptions O = new JsonSerializerOptions(); }", DisplayName = "allocation outside a call")]
     [DataRow("class C\r\n{\r\n    // JsonSerializer.Serialize(v, new JsonSerializerOptions())\r\n    string S = \"JsonSerializer.Serialize(v, new JsonSerializerOptions())\";\r\n}\r\n", DisplayName = "code-like text in comment and literal")]
-    public void CallOrArgumentThatIsNotAPlainOptionsAllocation_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void CallOrArgumentThatIsNotAPlainOptionsAllocation_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -123,10 +114,7 @@ public sealed class JsonSerializerOptionsReuseConverterTests
     [DataRow("using System.Text.Json; class C { T M<T>(object v) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, options: new JsonSerializerOptions()), options: new JsonSerializerOptions()); }", "using System.Text.Json; class C { T M<T>(object v) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(v, options: null), options: null); }", DisplayName = "nested calls")]
     [DataRow("using System.Text.Json; class C { System.Func<object, string> F = v => JsonSerializer.Serialize(v, options: new JsonSerializerOptions()); }", "using System.Text.Json; class C { System.Func<object, string> F = v => JsonSerializer.Serialize(v, options: null); }", DisplayName = "inside lambda")]
     [DataRow("using System.Text.Json; class C { async System.Threading.Tasks.Task M(System.IO.Stream s, object v) => await JsonSerializer.SerializeAsync(s, v, options: new JsonSerializerOptions()); }", "using System.Text.Json; class C { async System.Threading.Tasks.Task M(System.IO.Stream s, object v) => await JsonSerializer.SerializeAsync(s, v, options: null); }", DisplayName = "async stream overload")]
-    public void PlainOptionsAllocationInJsonSerializerCall_BecomesNull(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void PlainOptionsAllocationInJsonSerializerCall_BecomesNull(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

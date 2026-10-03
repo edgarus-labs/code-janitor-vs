@@ -16,7 +16,10 @@ public sealed class NotifiesOnAttribute : Attribute
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
     public NotifiesOnAttribute(string name)
     {
-        if (name is null) throw new ArgumentNullException(nameof(name));
+        if (name is null)
+        {
+            throw new ArgumentNullException(nameof(name));
+        }
 
         Name = name;
     }

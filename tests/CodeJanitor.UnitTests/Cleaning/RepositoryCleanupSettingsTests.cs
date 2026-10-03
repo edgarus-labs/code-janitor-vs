@@ -216,13 +216,12 @@ public sealed class RepositoryCleanupSettingsTests
 
         RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(RepositoryCleanupSettings.BuildJson(Settings.Default));
 
-        CollectionAssert.AreEquivalent(
+        Assert.AreSequenceEqual(
             new Dictionary<string, string>
             {
                 ["csharp_preferred_modifier_order"] = "public,static",
                 ["csharp_prefer_braces"] = "when_multiline",
-            },
-            overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value));
+            }, overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -246,9 +245,8 @@ public sealed class RepositoryCleanupSettingsTests
         RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
             "{ \"cleanup\": { \"codeStyle\": { \"csharp_prefer_braces\": \"True\", \"dotnet_style_null_propagation\": \"sometimes\" } } }");
 
-        CollectionAssert.AreEquivalent(
-            new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" },
-            overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value));
+        Assert.AreSequenceEqual(
+            new Dictionary<string, string> { ["csharp_prefer_braces"] = "true" }, overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -302,7 +300,7 @@ public sealed class RepositoryCleanupSettingsTests
         RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(json);
 
         Assert.AreEqual(0, overrides.Count);
-        Assert.AreEqual(0, overrides.CodeStyle.Count);
+        Assert.IsEmpty(overrides.CodeStyle);
         Assert.IsNull(overrides.RemoveRegions);
         Assert.IsNull(overrides.OrganizeUsings);
         Assert.IsTrue(overrides.RemovesRegions);
@@ -324,13 +322,12 @@ public sealed class RepositoryCleanupSettingsTests
             " \"\": true," +
             " \"makeFieldsReadonlyWhenSafe\": false } }");
 
-        CollectionAssert.AreEquivalent(new[] { "Cleaning_MakeFieldsReadonlyWhenSafe" }, overrides.Values.Keys.ToList());
+        Assert.AreSequenceEqual(new[] { "Cleaning_MakeFieldsReadonlyWhenSafe" }, overrides.Values.Keys.ToList(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         Assert.IsFalse(overrides.TryGetBoolean("Cleaning_MakeFieldsReadonlyWhenSafe", true));
         Assert.IsNull(overrides.OrganizeUsings);
         Assert.IsNull(overrides.RemoveRegions);
-        CollectionAssert.AreEquivalent(
-            new Dictionary<string, string> { ["dotnet_style_null_propagation"] = "false" },
-            overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value));
+        Assert.AreSequenceEqual(
+            new Dictionary<string, string> { ["dotnet_style_null_propagation"] = "false" }, overrides.CodeStyle.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -339,10 +336,7 @@ public sealed class RepositoryCleanupSettingsTests
     [DataRow("{ \"cleanup\": { \"codeStyle\": [ \"csharp_prefer_braces\" ] } }", DisplayName = "codeStyle as an array")]
     [DataRow("{ \"cleanup\": { \"codeStyle\": null } }", DisplayName = "codeStyle null")]
     [DataRow("{ \"cleanup\": { \"codeStyle\": { \"dotnet_naming_rule.x.severity\": \"warning\", \"CSharp_Prefer_Braces\": \"true\" } } }", DisplayName = "unknown or differently-cased rule keys")]
-    public void Parse_UnusableCodeStyleSection_DefinesNoRule(string json)
-    {
-        Assert.AreEqual(0, RepositoryCleanupSettings.Parse(json).CodeStyle.Count);
-    }
+    public void Parse_UnusableCodeStyleSection_DefinesNoRule(string json) => Assert.IsEmpty(RepositoryCleanupSettings.Parse(json).CodeStyle);
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -463,9 +457,8 @@ public sealed class RepositoryCleanupSettingsTests
                 && !notInTheAlias.Contains(name))
             .ToArray();
 
-        CollectionAssert.AreEquivalent(
-            accessModifierMembers.Select(member => "Cleaning_InsertExplicitAccessModifiersOn" + member).Concat(expectedPadding).ToArray(),
-            overrides.Values.Keys.ToArray());
+        Assert.AreSequenceEqual(
+            accessModifierMembers.Select(member => "Cleaning_InsertExplicitAccessModifiersOn" + member).Concat(expectedPadding).ToArray(), overrides.Values.Keys.ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         Assert.IsTrue(overrides.Values.Values.All(value => value is bool flag && flag));
     }
 
@@ -555,7 +548,7 @@ public sealed class RepositoryCleanupSettingsTests
         Assert.Contains("\"codeStyle\": {}", json);
         Assert.Contains("\"removeRegions\": true", json);
         Assert.DoesNotContain("organizeUsings", json);
-        Assert.AreEqual(0, overrides.CodeStyle.Count);
+        Assert.IsEmpty(overrides.CodeStyle);
         Assert.IsTrue(overrides.RemoveRegions);
         Assert.AreEqual(0, overrides.TryGetInt32("Cleaning_UpdateFileHeader_HeaderPosition", -1));
         Assert.AreEqual(0, overrides.TryGetInt32("Cleaning_UpdateFileHeader_HeaderUpdateMode", -1));

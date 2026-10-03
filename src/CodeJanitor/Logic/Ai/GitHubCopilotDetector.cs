@@ -78,10 +78,7 @@ public static class GitHubCopilotDetector
         public string ErrorMessage { get; set; }
     }
 
-    internal static void ResetCopilotSessionCache()
-    {
-        SessionCache.Clear();
-    }
+    internal static void ResetCopilotSessionCache() => SessionCache.Clear();
 
     internal static void ApplyCopilotHeaders(HttpRequestHeaders headers)
     {
@@ -234,10 +231,7 @@ public static class GitHubCopilotDetector
         return text.Substring(0, maxLength) + "...";
     }
 
-    public static Task<CopilotModelsResult> FetchCopilotModelsAsync(string token)
-    {
-        return FetchCopilotModelsAsync(token, null);
-    }
+    public static Task<CopilotModelsResult> FetchCopilotModelsAsync(string token) => FetchCopilotModelsAsync(token, null);
 
     internal static async Task<CopilotModelsResult> FetchCopilotModelsAsync(string token, HttpMessageHandler httpMessageHandler)
     {
@@ -326,13 +320,10 @@ public static class GitHubCopilotDetector
     /// <summary>
     /// Detects the presence and active state of GitHub Copilot in the current environment.
     /// </summary>
-    public static CopilotDetectionResult DetectCopilotStatus()
-    {
-        return DetectCopilotStatus(
+    public static CopilotDetectionResult DetectCopilotStatus() => DetectCopilotStatus(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             TryExtractVsGitHubToken);
-    }
 
     internal static CopilotDetectionResult DetectCopilotStatus(string userProfile, string localAppData, Func<string> readCredentialManagerToken)
     {

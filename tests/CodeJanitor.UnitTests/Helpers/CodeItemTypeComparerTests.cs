@@ -11,10 +11,7 @@ namespace CodeJanitor.UnitTests.Helpers;
 public sealed class CodeItemTypeComparerTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     [TestMethod]
     public void ShouldSortItemsOfTheSameTypeByName()
@@ -78,14 +75,11 @@ public sealed class CodeItemTypeComparerTests
         Assert.IsLessThan(0, result);
     }
 
-    private static T Create<T>(string name, int offset) where T : BaseCodeItem, new()
+    private static T Create<T>(string name, int offset) where T : BaseCodeItem, new() => new T
     {
-        return new T
-        {
-            Name = name,
-            StartOffset = offset
-        };
-    }
+        Name = name,
+        StartOffset = offset
+    };
 
     private static CodeItemMethod CreateExplicitMethod(string interfaceName, string methodName, int offset)
     {

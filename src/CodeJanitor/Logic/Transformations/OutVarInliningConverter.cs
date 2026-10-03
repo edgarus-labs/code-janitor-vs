@@ -116,12 +116,16 @@ public sealed class OutVarInliningConverter : ISourceTransformation
             {
                 case ExpressionStatementSyntax expressionStatement:
                     return expressionStatement.Expression;
+
                 case LocalDeclarationStatementSyntax localDeclaration:
                     return localDeclaration.Declaration;
+
                 case ReturnStatementSyntax returnStatement:
                     return returnStatement.Expression;
+
                 case IfStatementSyntax ifStatement:
                     return ifStatement.Condition;
+
                 default:
                     return null;
             }
@@ -155,6 +159,7 @@ public sealed class OutVarInliningConverter : ISourceTransformation
             if (declarationTrailing.Any(IsComment))
             {
                 merged = merged.AddRange(declarationTrailing.SkipWhile(t => t.IsKind(SyntaxKind.WhitespaceTrivia)));
+
                 return merged.AddRange(callLeading);
             }
 

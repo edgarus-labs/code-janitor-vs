@@ -19,10 +19,7 @@ public sealed class ReadonlyFieldConverterTests
     private IFieldMutabilityConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new ReadonlyFieldConverter();
-    }
+    public void TestInitialize() => _converter = new ReadonlyFieldConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -449,10 +446,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("  \r\n\t\r\n", DisplayName = "whitespace only")]
     [DataRow("class C { }", DisplayName = "no fields")]
     [DataRow("enum E { A, B }", DisplayName = "enum only")]
-    public void SourceWithoutCandidateFields_IsReturnedUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void SourceWithoutCandidateFields_IsReturnedUnchanged(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -523,10 +517,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private Holder _h; void M() { --_h.Value; } }", DisplayName = "prefix decrement of a member")]
     [DataRow("class C { private int _x; void M() { _x ??= 1; } }", DisplayName = "null-coalescing assignment")]
     [DataRow("class C { private int _x; void M() { _x <<= 1; } }", DisplayName = "shift assignment")]
-    public void SubMemberOrCompoundWriteOutsideTheConstructor_KeepsTheFieldMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void SubMemberOrCompoundWriteOutsideTheConstructor_KeepsTheFieldMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -540,10 +531,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private int _x; C() { System.Action a = () => _x = 1; } }", DisplayName = "expression lambda in constructor")]
     [DataRow("class O { private int _x; class N { N(O o) { o._x = 1; } } }", DisplayName = "constructor of a nested type")]
     [DataRow("class C { private int _x; async System.Threading.Tasks.Task M() { await System.Threading.Tasks.Task.Yield(); _x = 1; } }", DisplayName = "async method")]
-    public void WriteOutsideAnOwnConstructor_KeepsTheFieldMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void WriteOutsideAnOwnConstructor_KeepsTheFieldMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -560,10 +548,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private string? _name; C(string? name) { _name = name; } }", "class C { private readonly string? _name; C(string? name) { _name = name; } }", DisplayName = "nullable annotation")]
     [DataRow("interface I { private static int s; static int M() => s; }", "interface I { private static readonly int s; static int M() => s; }", DisplayName = "static field of an interface")]
     [DataRow("class C { private new int _x; }", "class C { private new readonly int _x; }", DisplayName = "new modifier")]
-    public void FieldWrittenOnlyDuringConstruction_BecomesReadonly(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void FieldWrittenOnlyDuringConstruction_BecomesReadonly(string input, string expected) => Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -575,10 +560,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("partial struct S { private int _x; }", DisplayName = "partial struct")]
     [DataRow("partial record R { private int _x; }", DisplayName = "partial record")]
     [DataRow("class O { partial class N { private int _x; } }", DisplayName = "partial nested class")]
-    public void FieldOutOfScope_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void FieldOutOfScope_IsUnchanged(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -697,10 +679,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private int _x; void M() { (_x, var y) = (1, 2); } }", DisplayName = "deconstruction mixed with a declaration")]
     [DataRow("class C { private int _x; private int _y; void M() { ((this._x, _y), var z) = ((1, 2), 3); } }", DisplayName = "nested deconstruction through this")]
     [DataRow("class C { private int _x; private int _y; void M((int, int)[] a) { foreach ((_x, _y) in a) { } } }", DisplayName = "foreach deconstruction")]
-    public void DeconstructionWriteOutsideTheConstructor_KeepsFieldsMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void DeconstructionWriteOutsideTheConstructor_KeepsFieldsMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -711,19 +690,13 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private int _x; C(C other) { (other._x, var y) = (1, 2); } }", DisplayName = "deconstruction into another instance")]
     [DataRow("struct S { private Holder _h; S(S other) { other._h.Value = 1; } }", DisplayName = "sub-member of another instance")]
     [DataRow("class C { private static int s_x; static C() { D.s_x = 1; } }", DisplayName = "static field of another type")]
-    public void WriteToAnotherInstanceInConstructor_KeepsFieldMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void WriteToAnotherInstanceInConstructor_KeepsFieldMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { private int _x; private int _y; C() { (_x, this._y) = (1, 2); } }", "class C { private readonly int _x; private readonly int _y; C() { (_x, this._y) = (1, 2); } }", DisplayName = "deconstruction in the constructor")]
     [DataRow("class C { private static int s_x; static C() { C.s_x = 1; } }", "class C { private static readonly int s_x; static C() { C.s_x = 1; } }", DisplayName = "static field through the own type name")]
-    public void WriteThroughThisInConstructor_BecomesReadonly(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void WriteThroughThisInConstructor_BecomesReadonly(string input, string expected) => Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -734,10 +707,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("struct P { public int X; } class C { private P _p; C() { (_p.X, var y) = (1, 2); } }", DisplayName = "deconstruction into a member of a struct")]
     [DataRow("class C { private Point _p; C() { _p.X = 1; } }", DisplayName = "member of a type declared elsewhere")]
     [DataRow("class C<T> { private T _t; C() { _t.Value = 1; } }", DisplayName = "member of a type parameter")]
-    public void SubMemberWriteInConstructorOfPossiblyMutableStructField_KeepsTheFieldMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void SubMemberWriteInConstructorOfPossiblyMutableStructField_KeepsTheFieldMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -745,10 +715,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private int[] _a; C() { _a[0] = 1; } }", "class C { private readonly int[] _a; C() { _a[0] = 1; } }", DisplayName = "element of an array")]
     [DataRow("using System.Collections.Generic; class C { private List<int> _l; C() { _l[0] = 1; } }", "using System.Collections.Generic; class C { private readonly List<int> _l; C() { _l[0] = 1; } }", DisplayName = "element of a well-known class")]
     [DataRow("struct P { public int X; } class C { private P _p; C() { _p = new P(); } }", "struct P { public int X; } class C { private readonly P _p; C() { _p = new P(); } }", DisplayName = "direct assignment of a struct field")]
-    public void WriteThroughNonStructFieldInConstructor_BecomesReadonly(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void WriteThroughNonStructFieldInConstructor_BecomesReadonly(string input, string expected) => Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -777,10 +744,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private int _x; void M() {\n#if DEBUG\n _x = 5;\n#endif\n} }", DisplayName = "#if DEBUG")]
     [DataRow("class C { private int _x; void M() {\n#if !RELEASE\n#else\n _x++;\n#endif\n} }", DisplayName = "#else branch")]
     [DataRow("#define A\nclass C { private int _x; void M() {\n#if A\n#else\n M2(ref _x);\n#endif\n} }", DisplayName = "branch disabled by #define")]
-    public void WriteInsideAnInactivePreprocessorBranch_KeepsFieldMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void WriteInsideAnInactivePreprocessorBranch_KeepsFieldMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -797,10 +761,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C\n{\n    int _x;\n}\n", "class C\n{\n    readonly int _x;\n}\n", DisplayName = "no modifiers")]
     [DataRow("class C\r\n{\r\n    [System.NonSerialized]\r\n    int _x;\r\n}\r\n", "class C\r\n{\r\n    [System.NonSerialized]\r\n    readonly int _x;\r\n}\r\n", DisplayName = "attribute")]
     [DataRow("class C\n{\n    /// <summary>X.</summary>\n    int _x;\n}\n", "class C\n{\n    /// <summary>X.</summary>\n    readonly int _x;\n}\n", DisplayName = "doc comment")]
-    public void FieldWithoutModifiers_KeepsItsLayout(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void FieldWithoutModifiers_KeepsItsLayout(string input, string expected) => Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -818,10 +779,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private ID _id; void M() => _id.Next(); }", DisplayName = "all-caps name starting with I")]
     [DataRow("class C { private IPv4Address _a; void M() => _a.Advance(); }", DisplayName = "name with a digit starting with I")]
     [DataRow("class C { private Timer _t; void M() => _t.Tick(); }", DisplayName = "well-known class name without its namespace imported")]
-    public void MethodCallOnFieldOfPossiblyMutableStructType_KeepsFieldMutable(string input)
-    {
-        Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void MethodCallOnFieldOfPossiblyMutableStructType_KeepsFieldMutable(string input) => Assert.AreEqual(input, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -836,10 +794,7 @@ public sealed class ReadonlyFieldConverterTests
     [DataRow("class C { private Unknown _u; void M() { _u?.Reset(); } }", "class C { private readonly Unknown _u; void M() { _u?.Reset(); } }", DisplayName = "null-conditional call")]
     [DataRow("class C { private IClock _c; C(IClock c) { _c = c; } void M() => _c.Now(); }", "class C { private readonly IClock _c; C(IClock c) { _c = c; } void M() => _c.Now(); }", DisplayName = "interface-named type declared elsewhere")]
     [DataRow("using System.Threading; class C { private Timer _t; void M() => _t.Dispose(); }", "using System.Threading; class C { private readonly Timer _t; void M() => _t.Dispose(); }", DisplayName = "well-known class with its namespace imported")]
-    public void MethodCallOnFieldOfReferenceOrImmutableType_BecomesReadonly(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
-    }
+    public void MethodCallOnFieldOfReferenceOrImmutableType_BecomesReadonly(string input, string expected) => Assert.AreEqual(expected, _converter.AddReadonlyWhenSafe(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

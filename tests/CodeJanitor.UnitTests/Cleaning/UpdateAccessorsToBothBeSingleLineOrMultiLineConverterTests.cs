@@ -19,10 +19,7 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
     }
 
     [TestCleanup]
-    public void TestCleanup()
-    {
-        Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine = false;
-    }
+    public void TestCleanup() => Settings.Default.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine = false;
 
     [TestMethod]
     public void SettingDisabled_ReturnsUnchanged()
@@ -154,10 +151,7 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
     [DataRow("interface I\r\n{\r\n    int P { get; set; }\r\n    event System.Action E;\r\n}\r\n", DisplayName = "interface members")]
     [DataRow("class C\r\n{\r\n#if NEVER_DEFINED\r\n    int P { get { return 1; } set\r\n    {\r\n    } }\r\n#endif\r\n}\r\n", DisplayName = "disabled preprocessor branch")]
     [DataRow("interface I { event System.Action E; }\r\nclass C : I\r\n{\r\n    event System.Action I.E;\r\n}\r\n", DisplayName = "explicit interface event without accessors (syntax error)")]
-    public void AccessorsThatAreAlreadyConsistentOrHaveNoBlockBodies_AreUnchanged(string source)
-    {
-        Assert.AreEqual(source, _converter.Apply(source));
-    }
+    public void AccessorsThatAreAlreadyConsistentOrHaveNoBlockBodies_AreUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
 
     [TestMethod]
     [DataRow(
@@ -176,20 +170,14 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverterTests
         "class C\n{\n    event System.Action E\n    {\n        add { _e += value; }\n        remove\n        {\n            _e -= value;\n        }\n    }\n}\n",
         "class C\n{\n    event System.Action E\n    {\n        add { _e += value; }\n        remove { _e -= value; }\n    }\n}\n",
         DisplayName = "LF event remove accessor compressed")]
-    public void InconsistentAccessors_FollowTheFirstAccessorKeepingIndentationAndLineBreaks(string source, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(source));
-    }
+    public void InconsistentAccessors_FollowTheFirstAccessorKeepingIndentationAndLineBreaks(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
 
     [TestMethod]
     [DataRow("class C\r\n{\r\n    int P\r\n    {\r\n        get { return _p; }\r\n        set\r\n        {\r\n            // store\r\n            _p = value;\r\n        }\r\n    }\r\n}\r\n", DisplayName = "comment line in the body")]
     [DataRow("class C\r\n{\r\n    int P\r\n    {\r\n        get { return _p; }\r\n        set\r\n        {\r\n            _p = value; // store\r\n        }\r\n    }\r\n}\r\n", DisplayName = "trailing comment in the body")]
     [DataRow("class C\r\n{\r\n    int P\r\n    {\r\n        get { return _p; }\r\n        set // store\r\n        {\r\n            _p = value;\r\n        }\r\n    }\r\n}\r\n", DisplayName = "comment after the keyword")]
     [DataRow("class C\r\n{\r\n    int P\r\n    {\r\n        get { return _p; }\r\n        set\r\n        {\r\n            _p = Compute(1,\r\n                2);\r\n        }\r\n    }\r\n}\r\n", DisplayName = "statement spanning two lines")]
-    public void AccessorsThatCannotBeCompressedWithoutLosingLayout_AreUnchanged(string source)
-    {
-        Assert.AreEqual(source, _converter.Apply(source));
-    }
+    public void AccessorsThatCannotBeCompressedWithoutLosingLayout_AreUnchanged(string source) => Assert.AreEqual(source, _converter.Apply(source));
 
     [TestMethod]
     public void SingleLineSetterWhoseBodyAlreadyBreaksTheLine_IsNotExpandedIntoABlankLine()

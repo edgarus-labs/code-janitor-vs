@@ -60,10 +60,7 @@ internal sealed class CodeCleanupManager
         /// </summary>
         /// <param name="source">The source.</param>
         /// <returns>A string value produced by this method.</returns>
-        public string Apply(string source)
-        {
-            return _apply(source) ?? source;
-        }
+        public string Apply(string source) => _apply(source) ?? source;
     }
 
     /// <summary>
@@ -204,10 +201,7 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeCleanupManager" /> class.</returns>
-    internal static CodeCleanupManager GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeCleanupManager(package));
-    }
+    internal static CodeCleanupManager GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeCleanupManager(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeCleanupManager" /> class.
@@ -258,7 +252,10 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem)) return;
+        if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem))
+        {
+            return;
+        }
 
         // Instrumentation for BL-018: measure per-item cleanup cost and whether the document
         // had to be opened by cleanup (opening documents is the primary performance concern).
@@ -361,7 +358,10 @@ internal sealed class CodeCleanupManager
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem)) return;
+        if (!_codeCleanupAvailabilityLogic.CanCleanupProjectItem(projectItem))
+        {
+            return;
+        }
 
         // Instrumentation for BL-018: measure per-item cleanup cost and whether the document
         // had to be opened by cleanup (opening documents is the primary performance concern).
@@ -821,10 +821,7 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source text.</param>
     /// <param name="filePath">The file path whose effective cleanup settings select the transformations.</param>
     /// <returns>Transformed source text.</returns>
-    internal static string ApplyHeadlessCSharpTransformations(string source, string filePath)
-    {
-        return CreateHeadlessCSharpPipeline(source, filePath).Run(source);
-    }
+    internal static string ApplyHeadlessCSharpTransformations(string source, string filePath) => CreateHeadlessCSharpPipeline(source, filePath).Run(source);
 
     /// <summary>
     /// Creates the closed-file C# cleanup pipeline for a file from its effective cleanup settings
@@ -833,10 +830,7 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source text the pipeline will run on.</param>
     /// <param name="filePath">The file path.</param>
     /// <returns>The pipeline.</returns>
-    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(string source, string filePath)
-    {
-        return CreateHeadlessCSharpPipeline(source, filePath, EffectiveCleanupSettings.For(filePath));
-    }
+    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(string source, string filePath) => CreateHeadlessCSharpPipeline(source, filePath, EffectiveCleanupSettings.For(filePath));
 
     /// <summary>
     /// Creates the closed-file C# cleanup pipeline for a file from its already resolved effective cleanup settings.
@@ -1090,26 +1084,20 @@ internal sealed class CodeCleanupManager
     /// <param name="transformation">The skipped transformation.</param>
     /// <param name="skipMessage">The warning explaining why the transformation is skipped.</param>
     /// <returns>The pipeline step.</returns>
-    private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage)
-    {
-        return new DelegateSourceTransformation(transformation.Name, source =>
-        {
-            if (transformation.Apply(source) != source)
-            {
-                OutputWindowHelper.WarningWriteLine(skipMessage);
-            }
+    private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage) => new DelegateSourceTransformation(transformation.Name, source =>
+                                                                                                                                       {
+                                                                                                                                           if (transformation.Apply(source) != source)
+                                                                                                                                           {
+                                                                                                                                               OutputWindowHelper.WarningWriteLine(skipMessage);
+                                                                                                                                           }
 
-            return source;
-        });
-    }
+                                                                                                                                           return source;
+                                                                                                                                       });
 
     /// <summary>
     /// Transformations for a file produced by the top-level type split.
     /// </summary>
-    internal static string ApplyHeadlessCSharpTransformationsForCreatedFile(string source, string filePath)
-    {
-        return ApplyHeadlessCSharpTransformations(source, filePath);
-    }
+    internal static string ApplyHeadlessCSharpTransformationsForCreatedFile(string source, string filePath) => ApplyHeadlessCSharpTransformations(source, filePath);
 
     /// <summary>
     /// Determines whether the C# cleanup of a closed file still requires the editor-backed DTE path. "Remove and Sort
@@ -1118,7 +1106,10 @@ internal sealed class CodeCleanupManager
     /// <returns>True if editor-backed cleanup must run, otherwise false.</returns>
     internal static bool RequiresEditorCleanupForCSharp()
     {
-        if (Settings.Default.Reorganizing_RunAtStartOfCleanup) return true;
+        if (Settings.Default.Reorganizing_RunAtStartOfCleanup)
+        {
+            return true;
+        }
 
         if (Settings.Default.ThirdParty_UseJetBrainsReSharperCleanup ||
             Settings.Default.ThirdParty_UseTelerikJustCodeCleanup ||
@@ -1186,12 +1177,9 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
-    {
-        return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
+    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader) => source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
             ? source
             : settingsFileHeader + source;
-    }
 
     /// <summary>
     /// Replaces the leading header in the source with the trimmed settings header if they differ, otherwise returns the original source unchanged.
@@ -1326,40 +1314,28 @@ internal sealed class CodeCleanupManager
     /// <param name="value">The value.</param>
     /// <param name="newline">The newline.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string NormalizeLineEndings(string value, string newline)
-    {
-        return value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", newline);
-    }
+    private static string NormalizeLineEndings(string value, string newline) => value.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", newline);
 
     /// <summary>
     /// Removes all leading lines that contain only spaces or tabs followed by a newline from the start of the string, returning a new string with no side effects.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesAtTop(string source)
-    {
-        return Regex.Replace(source, @"\A(?:[ \t]*\r?\n)+", string.Empty);
-    }
+    private static string RemoveBlankLinesAtTop(string source) => Regex.Replace(source, @"\A(?:[ \t]*\r?\n)+", string.Empty);
 
     /// <summary>
     /// The method removes all trailing blank lines (consisting of newline characters followed by optional spaces/tabs) from the end of.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesAtBottom(string source)
-    {
-        return Regex.Replace(source, @"(?:\r?\n[ \t]*)+\z", string.Empty);
-    }
+    private static string RemoveBlankLinesAtBottom(string source) => Regex.Replace(source, @"(?:\r?\n[ \t]*)+\z", string.Empty);
 
     /// <summary>
     /// Removes a blank line immediately following an attribute declaration, unless the next non-blank line is a comment, by replacing the double newline with a single newline while preserving the file&apos;s line ending style.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesAfterAttributes(string source)
-    {
-        return ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
-    }
+    private static string RemoveBlankLinesAfterAttributes(string source) => ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
 
     /// <summary>
     /// Removes the blank lines between a documentation comment and the declaration it documents, keeping the
@@ -1367,40 +1343,28 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>The source without blank lines after documentation comments.</returns>
-    private static string RemoveBlankLinesAfterDocumentationComments(string source)
-    {
-        return ReplaceUsingFileLineEnding(source, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern, "$1{NL}");
-    }
+    private static string RemoveBlankLinesAfterDocumentationComments(string source) => ReplaceUsingFileLineEnding(source, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern, "$1{NL}");
 
     /// <summary>
     /// The user asks for exactly one concise summary sentence (plain text only, no XML, no quotes) about the C# method `RemoveBlankLinesAfterOpeningBrace`. The body: `return ReplaceUsingFileLineEnding(source, @&quot;\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}&quot;, &quot;{$1{NL}&quot;);` Let&apos;s analyze. The method calls `ReplaceUsingFileLineEnding(source, pattern, replacement)`. The pattern matches an opening brace `\{`, then captures only whitespace (spaces/tabs) and optional `//` comments (the `[ \t]*(//[^\r\n]*)*` part) but... Actually `([ \t]*(//[^\r\n]*)*)` captures zero or more sequences of optional whitespace followed by a comment. Then `(\r?\n){2,}` matches two or more line endings. Replacement is `{$1{NL}`. Presumably `{NL}` is a placeholder for the file line ending, or the method replaces it. But the replacement is `&quot;{$1{NL}&quot;` — note there&apos;s no newline after the opening brace? Let&apos;s think. `ReplaceUsingFileLineEnding.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesAfterOpeningBrace(string source)
-    {
-        return ReplaceUsingFileLineEnding(source, @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}", "{$1{NL}");
-    }
+    private static string RemoveBlankLinesAfterOpeningBrace(string source) => ReplaceUsingFileLineEnding(source, @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}", "{$1{NL}");
 
     /// <summary>
     /// Replaces two or more newline sequences preceding a closing brace with a single newline, preserving any preceding indentation and using the source file&apos;s line ending, with no exceptions thrown.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesBeforeClosingBrace(string source)
-    {
-        return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)\}", "{NL}$2}");
-    }
+    private static string RemoveBlankLinesBeforeClosingBrace(string source) => ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)\}", "{NL}$2}");
 
     /// <summary>
     /// Removes extra blank lines preceding else, catch, or finally clauses by collapsing multiple line endings into one while preserving indentation and the keyword, with no side effects or exceptions detected.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesBetweenChainedStatements(string source)
-    {
-        return ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)", "{NL}$2$3$4");
-    }
+    private static string RemoveBlankLinesBetweenChainedStatements(string source) => ReplaceUsingFileLineEnding(source, @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)", "{NL}$2$3$4");
 
     /// <summary>
     /// Determines whether the source string uses CRLF or LF line endings and performs a multiline regex replacement, substituting any &quot;{NL}&quot; placeholder in the replacement string with that detected newline sequence, without throwing exceptions.
@@ -1474,7 +1438,10 @@ internal sealed class CodeCleanupManager
 
         _cleanupExecutionStats.EditorItems++;
 
-        if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true)) return false;
+        if (!_codeCleanupAvailabilityLogic.CanCleanupDocument(document, true))
+        {
+            return false;
+        }
 
         // Make sure the document to be cleaned up is active, required for some commands like format document.
         document.Activate();
@@ -1564,10 +1531,7 @@ internal sealed class CodeCleanupManager
     /// <summary>
     /// Resets execution statistics for the next cleanup batch.
     /// </summary>
-    internal void ResetCleanupExecutionStats()
-    {
-        _cleanupExecutionStats = default(CleanupExecutionStats);
-    }
+    internal void ResetCleanupExecutionStats() => _cleanupExecutionStats = default(CleanupExecutionStats);
 
     /// <summary>
     /// Records a failure that was isolated to one cleanup item.
@@ -2301,7 +2265,10 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand))) return;
+        if (!settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand)))
+        {
+            return;
+        }
 
         _commandHelper.ExecuteCommand(textDocument, "Edit.FormatDocument");
     }
@@ -2314,7 +2281,10 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.ThirdParty_UseJetBrainsReSharperCleanup) return;
+        if (!Settings.Default.ThirdParty_UseJetBrainsReSharperCleanup)
+        {
+            return;
+        }
 
         // This command changed to include the leading 'ReSharper.' in version 2016.1.
         // Execute both commands for backwards compatibility.
@@ -2329,7 +2299,10 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.ThirdParty_UseTelerikJustCodeCleanup) return;
+        if (!Settings.Default.ThirdParty_UseTelerikJustCodeCleanup)
+        {
+            return;
+        }
 
         _commandHelper.ExecuteCommand(textDocument, "JustCode.JustCode_CleanCodeWithDefaultProfile");
     }
@@ -2342,7 +2315,10 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!Settings.Default.ThirdParty_UseXAMLStylerCleanup) return;
+        if (!Settings.Default.ThirdParty_UseXAMLStylerCleanup)
+        {
+            return;
+        }
 
         _commandHelper.ExecuteCommand(textDocument, "EditorContextMenus.XAMLEditor.BeautifyXaml", "EditorContextMenus.XAMLEditor.FormatXAML", "EditorContextMenus.CodeWindow.FormatXAML");
     }
@@ -2355,7 +2331,10 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!OtherCleaningCommands.Value.Any()) return;
+        if (!OtherCleaningCommands.Value.Any())
+        {
+            return;
+        }
 
         foreach (var commandName in OtherCleaningCommands.Value)
         {

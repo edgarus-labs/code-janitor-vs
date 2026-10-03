@@ -39,10 +39,7 @@ internal sealed class UsingDirectivePlacementLogic
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A UsingDirectivePlacementLogic value produced by this method.</returns>
-    internal static UsingDirectivePlacementLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new UsingDirectivePlacementLogic(package));
-    }
+    internal static UsingDirectivePlacementLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new UsingDirectivePlacementLogic(package));
 
     private UsingDirectivePlacementLogic(CodeJanitorPackage package)
     {

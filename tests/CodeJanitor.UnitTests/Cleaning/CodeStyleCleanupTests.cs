@@ -152,13 +152,12 @@ public sealed class CodeStyleCleanupTests
         IReadOnlyDictionary<string, string> values = CodeStyleRules.ParseSetting(
             "csharp_prefer_braces=False;dotnet_style_null_propagation=sometimes;csharp_style_expression_bodied_methods=When_On_Single_Line");
 
-        CollectionAssert.AreEquivalent(
+        Assert.AreSequenceEqual(
             new Dictionary<string, string>
             {
                 ["csharp_prefer_braces"] = "false",
                 ["csharp_style_expression_bodied_methods"] = "when_on_single_line",
-            },
-            values.ToDictionary(entry => entry.Key, entry => entry.Value));
+            }, values.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         Assert.AreEqual("csharp_prefer_braces=false", CodeStyleRules.FormatSetting(new Dictionary<string, string> { ["csharp_prefer_braces"] = "FALSE" }));
     }
 
@@ -177,10 +176,7 @@ public sealed class CodeStyleCleanupTests
     [DataRow("csharp_preferred_modifier_order=public,public", DisplayName = "duplicate modifier")]
     [DataRow("csharp_preferred_modifier_order=public,Static", DisplayName = "modifiers are case-sensitive")]
     [DataRow("csharp_preferred_modifier_order=public,,static", DisplayName = "empty modifier")]
-    public void ParseSetting_MalformedEntries_EnableNoRule(string setting)
-    {
-        Assert.IsEmpty(CodeStyleRules.ParseSetting(setting));
-    }
+    public void ParseSetting_MalformedEntries_EnableNoRule(string setting) => Assert.IsEmpty(CodeStyleRules.ParseSetting(setting));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -189,13 +185,12 @@ public sealed class CodeStyleCleanupTests
         IReadOnlyDictionary<string, string> values = CodeStyleRules.ParseSetting(
             " csharp_prefer_braces = true ;csharp_prefer_braces=When_Multiline;; csharp_preferred_modifier_order = public , static,readonly ;csharp_prefer_braces=bogus");
 
-        CollectionAssert.AreEquivalent(
+        Assert.AreSequenceEqual(
             new Dictionary<string, string>
             {
                 ["csharp_prefer_braces"] = "when_multiline",
                 ["csharp_preferred_modifier_order"] = "public , static,readonly",
-            },
-            values.ToDictionary(entry => entry.Key, entry => entry.Value));
+            }, values.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -225,7 +220,7 @@ public sealed class CodeStyleCleanupTests
     {
         Assert.IsTrue(CodeStyleRules.TryGet("csharp_prefer_braces", out CodeStyleRule rule));
         Assert.AreEqual("csharp_prefer_braces", rule.Key);
-        CollectionAssert.AreEqual(new[] { "IDE0011" }, rule.DiagnosticIds.ToArray());
+        Assert.AreSequenceEqual(new[] { "IDE0011" }, rule.DiagnosticIds.ToArray());
 
         Assert.IsFalse(CodeStyleRules.TryGet(null, out rule));
         Assert.IsNull(rule);
@@ -252,7 +247,7 @@ public sealed class CodeStyleCleanupTests
     [TestCategory("Cleaning UnitTests")]
     public void Catalog_GroupsAreContiguous_AndDescriptionsAreDistinctWithinAGroup()
     {
-        List<string> groupOrder = new List<string>();
+        List<string> groupOrder = [];
         foreach (CodeStyleRule rule in CodeStyleRules.All)
         {
             if (groupOrder.Count == 0 || groupOrder[groupOrder.Count - 1] != rule.Group)
@@ -265,10 +260,10 @@ public sealed class CodeStyleCleanupTests
         foreach (IGrouping<string, CodeStyleRule> group in CodeStyleRules.All.GroupBy(rule => rule.Group))
         {
             List<string> descriptions = group.Select(rule => rule.Description).ToList();
-            CollectionAssert.AllItemsAreUnique(descriptions, group.Key);
+            Assert.AreAllDistinct(descriptions, group.Key);
         }
 
-        CollectionAssert.AllItemsAreUnique(CodeStyleRules.All.Select(rule => rule.Key).ToList());
+        Assert.AreAllDistinct(CodeStyleRules.All.Select(rule => rule.Key).ToList());
     }
 
     [TestMethod]

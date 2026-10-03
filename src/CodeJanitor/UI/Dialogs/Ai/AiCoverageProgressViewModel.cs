@@ -89,7 +89,10 @@ public sealed class AiCoverageProgressViewModel : Bindable, IProgress<AiCoverage
     /// <param name="value">The value.</param>
     public void Report(AiCoverageProgressReport value)
     {
-        if (value is null) return;
+        if (value is null)
+        {
+            return;
+        }
 
         CurrentCoveragePercentage = value.CurrentCoveragePercentage;
         StatusMessage = value.StatusMessage;

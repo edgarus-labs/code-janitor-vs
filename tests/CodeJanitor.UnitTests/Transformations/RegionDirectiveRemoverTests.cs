@@ -1,3 +1,4 @@
+using System.Text;
 using CodeJanitor.Logic.Transformations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,17 +10,11 @@ public sealed class RegionDirectiveRemoverTests
     private RegionDirectiveRemover _remover;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _remover = new RegionDirectiveRemover();
-    }
+    public void TestInitialize() => _remover = new RegionDirectiveRemover();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Name_ReturnsCorrectName()
-    {
-        Assert.AreEqual("Remove region directives", _remover.Name);
-    }
+    public void Name_ReturnsCorrectName() => Assert.AreEqual("Remove region directives", _remover.Name);
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -70,10 +65,7 @@ public class C
         "class C\r\n{\r\n    // #region not a directive\r\n    string s = \"#endregion\";\r\n    #regionless\r\n}\r\n",
         DisplayName = "region text that is not a directive line")]
     [DataRow("   \r\n", "   \r\n", DisplayName = "whitespace-only file")]
-    public void Apply_RemovesOnlyRegionDirectiveLines(string input, string expected)
-    {
-        Assert.AreEqual(expected, _remover.Apply(input));
-    }
+    public void Apply_RemovesOnlyRegionDirectiveLines(string input, string expected) => Assert.AreEqual(expected, _remover.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -81,27 +73,18 @@ public class C
     [DataRow("class C\n{\n    string s = \"\"\"\n        #endregion keep me\n        \"\"\";\n}\n", DisplayName = "raw string")]
     [DataRow("class C\n{\n    string s = $@\"\n#region {1}\n\";\n}\n", DisplayName = "interpolated verbatim string")]
     [DataRow("class C\n{\n    /*\n    #region keep me\n    */\n}\n", DisplayName = "multi-line comment")]
-    public void Apply_DoesNotRemoveLinesInsideStringLiteralsOrComments(string input)
-    {
-        Assert.AreEqual(input, _remover.Apply(input));
-    }
+    public void Apply_DoesNotRemoveLinesInsideStringLiteralsOrComments(string input) => Assert.AreEqual(input, _remover.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Apply_CarriageReturnOnlyLineEndings_RemovesTheDirectiveLines()
-    {
-        Assert.AreEqual("class C { }\r", _remover.Apply("#region A\rclass C { }\r#endregion\r"));
-    }
+    public void Apply_CarriageReturnOnlyLineEndings_RemovesTheDirectiveLines() => Assert.AreEqual("class C { }\r", _remover.Apply("#region A\rclass C { }\r#endregion\r"));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("#regionX\r\n#region_x\r\n#endregions\r\n#endregion1\r\n# region A\r\n#reg\r\n#\r\n", "#regionX\r\n#region_x\r\n#endregions\r\n#endregion1\r\n# region A\r\n#reg\r\n#\r\n", DisplayName = "keyword continues into a word character or is not a directive")]
     [DataRow("#region\r\n#region\tA\r\n \t#endregion\r\nx", "x", DisplayName = "bare keyword, tab separator, mixed indentation")]
     [DataRow("x\r\n#region", "x\r\n", DisplayName = "directive on the last line without a line break")]
-    public void Apply_MatchesOnlyWholeRegionKeywords(string input, string expected)
-    {
-        Assert.AreEqual(expected, _remover.Apply(input));
-    }
+    public void Apply_MatchesOnlyWholeRegionKeywords(string input, string expected) => Assert.AreEqual(expected, _remover.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -114,18 +97,18 @@ public class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    [Timeout(10000)]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void DeeplyNestedInactiveBranches_AreScannedInLinearTimeAndKeepRegionLinesInsideLiterals()
     {
-        const int depth = 20;
-        var input = new System.Text.StringBuilder();
-        for (int i = 0; i < depth; i++)
+        const int Depth = 20;
+        StringBuilder input = new System.Text.StringBuilder();
+        for (int i = 0; i < Depth; i++)
         {
             input.Append("#if NEVER_").Append(i).Append("\r\n");
         }
 
         input.Append("const string T = @\"\r\n#region keep me\r\n\";\r\n#region drop me\r\n");
-        for (int i = 0; i < depth; i++)
+        for (int i = 0; i < Depth; i++)
         {
             input.Append("#endif\r\n");
         }

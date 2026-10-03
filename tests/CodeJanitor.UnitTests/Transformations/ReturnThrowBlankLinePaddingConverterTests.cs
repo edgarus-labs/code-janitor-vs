@@ -13,10 +13,7 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     private ISourceTransformation _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new ReturnThrowBlankLinePaddingConverter();
-    }
+    public void TestInitialize() => _converter = new ReturnThrowBlankLinePaddingConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -98,17 +95,11 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void EmptySource_ReturnsUnchanged()
-    {
-        Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
-    }
+    public void EmptySource_ReturnsUnchanged() => Assert.AreEqual(string.Empty, _converter.Apply(string.Empty));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void NullSource_ReturnsNull()
-    {
-        Assert.IsNull(_converter.Apply(null));
-    }
+    public void NullSource_ReturnsNull() => Assert.IsNull(_converter.Apply(null));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -185,18 +176,12 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [DataRow("class C\r{\r    int M()\r    {\r        Log();\r        return 1;\r    }\r}\r",
         "class C\r{\r    int M()\r    {\r        Log();\r\r        return 1;\r    }\r}\r",
         DisplayName = "carriage-return-only line breaks")]
-    public void RealisticInputs_ArePaddedOnlyBeforeBlockLevelReturnAndThrow(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void RealisticInputs_ArePaddedOnlyBeforeBlockLevelReturnAndThrow(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("   \r\n\t\r\n", DisplayName = "whitespace only")]
     [DataRow("class C { void M( { Log(); return; }", DisplayName = "syntax errors on one line")]
     [DataRow("class C\r\n{\r\n    void M() { Foo(); return; }\r\n}\r\n", DisplayName = "return on the same line as the previous statement")]
-    public void InputsWithoutSeparateReturnLines_AreUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void InputsWithoutSeparateReturnLines_AreUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 }

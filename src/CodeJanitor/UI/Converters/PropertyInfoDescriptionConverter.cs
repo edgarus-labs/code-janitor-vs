@@ -27,10 +27,16 @@ public sealed class PropertyInfoDescriptionConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var propertyInfo = value as PropertyInfo;
-        if (propertyInfo is null) return null;
+        if (propertyInfo is null)
+        {
+            return null;
+        }
 
         var descriptionAttribute = propertyInfo.GetCustomAttribute<DescriptionAttribute>();
-        if (descriptionAttribute is null) return null;
+        if (descriptionAttribute is null)
+        {
+            return null;
+        }
 
         return descriptionAttribute.Description;
     }
@@ -43,8 +49,5 @@ public sealed class PropertyInfoDescriptionConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }

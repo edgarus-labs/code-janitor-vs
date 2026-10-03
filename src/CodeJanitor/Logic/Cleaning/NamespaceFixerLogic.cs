@@ -4,7 +4,6 @@ using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.IO;
-using System.Text;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -22,10 +21,7 @@ internal sealed class NamespaceFixerLogic
     /// </summary>
     /// <param name="package">The package.</param>
     /// <returns>A NamespaceFixerLogic value produced by this method.</returns>
-    internal static NamespaceFixerLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new NamespaceFixerLogic(package));
-    }
+    internal static NamespaceFixerLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new NamespaceFixerLogic(package));
 
     private NamespaceFixerLogic(CodeJanitorPackage package)
     {

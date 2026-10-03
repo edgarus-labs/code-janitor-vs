@@ -30,10 +30,7 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
     public string Name => "Normalize blank lines";
 
     /// <inheritdoc />
-    public string Apply(string source)
-    {
-        return Normalize(source);
-    }
+    public string Apply(string source) => Normalize(source);
 
     /// <summary>
     /// Collapses any run of two or more consecutive blank lines to a single blank line.
@@ -84,14 +81,12 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
         }
 
         int offset = position - trivia.SpanStart;
+
         return CSharpSyntaxTree.ParseText(trivia.ToString()).GetRoot().FindToken(offset).Span.Contains(offset);
     }
 
     /// <summary>
     /// Returns the line break used in a matched run: CRLF when the run contains one, LF otherwise.
     /// </summary>
-    private static string NewLineOf(Match match)
-    {
-        return match.Value.Contains("\r\n") ? "\r\n" : "\n";
-    }
+    private static string NewLineOf(Match match) => match.Value.Contains("\r\n") ? "\r\n" : "\n";
 }

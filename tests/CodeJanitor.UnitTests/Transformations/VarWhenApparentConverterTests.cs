@@ -16,10 +16,7 @@ public sealed class VarWhenApparentConverterTests
     private ITypeStyleConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new VarWhenApparentConverter();
-    }
+    public void TestInitialize() => _converter = new VarWhenApparentConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -121,10 +118,7 @@ public sealed class VarWhenApparentConverterTests
     [DataRow(null, DisplayName = "null")]
     [DataRow("", DisplayName = "empty")]
     [DataRow("   \r\n\t", DisplayName = "whitespace only")]
-    public void EmptyOrWhitespaceSource_IsReturnedUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
-    }
+    public void EmptyOrWhitespaceSource_IsReturnedUnchanged(string input) => Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -144,10 +138,7 @@ public sealed class VarWhenApparentConverterTests
     [DataRow("class C { void M() { for (Foo x = new Foo(); x != null; x = null) { } } }", DisplayName = "for initializer")]
     [DataRow("class C { void M() { using (Foo x = new Foo()) { } } }", DisplayName = "using statement")]
     [DataRow("class C { Foo P { get; } = new Foo(); }", DisplayName = "property initializer")]
-    public void DeclarationWhoseTypeIsNotApparent_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
-    }
+    public void DeclarationWhoseTypeIsNotApparent_IsUnchanged(string input) => Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -164,10 +155,7 @@ public sealed class VarWhenApparentConverterTests
     [DataRow("class C { void M() { void L() { Foo x = new Foo(); } } }", "class C { void M() { void L() { var x = new Foo(); } } }", DisplayName = "inside local function")]
     [DataRow("record R { void M() { R x = new R(); } }", "record R { void M() { var x = new R(); } }", DisplayName = "inside record")]
     [DataRow("class C<T> where T : new() { void M() { T x = new T(); } }", "class C<T> where T : new() { void M() { var x = new T(); } }", DisplayName = "generic type parameter")]
-    public void DeclarationWithApparentType_BecomesVar(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.UseVarWhenApparent(input));
-    }
+    public void DeclarationWithApparentType_BecomesVar(string input, string expected) => Assert.AreEqual(expected, _converter.UseVarWhenApparent(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -325,10 +313,7 @@ public sealed class VarWhenApparentConverterTests
     [DataRow("class C { void M() { object[] a = new object[1][]; a[0] = 1; } }", DisplayName = "jagged array created for a one-dimensional array")]
     [DataRow("class C { void M() { int[][] a = new int[1][,]; } }", DisplayName = "different inner rank")]
     [DataRow("class C { void M() { int[,] a = new int[1][]; } }", DisplayName = "different rank")]
-    public void DeclarationWhereVarChangesTheMeaning_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
-    }
+    public void DeclarationWhereVarChangesTheMeaning_IsUnchanged(string input) => Assert.AreEqual(input, _converter.UseVarWhenApparent(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

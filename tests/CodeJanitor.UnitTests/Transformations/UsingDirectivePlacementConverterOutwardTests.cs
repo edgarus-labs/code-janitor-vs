@@ -634,11 +634,9 @@ public sealed class UsingDirectivePlacementConverterOutwardTests
     [DataRow("namespace N;\r\n\r\n#if DEBUG\r\nclass D { }\r\n#else\r\nclass C { }\r\n#endif\r\n", false, DisplayName = "#if block of types in a file-scoped namespace")]
     [DataRow("namespace N\r\n{\r\n#if !DEBUG\r\n    class C { }\r\n#endif\r\n}\r\n", false, DisplayName = "active #if block around the first member")]
     public void HasUsingsInsideNamespace_CountsUsingsInTheUsingSectionIncludingDisabledOnes(string source, bool expected)
-    {
         // The precheck parses without the project's symbols: a using in an #if block is disabled text there, but may be
         // active in the project, where the move has to decide (and skip with a reason).
-        Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsInsideNamespace(source));
-    }
+        => Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsInsideNamespace(source));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -934,10 +932,7 @@ public sealed class UsingDirectivePlacementConverterOutwardTests
     [DataRow("using System;\r\n\r\nConsole.WriteLine(\"namespace N { using X; }\");\r\n", false, DisplayName = "top-level statements")]
     [DataRow("   \r\n", false, DisplayName = "whitespace-only file")]
     [DataRow("namespace Outer\r\n{\r\n    namespace Inner\r\n    {\r\n        using System;\r\n    }\r\n}\r\n", true, DisplayName = "using in a nested namespace")]
-    public void HasUsingsInsideNamespace_EdgeCases(string source, bool expected)
-    {
-        Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsInsideNamespace(source));
-    }
+    public void HasUsingsInsideNamespace_EdgeCases(string source, bool expected) => Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsInsideNamespace(source));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -1055,7 +1050,7 @@ public sealed class UsingDirectivePlacementConverterOutwardTests
         UsingDirectivePlacementResult result = await MoveAsync(document);
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
-        CollectionAssert.AreEquivalent((System.Collections.ICollection)before, (System.Collections.ICollection)await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), result.Text);
+        Assert.AreSequenceEqual((System.Collections.ICollection)before, (System.Collections.ICollection)await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder, result.Text);
 
         return result.Text;
     }

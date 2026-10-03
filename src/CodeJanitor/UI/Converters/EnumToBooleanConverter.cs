@@ -22,10 +22,7 @@ public sealed class EnumToBooleanConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value.Equals(parameter);
-    }
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value.Equals(parameter);
 
     /// <summary>
     /// Converts a value.
@@ -35,8 +32,5 @@ public sealed class EnumToBooleanConverter : IValueConverter
     /// <param name="parameter">The converter parameter to use.</param>
     /// <param name="culture">The culture to use in the converter.</param>
     /// <returns>A converted value. If the method returns null, the valid null value is used.</returns>
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value.Equals(true) ? parameter : Binding.DoNothing;
-    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value.Equals(true) ? parameter : Binding.DoNothing;
 }

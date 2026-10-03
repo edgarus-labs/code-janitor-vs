@@ -69,10 +69,7 @@ internal static class FileTextStyle
     /// <param name="filePath">The file path.</param>
     /// <param name="encoding">The encoding used when .editorconfig does not name one.</param>
     /// <returns>The encoding.</returns>
-    internal static Encoding ResolveEncoding(string filePath, Encoding encoding)
-    {
-        return ParseCharset(EditorConfigHelper.LoadOptions(filePath)) ?? encoding;
-    }
+    internal static Encoding ResolveEncoding(string filePath, Encoding encoding) => ParseCharset(EditorConfigHelper.LoadOptions(filePath)) ?? encoding;
 
     /// <summary>
     /// Gets the line ending to use for text generated for a file: .editorconfig <c>end_of_line</c>, otherwise the
@@ -81,10 +78,7 @@ internal static class FileTextStyle
     /// <param name="filePath">The file path.</param>
     /// <param name="text">The current text of the file.</param>
     /// <returns>The line ending.</returns>
-    internal static string ResolveLineEnding(string filePath, string text)
-    {
-        return ParseEndOfLine(EditorConfigHelper.LoadOptions(filePath)) ?? GetDominantLineEnding(text);
-    }
+    internal static string ResolveLineEnding(string filePath, string text) => ParseEndOfLine(EditorConfigHelper.LoadOptions(filePath)) ?? GetDominantLineEnding(text);
 
     /// <summary>
     /// Gets the line ending used by most lines of a text.
@@ -114,10 +108,7 @@ internal static class FileTextStyle
     /// <param name="text">The text.</param>
     /// <param name="lineEnding">The line ending.</param>
     /// <returns>The text with uniform line endings.</returns>
-    internal static string NormalizeLineEndings(string text, string lineEnding)
-    {
-        return string.IsNullOrEmpty(text) ? text : LineBreak.Replace(text, _ => lineEnding);
-    }
+    internal static string NormalizeLineEndings(string text, string lineEnding) => string.IsNullOrEmpty(text) ? text : LineBreak.Replace(text, _ => lineEnding);
 
     /// <summary>
     /// Gets the line ending of a text that uses exactly one kind.
@@ -215,8 +206,5 @@ internal static class FileTextStyle
         }
     }
 
-    private static string ReadOption(IReadOnlyDictionary<string, string> options, string key)
-    {
-        return options.TryGetValue(key, out var value) && value is not null ? value.Trim().ToLowerInvariant() : null;
-    }
+    private static string ReadOption(IReadOnlyDictionary<string, string> options, string key) => options.TryGetValue(key, out var value) && value is not null ? value.Trim().ToLowerInvariant() : null;
 }

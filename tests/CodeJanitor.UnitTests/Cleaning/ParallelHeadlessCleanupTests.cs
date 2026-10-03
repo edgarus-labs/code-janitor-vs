@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using Microsoft.CodeAnalysis.CSharp;
@@ -65,7 +66,7 @@ public sealed class ParallelHeadlessCleanupTests
     public async System.Threading.Tasks.Task RunSemanticStepsAsync_LaterStepThrows_FileRewrittenByAnEarlierStepIsStillCountedAndTheErrorPropagates()
     {
         int changedCount = 0;
-        var steps = new Func<System.Threading.Tasks.Task<bool>>[]
+        Func<Task<bool>>[] steps = new Func<System.Threading.Tasks.Task<bool>>[]
         {
             () => System.Threading.Tasks.Task.FromResult(true),
             () => throw new IOException("sealing failed"),

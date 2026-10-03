@@ -507,10 +507,7 @@ public sealed class UsingDirectivePlacementConverterInwardTests
     [DataRow("namespace N\r\n{\r\n#if DEBUG\r\n    class D { }\r\n#endif\r\n}\r\n", false, DisplayName = "#if block inside the namespace only")]
     [DataRow("#if DEBUG\r\n#endif\r\nnamespace N;\r\n\r\nclass C { }\r\n", true, DisplayName = "empty #if block in front of the namespace")]
     [DataRow("   \r\n", false, DisplayName = "whitespace-only file")]
-    public void HasUsingsOutsideNamespace_CountsOnlyLayoutsTheInwardMoveSupports(string source, bool expected)
-    {
-        Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsOutsideNamespace(source));
-    }
+    public void HasUsingsOutsideNamespace_CountsOnlyLayoutsTheInwardMoveSupports(string source, bool expected) => Assert.AreEqual(expected, UsingDirectivePlacementConverter.HasUsingsOutsideNamespace(source));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -561,7 +558,7 @@ public sealed class UsingDirectivePlacementConverterInwardTests
 
         Assert.AreEqual(UsingDirectivePlacementStatus.Moved, result.Status, result.Reason);
         Assert.AreEqual("namespace Company.App\r\n{\r\n    using System.Text;\r\n    using Missing;\r\n\r\n    class C { StringBuilder b; }\r\n}\r\n", result.Text);
-        CollectionAssert.AreEquivalent((System.Collections.ICollection)before, (System.Collections.ICollection)await CompilingTestProject.GetCompileErrorsAsync(document, result.Text));
+        Assert.AreSequenceEqual((System.Collections.ICollection)before, (System.Collections.ICollection)await CompilingTestProject.GetCompileErrorsAsync(document, result.Text), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]

@@ -16,10 +16,7 @@ public sealed class UsingDirectiveOrganizerTests
     private IUsingDirectiveOrganizer _organizer;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _organizer = new UsingDirectiveOrganizer();
-    }
+    public void TestInitialize() => _organizer = new UsingDirectiveOrganizer();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -147,17 +144,11 @@ public sealed class UsingDirectiveOrganizerTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void EmptySource_Unchanged()
-    {
-        Assert.AreEqual(string.Empty, _organizer.Organize(string.Empty));
-    }
+    public void EmptySource_Unchanged() => Assert.AreEqual(string.Empty, _organizer.Organize(string.Empty));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void NullSource_ReturnsNull()
-    {
-        Assert.IsNull(_organizer.Organize(null));
-    }
+    public void NullSource_ReturnsNull() => Assert.IsNull(_organizer.Organize(null));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -202,10 +193,7 @@ public sealed class UsingDirectiveOrganizerTests
     [DataRow("/// <summary>doc</summary>\r\nusing B;\r\nusing A;\r\n", DisplayName = "doc comment before the usings")]
     [DataRow("#region Usings\r\nusing B;\r\nusing A;\r\n#endregion\r\n", DisplayName = "usings inside #region")]
     [DataRow("using A;\r\nusing B;\r\n\r\nConsole.WriteLine(\"using C; using A;\");\r\n", DisplayName = "top-level statements after sorted usings")]
-    public void Organize_NothingToSortOrUnsafe_ReturnsInputUnchanged(string input)
-    {
-        Assert.AreEqual(input, _organizer.Organize(input));
-    }
+    public void Organize_NothingToSortOrUnsafe_ReturnsInputUnchanged(string input) => Assert.AreEqual(input, _organizer.Organize(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -249,8 +237,5 @@ public sealed class UsingDirectiveOrganizerTests
         "using B;\r\nusing A;\r\n[assembly: System.CLSCompliant(false)]\r\nnamespace N { class C { string s = @\"using Z;\r\nusing Y;\"; } }\r\n",
         "using A;\r\nusing B;\r\n[assembly: System.CLSCompliant(false)]\r\nnamespace N { class C { string s = @\"using Z;\r\nusing Y;\"; } }\r\n",
         DisplayName = "attributes and verbatim strings with code-like text after the usings")]
-    public void Organize_SortsEveryBlock_AndKeepsTheRestOfTheFile(string input, string expected)
-    {
-        Assert.AreEqual(expected, _organizer.Organize(input));
-    }
+    public void Organize_SortsEveryBlock_AndKeepsTheRestOfTheFile(string input, string expected) => Assert.AreEqual(expected, _organizer.Organize(input));
 }

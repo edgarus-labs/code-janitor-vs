@@ -153,10 +153,7 @@ public sealed class TabToSpaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void FileWithSyntaxErrors_IndentationIsStillExpanded()
-    {
-        Assert.AreEqual("class C {\r\n    void M( {\r\n", new TabToSpaceConverter().Convert("class C {\r\n\tvoid M( {\r\n"));
-    }
+    public void FileWithSyntaxErrors_IndentationIsStillExpanded() => Assert.AreEqual("class C {\r\n    void M( {\r\n", new TabToSpaceConverter().Convert("class C {\r\n\tvoid M( {\r\n"));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

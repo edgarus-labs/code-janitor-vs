@@ -705,14 +705,13 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        CollectionAssert.AreEquivalent(
+        Assert.AreSequenceEqual(
             new Dictionary<string, string>
             {
                 ["csharp_prefer_braces"] = "when_multiline",
                 ["csharp_style_throw_expression"] = "false",
                 ["csharp_prefer_simple_using_statement"] = "true",
-            },
-            settings.CodeStyleValues.ToDictionary(entry => entry.Key, entry => entry.Value));
+            }, settings.CodeStyleValues.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -724,7 +723,7 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        CollectionAssert.AreEquivalent(
+        Assert.AreSequenceEqual(
             new Dictionary<string, string>
             {
                 ["dotnet_style_qualification_for_field"] = "true:suggestion",
@@ -732,8 +731,7 @@ public sealed class EffectiveCleanupSettingsTests
                 ["dotnet_diagnostic.IDE0009.severity"] = "suggestion",
                 ["dotnet_style_qualification_for_property"] = "false:none",
                 ["dotnet_style_qualification_for_method"] = "true:none",
-            },
-            settings.AnalyzerConfigOverrides.ToDictionary(entry => entry.Key, entry => entry.Value));
+            }, settings.AnalyzerConfigOverrides.ToDictionary(entry => entry.Key, entry => entry.Value), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
     }
 
     [TestMethod]
@@ -745,7 +743,6 @@ public sealed class EffectiveCleanupSettingsTests
 
         Assert.IsEmpty(EffectiveCleanupSettings.For(_filePath).CodeStyleValues);
     }
-
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -1056,8 +1053,5 @@ public sealed class EffectiveCleanupSettingsTests
     /// <summary>
     /// Writes the repository policy of the test directory with the given cleanup entries.
     /// </summary>
-    private void WritePolicy(string cleanupEntries)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"), "{ \"cleanup\": { " + cleanupEntries + " } }");
-    }
+    private void WritePolicy(string cleanupEntries) => File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"), "{ \"cleanup\": { " + cleanupEntries + " } }");
 }

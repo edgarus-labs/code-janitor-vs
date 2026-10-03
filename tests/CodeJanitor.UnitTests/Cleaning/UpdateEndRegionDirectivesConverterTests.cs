@@ -9,10 +9,7 @@ public sealed class UpdateEndRegionDirectivesConverterTests
     private UpdateEndRegionDirectivesConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new UpdateEndRegionDirectivesConverter();
-    }
+    public void TestInitialize() => _converter = new UpdateEndRegionDirectivesConverter();
 
     [TestMethod]
     public void EmptySource_ReturnsUnchanged()
@@ -151,35 +148,23 @@ public sealed class UpdateEndRegionDirectivesConverterTests
     [DataRow("#region A\nclass C { }\n#endregion\n", "#region A\nclass C { }\n#endregion A\n", DisplayName = "LF")]
     [DataRow("#region A\rclass C { }\r#endregion\r", "#region A\rclass C { }\r#endregion A\r", DisplayName = "CR")]
     [DataRow("#region A\nclass C { }\r\n#endregion", "#region A\nclass C { }\r\n#endregion A", DisplayName = "mixed, no final line break")]
-    public void Apply_KeepsTheLineEndingsOfTheFile(string source, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(source));
-    }
+    public void Apply_KeepsTheLineEndingsOfTheFile(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
 
     [TestMethod]
-    public void NamelessNestedRegion_GetsItsOwnEndregion_AndTheOuterKeepsItsName()
-    {
-        Assert.AreEqual(
+    public void NamelessNestedRegion_GetsItsOwnEndregion_AndTheOuterKeepsItsName() => Assert.AreEqual(
             "#region Outer\n#region\nclass C { }\n#endregion\n#endregion Outer\n",
             _converter.Apply("#region Outer\n#region\nclass C { }\n#endregion\n#endregion\n"));
-    }
 
     [TestMethod]
-    public void RegionNameSeparatedByATab_IsUsedForTheEndregion()
-    {
-        Assert.AreEqual(
+    public void RegionNameSeparatedByATab_IsUsedForTheEndregion() => Assert.AreEqual(
             "#region\tTabbed\nclass C { }\n#endregion Tabbed\n",
             _converter.Apply("#region\tTabbed\nclass C { }\n#endregion\n"));
-    }
 
     [TestMethod]
     [DataRow("#region A\n#regionX\n#endregionY\n#endregion\n", "#region A\n#regionX\n#endregionY\n#endregion A\n", DisplayName = "directives that continue into a word character are ignored")]
     [DataRow("#region   Padded name  \t\n \t#endregion trailing\n", "#region   Padded name  \t\n \t#endregion Padded name\n", DisplayName = "name is trimmed and the indentation kept")]
     [DataRow("#region A\n#endregion", "#region A\n#endregion A", DisplayName = "last line without a line break")]
-    public void Apply_MatchesWholeKeywordsOnly(string source, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(source));
-    }
+    public void Apply_MatchesWholeKeywordsOnly(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
 
     [TestMethod]
     [DataRow(
@@ -194,10 +179,7 @@ public sealed class UpdateEndRegionDirectivesConverterTests
         "#region A\nclass C\n{\n    /*\n    #endregion keep me\n    */\n}\n#endregion\n",
         "#region A\nclass C\n{\n    /*\n    #endregion keep me\n    */\n}\n#endregion A\n",
         DisplayName = "multi-line comment")]
-    public void RegionTextInsideStringsAndComments_IsNotTreatedAsADirective(string source, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(source));
-    }
+    public void RegionTextInsideStringsAndComments_IsNotTreatedAsADirective(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
 
     private static string Lines(params string[] lines) => string.Join(System.Environment.NewLine, lines);
 

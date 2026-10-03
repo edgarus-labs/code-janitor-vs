@@ -136,10 +136,7 @@ public sealed class SpaceToTabConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void TabSizeBelowOne_Throws()
-    {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new SpaceToTabConverter(0));
-    }
+    public void TabSizeBelowOne_Throws() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new SpaceToTabConverter(0));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -167,10 +164,7 @@ public sealed class SpaceToTabConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void FileWithSyntaxErrors_IndentationIsStillConverted()
-    {
-        Assert.AreEqual("class C {\r\n\tvoid M( {\r\n", new SpaceToTabConverter(4).Convert("class C {\r\n    void M( {\r\n"));
-    }
+    public void FileWithSyntaxErrors_IndentationIsStillConverted() => Assert.AreEqual("class C {\r\n\tvoid M( {\r\n", new SpaceToTabConverter(4).Convert("class C {\r\n    void M( {\r\n"));
 
     private static string[] GetStringValues(string source)
         => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantTokens()

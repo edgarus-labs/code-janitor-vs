@@ -24,10 +24,7 @@ internal static class OutputWindowHelper
     /// times/early (e.g. during package load) so the pane isn't only lazily created on the
     /// first logged message.
     /// </summary>
-    internal static void EnsurePaneCreated()
-    {
-        _ = CodeJanitorOutputWindowPane;
-    }
+    internal static void EnsurePaneCreated() => _ = CodeJanitorOutputWindowPane;
 
     /// <summary>
     /// Writes the specified informational line to the CodeJanitor output pane, but only if diagnostics are enabled.
@@ -49,7 +46,10 @@ internal static class OutputWindowHelper
     /// <param name="ex">An optional exception that was handled.</param>
     internal static void DiagnosticWriteLine(string message, Exception ex = null)
     {
-        if (!Settings.Default.General_DiagnosticsMode) return;
+        if (!Settings.Default.General_DiagnosticsMode)
+        {
+            return;
+        }
 
         if (ex is not null)
         {
@@ -75,10 +75,7 @@ internal static class OutputWindowHelper
     /// Writes the specified warning line to the CodeJanitor output pane.
     /// </summary>
     /// <param name="message">The message.</param>
-    internal static void WarningWriteLine(string message)
-    {
-        WriteLine(Resources.Warning, message);
-    }
+    internal static void WarningWriteLine(string message) => WriteLine(Resources.Warning, message);
 
     /// <summary>
     /// Attempts to create and retrieve the CodeJanitor output window pane.

@@ -37,10 +37,7 @@ internal sealed class SettingsContextHelper
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="SettingsContextHelper" /> class.</returns>
-    internal static SettingsContextHelper GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new SettingsContextHelper(package));
-    }
+    internal static SettingsContextHelper GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new SettingsContextHelper(package));
 
     /// <summary>
     /// Gets the path to the solution settings file based on the specified <see cref="SettingsContext"/>.
@@ -52,7 +49,10 @@ internal sealed class SettingsContextHelper
     /// <returns>The path to the solution settings, otherwise null.</returns>
     internal static string GetSolutionSettingsPath(SettingsContext context)
     {
-        if (context is null) throw new ArgumentNullException(nameof(context));
+        if (context is null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
 
         var solutionPath = context["SolutionPath"];
 

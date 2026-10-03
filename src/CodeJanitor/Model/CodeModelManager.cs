@@ -40,10 +40,7 @@ internal sealed class CodeModelManager
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeModelManager" /> class.</returns>
-    internal static CodeModelManager GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeModelManager(package));
-    }
+    internal static CodeModelManager GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeModelManager(package));
 
     /// <summary>
     /// An event raised when a <see cref="CodeModel" /> has been built.

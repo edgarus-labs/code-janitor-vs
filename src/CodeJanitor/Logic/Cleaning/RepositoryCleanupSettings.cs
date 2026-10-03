@@ -153,12 +153,9 @@ internal static class RepositoryCleanupSettings
     /// </summary>
     /// <param name="startDirectory">The directory to start searching from.</param>
     /// <returns>The loaded overrides, or an empty instance when no policy file is present.</returns>
-    internal static RepositoryCleanupOverrides LoadFromDirectory(string startDirectory)
-    {
-        return TryFindConfigFile(startDirectory, out var configPath)
+    internal static RepositoryCleanupOverrides LoadFromDirectory(string startDirectory) => TryFindConfigFile(startDirectory, out var configPath)
             ? ParseFile(configPath)
             : RepositoryCleanupOverrides.Empty;
-    }
 
     /// <summary>
     /// Finds the nearest repository policy file for the specified directory, walking up to the root.

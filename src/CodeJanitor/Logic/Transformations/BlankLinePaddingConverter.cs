@@ -42,7 +42,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     public string Apply(string source)
     {
         if (string.IsNullOrEmpty(source) || !AnySettingEnabled())
+        {
             return source;
+        }
 
         var tree = CSharpSyntaxTree.ParseText(source);
         var text = tree.GetText();
@@ -57,10 +59,14 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         CollectUsingBlockPadding(root, tree, wantBlankBefore);
 
         if (_settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)))
+        {
             CollectCaseStatementPadding(root, text, wantBlankBefore);
+        }
 
         if (_settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments)))
+        {
             CollectSingleLineCommentPadding(root, text, lines, wantBlankBefore);
+        }
 
         // Conditional directives enclose code the way braces do: no blank line goes right after #if/#elif/#else
         // or right before #elif/#else/#endif.
@@ -70,10 +76,14 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         {
             var line = text.Lines.GetLineFromPosition(trivia.SpanStart).LineNumber;
             if (trivia.IsKind(SyntaxKind.IfDirectiveTrivia) || trivia.IsKind(SyntaxKind.ElifDirectiveTrivia) || trivia.IsKind(SyntaxKind.ElseDirectiveTrivia))
+            {
                 afterConditionalOpener.Add(line + 1);
+            }
 
             if (trivia.IsKind(SyntaxKind.ElifDirectiveTrivia) || trivia.IsKind(SyntaxKind.ElseDirectiveTrivia) || trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
+            {
                 beforeConditionalCloser.Add(line);
+            }
         }
 
         var changes = new List<TextChange>();
@@ -81,7 +91,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         {
             if (ShouldSkipInsertion(lines, idx) || afterConditionalOpener.Contains(idx) || beforeConditionalCloser.Contains(idx) ||
                 !IndentationGuard.CanChangeIndentation(root, text.Lines[idx].Start))
+            {
                 continue;
+            }
 
             var previousLine = text.Lines[idx - 1];
             var lineBreak = text.ToString(TextSpan.FromBounds(previousLine.End, previousLine.EndIncludingLineBreak));
@@ -173,17 +185,24 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
                 continue;
             }
 
-            if (!padBefore && !padAfter) continue;
+            if (!padBefore && !padAfter)
+            {
+                continue;
+            }
 
             var lineSpan = tree.GetLineSpan(node.Span);
             int startLine = GetPaddingStartLine(node, tree);
             int endLine = lineSpan.EndLinePosition.Line;
 
             if (padBefore && startLine > 0)
+            {
                 wantBlankBefore.Add(startLine);
+            }
 
             if (padAfter && endLine + 1 < lines.Count)
+            {
                 wantBlankBefore.Add(endLine + 1);
+            }
         }
     }
 
@@ -203,10 +222,14 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         {
             var trivia = leadingTrivia[i];
             if (trivia.IsKind(SyntaxKind.WhitespaceTrivia) || trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+            {
                 continue;
+            }
 
             if (!IsComment(trivia) || GetLastLine(trivia, tree) < lineBelow - 1)
+            {
                 break;
+            }
 
             attachedComments.Add(trivia);
             lineBelow = tree.GetLineSpan(trivia.Span).StartLinePosition.Line;
@@ -216,24 +239,20 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         if (count > 0 && lineBelow == 0)
         {
             while (count > 0 && !IsDocumentationComment(attachedComments[count - 1]))
+            {
                 count--;
+            }
         }
 
         return count == 0 ? startLine : tree.GetLineSpan(attachedComments[count - 1].Span).StartLinePosition.Line;
     }
 
-    private static bool IsComment(SyntaxTrivia trivia)
-    {
-        return trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+    private static bool IsComment(SyntaxTrivia trivia) => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
                trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
                IsDocumentationComment(trivia);
-    }
 
-    private static bool IsDocumentationComment(SyntaxTrivia trivia)
-    {
-        return trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+    private static bool IsDocumentationComment(SyntaxTrivia trivia) => trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
                trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
-    }
 
     /// <summary>
     /// The line holding the last character of the trivia; a single-line documentation comment includes its final line break.
@@ -241,6 +260,7 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     private static int GetLastLine(SyntaxTrivia trivia, SyntaxTree tree)
     {
         int lastPosition = Math.Max(trivia.SpanStart, trivia.Span.End - 1);
+
         return tree.GetLineSpan(new TextSpan(lastPosition, 0)).StartLinePosition.Line;
     }
 
@@ -256,7 +276,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
             {
                 var exit = switchStatement.Sections[i - 1].Statements.LastOrDefault();
                 if (!(exit is BreakStatementSyntax) && !(exit is ReturnStatementSyntax))
+                {
                     continue;
+                }
 
                 var exitLine = text.Lines.GetLineFromPosition(exit.SpanStart);
                 var labelLine = text.Lines.GetLineFromPosition(switchStatement.Sections[i].SpanStart);
@@ -266,7 +288,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
                     exit.Span.End > exitLine.End ||
                     !IsWhitespace(text, exit.Span.End, exitLine.End) ||
                     !IsWhitespace(text, labelLine.Start, switchStatement.Sections[i].SpanStart))
+                {
                     continue;
+                }
 
                 wantBlankBefore.Add(labelLine.LineNumber);
             }
@@ -286,23 +310,31 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
         {
             if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia))
+            {
                 continue;
+            }
 
             var line = text.Lines.GetLineFromPosition(trivia.SpanStart);
             linesWithComment.Add(line.LineNumber);
 
             if (!trivia.ToString().StartsWith("///", StringComparison.Ordinal) && IsWhitespace(text, line.Start, trivia.SpanStart))
+            {
                 commentLines.Add(line.LineNumber);
+            }
         }
 
         foreach (var lineNumber in commentLines)
         {
             if (lineNumber == 0 || linesWithComment.Contains(lineNumber - 1))
+            {
                 continue;
+            }
 
             var previous = lines[lineNumber - 1].TrimStart();
             if (previous.StartsWith("//", StringComparison.Ordinal) || previous.StartsWith("{", StringComparison.Ordinal))
+            {
                 continue;
+            }
 
             wantBlankBefore.Add(lineNumber);
         }
@@ -313,7 +345,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         for (int position = start; position < end; position++)
         {
             if (!char.IsWhiteSpace(text[position]))
+            {
                 return false;
+            }
         }
 
         return true;
@@ -333,21 +367,37 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         bool afterEndRegion = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterEndRegionTags));
 
         if (!beforeRegion && !afterRegion && !beforeEndRegion && !afterEndRegion)
+        {
             return;
+        }
 
         foreach (var trivia in root.DescendantTrivia())
         {
             if (trivia.IsKind(SyntaxKind.RegionDirectiveTrivia))
             {
                 int line = tree.GetLineSpan(trivia.Span).StartLinePosition.Line;
-                if (beforeRegion && line > 0) wantBlankBefore.Add(line);
-                if (afterRegion) wantBlankBefore.Add(line + 1);
+                if (beforeRegion && line > 0)
+                {
+                    wantBlankBefore.Add(line);
+                }
+
+                if (afterRegion)
+                {
+                    wantBlankBefore.Add(line + 1);
+                }
             }
             else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
             {
                 int line = tree.GetLineSpan(trivia.Span).StartLinePosition.Line;
-                if (beforeEndRegion && line > 0) wantBlankBefore.Add(line);
-                if (afterEndRegion) wantBlankBefore.Add(line + 1);
+                if (beforeEndRegion && line > 0)
+                {
+                    wantBlankBefore.Add(line);
+                }
+
+                if (afterEndRegion)
+                {
+                    wantBlankBefore.Add(line + 1);
+                }
             }
         }
     }
@@ -363,7 +413,10 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         bool padBefore = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks));
         bool padAfter = _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks));
 
-        if (!padBefore && !padAfter) return;
+        if (!padBefore && !padAfter)
+        {
+            return;
+        }
 
         // Process using directives grouped by their parent (compilation unit or namespace)
         var usingGroups = root.DescendantNodes()
@@ -373,7 +426,10 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         foreach (var group in usingGroups)
         {
             var usings = group.OrderBy(u => u.SpanStart).ToList();
-            if (usings.Count == 0) continue;
+            if (usings.Count == 0)
+            {
+                continue;
+            }
 
             // Find consecutive runs of using directives
             var runs = new List<List<UsingDirectiveSyntax>>();
@@ -386,7 +442,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
 
                 // Consecutive if no gap
                 if (currStart <= prevEnd + 1)
+                {
                     currentRun.Add(usings[i]);
+                }
                 else
                 {
                     runs.Add(currentRun);
@@ -402,8 +460,15 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
                 int firstLine = GetPaddingStartLine(first, tree);
                 int lastEndLine = tree.GetLineSpan(last.Span).EndLinePosition.Line;
 
-                if (padBefore && firstLine > 0) wantBlankBefore.Add(firstLine);
-                if (padAfter) wantBlankBefore.Add(lastEndLine + 1);
+                if (padBefore && firstLine > 0)
+                {
+                    wantBlankBefore.Add(firstLine);
+                }
+
+                if (padAfter)
+                {
+                    wantBlankBefore.Add(lastEndLine + 1);
+                }
             }
         }
     }
@@ -416,20 +481,32 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// <returns>A bool value produced by this method.</returns>
     private static bool ShouldSkipInsertion(List<string> lines, int idx)
     {
-        if (idx <= 0 || idx >= lines.Count) return true;
+        if (idx <= 0 || idx >= lines.Count)
+        {
+            return true;
+        }
 
         // Already blank above or below (the empty last line of a file with a final line break counts as blank)
-        if (string.IsNullOrWhiteSpace(lines[idx - 1]) || string.IsNullOrWhiteSpace(lines[idx])) return true;
+        if (string.IsNullOrWhiteSpace(lines[idx - 1]) || string.IsNullOrWhiteSpace(lines[idx]))
+        {
+            return true;
+        }
 
         // Adjacent to opening brace
         var prevTrimmed = lines[idx - 1].Trim();
-        if (prevTrimmed == "{" || prevTrimmed.EndsWith("{", StringComparison.Ordinal)) return true;
+        if (prevTrimmed == "{" || prevTrimmed.EndsWith("{", StringComparison.Ordinal))
+        {
+            return true;
+        }
 
         // Adjacent to closing brace on the target line
         if (idx < lines.Count)
         {
             var nextTrimmed = lines[idx].Trim();
-            if (nextTrimmed == "}" || nextTrimmed.StartsWith("}", StringComparison.Ordinal)) return true;
+            if (nextTrimmed == "}" || nextTrimmed.StartsWith("}", StringComparison.Ordinal))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -439,9 +516,7 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// Returns true if any of the listed blank-line padding settings is enabled in the effective settings, otherwise false, with no side effects.
     /// </summary>
     /// <returns>A bool value produced by this method.</returns>
-    private bool AnySettingEnabled()
-    {
-        return _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
+    private bool AnySettingEnabled() => _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
                _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses)) ||
                _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates)) ||
                _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates)) ||
@@ -473,5 +548,4 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
                _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)) ||
                _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)) ||
                _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments));
-    }
 }

@@ -51,10 +51,7 @@ public sealed class CodeFixProviderCatalogTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void GetProviders_WithoutProject_Throws()
-    {
-        Assert.AreEqual("project", Assert.ThrowsExactly<ArgumentNullException>(() => new CodeFixProviderCatalog().GetProviders(null)).ParamName);
-    }
+    public void GetProviders_WithoutProject_Throws() => Assert.AreEqual("project", Assert.ThrowsExactly<ArgumentNullException>(() => new CodeFixProviderCatalog().GetProviders(null)).ParamName);
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -116,10 +113,7 @@ public sealed class CodeFixProviderCatalogTests
         return directory;
     }
 
-    private static Project CreateProject(AdhocWorkspace workspace, AnalyzerReference reference)
-    {
-        return workspace.CurrentSolution.AddProject("Analyzed", "Analyzed", LanguageNames.CSharp).AddAnalyzerReference(reference);
-    }
+    private static Project CreateProject(AdhocWorkspace workspace, AnalyzerReference reference) => workspace.CurrentSolution.AddProject("Analyzed", "Analyzed", LanguageNames.CSharp).AddAnalyzerReference(reference);
 
     /// <summary>
     /// Emits an analyzer assembly with a usable C# fixer, a fixer exported for Visual Basic and C#, a fixer exported
@@ -174,15 +168,13 @@ public sealed class CodeFixProviderCatalogTests
     }
 
     private static IEnumerable<MetadataReference> GetFrameworkReferences()
-    {
         // Everything the test process already loaded, including the Roslyn assemblies and their facades, so the
         // emitted fixers derive from the very CodeFixProvider type the catalog checks against.
-        return AppDomain.CurrentDomain.GetAssemblies()
+        => AppDomain.CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
             .GroupBy(assembly => assembly.GetName().Name, StringComparer.OrdinalIgnoreCase)
             .Select(group => (MetadataReference)MetadataReference.CreateFromFile(group.First().Location))
             .ToList();
-    }
 
     private sealed class LoadFromPathLoader : IAnalyzerAssemblyLoader
     {

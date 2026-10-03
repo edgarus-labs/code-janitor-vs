@@ -185,7 +185,7 @@ public sealed class FileTextStyleTests
 
     private static void RewriteWith(string filePath, string newText)
     {
-        string original = FileTextStyle.ReadAllText(filePath, out var encoding);
+        string original = FileTextStyle.ReadAllText(filePath, out Encoding encoding);
 
         FileTextStyle.WriteAllText(filePath, newText, encoding, original);
     }
@@ -198,8 +198,5 @@ public sealed class FileTextStyleTests
         return filePath;
     }
 
-    private void WriteEditorConfig(string options)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n\n[*]\n" + options + "\n");
-    }
+    private void WriteEditorConfig(string options) => File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n\n[*]\n" + options + "\n");
 }

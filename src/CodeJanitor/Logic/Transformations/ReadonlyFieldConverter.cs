@@ -485,6 +485,7 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
                 name = simple;
                 qualifier = null;
                 break;
+
             case QualifiedNameSyntax qualified:
                 name = qualified.Right;
                 qualifier = string.Concat(qualified.Left.DescendantTokens().Select(t => t.ValueText));
@@ -494,10 +495,12 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
                 }
 
                 break;
+
             case AliasQualifiedNameSyntax aliasQualified:
                 name = aliasQualified.Name;
                 qualifier = aliasQualified.Alias.Identifier.ValueText + "::";
                 break;
+
             default:
                 return false;
         }
@@ -515,13 +518,13 @@ public sealed class ReadonlyFieldConverter : IFieldMutabilityConverter, ISourceT
             return false;
         }
 
-        if (qualifier == null && declarations.Any(declaration => GetArity(declaration) == name.Arity))
+        if (qualifier is null && declarations.Any(declaration => GetArity(declaration) == name.Arity))
         {
             return true;
         }
 
         return (KnownReferenceTypeNamespaces.TryGetValue(text, out var namespaces) &&
-                (qualifier == null
+                (qualifier is null
                     ? namespaces.Any(ns => ns == "System" || IsNamespaceImported(root, ns))
                     : namespaces.Contains(qualifier))) ||
             FollowsInterfaceNamingConvention(text);

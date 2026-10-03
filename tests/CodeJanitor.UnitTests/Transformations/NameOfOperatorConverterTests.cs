@@ -13,17 +13,11 @@ public sealed class NameOfOperatorConverterTests
     private NameOfOperatorConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new NameOfOperatorConverter();
-    }
+    public void TestInitialize() => _converter = new NameOfOperatorConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Name_IsNotEmpty()
-    {
-        Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
-    }
+    public void Name_IsNotEmpty() => Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -203,10 +197,7 @@ public class C
     [DataRow("class C { void M(string value, string text) { throw new ArgumentNullException(\"value\", text); } }", DisplayName = "ArgumentNullException with a second argument of unknown type")]
     [DataRow("class C { void M(string value) { throw new ArgumentOutOfRangeException(\"value\", new System.Exception()); } }", DisplayName = "ArgumentOutOfRangeException message with an inner exception")]
     [DataRow("class C { void M(string value) { throw new System.ComponentModel.InvalidEnumArgumentException(\"value\"); } }", DisplayName = "InvalidEnumArgumentException message")]
-    public void LiteralThatCannotBecomeNameOf_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void LiteralThatCannotBecomeNameOf_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -229,10 +220,7 @@ public class C
     [DataRow("class C { void M(string value, System.Exception inner) { throw new ArgumentException(\"Bad\", \"value\", inner); } }", "class C { void M(string value, System.Exception inner) { throw new ArgumentException(\"Bad\", nameof(value), inner); } }", DisplayName = "ArgumentException with an inner exception")]
     [DataRow("class C { void M(string value) { throw new ArgumentException(paramName: \"value\", message: \"value\"); } }", "class C { void M(string value) { throw new ArgumentException(paramName: nameof(value), message: \"value\"); } }", DisplayName = "named ArgumentException arguments in reverse order")]
     [DataRow("class C { void M(int value) { throw new System.ComponentModel.InvalidEnumArgumentException(argumentName: \"value\", invalidValue: 1, enumClass: typeof(int)); } }", "class C { void M(int value) { throw new System.ComponentModel.InvalidEnumArgumentException(argumentName: nameof(value), invalidValue: 1, enumClass: typeof(int)); } }", DisplayName = "named InvalidEnumArgumentException arguments")]
-    public void LiteralNamingAParameterInScope_BecomesNameOf(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void LiteralNamingAParameterInScope_BecomesNameOf(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

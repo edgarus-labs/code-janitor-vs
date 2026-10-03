@@ -36,10 +36,7 @@ internal sealed class CodeReorganizationManager
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeReorganizationManager" /> class.</returns>
-    internal static CodeReorganizationManager GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeReorganizationManager(package));
-    }
+    internal static CodeReorganizationManager GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeReorganizationManager(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeReorganizationManager" /> class.
@@ -104,7 +101,10 @@ internal sealed class CodeReorganizationManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!_codeReorganizationAvailabilityLogic.CanReorganize(document, true)) return;
+        if (!_codeReorganizationAvailabilityLogic.CanReorganize(document, true))
+        {
+            return;
+        }
 
         new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorReorganizeFor0, document.Name)).Run(
             delegate
@@ -191,11 +191,8 @@ internal sealed class CodeReorganizationManager
     /// <param name="firstItem">The first item.</param>
     /// <param name="secondItem">The second item.</param>
     /// <returns>True if the items should be separated by a newline, otherwise false.</returns>
-    private bool ShouldBeSeparatedByNewLine(BaseCodeItem firstItem, BaseCodeItem secondItem)
-    {
-        return _insertBlankLinePaddingLogic.ShouldBeFollowedByBlankLine(firstItem) ||
+    private bool ShouldBeSeparatedByNewLine(BaseCodeItem firstItem, BaseCodeItem secondItem) => _insertBlankLinePaddingLogic.ShouldBeFollowedByBlankLine(firstItem) ||
                _insertBlankLinePaddingLogic.ShouldBePrecededByBlankLine(secondItem);
-    }
 
     /// <summary>
     /// Determines if the specified item's children should be reorganized.
@@ -240,7 +237,10 @@ internal sealed class CodeReorganizationManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (itemToMove == baseItem) return;
+        if (itemToMove == baseItem)
+        {
+            return;
+        }
 
         bool separateWithNewLine = ShouldBeSeparatedByNewLine(itemToMove, baseItem);
         var text = GetTextAndRemoveItem(itemToMove, out int cursorOffset);
@@ -277,7 +277,10 @@ internal sealed class CodeReorganizationManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (itemToMove == baseItem) return;
+        if (itemToMove == baseItem)
+        {
+            return;
+        }
 
         bool separateWithNewLine = ShouldBeSeparatedByNewLine(baseItem, itemToMove);
         var text = GetTextAndRemoveItem(itemToMove, out int cursorOffset);
@@ -318,7 +321,10 @@ internal sealed class CodeReorganizationManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (itemToMove == baseItem) return;
+        if (itemToMove == baseItem)
+        {
+            return;
+        }
 
         bool padWithNewLine = _insertBlankLinePaddingLogic.ShouldBeFollowedByBlankLine(itemToMove);
         var text = GetTextAndRemoveItem(itemToMove, out int cursorOffset);

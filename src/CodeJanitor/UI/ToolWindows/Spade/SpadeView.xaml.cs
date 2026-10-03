@@ -135,7 +135,10 @@ public partial class SpadeView
     private void OnTreeViewItemKeyDown(object sender, KeyEventArgs e)
     {
         var treeViewItem = e.Source as TreeViewItem;
-        if (treeViewItem is null || Keyboard.Modifiers != ModifierKeys.None) return;
+        if (treeViewItem is null || Keyboard.Modifiers != ModifierKeys.None)
+        {
+            return;
+        }
 
         switch (e.Key)
         {
@@ -163,7 +166,10 @@ public partial class SpadeView
         _isDoubleClick = false;
 
         var treeViewItem = FindParentTreeViewItem(e.Source);
-        if (treeViewItem is null) return;
+        if (treeViewItem is null)
+        {
+            return;
+        }
 
         switch (e.ChangedButton)
         {
@@ -196,7 +202,10 @@ public partial class SpadeView
     /// </param>
     private void OnTreeViewItemHeaderMouseMove(object sender, MouseEventArgs e)
     {
-        if (_dragCandidate is null || !_dragStartPoint.HasValue) return;
+        if (_dragCandidate is null || !_dragStartPoint.HasValue)
+        {
+            return;
+        }
 
         var delta = _dragStartPoint.Value - e.GetPosition(null);
         if (Math.Abs(delta.X) <= SystemParameters.MinimumHorizontalDragDistance &&
@@ -238,7 +247,10 @@ public partial class SpadeView
         _dragStartPoint = null;
 
         var treeViewItem = FindParentTreeViewItem(e.Source);
-        if (treeViewItem is null) return;
+        if (treeViewItem is null)
+        {
+            return;
+        }
 
         var baseCodeItem = treeViewItem.DataContext as BaseCodeItem;
 
@@ -347,16 +359,28 @@ public partial class SpadeView
     /// </param>
     private void OnTreeViewItemHeaderDrop(object sender, DragEventArgs e)
     {
-        if (!e.Data.GetDataPresent(typeof(IList<BaseCodeItem>))) return;
+        if (!e.Data.GetDataPresent(typeof(IList<BaseCodeItem>)))
+        {
+            return;
+        }
 
         var treeViewItem = FindParentTreeViewItem(sender);
-        if (treeViewItem is null || ReferenceEquals(e.Source, treeViewItem)) return;
+        if (treeViewItem is null || ReferenceEquals(e.Source, treeViewItem))
+        {
+            return;
+        }
 
         var baseCodeItem = treeViewItem.DataContext as BaseCodeItem;
-        if (baseCodeItem is null) return;
+        if (baseCodeItem is null)
+        {
+            return;
+        }
 
         var codeItemsToMove = e.Data.GetData(typeof(IList<BaseCodeItem>)) as IList<BaseCodeItem>;
-        if (codeItemsToMove is null) return;
+        if (codeItemsToMove is null)
+        {
+            return;
+        }
 
         switch (GetDropPosition(e, baseCodeItem, treeViewItem))
         {
@@ -505,7 +529,10 @@ public partial class SpadeView
     private void JumpToCodeItem(BaseCodeItem codeItem)
     {
         var viewModel = ViewModel;
-        if (codeItem is null || viewModel is null || codeItem.StartOffset <= 0) return;
+        if (codeItem is null || viewModel is null || codeItem.StartOffset <= 0)
+        {
+            return;
+        }
 
         Dispatcher.BeginInvoke(
             new Action(() => TextDocumentHelper.MoveToCodeItem(viewModel.Document, codeItem, Settings.Default.Digging_CenterOnWhole)));
@@ -514,10 +541,7 @@ public partial class SpadeView
     /// <summary>
     /// Requests a refresh of Spade.
     /// </summary>
-    private void Refresh()
-    {
-        ViewModel.RequestRefresh();
-    }
+    private void Refresh() => ViewModel.RequestRefresh();
 
     /// <summary>
     /// Selects the specified code item.
@@ -526,7 +550,10 @@ public partial class SpadeView
     private void SelectCodeItem(BaseCodeItem codeItem)
     {
         var viewModel = ViewModel;
-        if (codeItem is null || viewModel is null || codeItem.StartOffset <= 0) return;
+        if (codeItem is null || viewModel is null || codeItem.StartOffset <= 0)
+        {
+            return;
+        }
 
         Dispatcher.BeginInvoke(
             new Action(() => TextDocumentHelper.SelectCodeItem(viewModel.Document, codeItem)));

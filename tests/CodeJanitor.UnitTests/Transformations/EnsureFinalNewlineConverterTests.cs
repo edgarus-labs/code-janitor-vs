@@ -12,10 +12,7 @@ public sealed class EnsureFinalNewlineConverterTests
     private EnsureFinalNewlineConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new EnsureFinalNewlineConverter();
-    }
+    public void TestInitialize() => _converter = new EnsureFinalNewlineConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -77,17 +74,11 @@ public sealed class EnsureFinalNewlineConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void EmptySource_Unchanged()
-    {
-        Assert.AreEqual(string.Empty, _converter.Convert(string.Empty));
-    }
+    public void EmptySource_Unchanged() => Assert.AreEqual(string.Empty, _converter.Convert(string.Empty));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void NullSource_ReturnsNull()
-    {
-        Assert.IsNull(_converter.Convert(null));
-    }
+    public void NullSource_ReturnsNull() => Assert.IsNull(_converter.Convert(null));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -105,20 +96,14 @@ public sealed class EnsureFinalNewlineConverterTests
     [DataRow("#region R\r\n#endregion", "#region R\r\n#endregion\r\n", DisplayName = "file ending with a directive")]
     [DataRow("\r\n\r\n", "\r\n", DisplayName = "file of blank lines")]
     [DataRow("a\nb\r\n\n", "a\nb\r\n", DisplayName = "mixed line breaks use CRLF")]
-    public void FinalLineBreak_IsExactlyOne(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Convert(input));
-    }
+    public void FinalLineBreak_IsExactlyOne(string input, string expected) => Assert.AreEqual(expected, _converter.Convert(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { }\r", "class C { }\r", DisplayName = "CR-only file already ending with a line break")]
     [DataRow("class C\r{ }", "class C\r{ }\r", DisplayName = "CR-only file missing the final line break")]
     [DataRow("class C { }\r\r\r", "class C { }\r", DisplayName = "CR-only file with several final line breaks")]
-    public void CarriageReturnOnlyFile_KeepsItsLineBreakStyle(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Convert(input));
-    }
+    public void CarriageReturnOnlyFile_KeepsItsLineBreakStyle(string input, string expected) => Assert.AreEqual(expected, _converter.Convert(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -93,7 +92,7 @@ public sealed class CleanupBatchPartitionerTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [Timeout(30000)]
+    [Timeout(30000, CooperativeCancellation = true)]
     public async Task RunPerGroupAsync_ItemsOfDifferentGroups_AreProcessedAtTheSameTime()
     {
         int started = 0;
@@ -119,7 +118,7 @@ public sealed class CleanupBatchPartitionerTests
     {
         int running = 0;
         int maxRunning = 0;
-        List<string> processed = new List<string>();
+        List<string> processed = [];
 
         await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "b1", "c1", "a2", "b2", "c2" }, item => item.Substring(0, 1), 1, CancellationToken.None, async item =>
         {
@@ -153,7 +152,7 @@ public sealed class CleanupBatchPartitionerTests
     {
         int running = 0;
         int maxRunning = 0;
-        List<string> order = new List<string>();
+        List<string> order = [];
 
         await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "a2", "a3" }, item => item.Substring(0, 1), 4, CancellationToken.None, async item =>
         {
@@ -164,7 +163,7 @@ public sealed class CleanupBatchPartitionerTests
                 order.Add(item);
             }
 
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.CancellationToken);
             Interlocked.Decrement(ref running);
         });
 
@@ -177,7 +176,7 @@ public sealed class CleanupBatchPartitionerTests
     public async Task RunPerGroupAsync_Canceled_TakesNoFurtherItems()
     {
         using CancellationTokenSource cancellation = new CancellationTokenSource();
-        List<string> processed = new List<string>();
+        List<string> processed = [];
 
         await CleanupBatchPartitioner.RunPerGroupAsync(new[] { "a1", "a2", "a3" }, item => item.Substring(0, 1), 4, cancellation.Token, item =>
         {
@@ -192,66 +191,60 @@ public sealed class CleanupBatchPartitionerTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CleanupProgressViewModel_BuildVerificationCannotStart_TheDialogStillCloses()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            DTE2 ide = Substitute.For<DTE2>();
-            ide.Events.Returns(_ => throw new COMException("The build events are not available."));
-            CodeJanitorPackage package = CreatePackage(ide);
+    public void CleanupProgressViewModel_BuildVerificationCannotStart_TheDialogStillCloses() => RunOnVisualStudioUIThread(() =>
+                                                                                                     {
+                                                                                                         DTE2 ide = Substitute.For<DTE2>();
+                                                                                                         ide.Events.Returns(_ => throw new COMException("The build events are not available."));
+                                                                                                         CodeJanitorPackage package = CreatePackage(ide);
 
-            WithPackage(package, () =>
-            {
-                CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
-                try
-                {
-                    CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
+                                                                                                         WithPackage(package, () =>
+                                                                                                         {
+                                                                                                             CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
+                                                                                                             try
+                                                                                                             {
+                                                                                                                 CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
 
-                    // A changed file makes the batch start the build verification when it completes on this thread's
-                    // dispatcher, which only runs once the dispatcher is pumped below.
-                    manager.IncrementHeadlessChanged();
-                    WaitForBatch(viewModel);
+                                                                                                                 // A changed file makes the batch start the build verification when it completes on this thread's
+                                                                                                                 // dispatcher, which only runs once the dispatcher is pumped below.
+                                                                                                                 manager.IncrementHeadlessChanged();
+                                                                                                                 WaitForBatch(viewModel);
 
-                    Assert.IsTrue(viewModel.DialogResult == true, "The dialog must close when the build verification cannot be started.");
-                    _ = ide.Received().Events;
-                }
-                finally
-                {
-                    manager.ResetCleanupExecutionStats();
-                }
-            });
-        });
-    }
+                                                                                                                 Assert.IsTrue(viewModel.DialogResult, "The dialog must close when the build verification cannot be started.");
+                                                                                                                 _ = ide.Received().Events;
+                                                                                                             }
+                                                                                                             finally
+                                                                                                             {
+                                                                                                                 manager.ResetCleanupExecutionStats();
+                                                                                                             }
+                                                                                                         });
+                                                                                                     });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CleanupProgressViewModel_CompletingTheBatchThrows_TheDialogStillCloses()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            // Reading the solution fails while the batch completes, e.g. because the solution was closed meanwhile.
-            DTE2 ide = Substitute.For<DTE2>();
-            ide.Solution.Returns(_ => throw new COMException("The solution is closed."));
-            CodeJanitorPackage package = CreatePackage(ide);
+    public void CleanupProgressViewModel_CompletingTheBatchThrows_TheDialogStillCloses() => RunOnVisualStudioUIThread(() =>
+                                                                                                 {
+                                                                                                     // Reading the solution fails while the batch completes, e.g. because the solution was closed meanwhile.
+                                                                                                     DTE2 ide = Substitute.For<DTE2>();
+                                                                                                     ide.Solution.Returns(_ => throw new COMException("The solution is closed."));
+                                                                                                     CodeJanitorPackage package = CreatePackage(ide);
 
-            WithPackage(package, () =>
-            {
-                CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
-                try
-                {
-                    CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
-                    manager.IncrementHeadlessChanged();
-                    WaitForBatch(viewModel);
+                                                                                                     WithPackage(package, () =>
+                                                                                                     {
+                                                                                                         CodeCleanupManager manager = CodeCleanupManager.GetInstance(package);
+                                                                                                         try
+                                                                                                         {
+                                                                                                             CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, Array.Empty<object>());
+                                                                                                             manager.IncrementHeadlessChanged();
+                                                                                                             WaitForBatch(viewModel);
 
-                    Assert.IsTrue(viewModel.DialogResult == true, "The dialog must close even when completing the batch fails.");
-                }
-                finally
-                {
-                    manager.ResetCleanupExecutionStats();
-                }
-            });
-        });
-    }
+                                                                                                             Assert.IsTrue(viewModel.DialogResult, "The dialog must close even when completing the batch fails.");
+                                                                                                         }
+                                                                                                         finally
+                                                                                                         {
+                                                                                                             manager.ResetCleanupExecutionStats();
+                                                                                                         }
+                                                                                                     });
+                                                                                                 });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -276,7 +269,7 @@ public sealed class CleanupBatchPartitionerTests
                     CleanupProgressViewModel viewModel = new CleanupProgressViewModel(package, new object[] { document });
                     WaitForBatch(viewModel);
 
-                    Assert.IsTrue(viewModel.DialogResult == true, "The batch must complete.");
+                    Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
                 });
 
                 Assert.IsEmpty(projectItem.ReceivedCalls(), "The XML documentation must not run for a document that was not cleaned up.");
@@ -297,7 +290,7 @@ public sealed class CleanupBatchPartitionerTests
             RunOnVisualStudioUIThread(() =>
             {
                 CodeJanitorPackage package = CreatePackage(Substitute.For<DTE2>());
-                List<string> errors = new List<string>();
+                List<string> errors = [];
 
                 // Errors are recorded instead of shown in a modal message box, which would block the test run.
                 XmlDocProgressViewModel viewModel = new XmlDocProgressViewModel(package, Array.Empty<EnvDTE.ProjectItem>(), errors.Add);
@@ -305,7 +298,7 @@ public sealed class CleanupBatchPartitionerTests
                 WaitForBatch(viewModel);
 
                 Assert.IsEmpty(errors, "The canceled batch must not fail.");
-                Assert.IsTrue(viewModel.DialogResult == true, "The canceled batch must complete.");
+                Assert.IsTrue(viewModel.DialogResult, "The canceled batch must complete.");
                 Assert.IsFalse(AiXmlDocumentationLogic.RunToken.IsCancellationRequested, "A canceled XML documentation batch must not cancel the XML documentation of later cleanups.");
             });
         }
@@ -496,4 +489,6 @@ public sealed class CleanupBatchPartitionerTests
 
         public bool IsOpen { get; }
     }
+
+    public TestContext TestContext { get; set; }
 }

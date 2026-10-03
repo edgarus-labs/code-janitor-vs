@@ -214,7 +214,9 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         private bool IsSingleLine(AccessorDeclarationSyntax accessor)
         {
             if (accessor.Body is null)
+            {
                 return true; // Expression-bodied accessors are considered single-line
+            }
 
             // Check if body spans only 2 lines (opening and closing brace)
             var bodyText = accessor.Body.ToFullString();
@@ -232,7 +234,9 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         private AccessorDeclarationSyntax FormatAccessor(AccessorDeclarationSyntax accessor, bool makeMultiLine)
         {
             if (accessor.Body is null)
+            {
                 return accessor;
+            }
 
             return makeMultiLine ? Expand(accessor) : Compress(accessor);
         }
@@ -286,7 +290,9 @@ public sealed class UpdateAccessorsToBothBeSingleLineOrMultiLineConverter : ISou
         {
             var body = accessor.Body;
             if (body.Statements.Count != 1)
+            {
                 return accessor;
+            }
 
             var statement = body.Statements[0];
             var previous = body.OpenBraceToken.GetPreviousToken();

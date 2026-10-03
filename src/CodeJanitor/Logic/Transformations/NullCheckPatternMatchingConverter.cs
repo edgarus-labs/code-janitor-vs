@@ -314,10 +314,7 @@ public sealed class NullCheckPatternMatchingConverter
         }
 
         /// <summary>Returns whether the trivia list contains a comment, directive or other non-whitespace trivia.</summary>
-        private static bool HasCommentOrDirective(SyntaxTriviaList trivia)
-        {
-            return trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
-        }
+        private static bool HasCommentOrDirective(SyntaxTriviaList trivia) => trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
 
         /// <summary>
         /// Determines whether the given null-check node sits in a syntax position where the C# compiler

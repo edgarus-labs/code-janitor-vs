@@ -259,8 +259,15 @@ Please generate the additional unit test methods (using {framework} and {mocking
     /// <returns>A string value produced by this method.</returns>
     private static string MergeTestCode(string originalTests, string newTests)
     {
-        if (string.IsNullOrWhiteSpace(originalTests)) return newTests;
-        if (string.IsNullOrWhiteSpace(newTests)) return originalTests;
+        if (string.IsNullOrWhiteSpace(originalTests))
+        {
+            return newTests;
+        }
+
+        if (string.IsNullOrWhiteSpace(newTests))
+        {
+            return originalTests;
+        }
 
         // If newTests is a complete class, use it; otherwise return newTests
         if (newTests.Contains("public class") && newTests.Contains("[Fact]") || newTests.Contains("[Test]"))
@@ -315,7 +322,10 @@ Please generate the additional unit test methods (using {framework} and {mocking
     /// <returns>A string value produced by this method.</returns>
     private static string ExtractCodeSnippet(string aiResponse)
     {
-        if (string.IsNullOrWhiteSpace(aiResponse)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(aiResponse))
+        {
+            return string.Empty;
+        }
 
         var startIndex = aiResponse.IndexOf("```csharp", StringComparison.OrdinalIgnoreCase);
         if (startIndex >= 0)

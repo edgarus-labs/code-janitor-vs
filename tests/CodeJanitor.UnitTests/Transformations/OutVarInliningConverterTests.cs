@@ -12,17 +12,11 @@ public sealed class OutVarInliningConverterTests
     private OutVarInliningConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new OutVarInliningConverter();
-    }
+    public void TestInitialize() => _converter = new OutVarInliningConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void Name_IsNotEmpty()
-    {
-        Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
-    }
+    public void Name_IsNotEmpty() => Assert.IsFalse(string.IsNullOrWhiteSpace(_converter.Name));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -100,10 +94,7 @@ public class C
     [DataRow("class C { void M(C other) { int x; F(out other.x); } }", DisplayName = "out argument is a member access")]
     [DataRow("class C { void M(int k) { switch (k) { case 1: int x; F(out x); break; } } }", DisplayName = "switch section statements")]
     [DataRow("int x;\r\nint.TryParse(args[0], out x);\r\n", DisplayName = "top-level statements")]
-    public void DeclarationThatCannotBeInlined_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void DeclarationThatCannotBeInlined_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -122,10 +113,7 @@ public class C
     [DataRow("class C { void M() { dynamic d; F(out d); d.Foo(); } }", "class C { void M() { F(out dynamic d); d.Foo(); } }", DisplayName = "dynamic keeps its declared type")]
     [DataRow("class C { void M() { string? s; F(out s); } }", "class C { void M() { F(out string? s); } }", DisplayName = "nullable reference type")]
     [DataRow("class C { void M() { int[] a; F(out a); } }", "class C { void M() { F(out int[] a); } }", DisplayName = "array type")]
-    public void DeclarationFollowedByOutArgument_IsInlined(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void DeclarationFollowedByOutArgument_IsInlined(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -250,10 +238,7 @@ public class C
     [DataRow("class C { void M(int k) { int x; var y = k switch { 1 => F(out x), _ => 0 }; U(x); } }", DisplayName = "switch expression arm")]
     [DataRow("class C { void M(int[] a) { int x; var q = from i in a where F(out x) select i; U(x); } }", DisplayName = "query clause")]
     [DataRow("class C { void M() { int x;\n#if !A\n F(out x);\n#else\n x = 0;\n#endif\n U(x); } }", DisplayName = "call after a preprocessor directive")]
-    public void OutArgumentInNestedScope_IsNotInlined(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void OutArgumentInNestedScope_IsNotInlined(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -262,10 +247,7 @@ public class C
     [DataRow("class C\r\n{\r\n    void M()\r\n    {\r\n        int x;\r\n        // parse\r\n        F(out x);\r\n    }\r\n}\r\n", "class C\r\n{\r\n    void M()\r\n    {\r\n        // parse\r\n        F(out int x);\r\n    }\r\n}\r\n", DisplayName = "leading comment of the call")]
     [DataRow("class C\n{\n    void M()\n    {\n        int x; /* a */\n        /* b */\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n        /* a */\n        /* b */\n        F(out int x);\n    }\n}\n", DisplayName = "both")]
     [DataRow("class C\n{\n    void M()\n    {\n        int x;\n\n        // parse\n        F(out x);\n    }\n}\n", "class C\n{\n    void M()\n    {\n\n        // parse\n        F(out int x);\n    }\n}\n", DisplayName = "blank line before the leading comment of the call")]
-    public void CommentsBetweenDeclarationAndCall_AreKept(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void CommentsBetweenDeclarationAndCall_AreKept(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

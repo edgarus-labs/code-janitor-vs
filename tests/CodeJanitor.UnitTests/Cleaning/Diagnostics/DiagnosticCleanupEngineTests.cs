@@ -897,13 +897,13 @@ public sealed class DiagnosticCleanupEngineTests
 
             Assert.IsTrue(result.HasChanges, "The fix of the other rule must still be applied.");
             Assert.AreEqual("CJT0041", result.AppliedFixes.Single().DiagnosticId);
-            StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "renamedValue");
+            Assert.Contains("renamedValue", await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
             Assert.IsFalse(result.IsComplete);
             UnresolvedDiagnostic unresolved = result.Unresolved.Single();
             Assert.AreEqual("CJT0040", unresolved.DiagnosticId);
             Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
-            StringAssert.Contains(unresolved.Detail, nameof(CustomOperationsLegacyFieldCodeFixProvider));
-            StringAssert.Contains(unresolved.Detail, "Sequence contains no elements");
+            Assert.Contains(nameof(CustomOperationsLegacyFieldCodeFixProvider), unresolved.Detail);
+            Assert.Contains("Sequence contains no elements", unresolved.Detail);
         }
     }
 
@@ -921,8 +921,8 @@ public sealed class DiagnosticCleanupEngineTests
         UnresolvedDiagnostic unresolved = result.Unresolved.Single();
         Assert.AreEqual("CJT0042", unresolved.DiagnosticId);
         Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
-        StringAssert.Contains(unresolved.Detail, nameof(ThrowingLegacyFieldCodeFixProvider));
-        StringAssert.Contains(unresolved.Detail, "Sequence contains no elements");
+        Assert.Contains(nameof(ThrowingLegacyFieldCodeFixProvider), unresolved.Detail);
+        Assert.Contains("Sequence contains no elements", unresolved.Detail);
     }
 
     [TestMethod]
@@ -936,7 +936,7 @@ public sealed class DiagnosticCleanupEngineTests
 
         UnresolvedDiagnostic unresolved = result.Unresolved.Single();
         Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
-        StringAssert.Contains(unresolved.Detail, "first line second line third line");
+        Assert.Contains("first line second line third line", unresolved.Detail);
         Assert.IsFalse(unresolved.Detail.Contains('\r') || unresolved.Detail.Contains('\n'), "The detail is written to one output pane line.");
     }
 
@@ -966,12 +966,12 @@ public sealed class DiagnosticCleanupEngineTests
             DiagnosticCleanupResult result = await CleanupAsync(workspace.CreateSolution(), documentId, 50, catalog, DiagnosticCleanupCategory.AnalyzerFixes);
 
             Assert.AreEqual("CJT0045", result.AppliedFixes.Single().DiagnosticId);
-            StringAssert.Contains(await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId), "renamedValue");
+            Assert.Contains("renamedValue", await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
             Assert.IsFalse(result.IsComplete);
             UnresolvedDiagnostic unresolved = result.Unresolved.Single();
             Assert.AreEqual("CJT0044", unresolved.DiagnosticId);
             Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
-            StringAssert.Contains(unresolved.Detail, "Fix-all provider unavailable");
+            Assert.Contains("Fix-all provider unavailable", unresolved.Detail);
         }
     }
 
@@ -1016,7 +1016,7 @@ public sealed class DiagnosticCleanupEngineTests
         {
             Assert.AreEqual("CJT0047", unresolved.DiagnosticId);
             Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
-            StringAssert.Contains(unresolved.Detail, "Fix-all computation failed");
+            Assert.Contains("Fix-all computation failed", unresolved.Detail);
         }
     }
 
@@ -1078,8 +1078,8 @@ public sealed class DiagnosticCleanupEngineTests
             UnresolvedDiagnostic unresolved = result.Unresolved.Single();
             Assert.AreEqual("CJT0050", unresolved.DiagnosticId);
             Assert.AreEqual(UnresolvedDiagnosticReason.FixProviderFailed, unresolved.Reason);
-            StringAssert.Contains(unresolved.Detail, nameof(CountingThrowingLegacyFieldCodeFixProvider));
-            StringAssert.Contains(unresolved.Detail, "Registration failed");
+            Assert.Contains(nameof(CountingThrowingLegacyFieldCodeFixProvider), unresolved.Detail);
+            Assert.Contains("Registration failed", unresolved.Detail);
         }
     }
 
@@ -1365,8 +1365,8 @@ public sealed class DiagnosticCleanupEngineTests
 
         Assert.AreEqual(BracedGate(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         Assert.AreSame(solution, result.OriginalSolution);
-        Assert.IsFalse(result.ChangedSolution.GetChanges(solution).GetProjectChanges().Any(changes =>
-            changes.GetAddedAnalyzerConfigDocuments().Any() || changes.GetChangedAnalyzerConfigDocuments().Any()));
+        Assert.DoesNotContain(changes =>
+            changes.GetAddedAnalyzerConfigDocuments().Any() || changes.GetChangedAnalyzerConfigDocuments().Any(), result.ChangedSolution.GetChanges(solution).GetProjectChanges());
         Assert.IsTrue(workspace.Workspace.TryApplyChanges(result.ChangedSolution));
     }
 
@@ -1384,7 +1384,7 @@ public sealed class DiagnosticCleanupEngineTests
 
         Assert.AreEqual(BracedGate(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         AnalyzerConfigDocument config = result.ChangedSolution.GetDocument(documentId).Project.AnalyzerConfigDocuments.Single();
-        Assert.AreEqual(editorConfig, (await config.GetTextAsync()).ToString());
+        Assert.AreEqual(editorConfig, (await config.GetTextAsync(TestContext.CancellationToken)).ToString());
         Assert.IsTrue(workspace.Workspace.TryApplyChanges(result.ChangedSolution));
     }
 
@@ -1505,7 +1505,7 @@ public sealed class DiagnosticCleanupEngineTests
 
         Assert.AreEqual(BracedGate(), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
         AnalyzerConfigDocument config = result.ChangedSolution.GetDocument(documentId).Project.AnalyzerConfigDocuments.Single();
-        Assert.AreEqual(editorConfig, (await config.GetTextAsync()).ToString());
+        Assert.AreEqual(editorConfig, (await config.GetTextAsync(TestContext.CancellationToken)).ToString());
     }
 
     [TestMethod]
@@ -1668,18 +1668,25 @@ public sealed class DiagnosticCleanupEngineTests
         {
             case "AddProject":
                 return renamed.AddProject("Extra", "Extra", LanguageNames.CSharp).Solution;
+
             case "RemoveProject":
                 return renamed.RemoveProject(documentId.ProjectId);
+
             case "AddSolutionAnalyzerReference":
                 return renamed.AddAnalyzerReference(new AnalyzerImageReference(ImmutableArray.Create<DiagnosticAnalyzer>(new AnalysisProbeAnalyzer())));
+
             case "RemoveSolutionAnalyzerReference":
                 return renamed.RemoveAnalyzerReference(renamed.AnalyzerReferences.First());
+
             case "RenameDocument":
                 return renamed.WithDocumentName(documentId, "Renamed.cs");
+
             case "MoveDocumentFile":
                 return renamed.WithDocumentFilePath(documentId, DiagnosticCleanupTestWorkspace.GetPath("Moved/Settings.cs"));
+
             case "MoveDocumentToFolder":
                 return renamed.WithDocumentFolders(documentId, new[] { "Moved" });
+
             default:
                 return renamed.WithDocumentSourceCodeKind(documentId, SourceCodeKind.Script);
         }
@@ -1875,8 +1882,8 @@ public sealed class DiagnosticCleanupEngineTests
         {
         }
 
-        public override System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context) =>
-            throw new System.InvalidOperationException("first line\r\nsecond line\nthird line");
+        public override System.Threading.Tasks.Task RegisterCodeFixesAsync(CodeFixContext context)
+            => throw new System.InvalidOperationException("first line\r\nsecond line\nthird line");
     }
 
     /// <summary>
@@ -1977,6 +1984,8 @@ public sealed class DiagnosticCleanupEngineTests
                 SymbolKind.Field);
         }
     }
+
+    public TestContext TestContext { get; set; }
 
 #pragma warning restore RS1036, RS1038, RS1041, RS2008
 }

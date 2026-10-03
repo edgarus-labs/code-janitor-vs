@@ -170,10 +170,7 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>A string value produced by this method.</returns>
-    internal static string BuildTypeFileName(MemberDeclarationSyntax member)
-    {
-        return BuildTypeFileStem(member) + ".cs";
-    }
+    internal static string BuildTypeFileName(MemberDeclarationSyntax member) => BuildTypeFileStem(member) + ".cs";
 
     /// <summary>
     /// Constructs a file stem from a member&apos;s identifier, appending its type parameter names in curly braces when present, with no side effects.
@@ -256,12 +253,9 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="members">The contained members.</param>
     /// <param name="directive">The directive.</param>
     /// <returns>The owning member, or null when the directive is outside every member.</returns>
-    private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive)
-    {
-        return members.FirstOrDefault(x => TryGetTrailingEndRegion(x, out var nextToken, out var triviaCount)
-                && nextToken.LeadingTrivia[triviaCount - 1].Span.Contains(directive.SpanStart))
+    private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive) => members.FirstOrDefault(x => TryGetTrailingEndRegion(x, out var nextToken, out var triviaCount)
+                                                                                                                                                      && nextToken.LeadingTrivia[triviaCount - 1].Span.Contains(directive.SpanStart))
             ?? members.FirstOrDefault(x => x.FullSpan.Contains(directive.SpanStart));
-    }
 
     /// <summary>
     /// Finds the #endregion closing a region opened inside <paramref name="member"/> when it is the first directive
@@ -404,22 +398,16 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// </summary>
     /// <param name="member">The member.</param>
     /// <returns>True when the member can be moved into its own file.</returns>
-    private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member)
-    {
-        return member is BaseTypeDeclarationSyntax typeDeclaration
+    private static bool IsEligibleTopLevelType(MemberDeclarationSyntax member) => member is BaseTypeDeclarationSyntax typeDeclaration
             ? !HasPartialModifier(typeDeclaration.Modifiers)
             : member is DelegateDeclarationSyntax;
-    }
 
     /// <summary>
     /// Returns true if the modifier list contains a partial keyword token, otherwise false, with no side effects or exceptions.
     /// </summary>
     /// <param name="modifiers">The modifiers.</param>
     /// <returns>A bool value produced by this method.</returns>
-    private static bool HasPartialModifier(SyntaxTokenList modifiers)
-    {
-        return modifiers.Any(x => x.IsKind(SyntaxKind.PartialKeyword));
-    }
+    private static bool HasPartialModifier(SyntaxTokenList modifiers) => modifiers.Any(x => x.IsKind(SyntaxKind.PartialKeyword));
 
     /// <summary>
     /// Returns the first eligible member whose generated type file name matches the original file name (case-insensitive), or null if no match is found.
@@ -427,10 +415,7 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     /// <param name="eligibleMembers">The eligible members.</param>
     /// <param name="originalFileName">The original file name.</param>
     /// <returns>A MemberDeclarationSyntax value produced by this method.</returns>
-    private static MemberDeclarationSyntax ChooseMemberToKeep(IEnumerable<MemberDeclarationSyntax> eligibleMembers, string originalFileName)
-    {
-        return eligibleMembers.FirstOrDefault(x => string.Equals(BuildTypeFileName(x), originalFileName, StringComparison.OrdinalIgnoreCase));
-    }
+    private static MemberDeclarationSyntax ChooseMemberToKeep(IEnumerable<MemberDeclarationSyntax> eligibleMembers, string originalFileName) => eligibleMembers.FirstOrDefault(x => string.Equals(BuildTypeFileName(x), originalFileName, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Replaces the compilation unit&apos;s members, or the members of a sole file-scoped or regular namespace, with the provided list and returns a new syntax tree without modifying the original.

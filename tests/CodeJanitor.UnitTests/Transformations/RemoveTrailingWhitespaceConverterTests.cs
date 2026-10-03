@@ -14,10 +14,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     private RemoveTrailingWhitespaceConverter _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new RemoveTrailingWhitespaceConverter();
-    }
+    public void TestInitialize() => _converter = new RemoveTrailingWhitespaceConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -78,17 +75,11 @@ public sealed class RemoveTrailingWhitespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void EmptySource_Unchanged()
-    {
-        Assert.AreEqual(string.Empty, _converter.Convert(string.Empty));
-    }
+    public void EmptySource_Unchanged() => Assert.AreEqual(string.Empty, _converter.Convert(string.Empty));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void NullSource_ReturnsNull()
-    {
-        Assert.IsNull(_converter.Convert(null));
-    }
+    public void NullSource_ReturnsNull() => Assert.IsNull(_converter.Convert(null));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -104,10 +95,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
-    public void WhitespaceAfterTheFinalLineBreak_Removed()
-    {
-        Assert.AreEqual("class C { }\r\n", _converter.Convert("class C { }\r\n   \t"));
-    }
+    public void WhitespaceAfterTheFinalLineBreak_Removed() => Assert.AreEqual("class C { }\r\n", _converter.Convert("class C { }\r\n   \t"));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -146,10 +134,7 @@ public sealed class RemoveTrailingWhitespaceConverterTests
     [DataRow("/* a\n   b   \n   c */\nclass C { }\n", "/* a\n   b\n   c */\nclass C { }\n", DisplayName = "block comment inner line")]
     [DataRow("class C { }   ", "class C { }", DisplayName = "last line without line break")]
     [DataRow("class C { }\r\n// end  ", "class C { }\r\n// end", DisplayName = "last comment line without line break")]
-    public void TrailingWhitespaceInTriviaAndOnTheLastLine_Removed(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Convert(input));
-    }
+    public void TrailingWhitespaceInTriviaAndOnTheLastLine_Removed(string input, string expected) => Assert.AreEqual(expected, _converter.Convert(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

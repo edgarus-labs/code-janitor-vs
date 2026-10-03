@@ -14,10 +14,7 @@ public sealed class CollectionExpressionConverterTests
     private ISourceTransformation _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new CollectionExpressionConverter();
-    }
+    public void TestInitialize() => _converter = new CollectionExpressionConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -178,10 +175,7 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("class C { List<int> a = new List<int>(/*k*/) { 1 }; }", DisplayName = "comment inside the constructor parentheses")]
     [DataRow("class C { List<int> a = new List<int> /* c */ (); }", DisplayName = "comment before the constructor parentheses")]
     [DataRow("class C { int[] a = new int[/*z*/0]; }", DisplayName = "comment inside a zero-length array size")]
-    public void InitializerThatCannotBecomeACollectionExpression_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void InitializerThatCannotBecomeACollectionExpression_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -201,10 +195,7 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("class C { string[] a = new[] { \"a\" }; double[] b = new[] { 1.5 }; }", "class C { string[] a = [\"a\"]; double[] b = [1.5]; }", DisplayName = "implicit array of a sealed predefined type")]
     [DataRow("class C { System.Range[] a = new System.Range[] { 1..2, 0..^1, 2.. }; }", "class C { System.Range[] a = [1..2, 0..^1, 2..]; }", DisplayName = "range elements with a start")]
     [DataRow("class C { List<System.Range> a = new List<System.Range> { (..3) }; }", "class C { List<System.Range> a = [(..3)]; }", DisplayName = "parenthesized range element without a start")]
-    public void ConvertibleInitializer_BecomesACollectionExpression(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void ConvertibleInitializer_BecomesACollectionExpression(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -319,10 +310,7 @@ public sealed class CollectionExpressionConverterTests
     [DataRow("class C { int[,] a = new[,] { { 1 } }; }", DisplayName = "implicit rectangular array")]
     [DataRow("class C { int[,][] a = new int[0,0][]; }", DisplayName = "rectangular array of arrays")]
     [DataRow("class C { int[][] a = new int[0][,]; }", DisplayName = "different inner rank")]
-    public void RectangularArray_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void RectangularArray_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -338,10 +326,7 @@ public sealed class CollectionExpressionConverterTests
         "class C\n{\n    int[] a = new[]\n    {\n        1,\n#if DEBUG\n        2,\n#endif\n    };\n}\n",
         "class C\n{\n    int[] a = [\n        1,\n#if DEBUG\n        2,\n#endif\n    ];\n}\n",
         DisplayName = "preprocessor branch in the initializer")]
-    public void CommentsAndDirectivesInsideTheInitializer_AreKept(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void CommentsAndDirectivesInsideTheInitializer_AreKept(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]

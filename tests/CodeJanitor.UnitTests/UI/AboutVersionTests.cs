@@ -11,14 +11,8 @@ public sealed class AboutVersionTests
         FileVersionInfo.GetVersionInfo(typeof(AboutWindow).Assembly.Location).FileVersion;
 
     [TestMethod]
-    public void Header_UsesBuildInjectedVersion()
-    {
-        Assert.AreEqual($"Version {InjectedVersion}", AboutVersion.Header);
-    }
+    public void Header_UsesBuildInjectedVersion() => Assert.AreEqual($"Version {InjectedVersion}", AboutVersion.Header);
 
     [TestMethod]
-    public void Footer_UsesBuildInjectedVersion()
-    {
-        Assert.AreEqual($"v{InjectedVersion}", AboutVersion.Footer);
-    }
+    public void Footer_UsesBuildInjectedVersion() => Assert.AreEqual($"v{InjectedVersion}", AboutVersion.Footer);
 }

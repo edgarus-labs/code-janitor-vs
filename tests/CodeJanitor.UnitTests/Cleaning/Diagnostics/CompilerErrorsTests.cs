@@ -74,7 +74,7 @@ public sealed class CompilerErrorsTests
         using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         DocumentId documentId = workspace.AddDocument("Sample.cs", Text);
         Project project = workspace.CreateSolution().GetProject(documentId.ProjectId);
-        SyntaxTree tree = await project.GetDocument(documentId).GetSyntaxTreeAsync();
+        SyntaxTree tree = await project.GetDocument(documentId).GetSyntaxTreeAsync(TestContext.CancellationToken);
         Diagnostic existing = Diagnostic.Create(ErrorDescriptor, Location.Create(tree, new TextSpan(5, 4)), "old");
         Diagnostic withoutLocation = Diagnostic.Create(ErrorDescriptor, Location.None, "new");
 
@@ -110,12 +110,12 @@ public sealed class CompilerErrorsTests
         using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         DocumentId documentId = workspace.AddDocument("Sample.cs", Text);
         Project before = workspace.CreateSolution().GetProject(documentId.ProjectId);
-        SourceText oldText = await before.GetDocument(documentId).GetTextAsync();
+        SourceText oldText = await before.GetDocument(documentId).GetTextAsync(TestContext.CancellationToken);
         Project after = before.Solution
             .WithDocumentText(documentId, oldText.WithChanges(new TextChange(new TextSpan(changeStart, changeLength), insertedText)))
             .GetProject(before.Id);
-        Diagnostic beforeError = Diagnostic.Create(ErrorDescriptor, Location.Create(await before.GetDocument(documentId).GetSyntaxTreeAsync(), new TextSpan(oldStart, oldLength)), "old");
-        Diagnostic afterError = Diagnostic.Create(ErrorDescriptor, Location.Create(await after.GetDocument(documentId).GetSyntaxTreeAsync(), new TextSpan(newStart, newLength)), "new");
+        Diagnostic beforeError = Diagnostic.Create(ErrorDescriptor, Location.Create(await before.GetDocument(documentId).GetSyntaxTreeAsync(TestContext.CancellationToken), new TextSpan(oldStart, oldLength)), "old");
+        Diagnostic afterError = Diagnostic.Create(ErrorDescriptor, Location.Create(await after.GetDocument(documentId).GetSyntaxTreeAsync(TestContext.CancellationToken), new TextSpan(newStart, newLength)), "new");
 
         Diagnostic newError = await CompilerErrors.FindFirstNewAsync(before, new[] { beforeError }, after, new[] { afterError }, CancellationToken.None);
 
@@ -129,12 +129,12 @@ public sealed class CompilerErrorsTests
         using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace();
         DocumentId documentId = workspace.AddDocument("Sample.cs", Text);
         Project before = workspace.CreateSolution().GetProject(documentId.ProjectId);
-        SourceText oldText = await before.GetDocument(documentId).GetTextAsync();
+        SourceText oldText = await before.GetDocument(documentId).GetTextAsync(TestContext.CancellationToken);
         Project after = before.Solution
             .WithDocumentText(documentId, oldText.WithChanges(new TextChange(new TextSpan(0, 0), "ZZ")))
             .GetProject(before.Id);
-        SyntaxTree afterTree = await after.GetDocument(documentId).GetSyntaxTreeAsync();
-        Diagnostic existing = Diagnostic.Create(ErrorDescriptor, Location.Create(await before.GetDocument(documentId).GetSyntaxTreeAsync(), new TextSpan(5, 4)), "old");
+        SyntaxTree afterTree = await after.GetDocument(documentId).GetSyntaxTreeAsync(TestContext.CancellationToken);
+        Diagnostic existing = Diagnostic.Create(ErrorDescriptor, Location.Create(await before.GetDocument(documentId).GetSyntaxTreeAsync(TestContext.CancellationToken), new TextSpan(5, 4)), "old");
         Diagnostic first = Diagnostic.Create(ErrorDescriptor, Location.Create(afterTree, new TextSpan(7, 4)), "first");
         Diagnostic second = Diagnostic.Create(ErrorDescriptor, Location.Create(afterTree, new TextSpan(7, 4)), "second");
 
@@ -142,4 +142,6 @@ public sealed class CompilerErrorsTests
 
         Assert.AreSame(second, newError);
     }
+
+    public TestContext TestContext { get; set; }
 }

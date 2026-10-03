@@ -59,20 +59,14 @@ public sealed class TreeViewMultipleSelectionBehavior : Behavior<TreeView>
     /// </summary>
     /// <param name="target">The target.</param>
     /// <returns>The value.</returns>
-    public static bool GetIsItemSelected(TreeViewItem target)
-    {
-        return (bool)target.GetValue(IsItemSelectedProperty);
-    }
+    public static bool GetIsItemSelected(TreeViewItem target) => (bool)target.GetValue(IsItemSelectedProperty);
 
     /// <summary>
     /// Sets the IsItemSelected value on the specified target.
     /// </summary>
     /// <param name="target">The target.</param>
     /// <param name="value">The value.</param>
-    public static void SetIsItemSelected(TreeViewItem target, bool value)
-    {
-        target.SetValue(IsItemSelectedProperty, value);
-    }
+    public static void SetIsItemSelected(TreeViewItem target, bool value) => target.SetValue(IsItemSelectedProperty, value);
 
     /// <summary>
     /// Called when the IsItemSelected dependency property has changed.

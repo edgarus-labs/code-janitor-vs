@@ -28,10 +28,7 @@ internal sealed class RemoveRegionLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="RemoveRegionLogic" /> class.</returns>
-    internal static RemoveRegionLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new RemoveRegionLogic(package));
-    }
+    internal static RemoveRegionLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new RemoveRegionLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RemoveRegionLogic" /> class.

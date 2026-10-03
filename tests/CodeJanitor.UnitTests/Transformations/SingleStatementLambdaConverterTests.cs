@@ -12,10 +12,7 @@ public sealed class SingleStatementLambdaConverterTests
     private ISourceTransformation _converter;
 
     [TestInitialize]
-    public void TestInitialize()
-    {
-        _converter = new SingleStatementLambdaConverter();
-    }
+    public void TestInitialize() => _converter = new SingleStatementLambdaConverter();
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -107,10 +104,7 @@ public sealed class SingleStatementLambdaConverterTests
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { Action a = delegate /* keep */ { Foo(); }; static void Foo() { } }", DisplayName = "comment after the delegate keyword")]
     [DataRow("class C { Action<int> a = delegate /* keep */ (int x) { Foo(); }; static void Foo() { } }", DisplayName = "comment after the delegate keyword before parameters")]
-    public void AnonymousMethodWithCommentInItsHeader_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void AnonymousMethodWithCommentInItsHeader_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -118,10 +112,7 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { Func<int, int> f = static delegate (int x) { return x; }; }", "class C { Func<int, int> f = static (int x) => x; }", DisplayName = "static anonymous method with parameters")]
     [DataRow("class C { Func<Task> f = static async delegate { await Task.Delay(1); }; }", "class C { Func<Task> f = static async () => await Task.Delay(1); }", DisplayName = "static async anonymous method")]
     [DataRow("class C { Func<Task> f = async static delegate { await Task.Delay(1); }; }", "class C { Func<Task> f = async static () => await Task.Delay(1); }", DisplayName = "async static anonymous method")]
-    public void StaticAnonymousMethod_KeepsItsModifiers(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void StaticAnonymousMethod_KeepsItsModifiers(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -154,10 +145,7 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { void M() { DoWork(); } int P { get { return 1; } } }", DisplayName = "method and accessor blocks")]
     [DataRow("class C { void M() { void L() { DoWork(); } } }", DisplayName = "local function block")]
     [DataRow("class C { string S = \"() => { return 1; }\"; }", DisplayName = "code-like text in literal")]
-    public void BodyThatIsNotASingleExpression_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void BodyThatIsNotASingleExpression_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -172,10 +160,7 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { Func<int, int, int> f = delegate (int a, int b) { return a - b; }; }", "class C { Func<int, int, int> f = (int a, int b) => a - b; }", DisplayName = "anonymous method with parameters")]
     [DataRow("class C { Func<int, string> f = x => { return $\"{x} => {{ }}\"; }; }", "class C { Func<int, string> f = x => $\"{x} => {{ }}\"; }", DisplayName = "interpolated string with braces")]
     [DataRow("class C { Func<object, bool> f = o => { return o is string { Length: > 0 }; }; }", "class C { Func<object, bool> f = o => o is string { Length: > 0 }; }", DisplayName = "property pattern")]
-    public void SingleExpressionBody_BecomesExpressionBodied(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void SingleExpressionBody_BecomesExpressionBodied(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -271,19 +256,13 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { void M(Button b) { b.Click += delegate { Log(); }; } }", DisplayName = "event subscription")]
     [DataRow("class C { System.Func<int, int> f = delegate { return 1; }; }", DisplayName = "Func with a parameter")]
     [DataRow("class C { MyHandler h = delegate { Log(); }; }", DisplayName = "unknown delegate type")]
-    public void ParameterlessAnonymousMethodWhoseDelegateMayTakeParameters_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void ParameterlessAnonymousMethodWhoseDelegateMayTakeParameters_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
     [DataRow("class C { System.Action a = delegate { Log(); }; }", "class C { System.Action a = () => Log(); }", DisplayName = "qualified Action")]
     [DataRow("class C { void M() { Func<int> f = delegate { return 1; }; } }", "class C { void M() { Func<int> f = () => 1; } }", DisplayName = "local Func without parameters")]
-    public void ParameterlessAnonymousMethodForAParameterlessDelegate_BecomesLambda(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void ParameterlessAnonymousMethodForAParameterlessDelegate_BecomesLambda(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -292,10 +271,7 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { object M() => new Holder(x => { return x; }); }", DisplayName = "constructor argument")]
     [DataRow("class C { void M() { Run(() => () => { return 1; }); } }", DisplayName = "lambda inside a lambda argument")]
     [DataRow("class C { System.Collections.Generic.List<System.Action> L = new System.Collections.Generic.List<System.Action> { () => { F(); } }; }", DisplayName = "collection initializer element")]
-    public void LambdaWhoseTargetTypeDependsOnOverloadResolution_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void LambdaWhoseTargetTypeDependsOnOverloadResolution_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -305,10 +281,7 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { object _o; void M() { _o = () => { Foo(); }; } int Foo() => 0; }", DisplayName = "assignment to a member whose type is not visible")]
     [DataRow("class C { System.Action a = true ? () => { Foo(); } : null; static int Foo() => 0; }", DisplayName = "conditional operator branch")]
     [DataRow("class C { object M() { return () => { Foo(); }; } static int Foo() => 0; }", DisplayName = "return from a method returning object")]
-    public void LambdaWithoutAKnownDelegateTargetType_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void LambdaWithoutAKnownDelegateTargetType_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -319,10 +292,7 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { object o = (System.Action)(() => { F(); }); }", "class C { object o = (System.Action)(() => F()); }", DisplayName = "cast")]
     [DataRow("class C { System.Linq.Expressions.Expression<Func<int, int>> e = x => { return x; }; }", "class C { System.Linq.Expressions.Expression<Func<int, int>> e = x => x; }", DisplayName = "expression tree")]
     [DataRow("class C { Predicate<int>? p = x => { return x > 0; }; }", "class C { Predicate<int>? p = x => x > 0; }", DisplayName = "nullable Predicate")]
-    public void LambdaWithAKnownDelegateTargetType_BecomesExpressionBodied(string input, string expected)
-    {
-        Assert.AreEqual(expected, _converter.Apply(input));
-    }
+    public void LambdaWithAKnownDelegateTargetType_BecomesExpressionBodied(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
@@ -330,8 +300,5 @@ public sealed class SingleStatementLambdaConverterTests
     [DataRow("class C { Func<int, int> f = x => { return /* why */ x; }; }", DisplayName = "comment after return")]
     [DataRow("class C { Func<int, int> f = x => { return x; /* why */ }; }", DisplayName = "comment before the close brace")]
     [DataRow("class C { Action a = () => {\n#if !NEVER\n Log();\n#endif\n}; }", DisplayName = "preprocessor directives")]
-    public void BodyWithCommentsOrDirectives_IsUnchanged(string input)
-    {
-        Assert.AreEqual(input, _converter.Apply(input));
-    }
+    public void BodyWithCommentsOrDirectives_IsUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
 }

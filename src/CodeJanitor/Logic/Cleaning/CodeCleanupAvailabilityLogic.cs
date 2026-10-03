@@ -48,10 +48,7 @@ internal sealed class CodeCleanupAvailabilityLogic
     /// </summary>
     /// <param name="package">The hosting package.</param>
     /// <returns>An instance of the <see cref="CodeCleanupAvailabilityLogic" /> class.</returns>
-    internal static CodeCleanupAvailabilityLogic GetInstance(CodeJanitorPackage package)
-    {
-        return _instance ?? (_instance = new CodeCleanupAvailabilityLogic(package));
-    }
+    internal static CodeCleanupAvailabilityLogic GetInstance(CodeJanitorPackage package) => _instance ?? (_instance = new CodeCleanupAvailabilityLogic(package));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeCleanupAvailabilityLogic" /> class.
@@ -269,7 +266,10 @@ internal sealed class CodeCleanupAvailabilityLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!document.IsExternal()) return false;
+        if (!document.IsExternal())
+        {
+            return false;
+        }
 
         switch ((AskYesNo)Settings.Default.Cleaning_PerformPartialCleanupOnExternal)
         {
@@ -390,7 +390,10 @@ internal sealed class CodeCleanupAvailabilityLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (document is null) return false;
+        if (document is null)
+        {
+            return false;
+        }
 
         return IsParentCodeGeneratorExcludedByOptions(document.ProjectItem);
     }
@@ -406,7 +409,10 @@ internal sealed class CodeCleanupAvailabilityLogic
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var parentProjectItem = projectItem?.GetParentProjectItem();
-        if (parentProjectItem is null) return false;
+        if (parentProjectItem is null)
+        {
+            return false;
+        }
 
         var extension = GetProjectItemExtension(parentProjectItem);
         if (extension.Equals(".tt", StringComparison.CurrentCultureIgnoreCase))

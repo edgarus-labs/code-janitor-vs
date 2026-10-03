@@ -143,10 +143,7 @@ public abstract class BaseCodeItemElement : BaseCodeItem
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="func">The function to execute.</param>
     /// <returns>A lazy initializer for the specified function.</returns>
-    protected static Lazy<T> LazyTryDefault<T>(Func<T> func)
-    {
-        return new Lazy<T>(() => TryDefault(func), LazyThreadSafetyMode.PublicationOnly);
-    }
+    protected static Lazy<T> LazyTryDefault<T>(Func<T> func) => new Lazy<T>(() => TryDefault(func), LazyThreadSafetyMode.PublicationOnly);
 
     /// <summary>
     /// Tries to execute the specified function on a background thread, returning the default of

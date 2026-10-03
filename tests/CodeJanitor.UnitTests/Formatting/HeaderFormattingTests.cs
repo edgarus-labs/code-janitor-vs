@@ -12,10 +12,7 @@ namespace CodeJanitor.UnitTests.Formatting;
 public sealed class HeaderFormattingTests
 {
     [TestInitialize]
-    public void TestInitialize()
-    {
-        Settings.Default.Reset();
-    }
+    public void TestInitialize() => Settings.Default.Reset();
 
     /// <summary>
     /// Tests the forced indenting of the XML copyright file header.
