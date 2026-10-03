@@ -182,13 +182,13 @@ public sealed class RemoveXmlDocumentationLogic
 
         try
         {
-            var originalText = File.ReadAllText(filePath);
+            var originalText = FileTextStyle.ReadAllText(filePath, out var encoding);
             if (!TryRemoveXmlDocumentation(originalText, out var updatedText))
             {
                 return false;
             }
 
-            File.WriteAllText(filePath, updatedText);
+            FileTextStyle.WriteAllText(filePath, updatedText, encoding, originalText);
 
             return true;
         }

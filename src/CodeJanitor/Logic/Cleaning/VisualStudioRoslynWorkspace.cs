@@ -1,3 +1,4 @@
+using CodeJanitor.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -255,10 +256,7 @@ internal sealed class VisualStudioRoslynWorkspace
     /// <returns>The file text.</returns>
     internal static string ReadFileText(string filePath)
     {
-        using (var reader = new StreamReader(filePath, detectEncodingFromByteOrderMarks: true))
-        {
-            return reader.ReadToEnd();
-        }
+        return FileTextStyle.ReadAllText(filePath, out _);
     }
 
     /// <summary>
@@ -276,13 +274,7 @@ internal sealed class VisualStudioRoslynWorkspace
             return ClosedFileWriteResult.NotWritable;
         }
 
-        string diskText;
-        Encoding encoding;
-        using (StreamReader reader = new StreamReader(filePath, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), detectEncodingFromByteOrderMarks: true))
-        {
-            diskText = reader.ReadToEnd();
-            encoding = reader.CurrentEncoding;
-        }
+        var diskText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
         if (!string.Equals(diskText, expectedText, StringComparison.Ordinal))
         {
@@ -291,7 +283,7 @@ internal sealed class VisualStudioRoslynWorkspace
 
         try
         {
-            File.WriteAllText(filePath, newText, encoding);
+            FileTextStyle.WriteAllText(filePath, newText, encoding, diskText);
         }
         catch (UnauthorizedAccessException)
         {

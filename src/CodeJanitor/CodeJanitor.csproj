@@ -614,6 +614,7 @@
     <Compile Include="Helpers\CursorPositionRestorer.cs" />
     <Compile Include="Helpers\DocumentExtensions.cs" />
     <Compile Include="Helpers\EditorConfigHelper.cs" />
+    <Compile Include="Helpers\FileTextStyle.cs" />
     <Compile Include="Helpers\EditPointExtensions.cs" />
     <Compile Include="Helpers\EnumHelper.cs" />
     <Compile Include="Helpers\ExplicitInterfaceImplementationHelper.cs" />

@@ -1,3 +1,4 @@
+using CodeJanitor.Helpers;
 using CodeJanitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -154,7 +155,7 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
 
         try
         {
-            File.WriteAllText(tempFilePath, content, targetEncoding);
+            FileTextStyle.WriteAllText(tempFilePath, content, targetEncoding, null, targetFilePath);
 
             var targetFileName = Path.GetFileName(targetFilePath);
             var takenFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

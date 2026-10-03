@@ -97,14 +97,7 @@ internal sealed class NamespaceFixerLogic
             return false;
         }
 
-        string originalText;
-        Encoding encoding;
-
-        using (var reader = new StreamReader(filePath, true))
-        {
-            originalText = reader.ReadToEnd();
-            encoding = reader.CurrentEncoding;
-        }
+        var originalText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
         var updatedText = _converter.FixNamespace(originalText, expectedNamespace);
         if (updatedText == originalText)
@@ -112,7 +105,7 @@ internal sealed class NamespaceFixerLogic
             return false;
         }
 
-        File.WriteAllText(filePath, updatedText, encoding);
+        FileTextStyle.WriteAllText(filePath, updatedText, encoding, originalText);
         OutputWindowHelper.InfoWriteLine($"NamespaceFixerLogic.FixNamespace updated '{filePath}' to namespace '{expectedNamespace}'.");
 
         return true;

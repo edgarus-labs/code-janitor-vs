@@ -384,14 +384,7 @@ internal sealed class AiXmlDocumentationLogic
                 return false;
             }
 
-            string originalFileText;
-            Encoding encoding;
-
-            using (var reader = new StreamReader(filePath, true))
-            {
-                originalFileText = reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
-            }
+            var originalFileText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
             var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
             if (RunToken.IsCancellationRequested || updatedFileText == originalFileText)
@@ -399,7 +392,7 @@ internal sealed class AiXmlDocumentationLogic
                 return false;
             }
 
-            File.WriteAllText(filePath, updatedFileText, encoding);
+            FileTextStyle.WriteAllText(filePath, updatedFileText, encoding, originalFileText);
 
             return true;
         });
@@ -463,14 +456,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        string originalFileText;
-        Encoding encoding;
-
-        using (var reader = new StreamReader(filePath, true))
-        {
-            originalFileText = reader.ReadToEnd();
-            encoding = reader.CurrentEncoding;
-        }
+        var originalFileText = FileTextStyle.ReadAllText(filePath, out var encoding);
 
         var updatedFileText = ApplyXmlDocumentationToSourceInternal(originalFileText, client);
         if (updatedFileText == originalFileText)
@@ -478,7 +464,7 @@ internal sealed class AiXmlDocumentationLogic
             return false;
         }
 
-        File.WriteAllText(filePath, updatedFileText, encoding);
+        FileTextStyle.WriteAllText(filePath, updatedFileText, encoding, originalFileText);
 
         return true;
     }
@@ -718,6 +704,7 @@ internal sealed class AiXmlDocumentationLogic
             .OrderBy(x => x.GetFirstToken().SpanStart)
             .ToList();
 
+        var lineEnding = FileTextStyle.GetDominantLineEnding(source);
         var builder = new StringBuilder(source);
         var deadlineUtc = DateTime.UtcNow.AddSeconds(options.GlobalTimeoutSeconds > 0 ? options.GlobalTimeoutSeconds : 60);
         foreach (var method in eligibleToProcess.OrderByDescending(x => x.GetFirstToken().SpanStart))
@@ -753,7 +740,7 @@ internal sealed class AiXmlDocumentationLogic
             var exceptions = method is BaseMethodDeclarationSyntax methodForExceptions
                 ? DetectThrownExceptions(methodForExceptions).ToList()
                 : new List<string>();
-            var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions);
+            var xmlBlock = BuildXmlCommentBlock(indent, method, summary, exceptions, lineEnding);
 
             builder.Insert(insertPosition, xmlBlock);
             stats.DocumentedMethods++;
@@ -1603,13 +1590,13 @@ internal sealed class AiXmlDocumentationLogic
     /// and for methods, constructors, and positional records additionally appending &lt;param&gt; elements, a &lt;returns&gt; element,
     /// and ordered &lt;exception&gt; elements.
     /// </summary>
-    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes)
+    private static string BuildXmlCommentBlock(string indent, MemberDeclarationSyntax member, string summary, IEnumerable<string> exceptionTypes, string lineEnding)
     {
         var sb = new StringBuilder();
 
-        sb.Append(indent).AppendLine("/// <summary>");
-        sb.Append(indent).Append("/// ").AppendLine(XmlEscape(summary));
-        sb.Append(indent).AppendLine("/// </summary>");
+        sb.Append(indent).Append("/// <summary>").Append(lineEnding);
+        sb.Append(indent).Append("/// ").Append(XmlEscape(summary)).Append(lineEnding);
+        sb.Append(indent).Append("/// </summary>").Append(lineEnding);
 
         // 1. Positional records or primary constructors parameters
         IEnumerable<ParameterSyntax> parameters = null;
@@ -1639,7 +1626,8 @@ internal sealed class AiXmlDocumentationLogic
                         .Append(parameterName)
                         .Append("\">")
                         .Append(XmlEscape(BuildParameterDescription(parameterName, paramType)))
-                        .AppendLine("</param>");
+                        .Append("</param>")
+                        .Append(lineEnding);
                 }
             }
         }
@@ -1655,7 +1643,8 @@ internal sealed class AiXmlDocumentationLogic
                 sb.Append(indent)
                     .Append("/// <returns>")
                     .Append(XmlEscape(BuildReturnDescription(returnTypeStr, m.Identifier.ValueText)))
-                    .AppendLine("</returns>");
+                    .Append("</returns>")
+                    .Append(lineEnding);
             }
         }
 
@@ -1669,7 +1658,8 @@ internal sealed class AiXmlDocumentationLogic
                     .Append(XmlEscape(exceptionType))
                     .Append("\">")
                     .Append(XmlEscape("Thrown when an error occurs during execution."))
-                    .AppendLine("</exception>");
+                    .Append("</exception>")
+                    .Append(lineEnding);
             }
         }
 

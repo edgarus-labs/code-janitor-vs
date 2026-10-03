@@ -120,6 +120,7 @@
     <Compile Include="Helpers\FileHeaderHelperTests.cs" />
     <Compile Include="Helpers\NamespacePathHelperTests.cs" />
     <Compile Include="Helpers\EditorConfigHelperTests.cs" />
+    <Compile Include="Helpers\FileTextStyleTests.cs" />
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="SettingsConfigurationSyncTests.cs" />

@@ -543,14 +543,8 @@ internal sealed class CodeCleanupManager
 
         try
         {
-            string originalSource;
-            Encoding encoding;
-
-            using (var reader = new StreamReader(projectItemFileName, detectEncodingFromByteOrderMarks: true))
-            {
-                originalSource = reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
-            }
+            var diskSource = FileTextStyle.ReadAllText(projectItemFileName, out var encoding);
+            var originalSource = diskSource;
 
             var settings = EffectiveCleanupSettings.For(projectItemFileName);
             bool splitChanged = false;
@@ -591,7 +585,7 @@ internal sealed class CodeCleanupManager
 
             if (splitChanged || fileHadBom || !string.Equals(originalSource, transformedSource, StringComparison.Ordinal))
             {
-                File.WriteAllText(projectItemFileName, transformedSource, targetEncoding);
+                FileTextStyle.WriteAllText(projectItemFileName, transformedSource, targetEncoding, diskSource);
 
                 return new HeadlessPreCleanupOutcome
                 {
@@ -1781,11 +1775,7 @@ internal sealed class CodeCleanupManager
         Encoding encoding = Encoding.UTF8;
         if (File.Exists(filePath))
         {
-            using (var reader = new StreamReader(filePath, detectEncodingFromByteOrderMarks: true))
-            {
-                reader.ReadToEnd();
-                encoding = reader.CurrentEncoding;
-            }
+            FileTextStyle.ReadAllText(filePath, out encoding);
         }
 
         var splitResult = _topLevelTypeToFileSplitFileProcessor.Apply(
