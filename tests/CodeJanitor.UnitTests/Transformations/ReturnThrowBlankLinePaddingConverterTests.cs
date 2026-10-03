@@ -184,4 +184,16 @@ public sealed class ReturnThrowBlankLinePaddingConverterTests
     [DataRow("class C { void M( { Log(); return; }", DisplayName = "syntax errors on one line")]
     [DataRow("class C\r\n{\r\n    void M() { Foo(); return; }\r\n}\r\n", DisplayName = "return on the same line as the previous statement")]
     public void InputsWithoutSeparateReturnLines_AreUnchanged(string input) => Assert.AreEqual(input, _converter.Apply(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow(
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        var x = 1;\r\n        /// explain\r\n        return x;\r\n    }\r\n}\r\n",
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        var x = 1;\r\n\r\n        /// explain\r\n        return x;\r\n    }\r\n}\r\n",
+        DisplayName = "directly above")]
+    [DataRow(
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        var x = 1;\r\n        /// explain\r\n\r\n        return x;\r\n    }\r\n}\r\n",
+        "class C\r\n{\r\n    int M()\r\n    {\r\n        var x = 1;\r\n        /// explain\r\n\r\n        return x;\r\n    }\r\n}\r\n",
+        DisplayName = "separated by a blank line")]
+    public void TripleSlashCommentAboveTheReturn_StaysAttachedOnlyWhenDirectlyAboveIt(string input, string expected) => Assert.AreEqual(expected, _converter.Apply(input));
 }

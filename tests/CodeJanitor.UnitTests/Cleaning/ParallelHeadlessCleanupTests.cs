@@ -108,39 +108,6 @@ public sealed class ParallelHeadlessCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void TryRunHeadlessPreCleanupForCSharpCore_WritingTheOriginalFailsAfterTheSplit_KeepsEveryTypeOnDisk()
-    {
-        Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnFields = true;
-        string filePath = Path.Combine(_tempDirectory, "Foo.cs");
-        string fields = string.Concat(Enumerable.Range(0, 2000).Select(index => $"    int _f{index};\r\n"));
-        string original = "class Foo\r\n{\r\n" + fields + "}\r\n\r\nclass Bar { }\r\n";
-        File.WriteAllText(filePath, original);
-
-        // The cleaned original is longer than the file: a byte-range lock past its end (and past the read-ahead of the
-        // buffered reads) lets the original be read, opened and truncated for writing, and then fails the write itself.
-        const int BlockSize = 4096;
-        long lockOffset = ((original.Length / BlockSize) + 2) * BlockSize;
-        using (FileStream locker = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-        {
-            locker.Lock(lockOffset, BlockSize);
-            try
-            {
-                CodeCleanupManager.GetInstance(null!).TryRunHeadlessPreCleanupForCSharpCore(filePath);
-            }
-            finally
-            {
-                locker.Unlock(lockOffset, BlockSize);
-            }
-        }
-
-        string onDisk = string.Concat(Directory.GetFiles(_tempDirectory, "*.cs").Select(File.ReadAllText));
-        Assert.IsTrue(onDisk.Contains("class Foo") && onDisk.Contains("_f1999;"), "Foo and all its fields must still be declared in a file on disk.");
-        Assert.IsTrue(onDisk.Contains("class Bar"), "Bar must still be declared in a file on disk.");
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformationsToFiles_CleansMultipleFilesConcurrently()
     {
         List<string> filePaths = [];

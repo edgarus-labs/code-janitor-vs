@@ -275,7 +275,7 @@ internal sealed class TopLevelTypeToFileSplitPlanner
     private static MemberDeclarationSyntax FindOwner(IReadOnlyList<MemberDeclarationSyntax> members, DirectiveTriviaSyntax directive)
     {
         return members.FirstOrDefault(x => TryGetTrailingEndRegion(x, out var nextToken, out var triviaCount)
-                                                                                                                                                      && nextToken.LeadingTrivia[triviaCount - 1].Span.Contains(directive.SpanStart))
+                && nextToken.LeadingTrivia[triviaCount - 1].Span.Contains(directive.SpanStart))
             ?? members.FirstOrDefault(x => x.FullSpan.Contains(directive.SpanStart));
     }
 

@@ -105,29 +105,59 @@ internal static class FileTextStyle
 
     /// <summary>
     /// Replaces the text of an existing file as <see cref="WriteAllText" /> writes it, but atomically: the text is
-    /// written to a temporary file next to it first, which then replaces the file. A write that fails leaves the file
-    /// as it was.
+    /// written to a temporary file next to it first, which then replaces the file, keeping a backup of it until the
+    /// replace succeeded. A write that fails leaves the file as it was.
     /// </summary>
     /// <param name="filePath">The path of the existing file.</param>
     /// <param name="text">The text to write.</param>
     /// <param name="encoding">The encoding to use when .editorconfig does not name one.</param>
     /// <param name="originalText">The text the file had before the change.</param>
-    internal static void ReplaceAllText(string filePath, string text, Encoding encoding, string originalText)
+    internal static void ReplaceAllText(string filePath, string text, Encoding encoding, string originalText) =>
+        ReplaceAllText(filePath, text, encoding, originalText, File.Replace);
+
+    /// <summary>
+    /// Replaces the text of an existing file as <see cref="ReplaceAllText(string, string, Encoding, string)" /> does,
+    /// with <paramref name="replaceFile" /> in place of <see cref="File.Replace(string, string, string)" />.
+    /// </summary>
+    /// <param name="filePath">The path of the existing file.</param>
+    /// <param name="text">The text to write.</param>
+    /// <param name="encoding">The encoding to use when .editorconfig does not name one.</param>
+    /// <param name="originalText">The text the file had before the change.</param>
+    /// <param name="replaceFile">Replaces a file (source, destination, backup) as <see cref="File.Replace(string, string, string)" /> does.</param>
+    internal static void ReplaceAllText(string filePath, string text, Encoding encoding, string originalText, Action<string, string, string> replaceFile)
     {
-        var tempFilePath = filePath + ".codejanitor.tmp." + Guid.NewGuid().ToString("N");
+        var suffix = Guid.NewGuid().ToString("N");
+        var tempFilePath = filePath + ".codejanitor.tmp." + suffix;
+        var backupFilePath = filePath + ".codejanitor.bak." + suffix;
         try
         {
             WriteAllText(tempFilePath, text, encoding, originalText, filePath);
-            File.Replace(tempFilePath, filePath, null);
+            replaceFile(tempFilePath, filePath, backupFilePath);
         }
         catch
         {
-            if (File.Exists(tempFilePath))
+            // A replace can fail after it moved the file to the backup; the file is restored before the new text is
+            // dropped, and the new text is kept when the file cannot be restored.
+            if (!File.Exists(filePath) && File.Exists(backupFilePath))
+            {
+                File.Move(backupFilePath, filePath);
+            }
+
+            if (File.Exists(filePath) && File.Exists(tempFilePath))
             {
                 File.Delete(tempFilePath);
             }
 
             throw;
+        }
+
+        try
+        {
+            File.Delete(backupFilePath);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            OutputWindowHelper.WarningWriteLine($"The new text of '{filePath}' was written, but its backup '{backupFilePath}' could not be deleted: {ex.Message}");
         }
     }
 

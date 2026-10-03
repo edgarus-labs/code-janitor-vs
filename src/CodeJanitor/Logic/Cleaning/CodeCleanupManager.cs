@@ -166,7 +166,6 @@ internal sealed class CodeCleanupManager
     private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
     private readonly UsingDirectivePlacementLogic _usingDirectivePlacementLogic;
     private readonly VarWhenApparentLogic _varWhenApparentLogic;
-    private readonly ReadonlyFieldLogic _readonlyFieldLogic;
     private readonly RazorFormatterLogic _razorFormatterLogic;
     private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
     private readonly NullCheckPatternMatchingLogic _nullCheckPatternMatchingLogic;
@@ -229,7 +228,6 @@ internal sealed class CodeCleanupManager
         _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
         _usingDirectivePlacementLogic = UsingDirectivePlacementLogic.GetInstance(_package);
         _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
-        _readonlyFieldLogic = ReadonlyFieldLogic.GetInstance(_package);
         _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
         _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
         _nullCheckPatternMatchingLogic = NullCheckPatternMatchingLogic.GetInstance(_package);
@@ -926,11 +924,6 @@ internal sealed class CodeCleanupManager
         if (IsEnabled(nameof(Settings.Cleaning_ConvertToVarWhenApparent)))
         {
             transformations.Add(new VarWhenApparentConverter());
-        }
-
-        if (IsEnabled(nameof(Settings.Cleaning_MakeFieldsReadonlyWhenSafe)))
-        {
-            transformations.Add(new ReadonlyFieldConverter());
         }
 
         if (IsEnabled(nameof(Settings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)))
@@ -1844,6 +1837,8 @@ internal sealed class CodeCleanupManager
             return;
         }
 
+        SealedClassLogic.RecordCreatedFile(filePath);
+
         if (_package.IDE.Solution.FindProjectItem(filePath) is not null)
         {
             return;
@@ -1966,9 +1961,6 @@ internal sealed class CodeCleanupManager
 
         // Convert local variable declarations to 'var' when the type is apparent, when enabled.
         _varWhenApparentLogic.ConvertToVarWhenApparent(textDocument, settings);
-
-        // Add 'readonly' to fields provably never written outside their constructor, when enabled.
-        _readonlyFieldLogic.AddReadonlyWhenSafe(textDocument, settings);
 
         // Add 'sealed' to classes proven safe to seal across the solution, and convert the null checks proven safe to
         // pattern matching, when enabled and not already done.

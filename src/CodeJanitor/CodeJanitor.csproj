@@ -743,7 +743,6 @@
     <Compile Include="Logic\Cleaning\TopLevelTypeSplitSkipReason.cs" />
     <Compile Include="Logic\Cleaning\TopLevelTypeToFileSplitFileProcessor.cs" />
     <Compile Include="Logic\Cleaning\TopLevelTypeToFileSplitPlanner.cs" />
-    <Compile Include="Logic\Cleaning\ReadonlyFieldLogic.cs" />
     <Compile Include="Logic\Cleaning\RazorFormatterLogic.cs" />
     <Compile Include="Logic\Cleaning\ReturnThrowBlankLinePaddingLogic.cs" />
     <Compile Include="Logic\Cleaning\NullCheckPatternMatchingLogic.cs" />
@@ -801,7 +800,6 @@
     <Compile Include="Logic\Transformations\UsingDirectivePlacementStatus.cs" />
     <Compile Include="Logic\Transformations\VarWhenApparentConverter.cs" />
     <Compile Include="Logic\Transformations\IFieldMutabilityConverter.cs" />
-    <Compile Include="Logic\Transformations\ReadonlyFieldConverter.cs" />
     <Compile Include="Logic\Transformations\ClassSealingConverter.cs" />
     <Compile Include="Logic\Transformations\IUsingDirectiveOrganizer.cs" />
     <Compile Include="Logic\Transformations\UsingDirectiveOrganizer.cs" />

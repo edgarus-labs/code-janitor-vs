@@ -2,6 +2,7 @@ using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.OperationProgress;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System;
@@ -32,6 +33,12 @@ namespace CodeJanitor.Logic.Cleaning;
 /// </remarks>
 internal sealed class SealedClassLogic
 {
+    /// <summary>
+    /// The files the cleanup created in this Visual Studio session (see <see cref="RecordCreatedFile" />).
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> CreatedFiles =
+        new System.Collections.Concurrent.ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
     private readonly SemanticFileRewriter _rewriter;
     private ClassSealingConverter _converter;
 
@@ -102,8 +109,44 @@ internal sealed class SealedClassLogic
             filePath,
             projectFilePath,
             currentText,
-            (documents, token) => _converter.SealWhenSafeAsync(documents, referencedOutside, token),
+            (documents, token) =>
+            {
+                var missingFile = FindFileMissingFromWorkspace(documents[0].Project.Solution, CreatedFiles.Keys);
+                if (missingFile is not null)
+                {
+                    throw new InvalidOperationException(
+                        $"the file '{missingFile}' created by the cleanup is not in the Roslyn workspace yet; classes it uses would be sealed unseen.");
+                }
+
+                return _converter.SealWhenSafeAsync(documents, referencedOutside, token);
+            },
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a file the cleanup created (the top-level type split), whose classes the Roslyn workspace sees only
+    /// once the project system added it.
+    /// </summary>
+    /// <param name="filePath">The full path of the created file.</param>
+    internal static void RecordCreatedFile(string filePath)
+    {
+        if (!string.IsNullOrEmpty(filePath) && filePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            CreatedFiles[filePath] = true;
+        }
+    }
+
+    /// <summary>
+    /// Gets the first of <paramref name="createdFiles" /> that still exists on disk but that no document of
+    /// <paramref name="solution" /> has, or null when the solution contains all of them.
+    /// </summary>
+    /// <param name="solution">The workspace solution.</param>
+    /// <param name="createdFiles">The full paths of the files the cleanup created.</param>
+    /// <returns>The missing file, or null.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static string FindFileMissingFromWorkspace(Microsoft.CodeAnalysis.Solution solution, IEnumerable<string> createdFiles)
+    {
+        return createdFiles.FirstOrDefault(createdFile => File.Exists(createdFile) && solution.GetDocumentIdsWithFilePath(createdFile).IsEmpty);
     }
 
     /// <summary>
@@ -117,7 +160,8 @@ internal sealed class SealedClassLogic
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var solution = Package.GetGlobalService(typeof(SVsSolution)) as IVsSolution;
-        var incompleteSolutionReason = GetIncompleteSolutionReason(solution);
+        var operationProgress = Package.GetGlobalService(typeof(SVsOperationProgressStatusService)) as IVsOperationProgressStatusService;
+        var incompleteSolutionReason = GetIncompleteSolutionReason(solution, operationProgress);
         if (incompleteSolutionReason is not null)
         {
             throw new InvalidOperationException(incompleteSolutionReason);
@@ -202,12 +246,13 @@ internal sealed class SealedClassLogic
 
     /// <summary>
     /// Gets why the Visual Studio solution does not contain all its projects in the Roslyn workspace: it is still
-    /// loading (background or deferred project loading), or a project is unloaded (by the user, or because it failed
-    /// to load). Null when it does.
+    /// loading (background or deferred project loading), a project is unloaded (by the user, or because it failed
+    /// to load), or the loaded projects are still being added to the workspace. Null when it does.
     /// </summary>
     /// <param name="solution">The Visual Studio solution, or null when the service is unavailable.</param>
+    /// <param name="operationProgress">The Visual Studio operation progress service, or null when it is unavailable.</param>
     /// <returns>The reason, or null.</returns>
-    internal static string GetIncompleteSolutionReason(IVsSolution solution)
+    internal static string GetIncompleteSolutionReason(IVsSolution solution, IVsOperationProgressStatusService? operationProgress)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -238,6 +283,17 @@ internal sealed class SealedClassLogic
         if (fetched > 0)
         {
             return "the solution has a project that is not loaded (unloaded or failed to load); classes it uses would be sealed unseen.";
+        }
+
+        // Loaded projects reach the Roslyn workspace afterwards, during the IntelliSense stage of the solution load.
+        if (operationProgress?.GetStageStatusForSolutionLoad(CommonOperationProgressStageIds.Intellisense) is not IVsOperationProgressStageStatusForSolutionLoad stage)
+        {
+            return "it cannot be verified that the Roslyn workspace contains every loaded project; classes those projects use would be sealed unseen.";
+        }
+
+        if (stage.IsInProgress)
+        {
+            return "the projects are still being loaded into the Roslyn workspace; classes used by projects it does not contain yet would be sealed unseen.";
         }
 
         return null;

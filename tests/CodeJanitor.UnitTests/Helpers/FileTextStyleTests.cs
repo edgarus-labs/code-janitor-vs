@@ -267,6 +267,36 @@ public sealed class FileTextStyleTests
         Assert.AreSequenceEqual(new[] { ".editorconfig", "Sample.cs" }, Directory.GetFiles(_tempDirectory).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
     }
 
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    public void ReplaceAllText_WhenTheReplacementCannotBeMovedAfterTheFileWasMovedAway_RestoresTheFile()
+    {
+        string filePath = CreateFile("class C { }\n", withBom: false);
+        byte[] originalBytes = File.ReadAllBytes(filePath);
+
+        // ReplaceFile can fail once the replaced file is gone (ERROR_UNABLE_TO_MOVE_REPLACEMENT without a backup name)
+        // or renamed to the backup (ERROR_UNABLE_TO_MOVE_REPLACEMENT_2); the replacement keeps its own name.
+        void ReplaceThatFailsAfterMovingTheFileAway(string source, string destination, string backup)
+        {
+            if (backup is null)
+            {
+                File.Delete(destination);
+            }
+            else
+            {
+                File.Move(destination, backup);
+            }
+
+            throw new IOException("Unable to move the replacement file to the file to be replaced.");
+        }
+
+        Assert.Throws<IOException>(() => FileTextStyle.ReplaceAllText(filePath, "class D { }\n", new UTF8Encoding(false), "class C { }\n", ReplaceThatFailsAfterMovingTheFileAway));
+
+        Assert.IsTrue(File.Exists(filePath), "The file must not be lost.");
+        Assert.AreSequenceEqual(originalBytes, File.ReadAllBytes(filePath));
+        Assert.AreSequenceEqual(new[] { ".editorconfig", "Sample.cs" }, Directory.GetFiles(_tempDirectory).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+    }
+
     private static void RewriteWith(string filePath, string newText)
     {
         string original = FileTextStyle.ReadAllText(filePath, out Encoding encoding);

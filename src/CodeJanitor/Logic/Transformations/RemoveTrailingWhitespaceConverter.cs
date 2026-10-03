@@ -38,6 +38,9 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
         var tree = CSharpSyntaxTree.ParseText(source);
         var root = tree.GetRoot();
 
+        // A line of a string literal of an inactive #if branch that starts with '#' is a directive, not disabled text.
+        var literalSpans = root.ContainsDirectives ? RegionDirectiveRemover.FindMultiLineLiteralSpans(source) : null;
+
         StringBuilder result = null;
         int copied = 0;
 
@@ -50,7 +53,8 @@ public sealed class RemoveTrailingWhitespaceConverter : ISourceTransformation
                 start--;
             }
 
-            if (start == end || IsProtected(root, start))
+            if (start == end || IsProtected(root, start) ||
+                (literalSpans is not null && RegionDirectiveRemover.StartsInside(literalSpans, start)))
             {
                 continue;
             }

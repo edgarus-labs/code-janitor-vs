@@ -114,18 +114,23 @@ public sealed class ReturnThrowBlankLinePaddingConverter : ISourceTransformation
                 continue;
             }
 
-            if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) && !trivia.IsKind(SyntaxKind.MultiLineCommentTrivia))
+            if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) &&
+                !trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) &&
+                !trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) &&
+                !trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
             {
                 break;
             }
 
-            var commentEndLine = text.Lines.GetLineFromPosition(trivia.Span.End).LineNumber;
+            // The full span of a documentation comment starts at its /// or /** and a single-line one includes its line
+            // break, so the comment's last line is the one of its last character.
+            var commentEndLine = text.Lines.GetLineFromPosition(trivia.FullSpan.End - 1).LineNumber;
             if (commentEndLine < text.Lines.GetLineFromPosition(start).LineNumber - 1)
             {
                 break;
             }
 
-            start = trivia.SpanStart;
+            start = trivia.FullSpan.Start;
         }
 
         return start;

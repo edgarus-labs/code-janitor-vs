@@ -147,7 +147,6 @@
     <Compile Include="Transformations\UsingDirectivePlacementConverterInwardTests.cs" />
     <Compile Include="Transformations\UsingDirectivePlacementConverterOutwardTests.cs" />
     <Compile Include="Transformations\VarWhenApparentConverterTests.cs" />
-    <Compile Include="Transformations\ReadonlyFieldConverterTests.cs" />
     <Compile Include="Transformations\ClassSealingConverterTests.cs" />
     <Compile Include="Transformations\CompilerErrorMatchingTests.cs" />
     <Compile Include="Transformations\IndentationGuardTests.cs" />

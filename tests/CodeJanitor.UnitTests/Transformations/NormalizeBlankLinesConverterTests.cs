@@ -130,4 +130,10 @@ public sealed class NormalizeBlankLinesConverterTests
 
         Assert.AreEqual(input, _converter.Normalize(input));
     }
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
+    [DataRow("#if DEBUG\nconst string Help = @\"\n# Usage\n\n\n\nrun\";\n#endif\n", DisplayName = "after a line starting with #")]
+    [DataRow("#if DEBUG\nconst string Help = @\"\n# Usage\nintro\n\n\n\nrun\";\n#endif\n", DisplayName = "after text following a line starting with #")]
+    public void BlankLinesInsideVerbatimStringOfInactiveBranchWithAHashLine_AreKept(string input) => Assert.AreEqual(input, _converter.Normalize(input));
 }

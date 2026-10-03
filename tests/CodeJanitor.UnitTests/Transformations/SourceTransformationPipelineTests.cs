@@ -109,16 +109,15 @@ public sealed class SourceTransformationPipelineTests
     [TestCategory("Transformations UnitTests")]
     public void AdaptedConverters_AreComposableInPipeline()
     {
-        // Verify that VarWhenApparentConverter, ReadonlyFieldConverter and FileScopedNamespaceConverter
+        // Verify that VarWhenApparentConverter and FileScopedNamespaceConverter
         // can be instantiated and composed in a pipeline with other blocks.
         SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
             new UsingDirectiveOrganizer(),
             new VarWhenApparentConverter(),
-            new ReadonlyFieldConverter(),
             new FileScopedNamespaceConverter());
 
-        // A simple example: namespace that gets converted to file-scoped. The var/readonly
-        // converters won't apply but should not disrupt the pipeline.
+        // A simple example: namespace that gets converted to file-scoped. The var
+        // converter won't apply but should not disrupt the pipeline.
         // FileScopedNamespaceConverter appends: header + "namespace N;" + newline + newline + dedented body + newline
         string input = "namespace N\n{\n\tusing B;\n\tusing A;\n}\n";
         string expected = "namespace N;\n\nusing A;\nusing B;\n";
@@ -128,10 +127,9 @@ public sealed class SourceTransformationPipelineTests
 
         // Verify all transformations are exposed with their names.
         List<string> names = pipeline.Transformations.Select(t => t.Name).ToList();
-        Assert.HasCount(4, names);
+        Assert.HasCount(3, names);
         Assert.Contains("Sort using directives", names);
         Assert.Contains("Var When Apparent", names);
-        Assert.Contains("Readonly Field", names);
         Assert.Contains("File-Scoped Namespace", names);
     }
 

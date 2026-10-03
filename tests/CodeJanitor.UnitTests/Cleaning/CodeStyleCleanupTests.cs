@@ -377,6 +377,47 @@ public sealed class CodeStyleCleanupTests
     /// Cleans <paramref name="input" /> as <c>Probe.cs</c> in the test directory. The .editorconfig, when given, is
     /// written to disk (read by <see cref="EffectiveCleanupSettings" />) and added to the project (read by Roslyn).
     /// </summary>
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(
+        "class Probe\n{\n    private int _x;\n\n    Probe()\n    {\n        _x = 1;\n    }\n\n    int Get() => _x;\n}\n",
+        "class Probe\n{\n    private readonly int _x;\n\n    Probe()\n    {\n        _x = 1;\n    }\n\n    int Get() => _x;\n}\n",
+        DisplayName = "field written only in the constructor")]
+    public async Task MakeFieldsReadonly_IsAppliedThroughTheRoslynCodeFix(string input, string expected)
+    {
+        Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = true;
+
+        Assert.AreEqual(expected, await CleanupAsync(input, editorConfig: null));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(
+        "static class Ext\n{\n    public static void Inc(ref this int value) => value++;\n}\n\nclass Probe\n{\n    private int _n;\n\n    void M() => _n.Inc();\n}\n",
+        DisplayName = "ref this extension called on the field")]
+    [DataRow(
+        "struct Counter\n{\n    int n;\n\n    public int Next => n++;\n}\n\nclass Probe\n{\n    private Counter _c;\n\n    int Get() => _c.Next;\n}\n",
+        DisplayName = "mutating getter of a struct field")]
+    [DataRow(
+        "class Probe\n{\n    private int _x;\n\n    void Set() => _x = 1;\n\n    int Get() => _x;\n}\n",
+        DisplayName = "field written outside the constructor")]
+    public async Task MakeFieldsReadonly_LeavesFieldsThatCannotBeReadonlyUnchanged(string input)
+    {
+        Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = true;
+
+        Assert.AreEqual(input, await CleanupAsync(input, editorConfig: null));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public async Task MakeFieldsReadonly_Disabled_LeavesTheFieldUnchanged()
+    {
+        Settings.Default.Cleaning_MakeFieldsReadonlyWhenSafe = false;
+        string input = "class Probe\n{\n    private int _x;\n\n    Probe()\n    {\n        _x = 1;\n    }\n\n    int Get() => _x;\n}\n";
+
+        Assert.AreEqual(input, await CleanupAsync(input, editorConfig: null));
+    }
+
     private async Task<string> CleanupAsync(string input, string editorConfig)
     {
         string text = "root = true\n\n[*]\nend_of_line = lf\n\n[*.cs]\n" + (editorConfig is null ? string.Empty : editorConfig + "\n");

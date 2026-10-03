@@ -21,6 +21,7 @@ internal sealed class EffectiveCleanupSettings
     private const string ConvertToFileScopedNamespaceSetting = "Cleaning_ConvertToFileScopedNamespace";
     private const string MoveUsingsOutsideNamespaceSetting = "Cleaning_MoveUsingsOutsideNamespace";
     private const string FileHeaderSetting = "Cleaning_UpdateFileHeaderCSharp";
+    private const string MakeFieldsReadonlySetting = "Cleaning_MakeFieldsReadonlyWhenSafe";
     private const int DefaultTabSize = 4;
     private const int DefaultIndentSize = 4;
 
@@ -396,6 +397,14 @@ internal sealed class EffectiveCleanupSettings
                 ? rule.Normalize(configuredValue)
                 : rule.DefaultValue;
             overrides[rule.Key] = value + ":none";
+        }
+
+        // "Make fields readonly" is Roslyn's IDE0044, whose semantic analysis sees every write, ref use and struct copy.
+        // .editorconfig, when it enforces the rule, reports it itself.
+        if (!_editorConfigKeys.ContainsKey(MakeFieldsReadonlySetting) && GetBoolean(MakeFieldsReadonlySetting))
+        {
+            overrides["dotnet_style_readonly_field"] = "true:suggestion";
+            overrides["dotnet_diagnostic.IDE0044.severity"] = "suggestion";
         }
 
         return overrides;

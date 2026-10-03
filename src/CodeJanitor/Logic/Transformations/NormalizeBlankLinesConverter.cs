@@ -1,4 +1,3 @@
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Text.RegularExpressions;
 
@@ -53,11 +52,15 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 
         var root = CSharpSyntaxTree.ParseText(result).GetRoot();
 
+        // String literals of inactive #if branches are found by parsing each branch as a whole.
+        var literalSpans = root.ContainsDirectives ? RegionDirectiveRemover.FindMultiLineLiteralSpans(result) : null;
+
         // MatchEvaluator ensures the replacement uses the file's own line-ending style.
 
         return _excessiveBlankLines.Replace(result, m =>
         {
-            if (root.FindToken(m.Index).Span.Contains(m.Index) || IsInsideDisabledLiteral(root, m.Index))
+            if (root.FindToken(m.Index).Span.Contains(m.Index) ||
+                (literalSpans is not null && RegionDirectiveRemover.StartsInside(literalSpans, m.Index)))
             {
                 return m.Value;
             }
@@ -66,23 +69,6 @@ public sealed class NormalizeBlankLinesConverter : ISourceTransformation
 
             return nl + nl;
         });
-    }
-
-    /// <summary>
-    /// Returns true when <paramref name="position"/> lies inside a string literal of an inactive <c>#if</c> branch,
-    /// found by parsing the disabled text on its own.
-    /// </summary>
-    private static bool IsInsideDisabledLiteral(SyntaxNode root, int position)
-    {
-        var trivia = root.FindTrivia(position);
-        if (!trivia.IsKind(SyntaxKind.DisabledTextTrivia))
-        {
-            return false;
-        }
-
-        int offset = position - trivia.SpanStart;
-
-        return CSharpSyntaxTree.ParseText(trivia.ToString()).GetRoot().FindToken(offset).Span.Contains(offset);
     }
 
     /// <summary>

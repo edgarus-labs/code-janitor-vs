@@ -53,7 +53,7 @@ public sealed class OutVarInliningConverter : ISourceTransformation
                     localDecl.Declaration.Variables.Count == 1)
                 {
                     var variable = localDecl.Declaration.Variables[0];
-                    if (variable.Initializer is null)
+                    if (variable.Initializer is null && !HasTriviaToKeepInside(localDecl))
                     {
                         var varName = variable.Identifier.Text;
                         var nextStatement = statements[i + 1];
@@ -140,6 +140,19 @@ public sealed class OutVarInliningConverter : ISourceTransformation
             return node is AnonymousFunctionExpressionSyntax ||
                 node is QueryExpressionSyntax ||
                 node is SwitchExpressionArmSyntax;
+        }
+
+        /// <summary>
+        /// Determines whether the declaration has a comment or directive between its first token and its semicolon,
+        /// which the inlined declaration has no place for.
+        /// </summary>
+        private static bool HasTriviaToKeepInside(LocalDeclarationStatementSyntax declaration)
+        {
+            var end = declaration.SemicolonToken.SpanStart;
+
+            return declaration.DescendantTrivia()
+                .Any(t => t.SpanStart >= declaration.SpanStart && t.Span.End <= end &&
+                          (IsComment(t) || t.IsDirective || t.IsKind(SyntaxKind.DisabledTextTrivia)));
         }
 
         /// <summary>

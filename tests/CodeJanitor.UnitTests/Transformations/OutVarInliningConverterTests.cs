@@ -251,6 +251,12 @@ public class C
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    [DataRow("class C { void M() { int /* parsed */ x;\n F(out x); } }", DisplayName = "comment after the type")]
+    [DataRow("class C { void M() { int x /* parsed */;\n F(out x); } }", DisplayName = "comment after the variable")]
+    public void DeclarationWithACommentInside_IsNotInlined(string input) => Assert.AreEqual(input, _converter.Apply(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     public async System.Threading.Tasks.Task OutArgumentsInScopesThatLeakToTheBlock_AreInlinedAndCompile()
     {
         string input =

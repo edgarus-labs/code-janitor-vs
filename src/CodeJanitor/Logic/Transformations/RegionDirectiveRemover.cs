@@ -127,16 +127,33 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
     internal static List<TextSpan> FindMultiLineLiteralAndCommentSpans(string source)
     {
         var spans = new List<TextSpan>();
-        AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(source).GetRoot(), 0, spans);
+        AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(source).GetRoot(), 0, spans, includeComments: true);
 
         return spans;
     }
 
     /// <summary>
-    /// Adds the multi-line literal and comment spans of <paramref name="root"/>, shifted by <paramref name="offset"/>;
-    /// inactive <c>#if</c>/<c>#elif</c>/<c>#else</c> branches are parsed on their own so their literals and comments are found too.
+    /// Returns the spans of the string literals of <paramref name="source"/> that contain a line break, those of
+    /// inactive <c>#if</c>/<c>#elif</c>/<c>#else</c> branches included. A line of such a literal that starts with
+    /// <c>#</c> splits the disabled text of its branch, so a disabled-text trivia parsed on its own can start inside the
+    /// literal; these spans come from the whole branch.
     /// </summary>
-    private static void AddMultiLineLiteralAndCommentSpans(string source, SyntaxNode root, int offset, List<TextSpan> spans, bool isBranchParse = false)
+    /// <param name="source">The C# source.</param>
+    /// <returns>The spans, in no particular order.</returns>
+    internal static List<TextSpan> FindMultiLineLiteralSpans(string source)
+    {
+        var spans = new List<TextSpan>();
+        AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(source).GetRoot(), 0, spans, includeComments: false);
+
+        return spans;
+    }
+
+    /// <summary>
+    /// Adds the multi-line literal spans of <paramref name="root"/>, and its multi-line comment spans when
+    /// <paramref name="includeComments"/> is true, shifted by <paramref name="offset"/>; inactive
+    /// <c>#if</c>/<c>#elif</c>/<c>#else</c> branches are parsed on their own so their literals and comments are found too.
+    /// </summary>
+    private static void AddMultiLineLiteralAndCommentSpans(string source, SyntaxNode root, int offset, List<TextSpan> spans, bool includeComments, bool isBranchParse = false)
     {
         foreach (SyntaxNodeOrToken nodeOrToken in root.DescendantNodesAndTokens())
         {
@@ -148,7 +165,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
             }
         }
 
-        foreach (SyntaxTrivia trivia in root.DescendantTrivia())
+        foreach (SyntaxTrivia trivia in includeComments ? root.DescendantTrivia() : Enumerable.Empty<SyntaxTrivia>())
         {
             TextSpan span = Shift(trivia.Span, offset);
             if ((trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
@@ -181,7 +198,7 @@ public sealed class RegionDirectiveRemover : ISourceTransformation
                 {
                     rootText = rootText ?? root.ToFullString();
                     string block = rootText.Substring(start, end - start);
-                    AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(block).GetRoot(), offset + start, spans, isBranchParse: true);
+                    AddMultiLineLiteralAndCommentSpans(source, CSharpSyntaxTree.ParseText(block).GetRoot(), offset + start, spans, includeComments, isBranchParse: true);
                 }
             }
         }

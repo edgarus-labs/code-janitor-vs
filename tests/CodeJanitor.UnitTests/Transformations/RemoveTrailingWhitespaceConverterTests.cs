@@ -147,6 +147,12 @@ public sealed class RemoveTrailingWhitespaceConverterTests
 
     [TestMethod]
     [TestCategory("Transformations UnitTests")]
+    [DataRow("#if NEVER_DEFINED\nconst string S = @\"\n# Title   \nx\";\n#endif\n", DisplayName = "on a line starting with #")]
+    [DataRow("#if NEVER_DEFINED\nconst string S = @\"\n# Title\nx   \ny\";\n#endif\n", DisplayName = "after a line starting with #")]
+    public void TrailingWhitespaceInsideAStringOfDisabledTextWithAHashLine_Preserved(string input) => Assert.AreEqual(input, _converter.Convert(input));
+
+    [TestMethod]
+    [TestCategory("Transformations UnitTests")]
     [DataRow("class C\n{\n    int x;   \n\t\n}\n   ", DisplayName = "code, whitespace-only lines and whitespace after the final line break")]
     [DataRow("var s = \"\"\"\r\n  a   \r\n  \"\"\";   \r\nvar i = $@\"x  \r\n{s}  \";\r\n", DisplayName = "strings keep their whitespace")]
     [DataRow("#region X   \r\nclass C { }\r\n#endregion \t\r\n", DisplayName = "region directives")]

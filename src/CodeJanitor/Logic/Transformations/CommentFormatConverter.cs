@@ -35,7 +35,15 @@ public sealed class CommentFormatConverter : ISourceTransformation
 
         var text = SourceText.From(source);
         var changes = new List<TextChange>();
-        AddCommentChanges(text, CSharpSyntaxTree.ParseText(text).GetRoot(), 0, changes);
+        var root = CSharpSyntaxTree.ParseText(text).GetRoot();
+        AddCommentChanges(text, root, 0, changes);
+
+        if (changes.Count > 0 && root.ContainsDirectives)
+        {
+            // A disabled-text trivia parsed on its own can start inside a string literal of its branch.
+            var literalSpans = RegionDirectiveRemover.FindMultiLineLiteralSpans(source);
+            changes.RemoveAll(change => RegionDirectiveRemover.StartsInside(literalSpans, change.Span.Start));
+        }
 
         if (changes.Count == 0)
         {

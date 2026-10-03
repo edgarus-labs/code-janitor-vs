@@ -8,6 +8,7 @@ using System.Threading;
 using System.Windows.Threading;
 using CodeJanitor.Logic.Cleaning;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.OperationProgress;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -51,7 +52,7 @@ public sealed class SealedClassLogicTests
             ThreadHelper.ThrowIfNotOnUIThread();
             IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
 
-            Assert.IsNull(SealedClassLogic.GetIncompleteSolutionReason(solution));
+            Assert.IsNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
         });
     }
 
@@ -64,7 +65,33 @@ public sealed class SealedClassLogicTests
             ThreadHelper.ThrowIfNotOnUIThread();
             IVsSolution solution = CreateSolution(fullyLoaded: false, loaded: new Hierarchies(), unloaded: new Hierarchies());
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution));
+            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
+        });
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void SolutionWhoseProjectsAreStillLoadingIntoTheRoslynWorkspace_IsIncomplete()
+    {
+        RunOnVisualStudioUIThread(() =>
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+
+            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: true)));
+        });
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void SolutionWhoseWorkspaceLoadStageCannotBeRead_IsIncomplete()
+    {
+        RunOnVisualStudioUIThread(() =>
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+
+            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, operationProgress: null));
         });
     }
 
@@ -77,7 +104,7 @@ public sealed class SealedClassLogicTests
             ThreadHelper.ThrowIfNotOnUIThread();
             IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies(CreateHierarchy("Unloaded")));
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution));
+            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
         });
     }
 
@@ -91,7 +118,7 @@ public sealed class SealedClassLogicTests
             IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
             solution.GetProperty(Arg.Any<int>(), out object _).ReturnsForAnyArgs(VSConstants.E_FAIL);
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution));
+            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
         });
     }
 
@@ -106,7 +133,7 @@ public sealed class SealedClassLogicTests
             Guid anyType = Guid.Empty;
             solution.GetProjectEnum(Arg.Any<uint>(), ref anyType, out IEnumHierarchies _).ReturnsForAnyArgs(VSConstants.E_FAIL);
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution));
+            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
         });
     }
 
@@ -160,6 +187,60 @@ public sealed class SealedClassLogicTests
 
             Assert.Throws<Exception>(() => SealedClassLogic.GetProjectsReferencedOutsideWorkspace(solution));
         });
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CreatedFileNotInTheWorkspaceYet_IsMissing()
+    {
+        string created = Path.Combine(_tempDirectory, "Derived.cs");
+        File.WriteAllText(created, "class Derived : Base { }");
+        Microsoft.CodeAnalysis.Solution solution = CreateWorkspaceSolution(Path.Combine(_tempDirectory, "Base.cs"));
+
+        Assert.AreEqual(created, SealedClassLogic.FindFileMissingFromWorkspace(solution, new[] { created }));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CreatedFileInTheWorkspace_IsNotMissing()
+    {
+        string created = Path.Combine(_tempDirectory, "Derived.cs");
+        File.WriteAllText(created, "class Derived : Base { }");
+        Microsoft.CodeAnalysis.Solution solution = CreateWorkspaceSolution(Path.Combine(_tempDirectory, "Base.cs"), created);
+
+        Assert.IsNull(SealedClassLogic.FindFileMissingFromWorkspace(solution, new[] { created }));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    public void CreatedFileDeletedSince_IsNotMissing()
+    {
+        Microsoft.CodeAnalysis.Solution solution = CreateWorkspaceSolution(Path.Combine(_tempDirectory, "Base.cs"));
+
+        Assert.IsNull(SealedClassLogic.FindFileMissingFromWorkspace(solution, new[] { Path.Combine(_tempDirectory, "Deleted.cs") }));
+    }
+
+    private static Microsoft.CodeAnalysis.Solution CreateWorkspaceSolution(params string[] documentPaths)
+    {
+        Microsoft.CodeAnalysis.Solution solution = new Microsoft.CodeAnalysis.AdhocWorkspace().CurrentSolution;
+        Microsoft.CodeAnalysis.ProjectId projectId = Microsoft.CodeAnalysis.ProjectId.CreateNewId();
+        solution = solution.AddProject(projectId, "Library", "Library", Microsoft.CodeAnalysis.LanguageNames.CSharp);
+        foreach (string documentPath in documentPaths)
+        {
+            solution = solution.AddDocument(Microsoft.CodeAnalysis.DocumentId.CreateNewId(projectId), Path.GetFileName(documentPath), string.Empty, filePath: documentPath);
+        }
+
+        return solution;
+    }
+
+    private static IVsOperationProgressStatusService CreateOperationProgress(bool intellisenseInProgress)
+    {
+        IVsOperationProgressStageStatusForSolutionLoad stage = Substitute.For<IVsOperationProgressStageStatusForSolutionLoad>();
+        stage.IsInProgress.Returns(intellisenseInProgress);
+        IVsOperationProgressStatusService operationProgress = Substitute.For<IVsOperationProgressStatusService>();
+        operationProgress.GetStageStatusForSolutionLoad(CommonOperationProgressStageIds.Intellisense).Returns(stage);
+
+        return operationProgress;
     }
 
     private static IVsSolution CreateSolution(bool fullyLoaded, Hierarchies loaded, Hierarchies unloaded)

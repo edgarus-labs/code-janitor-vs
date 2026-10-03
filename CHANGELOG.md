@@ -193,17 +193,11 @@ This file records changes made in Code Janitor after the project became an indep
 	everything after the namespace's closing brace (a trailing `#endif`, `#endregion` or comment). The
 	conversion also leaves the file unchanged when `#if`-disabled code before the namespace declares types or
 	namespaces, which would break the build configurations that enable it (`CS8956`, `CS8955`).
-- Fixed "Make Fields Readonly" cleanup breaking compilation or behavior: it no longer makes a field
-	`readonly` when a constructor writes it through another instance (`other.field = ...`, object or `with`
-	initializers), when it is written through a deconstruction, when code excluded by `#if` mentions it, when it
-	is a `fixed` buffer, when it is mutated via `ref` or `out` arguments (including `Interlocked.Increment(ref field)`
-	and `Interlocked.Decrement(ref field)`), when its address is taken directly (`&field`, `CS0192`), when it is
-	written inside a nested type, when a constructor writes one of its members and its type may be a mutable struct
-	(`_p.X = 1`, `_p.X += 1`, `_p.Count++`, `CS1648`), or when a method is called on it and its type may be a mutable
-	struct (the call would run on a defensive copy). A well-known class name or an `I` + upper-case name is trusted as
-	a reference type only when the same file declares no mutable struct with that name; `ID` and `IPv4Address` are no
-	longer assumed to be interfaces, and well-known class names outside `System` are recognised only when their
-	namespace is imported in the file. The field's indentation is kept when `readonly` is its first modifier.
+- Fixed "Make Fields Readonly" cleanup breaking compilation or behavior (fields written through `ref`, `out`,
+	`ref this` extension methods or another instance, mutating calls and getters on struct fields, code excluded by
+	`#if`): the step now applies Roslyn's own "Make field readonly" analyzer and code fix (IDE0044) through the
+	diagnostic cleanup, which sees every write semantically, instead of a syntax-only check. The step no longer
+	appears in the C# text cleanup preview.
 - Fixed "Inline `out` variable declarations" moving a declaration into a statement that scopes the variable to
 	itself (loops, `using`, `lock`, lambdas, queries), which broke later uses, and dropping comments between the
 	declaration and the call.
