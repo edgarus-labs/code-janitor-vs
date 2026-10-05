@@ -79,6 +79,7 @@ internal static class FileHeaderHelper
 
             case CodeLanguage.CPlusPlus:
             case CodeLanguage.JavaScript:
+            case CodeLanguage.JSON:
             case CodeLanguage.LESS:
             case CodeLanguage.SCSS:
             case CodeLanguage.TypeScript:
@@ -112,11 +113,83 @@ internal static class FileHeaderHelper
             case CodeLanguage.VisualBasic:
                 return GetHeaderLength(text, "'");
 
-            case CodeLanguage.JSON:
             case CodeLanguage.Unknown:
             default:
                 return 0;
         }
+    }
+
+    /// <summary>
+    /// Gets the length of the lines at the start of the text that must stay the first lines of the file, so that a
+    /// file header goes below them: a shebang line (<c>#!</c>), the XML declaration of XML, XAML and HTML, and the
+    /// opening tag of PHP.
+    /// </summary>
+    /// <param name="language">The language of the text.</param>
+    /// <param name="text">The text of the file; line breaks may be CR LF or LF.</param>
+    /// <returns>The number of characters of those lines, including their line breaks.</returns>
+    internal static int GetPrologLength(CodeLanguage language, string text)
+    {
+        var length = 0;
+
+        if (TryReadLine(text, length, out var line, out var nextLine) && line.StartsWith("#!", StringComparison.Ordinal))
+        {
+            length = nextLine;
+        }
+
+        switch (language)
+        {
+            case CodeLanguage.XML:
+            case CodeLanguage.XAML:
+            case CodeLanguage.HTML:
+                if (TryReadLine(text, length, out line, out nextLine) && line.TrimStart().StartsWith("<?xml", StringComparison.Ordinal))
+                {
+                    var declarationEnd = length;
+                    while (TryReadLine(text, declarationEnd, out line, out nextLine))
+                    {
+                        declarationEnd = nextLine;
+                        if (line.Contains("?>"))
+                        {
+                            return declarationEnd;
+                        }
+                    }
+                }
+
+                break;
+
+            case CodeLanguage.PHP:
+                if (TryReadLine(text, length, out line, out nextLine) && (line.Trim() == "<?php" || line.Trim() == "<?"))
+                {
+                    length = nextLine;
+                }
+
+                break;
+        }
+
+        return length;
+    }
+
+    /// <summary>
+    /// Reads the line of the text that starts at the index.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="index">The index of the first character of the line.</param>
+    /// <param name="line">The line without its line break.</param>
+    /// <param name="nextLine">The index of the first character after the line break, or the length of the text for the last line.</param>
+    /// <returns>True if the text has a line at the index, otherwise false.</returns>
+    private static bool TryReadLine(string text, int index, out string line, out int nextLine)
+    {
+        line = null;
+        nextLine = index;
+        if (index >= text.Length)
+        {
+            return false;
+        }
+
+        var lineBreak = text.IndexOf('\n', index);
+        nextLine = lineBreak < 0 ? text.Length : lineBreak + 1;
+        line = text.Substring(index, (lineBreak < 0 ? text.Length : lineBreak) - index).TrimEnd('\r');
+
+        return true;
     }
 
     /// <summary>

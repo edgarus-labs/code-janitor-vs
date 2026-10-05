@@ -138,7 +138,7 @@ internal sealed class CleanupChangedFilesCommand : BaseCommand
     /// <param name="projectItem">The project item.</param>
     /// <param name="changedFiles">The set of changed absolute file paths.</param>
     /// <returns>True if the project item is a changed file, otherwise false.</returns>
-    private static bool IsChangedFile(ProjectItem projectItem, HashSet<string> changedFiles)
+    internal static bool IsChangedFile(ProjectItem projectItem, HashSet<string> changedFiles)
     {
         for (short i = 1; i <= projectItem.FileCount; i++)
         {

@@ -200,6 +200,11 @@ public sealed class DiagnosticCleanupEngine
                     text = organizedContent == fixedContent ? text : SourceText.From(organizedContent, text.Encoding, text.ChecksumAlgorithm);
                 }
 
+                if (documentId == cleanedDocumentId)
+                {
+                    text = WithoutBlankLinesAddedAtStart(originalText, text);
+                }
+
                 var content = text.ToString();
                 var styledContent = FileTextStyle.ApplyLineEnding(content, endOfLine, originalText.ToString());
                 changedSolution = changedSolution.WithDocumentText(
@@ -209,6 +214,41 @@ public sealed class DiagnosticCleanupEngine
         }
 
         return new DiagnosticCleanupResult(solution, changedSolution, result.AppliedFixes, result.Unresolved, result.PostApplyOperations);
+    }
+
+    /// <summary>
+    /// Removes the blank lines at the start of <paramref name="fixedText" /> when <paramref name="originalText" /> had
+    /// none. A fix that moves the first member of a file leaves the blank line that separated it from the member
+    /// before at the top of the file, e.g. the using directives moved above a file-scoped namespace (IDE0065).
+    /// </summary>
+    /// <param name="originalText">The text before the fixes.</param>
+    /// <param name="fixedText">The text after the fixes.</param>
+    /// <returns>The fixed text without the blank lines added at its start.</returns>
+    private static SourceText WithoutBlankLinesAddedAtStart(SourceText originalText, SourceText fixedText)
+    {
+        var blankLineCount = CountLeadingBlankLines(fixedText);
+        if (blankLineCount == 0 || CountLeadingBlankLines(originalText) > 0)
+        {
+            return fixedText;
+        }
+
+        return fixedText.WithChanges(new TextChange(TextSpan.FromBounds(0, fixedText.Lines[blankLineCount].Start), string.Empty));
+    }
+
+    /// <summary>
+    /// Counts the lines at the start of the text that hold only whitespace, when a line with content follows them.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>The number of leading blank lines; zero for a text that is entirely blank.</returns>
+    private static int CountLeadingBlankLines(SourceText text)
+    {
+        var count = 0;
+        while (count < text.Lines.Count && string.IsNullOrWhiteSpace(text.Lines[count].ToString()))
+        {
+            count++;
+        }
+
+        return count == text.Lines.Count ? 0 : count;
     }
 
     /// <summary>

@@ -309,7 +309,7 @@ internal sealed class CodeCleanupManager
             }
 
             // Close the document if it was opened for cleanup.
-            if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
+            if (ShouldCloseDocumentAfterCleanup(wasOpen))
             {
                 projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
             }
@@ -486,7 +486,7 @@ internal sealed class CodeCleanupManager
             }
 
             // Close the document if it was opened for cleanup.
-            if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
+            if (ShouldCloseDocumentAfterCleanup(wasOpen))
             {
                 projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
             }
@@ -861,6 +861,16 @@ internal sealed class CodeCleanupManager
             transformations.Add(new ByteOrderMarkConverter());
         }
 
+        var fileHeader = settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSharp));
+        if (!string.IsNullOrWhiteSpace(fileHeader))
+        {
+            var fileHeaderPosition = (HeaderPosition)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderPosition));
+            var fileHeaderUpdateMode = (HeaderUpdateMode)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderUpdateMode));
+            transformations.Add(new DelegateSourceTransformation(
+                "Update C# file header",
+                text => ApplyConfiguredCSharpFileHeader(text, fileHeader, fileHeaderPosition, fileHeaderUpdateMode)));
+        }
+
         // Using directive placement, namespace declarations, 'var', collection expressions, lambda bodies, inlined
         // 'out' variables, accessibility modifiers and multiple blank lines are Roslyn rules that the diagnostic
         // cleanup applies after this pipeline (EffectiveCleanupSettings.AnalyzerConfigOverrides).
@@ -939,16 +949,6 @@ internal sealed class CodeCleanupManager
         if (IsEnabled(nameof(Settings.Formatting_CommentRunDuringCleanup)))
         {
             transformations.Add(new CommentFormatConverter());
-        }
-
-        var fileHeader = settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSharp));
-        if (!string.IsNullOrWhiteSpace(fileHeader))
-        {
-            var fileHeaderPosition = (HeaderPosition)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderPosition));
-            var fileHeaderUpdateMode = (HeaderUpdateMode)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderUpdateMode));
-            transformations.Add(new DelegateSourceTransformation(
-                "Update C# file header",
-                text => ApplyConfiguredCSharpFileHeader(text, fileHeader, fileHeaderPosition, fileHeaderUpdateMode)));
         }
 
         switch (settings.Indentation)
@@ -1074,9 +1074,15 @@ internal sealed class CodeCleanupManager
         switch (headerPosition)
         {
             case HeaderPosition.DocumentStart:
-                return headerUpdateMode == HeaderUpdateMode.Insert
-                    ? InsertHeaderAtDocumentStart(source, settingsFileHeader)
-                    : ReplaceHeaderAtDocumentStart(source, settingsFileHeader);
+            {
+                // A shebang line has to stay the first line of the file: the header goes below it.
+                var prologLength = FileHeaderHelper.GetPrologLength(CodeLanguage.CSharp, source);
+                var body = source.Substring(prologLength);
+
+                return source.Substring(0, prologLength) + (headerUpdateMode == HeaderUpdateMode.Insert
+                    ? InsertHeaderAtDocumentStart(body, settingsFileHeader)
+                    : ReplaceHeaderAtDocumentStart(body, settingsFileHeader));
+            }
 
             case HeaderPosition.AfterUsings:
                 return headerUpdateMode == HeaderUpdateMode.Insert
@@ -1255,7 +1261,7 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesAfterAttributes(string source) => ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
+    private static string RemoveBlankLinesAfterAttributes(string source) => ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2,}(?![ \t]*//)", "$1{NL}");
 
     /// <summary>
     /// Removes the blank lines between a documentation comment and the declaration it documents, keeping the
@@ -1296,8 +1302,15 @@ internal sealed class CodeCleanupManager
     private static string ReplaceUsingFileLineEnding(string source, string pattern, string replacement)
     {
         var newline = source.Contains("\r\n") ? "\r\n" : "\n";
+        var expandedReplacement = replacement.Replace("{NL}", newline);
+        var literalSpans = new Lazy<List<Microsoft.CodeAnalysis.Text.TextSpan>>(() => RegionDirectiveRemover.FindMultiLineLiteralSpans(source));
 
-        return Regex.Replace(source, pattern, replacement.Replace("{NL}", newline), RegexOptions.Multiline);
+        // The content of a multi-line string literal is data: a match that starts inside one is not a blank line of the code.
+        return Regex.Replace(
+            source,
+            pattern,
+            match => RegionDirectiveRemover.StartsInside(literalSpans.Value, match.Index) ? match.Value : match.Result(expandedReplacement),
+            RegexOptions.Multiline);
     }
 
     /// <summary>
@@ -1421,7 +1434,7 @@ internal sealed class CodeCleanupManager
 
         // Diagnostic cleanup runs after the Janitor cleanup of a C# document, as its own undo unit,
         // against the cleaned editor buffer.
-        if (document.GetCodeLanguage() == CodeLanguage.CSharp)
+        if (RunsDiagnosticCleanup(document))
         {
             var outcome = ThreadHelper.JoinableTaskFactory.Run(() => _editorConfigDiagnosticCleanupLogic.CleanupAsync(document));
             if (!RecordDiagnosticCleanupOutcome(document.FullName, outcome))
@@ -1434,9 +1447,30 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
+    /// Determines whether the diagnostic cleanup runs for an open document: it needs a C# document of the solution,
+    /// because a file outside the solution is not part of the Roslyn workspace and cannot be analyzed.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>True when the diagnostic cleanup runs.</returns>
+    internal static bool RunsDiagnosticCleanup(Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return document.GetCodeLanguage() == CodeLanguage.CSharp && !document.IsExternal();
+    }
+
+    /// <summary>
     /// Resets execution statistics for the next cleanup batch.
     /// </summary>
     internal void ResetCleanupExecutionStats() => _cleanupExecutionStats = default(CleanupExecutionStats);
+
+    /// <summary>
+    /// Determines whether a document is saved and closed after its cleanup: when it was opened by the cleanup and the
+    /// user opted in.
+    /// </summary>
+    /// <param name="wasOpen">True when the document was already open before the cleanup.</param>
+    /// <returns>True when the cleanup closes the document.</returns>
+    internal static bool ShouldCloseDocumentAfterCleanup(bool wasOpen) => Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen;
 
     /// <summary>
     /// Records a failure that was isolated to one cleanup item.

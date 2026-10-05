@@ -123,6 +123,12 @@
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="SettingsConfigurationSyncTests.cs" />
     <Compile Include="TestAssemblySetup.cs" />
+    <Compile Include="Cleaning\FullPipelineCleanupTests.cs" />
+    <Compile Include="Cleaning\WhitespaceStepCleanupTests.cs" />
+    <Compile Include="Cleaning\NonCSharpCleanupTests.cs" />
+    <Compile Include="Cleaning\FileSelectionCleanupTests.cs" />
+    <Compile Include="Cleaning\FileHeaderAllLanguagesTests.cs" />
+    <Compile Include="Ai\AiXmlDocumentationLimitsTests.cs" />
     <Compile Include="Cleaning\RemoveByteOrderMarkLogicTests.cs" />
     <Compile Include="Transformations\ByteOrderMarkConverterTests.cs" />
     <Compile Include="Transformations\RegionDirectiveRemoverTests.cs" />

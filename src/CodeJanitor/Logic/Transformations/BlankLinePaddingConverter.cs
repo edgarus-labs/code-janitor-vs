@@ -208,8 +208,8 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
 
     /// <summary>
     /// Comments directly above a declaration belong to it, so padding has to go above the comments rather than
-    /// between them and the declaration. A plain comment block at the very top of the file is a file header and
-    /// stays separate; documentation comments always belong to the declaration.
+    /// between them and the declaration. A plain comment block at the very top of the file (below a shebang line, if
+    /// any) is a file header and stays separate; documentation comments always belong to the declaration.
     /// </summary>
     private static int GetPaddingStartLine(SyntaxNode node, SyntaxTree tree)
     {
@@ -236,7 +236,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         }
 
         int count = attachedComments.Count;
-        if (count > 0 && lineBelow == 0)
+        var sourceText = tree.GetText();
+        int fileHeaderLine = sourceText.Lines[0].ToString().StartsWith("#!", StringComparison.Ordinal) ? 1 : 0;
+        if (count > 0 && lineBelow == fileHeaderLine)
         {
             while (count > 0 && !IsDocumentationComment(attachedComments[count - 1]))
             {

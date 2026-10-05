@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -87,7 +88,7 @@ internal sealed class FileHeaderLogic
     private int GetHeaderLength(TextDocument textDocument, bool skipUsings)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        var headerBlock = ReadTextBlock(textDocument);
+        var headerBlock = ReadTextBlock(textDocument, skipUsings ? 1 : GetPrologLineCount(textDocument) + 1);
         var language = textDocument.GetCodeLanguage();
 
         return FileHeaderHelper.GetHeaderLength(language, headerBlock, skipUsings);
@@ -112,6 +113,10 @@ internal sealed class FileHeaderLogic
             var nbLinesToSkip = GetNbLinesToSkip(textDocument);
 
             headerBlockStart.MoveToLineAndOffset(nbLinesToSkip + 1, 1);
+        }
+        else
+        {
+            MoveBelowProlog(textDocument, headerBlockStart);
         }
 
         return headerBlockStart.GetText(currentHeaderLength + 1).Trim();
@@ -195,6 +200,7 @@ internal sealed class FileHeaderLogic
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
         var cursor = textDocument.StartPoint.CreateEditPoint();
+        MoveBelowProlog(textDocument, cursor);
         var existingFileHeader = cursor.GetText(settingsFileHeader.Length);
 
         if (!existingFileHeader.StartsWith(settingsFileHeader.Trim()))
@@ -204,18 +210,50 @@ internal sealed class FileHeaderLogic
     }
 
     /// <summary>
-    /// Reads the first lines of a document
+    /// Reads the first lines of a document, from the specified line on
     /// </summary>
     /// <param name="textDocument">The document to read</param>
-    /// <returns>A string representing the first <see cref="HeaderMaxNbLines"/> lines of the document</returns>
-    private string ReadTextBlock(TextDocument textDocument)
+    /// <param name="firstLine">The first line to read, one-based</param>
+    /// <returns>A string representing the first <see cref="HeaderMaxNbLines"/> lines of the document from the first line on</returns>
+    private string ReadTextBlock(TextDocument textDocument, int firstLine = 1)
     {
         Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
-        var maxNbLines = Math.Min(HeaderMaxNbLines, textDocument.EndPoint.Line);
+        var endLine = Math.Min(firstLine - 1 + HeaderMaxNbLines, textDocument.EndPoint.Line);
         var blockStart = textDocument.StartPoint.CreateEditPoint();
 
-        return blockStart.GetLines(1, maxNbLines);
+        return blockStart.GetLines(firstLine, endLine);
+    }
+
+    /// <summary>
+    /// Gets the number of lines at the start of the document that must stay its first lines: a shebang, the XML
+    /// declaration or the opening tag of PHP.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <returns>The number of lines, zero for a document that starts with its content.</returns>
+    private int GetPrologLineCount(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var headBlock = ReadTextBlock(textDocument);
+        var prologLength = FileHeaderHelper.GetPrologLength(textDocument.GetCodeLanguage(), headBlock);
+
+        return headBlock.Substring(0, prologLength).Count(c => c == '\n');
+    }
+
+    /// <summary>
+    /// Moves the edit point to the first line below the prolog of the document, which is where a header at the
+    /// document start goes.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <param name="editPoint">The edit point to move.</param>
+    private void MoveBelowProlog(TextDocument textDocument, EditPoint editPoint)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        var prologLineCount = GetPrologLineCount(textDocument);
+        if (prologLineCount > 0)
+        {
+            editPoint.MoveToLineAndOffset(prologLineCount + 1, 1);
+        }
     }
 
     /// <summary>
@@ -231,7 +269,12 @@ internal sealed class FileHeaderLogic
         switch (headerPosition)
         {
             case HeaderPosition.DocumentStart:
-                ReplaceFileHeaderAfterUsings(textDocument, string.Empty); // Removes header after usings if present
+                // Without usings the header after the usings is the one at the document start, which is replaced below.
+                if (HasUsings(textDocument))
+                {
+                    ReplaceFileHeaderAfterUsings(textDocument, string.Empty); // Removes header after usings if present
+                }
+
                 ReplaceFileHeaderDocumentStart(textDocument, settingsFileHeader);
                 return;
 
@@ -243,6 +286,19 @@ internal sealed class FileHeaderLogic
             default:
                 throw new InvalidEnumArgumentException("Invalid file header position retrieved from settings");
         }
+    }
+
+    /// <summary>
+    /// Determines whether the document is a C# document that starts with using directives, so that a header after the
+    /// usings is not the header at the document start.
+    /// </summary>
+    /// <param name="textDocument">The text document.</param>
+    /// <returns>True if the document has using directives, otherwise false.</returns>
+    private bool HasUsings(TextDocument textDocument)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return textDocument.GetCodeLanguage() == CodeLanguage.CSharp && GetNbLinesToSkip(textDocument) > 0;
     }
 
     /// <summary>
@@ -296,6 +352,7 @@ internal sealed class FileHeaderLogic
         }
 
         var headerBlockStart = textDocument.StartPoint.CreateEditPoint();
+        MoveBelowProlog(textDocument, headerBlockStart);
         var currentHeaderLength = GetHeaderLength(textDocument, false);
 
         headerBlockStart.ReplaceText(currentHeaderLength, settingsFileHeader, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);

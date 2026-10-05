@@ -305,6 +305,12 @@ internal static class TextDocumentHelper
     }
 
     /// <summary>
+    /// Gets or sets the substitution that replaces the editor-backed one of <see cref="SubstituteAllStringMatches(TextDocument, string, string)" />.
+    /// Only tests set it: they have no Visual Studio editor to find and replace in.
+    /// </summary>
+    internal static Action<TextDocument, string, string> TextDocumentSubstitutionOverride { get; set; }
+
+    /// <summary>
     /// Substitutes all occurrences in the specified text document of the specified pattern
     /// string with the specified replacement string.
     /// </summary>
@@ -313,6 +319,13 @@ internal static class TextDocumentHelper
     /// <param name="replacementString">The replacement string.</param>
     internal static void SubstituteAllStringMatches(TextDocument textDocument, string patternString, string replacementString)
     {
+        if (TextDocumentSubstitutionOverride is not null)
+        {
+            TextDocumentSubstitutionOverride(textDocument, patternString, replacementString);
+
+            return;
+        }
+
         UIThread.Run(() =>
         {
             ThreadHelper.ThrowIfNotOnUIThread();
