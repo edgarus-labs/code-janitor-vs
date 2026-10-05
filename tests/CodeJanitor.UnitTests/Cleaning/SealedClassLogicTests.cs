@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -45,97 +44,76 @@ public sealed class SealedClassLogicTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CompleteSolution_HasNoIncompleteSolutionReason()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+    public void CompleteSolution_HasNoIncompleteSolutionReason() => RunOnVisualStudioUIThread(() =>
+                                                                         {
+                                                                             ThreadHelper.ThrowIfNotOnUIThread();
+                                                                             IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
 
-            Assert.IsNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
-        });
-    }
+                                                                             Assert.IsNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
+                                                                         });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void SolutionStillLoading_IsIncomplete()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: false, loaded: new Hierarchies(), unloaded: new Hierarchies());
+    public void SolutionStillLoading_IsIncomplete() => RunOnVisualStudioUIThread(() =>
+                                                            {
+                                                                ThreadHelper.ThrowIfNotOnUIThread();
+                                                                IVsSolution solution = CreateSolution(fullyLoaded: false, loaded: new Hierarchies(), unloaded: new Hierarchies());
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
-        });
-    }
+                                                                Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
+                                                            });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void SolutionWhoseProjectsAreStillLoadingIntoTheRoslynWorkspace_IsIncomplete()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+    public void SolutionWhoseProjectsAreStillLoadingIntoTheRoslynWorkspace_IsIncomplete() => RunOnVisualStudioUIThread(() =>
+                                                                                                  {
+                                                                                                      ThreadHelper.ThrowIfNotOnUIThread();
+                                                                                                      IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: true)));
-        });
-    }
+                                                                                                      Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: true)));
+                                                                                                  });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void SolutionWhoseWorkspaceLoadStageCannotBeRead_IsIncomplete()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+    public void SolutionWhoseWorkspaceLoadStageCannotBeRead_IsIncomplete() => RunOnVisualStudioUIThread(() =>
+                                                                                   {
+                                                                                       ThreadHelper.ThrowIfNotOnUIThread();
+                                                                                       IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, operationProgress: null));
-        });
-    }
+                                                                                       Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, operationProgress: null));
+                                                                                   });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void SolutionWithAnUnloadedProject_IsIncomplete()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies(CreateHierarchy("Unloaded")));
+    public void SolutionWithAnUnloadedProject_IsIncomplete() => RunOnVisualStudioUIThread(() =>
+                                                                     {
+                                                                         ThreadHelper.ThrowIfNotOnUIThread();
+                                                                         IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies(CreateHierarchy("Unloaded")));
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
-        });
-    }
+                                                                         Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
+                                                                     });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void SolutionWhoseLoadStateCannotBeRead_IsIncomplete()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
-            solution.GetProperty(Arg.Any<int>(), out object _).ReturnsForAnyArgs(VSConstants.E_FAIL);
+    public void SolutionWhoseLoadStateCannotBeRead_IsIncomplete() => RunOnVisualStudioUIThread(() =>
+                                                                          {
+                                                                              ThreadHelper.ThrowIfNotOnUIThread();
+                                                                              IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+                                                                              solution.GetProperty(Arg.Any<int>(), out object _).ReturnsForAnyArgs(VSConstants.E_FAIL);
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
-        });
-    }
+                                                                              Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
+                                                                          });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void SolutionWhoseUnloadedProjectsCannotBeEnumerated_IsIncomplete()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
-            Guid anyType = Guid.Empty;
-            solution.GetProjectEnum(Arg.Any<uint>(), ref anyType, out IEnumHierarchies _).ReturnsForAnyArgs(VSConstants.E_FAIL);
+    public void SolutionWhoseUnloadedProjectsCannotBeEnumerated_IsIncomplete() => RunOnVisualStudioUIThread(() =>
+                                                                                       {
+                                                                                           ThreadHelper.ThrowIfNotOnUIThread();
+                                                                                           IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+                                                                                           Guid anyType = Guid.Empty;
+                                                                                           solution.GetProjectEnum(Arg.Any<uint>(), ref anyType, out IEnumHierarchies _).ReturnsForAnyArgs(VSConstants.E_FAIL);
 
-            Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
-        });
-    }
+                                                                                           Assert.IsNotNull(SealedClassLogic.GetIncompleteSolutionReason(solution, CreateOperationProgress(intellisenseInProgress: false)));
+                                                                                       });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -153,9 +131,8 @@ public sealed class SealedClassLogicTests
                 loaded: new Hierarchies(CreateHierarchy(native), CreateHierarchy(app), CreateHierarchy(basic), CreateHierarchy("Solution Items")),
                 unloaded: new Hierarchies());
 
-            CollectionAssert.AreEquivalent(
-                new[] { Path.Combine(_tempDirectory, @"Library\Library.csproj"), Path.Combine(_tempDirectory, @"Interop\Interop.vcxproj") },
-                SealedClassLogic.GetProjectsReferencedOutsideWorkspace(solution).ToList());
+            Assert.AreSequenceEqual(
+                new[] { Path.Combine(_tempDirectory, @"Library\Library.csproj"), Path.Combine(_tempDirectory, @"Interop\Interop.vcxproj") }, SealedClassLogic.GetProjectsReferencedOutsideWorkspace(solution).ToList(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         });
     }
 
@@ -176,18 +153,15 @@ public sealed class SealedClassLogicTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void LoadedProjectsThatCannotBeEnumerated_Throw()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
-            Guid anyType = Guid.Empty;
-            solution.GetProjectEnum(Arg.Any<uint>(), ref anyType, out IEnumHierarchies _).ReturnsForAnyArgs(VSConstants.E_FAIL);
+    public void LoadedProjectsThatCannotBeEnumerated_Throw() => RunOnVisualStudioUIThread(() =>
+                                                                     {
+                                                                         ThreadHelper.ThrowIfNotOnUIThread();
+                                                                         IVsSolution solution = CreateSolution(fullyLoaded: true, loaded: new Hierarchies(), unloaded: new Hierarchies());
+                                                                         Guid anyType = Guid.Empty;
+                                                                         solution.GetProjectEnum(Arg.Any<uint>(), ref anyType, out IEnumHierarchies _).ReturnsForAnyArgs(VSConstants.E_FAIL);
 
-            Assert.Throws<Exception>(() => SealedClassLogic.GetProjectsReferencedOutsideWorkspace(solution));
-        });
-    }
+                                                                         Assert.Throws<Exception>(() => SealedClassLogic.GetProjectsReferencedOutsideWorkspace(solution));
+                                                                     });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CodeJanitor.Logic.Cleaning;
-using CodeJanitor.Logic.Transformations;
+using CodeJanitor.Logic.Cleaning.Diagnostics;
 using CodeJanitor.Properties;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -16,18 +16,7 @@ namespace CodeJanitor.UnitTests.Cleaning;
 [TestClass]
 public sealed class EffectiveCleanupSettingsTests
 {
-    private static readonly string[] ExplicitAccessModifierSettings =
-    {
-        "Cleaning_InsertExplicitAccessModifiersOnClasses",
-        "Cleaning_InsertExplicitAccessModifiersOnDelegates",
-        "Cleaning_InsertExplicitAccessModifiersOnEnumerations",
-        "Cleaning_InsertExplicitAccessModifiersOnEvents",
-        "Cleaning_InsertExplicitAccessModifiersOnFields",
-        "Cleaning_InsertExplicitAccessModifiersOnInterfaces",
-        "Cleaning_InsertExplicitAccessModifiersOnMethods",
-        "Cleaning_InsertExplicitAccessModifiersOnProperties",
-        "Cleaning_InsertExplicitAccessModifiersOnStructs",
-    };
+    private const string ExplicitAccessModifiersSetting = "Cleaning_InsertExplicitAccessModifiers";
 
     private string _tempDirectory;
     private string _filePath;
@@ -105,8 +94,8 @@ public sealed class EffectiveCleanupSettingsTests
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(filePath);
 
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToVarWhenApparent"));
-        Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
-        Assert.AreEqual(UsingDirectivePlacementPreference.Unchanged, settings.UsingDirectivePlacement);
+        Assert.AreEqual("file_scoped:suggestion", GetOverride(settings, "csharp_style_namespace_declarations"));
+        Assert.IsNull(GetOverride(settings, "csharp_using_directive_placement"));
         Assert.AreEqual(IndentationPreference.Unchanged, settings.Indentation);
         Assert.AreEqual(4, settings.TabSize);
         Assert.IsTrue(settings.InsertFinalNewline);
@@ -123,7 +112,7 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
+        Assert.AreEqual("file_scoped:suggestion", GetOverride(settings, "csharp_style_namespace_declarations"), "The .editorconfig value, reported at a severity the cleanup fixes.");
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
     }
 
@@ -137,30 +126,30 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(NamespaceDeclarationPreference.BlockScoped, settings.NamespaceDeclarations);
+        Assert.AreEqual("block_scoped:suggestion", GetOverride(settings, "csharp_style_namespace_declarations"), "The .editorconfig value, reported at a severity the cleanup fixes.");
+        Assert.AreEqual("suggestion", GetOverride(settings, "dotnet_diagnostic.IDE0160.severity"));
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow(true, false, NamespaceDeclarationPreference.FileScoped, DisplayName = "policy enables conversion")]
-    [DataRow(false, true, NamespaceDeclarationPreference.Unchanged, DisplayName = "policy disables conversion")]
-    public void NamespaceDeclarations_EditorConfigSilent_RepositoryPolicyBeatsUserSetting(bool policy, bool userSetting, object expected)
+    [DataRow(true, false, true, DisplayName = "policy enables conversion")]
+    [DataRow(false, true, false, DisplayName = "policy disables conversion")]
+    public void NamespaceDeclarations_EditorConfigSilent_RepositoryPolicyBeatsUserSetting(bool policy, bool userSetting, bool applied)
     {
         Settings.Default.Cleaning_ConvertToFileScopedNamespace = userSetting;
         WritePolicy($"\"convertToFileScopedNamespace\": {(policy ? "true" : "false")}");
 
-        Assert.AreEqual(expected, EffectiveCleanupSettings.For(_filePath).NamespaceDeclarations);
+        Assert.AreEqual(applied ? "file_scoped:suggestion" : null, GetOverride(EffectiveCleanupSettings.For(_filePath), "csharp_style_namespace_declarations"));
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow("inside_namespace", true, UsingDirectivePlacementPreference.InsideNamespace, false)]
-    [DataRow("outside_namespace:suggestion", false, UsingDirectivePlacementPreference.OutsideNamespace, true)]
+    [DataRow("inside_namespace", true, false)]
+    [DataRow("outside_namespace:suggestion", false, true)]
     public void UsingDirectivePlacement_EditorConfigValue_BeatsUserSetting(
         string option,
         bool userSetting,
-        object expected,
         bool expectedMoveOutside)
     {
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = userSetting;
@@ -168,17 +157,17 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(expected, settings.UsingDirectivePlacement);
+        Assert.AreEqual(option.Split(':')[0] + ":suggestion", GetOverride(settings, "csharp_using_directive_placement"), "The .editorconfig value, reported at a severity the cleanup fixes.");
         Assert.AreEqual(expectedMoveOutside, settings.GetBoolean("Cleaning_MoveUsingsOutsideNamespace"));
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow(null, true, UsingDirectivePlacementPreference.OutsideNamespace, DisplayName = "user setting enabled")]
-    [DataRow(null, false, UsingDirectivePlacementPreference.Unchanged, DisplayName = "user setting disabled")]
-    [DataRow(false, true, UsingDirectivePlacementPreference.Unchanged, DisplayName = "policy disables the move")]
-    [DataRow(true, false, UsingDirectivePlacementPreference.OutsideNamespace, DisplayName = "policy enables the move")]
-    public void UsingDirectivePlacement_EditorConfigSilent_RepositoryPolicyBeatsUserSetting(bool? policy, bool userSetting, object expected)
+    [DataRow(null, true, true, DisplayName = "user setting enabled")]
+    [DataRow(null, false, false, DisplayName = "user setting disabled")]
+    [DataRow(false, true, false, DisplayName = "policy disables the move")]
+    [DataRow(true, false, true, DisplayName = "policy enables the move")]
+    public void UsingDirectivePlacement_EditorConfigSilent_RepositoryPolicyBeatsUserSetting(bool? policy, bool userSetting, bool applied)
     {
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = userSetting;
         if (policy.HasValue)
@@ -186,7 +175,7 @@ public sealed class EffectiveCleanupSettingsTests
             WritePolicy($"\"moveUsingsOutsideNamespace\": {(policy.Value ? "true" : "false")}");
         }
 
-        Assert.AreEqual(expected, EffectiveCleanupSettings.For(_filePath).UsingDirectivePlacement);
+        Assert.AreEqual(applied ? "outside_namespace:suggestion" : null, GetOverride(EffectiveCleanupSettings.For(_filePath), "csharp_using_directive_placement"));
     }
 
     [TestMethod]
@@ -208,31 +197,15 @@ public sealed class EffectiveCleanupSettingsTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow(new[] { "indent_size = 4", "tab_width = 8" }, 4, 8, DisplayName = "indent_size with a wider tab_width")]
-    [DataRow(new[] { "indent_size = tab", "tab_width = 8" }, 8, 8, DisplayName = "indent_size = tab uses tab_width")]
-    [DataRow(new[] { "indent_size = tab" }, 4, 4, DisplayName = "indent_size = tab without tab_width")]
-    [DataRow(new[] { "tab_width = 8" }, 4, 8, DisplayName = "tab_width without indent_size")]
-    public void IndentSize_ComesFromIndentSize_NotFromTabWidth(string[] options, int expectedIndentSize, int expectedTabSize)
+    [DataRow(new[] { "indent_size = 4", "tab_width = 8" }, 8, DisplayName = "tab_width wins over indent_size")]
+    [DataRow(new[] { "indent_size = tab", "tab_width = 8" }, 8, DisplayName = "indent_size = tab uses tab_width")]
+    [DataRow(new[] { "indent_size = tab" }, 4, DisplayName = "indent_size = tab without tab_width")]
+    [DataRow(new[] { "indent_size = 2" }, 2, DisplayName = "numeric indent_size without tab_width")]
+    public void TabSize_ComesFromTabWidth_OtherwiseFromANumericIndentSize(string[] options, int expectedTabSize)
     {
         WriteRootEditorConfig(options);
 
-        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
-
-        Assert.AreEqual(expectedIndentSize, settings.IndentSize);
-        Assert.AreEqual(expectedTabSize, settings.TabSize);
-    }
-
-    [TestMethod]
-    [TestCategory("Cleaning UnitTests")]
-    public void NamespaceConverter_MovesTheBodyByIndentSize_NotByTabWidth()
-    {
-        WriteRootEditorConfig("indent_size = 4", "tab_width = 8");
-        FileScopedNamespaceConverter converter = FileScopedNamespaceLogic.CreateConverter(EffectiveCleanupSettings.For(_filePath));
-        string blockScoped = "namespace N\n{\n    public class C\n    {\n        void M() {}\n    }\n}\n";
-        string fileScoped = "namespace N;\n\npublic class C\n{\n    void M() {}\n}\n";
-
-        Assert.AreEqual(fileScoped, converter.ConvertToFileScoped(blockScoped));
-        Assert.AreEqual(blockScoped, converter.ConvertToBlockScoped(fileScoped));
+        Assert.AreEqual(expectedTabSize, EffectiveCleanupSettings.For(_filePath).TabSize);
     }
 
     [TestMethod]
@@ -335,20 +308,60 @@ public sealed class EffectiveCleanupSettingsTests
     [DataRow("for_non_interface_members:warning", true)]
     [DataRow("never", false)]
     [DataRow("omit_if_default:suggestion", false)]
-    public void GetBoolean_RequireAccessibilityModifiers_DrivesEveryExplicitAccessModifierSetting(string option, bool expected)
+    public void GetBoolean_RequireAccessibilityModifiers_DrivesTheExplicitAccessModifierSetting(string option, bool expected)
     {
-        foreach (string settingName in ExplicitAccessModifierSettings)
+        Settings.Default[ExplicitAccessModifiersSetting] = !expected;
+        WriteRootEditorConfig($"dotnet_style_require_accessibility_modifiers = {option}");
+
+        Assert.AreEqual(expected, EffectiveCleanupSettings.For(_filePath).GetBoolean(ExplicitAccessModifiersSetting));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow(true, false, false, null, true, true, UsingDirectiveSorting.RemoveAndSortUsings, DisplayName = "Remove and Sort Usings on")]
+    [DataRow(true, false, false, null, false, true, UsingDirectiveSorting.RemoveAndSortUsings, DisplayName = "Remove and Sort Usings on, open file")]
+    [DataRow(true, true, true, null, true, false, UsingDirectiveSorting.None, DisplayName = "Remove and Sort Usings skipped on save")]
+    [DataRow(true, true, false, null, true, true, UsingDirectiveSorting.RemoveAndSortUsings, DisplayName = "Remove and Sort Usings skipped on save, not saving")]
+    [DataRow(true, false, false, "\"organizeUsings\": true", true, true, UsingDirectiveSorting.RemoveAndSortUsings, DisplayName = "Remove and Sort Usings on, organizeUsings policy")]
+    [DataRow(true, true, true, "\"organizeUsings\": true", true, false, UsingDirectiveSorting.None, DisplayName = "Remove and Sort Usings skipped on save, organizeUsings policy")]
+    [DataRow(false, false, false, null, true, false, UsingDirectiveSorting.None, DisplayName = "Remove and Sort Usings off")]
+    [DataRow(false, false, false, "\"organizeUsings\": true", true, false, UsingDirectiveSorting.OrganizeUsings, DisplayName = "Remove and Sort Usings off, organizeUsings policy")]
+    [DataRow(false, false, false, "\"organizeUsings\": true", false, false, UsingDirectiveSorting.None, DisplayName = "Remove and Sort Usings off, organizeUsings policy, open file")]
+    public void UsingDirectiveSorting_FollowsTheStepThatSortsTheUsingsOfTheFile(bool removeAndSort, bool skipOnSave, bool isAutoSave, string policy, bool isClosedFile, bool expectedRemoveAndSort, UsingDirectiveSorting expectedSorting)
+    {
+        Settings.Default.Cleaning_RunVisualStudioRemoveAndSortUsingStatements = removeAndSort;
+        Settings.Default.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave = skipOnSave;
+        if (policy is not null)
         {
-            Settings.Default[settingName] = !expected;
+            WritePolicy(policy);
         }
 
-        WriteRootEditorConfig($"dotnet_style_require_accessibility_modifiers = {option}");
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        foreach (string settingName in ExplicitAccessModifierSettings)
-        {
-            Assert.AreEqual(expected, settings.GetBoolean(settingName), settingName);
-        }
+        Assert.AreEqual(expectedRemoveAndSort, settings.RunsRemoveAndSortUsings(isAutoSave));
+        Assert.AreEqual(expectedSorting, settings.GetUsingDirectiveSortingAfterFixes(isAutoSave, isClosedFile));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
+    [DataRow("dotnet_style_require_accessibility_modifiers = never", ExplicitAccessModifiersSetting, "IDE0040")]
+    [DataRow("dotnet_style_require_accessibility_modifiers = omit_if_default", ExplicitAccessModifiersSetting, "IDE0040")]
+    [DataRow("csharp_style_var_when_type_is_apparent = false", "Cleaning_ConvertToVarWhenApparent", "IDE0007")]
+    [DataRow("csharp_style_expression_bodied_lambdas = false", "Cleaning_SimplifySingleStatementLambdas", "IDE0053")]
+    [DataRow("dotnet_style_prefer_collection_expression = never", "Cleaning_ConvertToCollectionExpressions", "IDE0300")]
+    [DataRow("dotnet_style_allow_multiple_blank_lines_experimental = true", "Cleaning_RemoveMultipleConsecutiveBlankLines", "IDE2000")]
+    [DataRow("csharp_style_inlined_variable_declaration = false", "Cleaning_InlineOutVariableDeclarations", "IDE0018")]
+    [DataRow("dotnet_style_readonly_field = false", "Cleaning_MakeFieldsReadonlyWhenSafe", "IDE0044")]
+    public void RoslynStep_DisabledByAnEditorConfigValue_WithoutReverseRule_AddsNoOverride(string option, string settingName, string diagnosticId)
+    {
+        Settings.Default[settingName] = true;
+        WriteRootEditorConfig(option);
+
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.IsFalse(settings.GetBoolean(settingName));
+        Assert.IsNull(GetOverride(settings, option.Substring(0, option.IndexOf(' '))));
+        Assert.IsNull(GetOverride(settings, $"dotnet_diagnostic.{diagnosticId}.severity"));
     }
 
     [TestMethod]
@@ -397,10 +410,10 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(NamespaceDeclarationPreference.Unchanged, settings.NamespaceDeclarations, "policy");
+        Assert.IsNull(GetOverride(settings, "csharp_style_namespace_declarations"), "policy");
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"), "policy");
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToVarWhenApparent"), "policy");
-        Assert.AreEqual(UsingDirectivePlacementPreference.OutsideNamespace, settings.UsingDirectivePlacement, "user setting");
+        Assert.AreEqual("outside_namespace:suggestion", GetOverride(settings, "csharp_using_directive_placement"), "user setting");
         Assert.IsTrue(settings.GetBoolean("Cleaning_InsertEndOfFileTrailingNewLine"), "user setting");
         Assert.IsFalse(settings.GetBoolean("Cleaning_RemoveEndOfFileTrailingNewLine"), "user setting");
         Assert.IsTrue(settings.InsertFinalNewline);
@@ -579,7 +592,7 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
+        Assert.IsNull(GetOverride(settings, "csharp_style_namespace_declarations"), ".editorconfig reports the rule itself.");
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
         Assert.AreEqual("csharp_style_namespace_declarations", settings.EditorConfigKeys["Cleaning_ConvertToFileScopedNamespace"]);
     }
@@ -604,7 +617,7 @@ public sealed class EffectiveCleanupSettingsTests
         Assert.IsTrue(settings.GetBoolean("Cleaning_RunVisualStudioRemoveAndSortUsingStatements"));
         Assert.AreEqual(expectedKey, settings.EditorConfigKeys["Cleaning_RunVisualStudioRemoveAndSortUsingStatements"]);
         Assert.IsTrue(settings.GetBoolean("Cleaning_MakeFieldsReadonlyWhenSafe"), "Roslyn default of dotnet_style_readonly_field");
-        Assert.AreEqual(NamespaceDeclarationPreference.BlockScoped, settings.NamespaceDeclarations, "Roslyn default of csharp_style_namespace_declarations");
+        Assert.AreEqual(expectedKey, settings.EditorConfigKeys["Cleaning_ConvertToFileScopedNamespace"], "Roslyn default of csharp_style_namespace_declarations is block_scoped");
         Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
     }
 
@@ -665,7 +678,7 @@ public sealed class EffectiveCleanupSettingsTests
     [DataRow(null, "dotnet_diagnostic.IDE0018.severity = warning", "Cleaning_InlineOutVariableDeclarations", true, "dotnet_diagnostic.ide0018.severity")]
     [DataRow(null, "dotnet_diagnostic.IDE0044.severity = error", "Cleaning_MakeFieldsReadonlyWhenSafe", true, "dotnet_diagnostic.ide0044.severity")]
     [DataRow("dotnet_style_readonly_field = true:warning", "dotnet_diagnostic.IDE0044.severity = silent", "Cleaning_MakeFieldsReadonlyWhenSafe", false, null)]
-    [DataRow(null, "dotnet_diagnostic.IDE0040.severity = warning", "Cleaning_InsertExplicitAccessModifiersOnClasses", true, "dotnet_diagnostic.ide0040.severity")]
+    [DataRow(null, "dotnet_diagnostic.IDE0040.severity = warning", ExplicitAccessModifiersSetting, true, "dotnet_diagnostic.ide0040.severity")]
     [DataRow("dotnet_style_prefer_collection_expression = never:silent", "dotnet_diagnostic.IDE0305.severity = warning", "Cleaning_ConvertToCollectionExpressions", false, "dotnet_style_prefer_collection_expression")]
     [DataRow(null, "dotnet_diagnostic.IDE0300.severity = suggestion", "Cleaning_ConvertToCollectionExpressions", true, "dotnet_diagnostic.ide0300.severity")]
     public void LegacyOption_ResolvedPerDiagnostic(string option, string severity, string settingName, bool expected, string expectedKey)
@@ -682,17 +695,17 @@ public sealed class EffectiveCleanupSettingsTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow("csharp_using_directive_placement = inside_namespace:warning", "dotnet_diagnostic.IDE0065.severity = none", UsingDirectivePlacementPreference.OutsideNamespace, false)]
-    [DataRow("csharp_using_directive_placement = inside_namespace:silent", "dotnet_diagnostic.IDE0065.severity = warning", UsingDirectivePlacementPreference.InsideNamespace, true)]
-    [DataRow(null, "dotnet_diagnostic.IDE0065.severity = warning", UsingDirectivePlacementPreference.OutsideNamespace, true)]
-    public void UsingDirectivePlacement_ResolvedWithTheDiagnosticSeverity(string option, string severity, object expected, bool locked)
+    [DataRow("csharp_using_directive_placement = inside_namespace:warning", "dotnet_diagnostic.IDE0065.severity = none", false, "outside_namespace:suggestion")]
+    [DataRow("csharp_using_directive_placement = inside_namespace:silent", "dotnet_diagnostic.IDE0065.severity = warning", true, null)]
+    [DataRow(null, "dotnet_diagnostic.IDE0065.severity = warning", true, null)]
+    public void UsingDirectivePlacement_ResolvedWithTheDiagnosticSeverity(string option, string severity, bool locked, string expectedOverride)
     {
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = true;
         WriteRootEditorConfig(option, severity);
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(expected, settings.UsingDirectivePlacement);
+        Assert.AreEqual(expectedOverride, GetOverride(settings, "csharp_using_directive_placement"));
         Assert.AreEqual(locked, settings.EditorConfigKeys.ContainsKey("Cleaning_MoveUsingsOutsideNamespace"));
     }
 
@@ -719,6 +732,10 @@ public sealed class EffectiveCleanupSettingsTests
     public void AnalyzerConfigOverrides_SilenceOtherRulesOfTheSameDiagnostic_ThatCodeJanitorDoesNotApply()
     {
         Settings.Default.Cleaning_CodeStyleRules = "dotnet_style_qualification_for_field=true";
+        Settings.Default.Cleaning_InlineOutVariableDeclarations = false;
+        Settings.Default.Cleaning_InsertExplicitAccessModifiers = false;
+        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
+        Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines = false;
         WriteRootEditorConfig("dotnet_style_qualification_for_method = true:silent", "dotnet_style_qualification_for_event = false:warning");
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
@@ -757,7 +774,7 @@ public sealed class EffectiveCleanupSettingsTests
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
-        Assert.AreEqual(NamespaceDeclarationPreference.FileScoped, settings.NamespaceDeclarations);
+        Assert.AreEqual("file_scoped:suggestion", GetOverride(settings, "csharp_style_namespace_declarations"));
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
     }
 
@@ -774,7 +791,7 @@ public sealed class EffectiveCleanupSettingsTests
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow("dotnet_style_prefer_collection_expression = sometimes:warning", "Cleaning_ConvertToCollectionExpressions", DisplayName = "collection expressions")]
-    [DataRow("dotnet_style_require_accessibility_modifiers = whenever:warning", "Cleaning_InsertExplicitAccessModifiersOnMethods", DisplayName = "accessibility modifiers")]
+    [DataRow("dotnet_style_require_accessibility_modifiers = whenever:warning", ExplicitAccessModifiersSetting, DisplayName = "accessibility modifiers")]
     [DataRow("csharp_style_expression_bodied_lambdas = when_possible:warning", "Cleaning_SimplifySingleStatementLambdas", DisplayName = "expression-bodied lambdas")]
     [DataRow("dotnet_style_allow_multiple_blank_lines_experimental = maybe:warning", "Cleaning_RemoveMultipleConsecutiveBlankLines", DisplayName = "multiple blank lines")]
     [DataRow("csharp_style_allow_blank_lines_between_consecutive_braces_experimental = 1:warning", "Cleaning_RemoveBlankLinesAfterOpeningBrace", DisplayName = "blank lines between braces")]
@@ -813,14 +830,17 @@ public sealed class EffectiveCleanupSettingsTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow("inside_namespace", UsingDirectivePlacementPreference.InsideNamespace)]
-    [DataRow("Outside_Namespace", UsingDirectivePlacementPreference.OutsideNamespace)]
-    public void UsingDirectivePlacement_ValidValueWinsOverTheDisabledUserSetting(string value, object expected)
+    [DataRow("inside_namespace", false)]
+    [DataRow("Outside_Namespace", true)]
+    public void UsingDirectivePlacement_ValidValueWinsOverTheDisabledUserSetting(string value, bool moveOutside)
     {
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
         WriteRootEditorConfig($"csharp_using_directive_placement = {value}");
 
-        Assert.AreEqual(expected, EffectiveCleanupSettings.For(_filePath).UsingDirectivePlacement);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.AreEqual(moveOutside, settings.GetBoolean("Cleaning_MoveUsingsOutsideNamespace"));
+        Assert.AreEqual("csharp_using_directive_placement", settings.EditorConfigKeys["Cleaning_MoveUsingsOutsideNamespace"]);
     }
 
     [TestMethod]
@@ -832,27 +852,29 @@ public sealed class EffectiveCleanupSettingsTests
         Settings.Default.Cleaning_MoveUsingsOutsideNamespace = false;
         WriteRootEditorConfig($"csharp_using_directive_placement = {value}");
 
-        Assert.AreEqual(UsingDirectivePlacementPreference.Unchanged, EffectiveCleanupSettings.For(_filePath).UsingDirectivePlacement);
+        EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
+
+        Assert.IsFalse(settings.GetBoolean("Cleaning_MoveUsingsOutsideNamespace"));
+        Assert.IsFalse(settings.EditorConfigKeys.ContainsKey("Cleaning_MoveUsingsOutsideNamespace"));
     }
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    [DataRow(new[] { "indent_style = tabs" }, IndentationPreference.Unchanged, 4, 4, DisplayName = "unknown indent_style")]
-    [DataRow(new[] { "indent_style = Space" }, IndentationPreference.Spaces, 4, 4, DisplayName = "indent_style ignores case")]
-    [DataRow(new[] { "indent_style = tab:warning" }, IndentationPreference.Tabs, 4, 4, DisplayName = "severity suffix on indent_style")]
-    [DataRow(new[] { "indent_style = tab:silent" }, IndentationPreference.Unchanged, 4, 4, DisplayName = "non-enforcing suffix on indent_style")]
-    [DataRow(new[] { "indent_size = wide", "tab_width = 8" }, IndentationPreference.Unchanged, 4, 8, DisplayName = "unknown indent_size keeps the default")]
-    [DataRow(new[] { "indent_size = -2", "tab_width = x" }, IndentationPreference.Unchanged, 4, 4, DisplayName = "negative and non-numeric sizes")]
-    [DataRow(new[] { "indent_size = 2.5" }, IndentationPreference.Unchanged, 4, 4, DisplayName = "fractional size")]
-    [DataRow(new[] { "indent_size = TAB", "tab_width = 3" }, IndentationPreference.Unchanged, 3, 3, DisplayName = "indent_size = tab ignores case")]
-    public void Indentation_InvalidValues_FallBackToTheDefaults(string[] options, object expectedIndentation, int expectedIndentSize, int expectedTabSize)
+    [DataRow(new[] { "indent_style = tabs" }, IndentationPreference.Unchanged, 4, DisplayName = "unknown indent_style")]
+    [DataRow(new[] { "indent_style = Space" }, IndentationPreference.Spaces, 4, DisplayName = "indent_style ignores case")]
+    [DataRow(new[] { "indent_style = tab:warning" }, IndentationPreference.Tabs, 4, DisplayName = "severity suffix on indent_style")]
+    [DataRow(new[] { "indent_style = tab:silent" }, IndentationPreference.Unchanged, 4, DisplayName = "non-enforcing suffix on indent_style")]
+    [DataRow(new[] { "indent_size = wide", "tab_width = 8" }, IndentationPreference.Unchanged, 8, DisplayName = "unknown indent_size")]
+    [DataRow(new[] { "indent_size = -2", "tab_width = x" }, IndentationPreference.Unchanged, 4, DisplayName = "negative and non-numeric sizes")]
+    [DataRow(new[] { "indent_size = 2.5" }, IndentationPreference.Unchanged, 4, DisplayName = "fractional size")]
+    [DataRow(new[] { "indent_size = TAB", "tab_width = 3" }, IndentationPreference.Unchanged, 3, DisplayName = "indent_size = tab ignores case")]
+    public void Indentation_InvalidValues_FallBackToTheDefaults(string[] options, object expectedIndentation, int expectedTabSize)
     {
         WriteRootEditorConfig(options);
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.AreEqual(expectedIndentation, settings.Indentation);
-        Assert.AreEqual(expectedIndentSize, settings.IndentSize);
         Assert.AreEqual(expectedTabSize, settings.TabSize);
     }
 
@@ -944,7 +966,8 @@ public sealed class EffectiveCleanupSettingsTests
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(_filePath);
 
         Assert.IsTrue(settings.GetBoolean("Cleaning_ConvertToVarWhenApparent"));
-        Assert.AreEqual(NamespaceDeclarationPreference.BlockScoped, settings.NamespaceDeclarations);
+        Assert.IsFalse(settings.GetBoolean("Cleaning_ConvertToFileScopedNamespace"));
+        Assert.AreEqual("csharp_style_namespace_declarations", settings.EditorConfigKeys["Cleaning_ConvertToFileScopedNamespace"]);
         Assert.IsTrue(settings.RemovesRegions);
     }
 
@@ -1054,4 +1077,7 @@ public sealed class EffectiveCleanupSettingsTests
     /// Writes the repository policy of the test directory with the given cleanup entries.
     /// </summary>
     private void WritePolicy(string cleanupEntries) => File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"), "{ \"cleanup\": { " + cleanupEntries + " } }");
+
+    private static string GetOverride(EffectiveCleanupSettings settings, string key)
+        => settings.AnalyzerConfigOverrides.TryGetValue(key, out string value) ? value : null;
 }

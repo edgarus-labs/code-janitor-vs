@@ -14,7 +14,6 @@ using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.CleanupProgress;
 using EnvDTE80;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VisualStudio.Threading;
@@ -35,18 +34,15 @@ public sealed class ProgressViewModelTests
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
-    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher()
-    {
-        RunOnVisualStudioUIThread(pump =>
-        {
-            CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
+    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher() => RunOnVisualStudioUIThread(pump =>
+                                                                                                                              {
+                                                                                                                                  CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
 
-            bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
+                                                                                                                                  bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
 
-            Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
-            Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
-        });
-    }
+                                                                                                                                  Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
+                                                                                                                                  Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
+                                                                                                                              });
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
@@ -135,7 +131,6 @@ public sealed class ProgressViewModelTests
         Directory.CreateDirectory(directory);
         Settings.Default.Reset();
         Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
         try
         {
             string filePath = Path.Combine(directory, "Foo.cs");
@@ -168,7 +163,6 @@ public sealed class ProgressViewModelTests
         }
         finally
         {
-            CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
             Settings.Default.Reset();
             Directory.Delete(directory, true);
         }
@@ -184,7 +178,6 @@ public sealed class ProgressViewModelTests
         File.WriteAllText(Path.Combine(isolationDirectory, ".editorconfig"), "root = true\n");
         Settings.Default.Reset();
         Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
         try
         {
             string filePath = Path.Combine(directory, "Foo.cs");
@@ -221,7 +214,6 @@ public sealed class ProgressViewModelTests
         }
         finally
         {
-            CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
             Settings.Default.Reset();
             Directory.Delete(isolationDirectory, true);
         }

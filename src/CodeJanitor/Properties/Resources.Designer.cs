@@ -716,15 +716,6 @@ namespace CodeJanitor.Properties {
                 return ResourceManager.GetString("CodeJanitorIsCleaning0", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to CodeJanitor skipped file-scoped namespace conversion for &apos;{0}&apos; because the file contains more than one namespace..
-        /// </summary>
-        public static string CodeJanitorSkippedFileScopedNamespaceConversion0 {
-            get {
-                return ResourceManager.GetString("CodeJanitorSkippedFileScopedNamespaceConversion0", resourceCulture);
-            }
-        }
 
         /// <summary>
         ///   Looks up a localized string similar to Convert null checks to pattern matching (&apos;is null&apos; / &apos;is not null&apos;).
@@ -790,7 +781,7 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Inlines separate uninitialized local variable declarations directly into out arguments..
+        ///   Looks up a localized string similar to Applies Roslyn&apos;s IDE0018 code fix: out variables are declared inline in the argument list when possible..
         /// </summary>
         public static string InlineOutVariableDeclarationsToolTip {
             get {
@@ -1450,11 +1441,11 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Insert explicit access modifiers on.
+        ///   Looks up a localized string similar to Insert explicit accessibility modifiers on every declaration except interface members (Roslyn IDE0040; .editorconfig dotnet__style__require__accessibility__modifiers takes precedence).
         /// </summary>
-        public static string InsertExplicitAccessModifiersOn {
+        public static string InsertExplicitAccessModifiers {
             get {
-                return ResourceManager.GetString("InsertExplicitAccessModifiersOn", resourceCulture);
+                return ResourceManager.GetString("InsertExplicitAccessModifiers", resourceCulture);
             }
         }
         
@@ -1918,7 +1909,7 @@ namespace CodeJanitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove multiple consecutive blank lines.
+        ///   Looks up a localized string similar to Remove multiple consecutive blank lines (C#: Roslyn IDE2000).
         /// </summary>
         public static string RemoveMultipleConsecutiveBlankLines {
             get {

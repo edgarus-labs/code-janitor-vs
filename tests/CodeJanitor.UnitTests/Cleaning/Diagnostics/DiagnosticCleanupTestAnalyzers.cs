@@ -276,15 +276,12 @@ internal sealed class UnreliableFixAllLegacyFieldCodeFixProvider : LegacyFieldCo
         _failure = failure;
     }
 
-    public override FixAllProvider GetFixAllProvider()
+    public override FixAllProvider GetFixAllProvider() => _failure switch
     {
-        return _failure switch
-        {
-            FixAllFailure.GetFixAllProvider => throw new InvalidOperationException("Fix-all provider unavailable"),
-            FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
-            _ => null,
-        };
-    }
+        FixAllFailure.GetFixAllProvider => throw new InvalidOperationException("Fix-all provider unavailable"),
+        FixAllFailure.GetFixAsync => new ThrowingFixAllProvider(),
+        _ => null,
+    };
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {

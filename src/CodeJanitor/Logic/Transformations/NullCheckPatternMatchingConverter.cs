@@ -177,13 +177,10 @@ public sealed class NullCheckPatternMatchingConverter
     }
 
     /// <summary>Returns whether comments or directives separate the operands of the check from its operator.</summary>
-    private static bool HasCommentsBetweenOperands(BinaryExpressionSyntax check)
-    {
-        return HasCommentOrDirective(check.Left.GetTrailingTrivia())
+    private static bool HasCommentsBetweenOperands(BinaryExpressionSyntax check) => HasCommentOrDirective(check.Left.GetTrailingTrivia())
             || HasCommentOrDirective(check.OperatorToken.LeadingTrivia)
             || HasCommentOrDirective(check.OperatorToken.TrailingTrivia)
             || HasCommentOrDirective(check.Right.GetLeadingTrivia());
-    }
 
     /// <summary>Returns whether the trivia list contains a comment, directive or other non-whitespace trivia.</summary>
     private static bool HasCommentOrDirective(SyntaxTriviaList trivia) => trivia.Any(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));

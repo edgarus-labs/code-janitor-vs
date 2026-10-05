@@ -64,10 +64,7 @@ public sealed class ClassSealingConverter
     /// <param name="documents">The documents of one file, one per project flavor compiling it, all with the same text.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The text of the file with the safe classes sealed, or its unchanged text when none is.</returns>
-    public Task<string> SealWhenSafeAsync(IReadOnlyList<Document> documents, CancellationToken cancellationToken)
-    {
-        return SealWhenSafeAsync(documents, Array.Empty<string>(), cancellationToken);
-    }
+    public Task<string> SealWhenSafeAsync(IReadOnlyList<Document> documents, CancellationToken cancellationToken) => SealWhenSafeAsync(documents, Array.Empty<string>(), cancellationToken);
 
     /// <summary>
     /// Seals the classes of the file that are safe to seal in every document of <paramref name="documents" />, given
@@ -219,26 +216,18 @@ public sealed class ClassSealingConverter
     /// <summary>
     /// Gets the documents of the project, and those its source generators add to the compilation.
     /// </summary>
-    private static async Task<IEnumerable<Document>> GetDocumentsWithGeneratedAsync(Project project, CancellationToken cancellationToken)
-    {
-        return project.Documents.Concat(await project.GetSourceGeneratedDocumentsAsync(cancellationToken).ConfigureAwait(false));
-    }
+    private static async Task<IEnumerable<Document>> GetDocumentsWithGeneratedAsync(Project project, CancellationToken cancellationToken) => project.Documents.Concat(await project.GetSourceGeneratedDocumentsAsync(cancellationToken).ConfigureAwait(false));
 
     /// <summary>
     /// Determines whether <paramref name="root" /> contains code excluded by a preprocessor directive.
     /// </summary>
-    private static bool ContainsInactiveCode(SyntaxNode root)
-    {
-        return root.DescendantTrivia(descendIntoTrivia: true)
+    private static bool ContainsInactiveCode(SyntaxNode root) => root.DescendantTrivia(descendIntoTrivia: true)
             .Any(trivia => trivia.IsKind(SyntaxKind.DisabledTextTrivia));
-    }
 
     /// <summary>
     /// Gets the top-level class and record class declarations that the modifiers written on them allow to seal.
     /// </summary>
-    private static IEnumerable<TypeDeclarationSyntax> GetCandidates(SyntaxNode root)
-    {
-        return root.DescendantNodes(node => node is CompilationUnitSyntax || node is BaseNamespaceDeclarationSyntax)
+    private static IEnumerable<TypeDeclarationSyntax> GetCandidates(SyntaxNode root) => root.DescendantNodes(node => node is CompilationUnitSyntax || node is BaseNamespaceDeclarationSyntax)
             .OfType<TypeDeclarationSyntax>()
             .Where(declaration =>
                 (declaration is ClassDeclarationSyntax ||
@@ -248,7 +237,6 @@ public sealed class ClassSealingConverter
                     modifier.IsKind(SyntaxKind.AbstractKeyword) ||
                     modifier.IsKind(SyntaxKind.StaticKeyword) ||
                     modifier.IsKind(SyntaxKind.PartialKeyword)));
-    }
 
     /// <summary>
     /// Determines whether the members the class declares show it is not designed for inheritance. Members the compiler
@@ -266,12 +254,9 @@ public sealed class ClassSealingConverter
             (member.IsVirtual || member.IsAbstract || (!member.IsOverride && IsProtected(member.DeclaredAccessibility))));
     }
 
-    private static bool IsProtected(Accessibility accessibility)
-    {
-        return accessibility == Accessibility.Protected ||
+    private static bool IsProtected(Accessibility accessibility) => accessibility == Accessibility.Protected ||
             accessibility == Accessibility.ProtectedOrInternal ||
             accessibility == Accessibility.ProtectedAndInternal;
-    }
 
     /// <summary>
     /// Determines whether a class of the solution derives from <paramref name="type" /> or a generic type constraint of
@@ -366,9 +351,7 @@ public sealed class ClassSealingConverter
         return new ConvertedClasses(compilation, classes);
     }
 
-    private static bool IsExplicitConversionSite(SyntaxNode node)
-    {
-        return node is CastExpressionSyntax ||
+    private static bool IsExplicitConversionSite(SyntaxNode node) => node is CastExpressionSyntax ||
             node is PatternSyntax ||
             node is CaseSwitchLabelSyntax ||
             node is ForEachStatementSyntax ||
@@ -376,7 +359,6 @@ public sealed class ClassSealingConverter
             node.IsKind(SyntaxKind.IsExpression) ||
             node.IsKind(SyntaxKind.EqualsExpression) ||
             node.IsKind(SyntaxKind.NotEqualsExpression);
-    }
 
     /// <summary>
     /// Gets the type converted from and the type converted to at an explicit conversion site (for a reference

@@ -154,7 +154,7 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
                     var source = document is null
                         ? File.ReadAllText(path)
                         : document.StartPoint.CreateEditPoint().GetText(document.EndPoint);
-                    preview = new CleanupPreviewFile(path, source, CodeCleanupManager.CreateHeadlessCSharpPipeline(source, path));
+                    preview = new CleanupPreviewFile(path, source, CodeCleanupManager.CreateHeadlessCSharpPipeline(path));
                 }
             }
             catch (Exception exception)

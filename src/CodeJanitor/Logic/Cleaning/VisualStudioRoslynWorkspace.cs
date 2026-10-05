@@ -1,6 +1,5 @@
 using CodeJanitor.Helpers;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
@@ -35,7 +34,6 @@ internal sealed class VisualStudioRoslynWorkspace
     private const string VisualStudioWorkspaceAssemblyName = "Microsoft.VisualStudio.LanguageServices";
 
     private readonly CodeJanitorPackage _package;
-    private Workspace _workspace;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VisualStudioRoslynWorkspace" /> class.
@@ -157,51 +155,6 @@ internal sealed class VisualStudioRoslynWorkspace
     }
 
     /// <summary>
-    /// Gets the C# language versions of the projects that compile the file (see
-    /// <see cref="GetCSharpLanguageVersions(Solution, string)" />). Callable from any thread: the workspace is resolved
-    /// once on the UI thread, and its current solution is an immutable snapshot.
-    /// </summary>
-    /// <param name="filePath">The file path.</param>
-    /// <returns>The language versions, one per project flavor; empty when no C# project compiles the file.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    internal IReadOnlyList<LanguageVersion> GetCSharpLanguageVersions(string filePath)
-    {
-        var workspace = _workspace ?? (_workspace = ThreadHelper.JoinableTaskFactory.Run(async () =>
-        {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-            return GetWorkspace();
-        }));
-
-        return GetCSharpLanguageVersions(workspace.CurrentSolution, filePath);
-    }
-
-    /// <summary>
-    /// Gets the effective C# language versions of the projects that compile the file: one per document of the file
-    /// (linked files, shared projects, multi-targeted projects). A file the solution does not contain yet (for example
-    /// one just created by type splitting) gets the versions of the C# projects in the closest directory above it,
-    /// which is where SDK-style projects include it from.
-    /// </summary>
-    /// <param name="solution">The solution.</param>
-    /// <param name="filePath">The file path.</param>
-    /// <returns>The language versions, one per project flavor; empty when no C# project compiles the file.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static IReadOnlyList<LanguageVersion> GetCSharpLanguageVersions(Solution solution, string filePath)
-    {
-        var projects = FindDocumentIds(solution, filePath, null).Select(documentId => solution.GetProject(documentId.ProjectId)).ToList();
-        if (projects.Count == 0)
-        {
-            projects = FindProjectsInClosestDirectory(solution, filePath);
-        }
-
-        return projects
-            .Select(project => project.ParseOptions)
-            .OfType<CSharpParseOptions>()
-            .Select(options => options.LanguageVersion.MapSpecifiedToEffectiveVersion())
-            .ToList();
-    }
-
-    /// <summary>
     /// Determines whether an exception indicates that the Roslyn assemblies this extension is compiled
     /// against could not be bound to the host's Roslyn (missing/older assemblies, mismatched types).
     /// </summary>
@@ -300,9 +253,7 @@ internal sealed class VisualStudioRoslynWorkspace
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <returns>The document ids, possibly none.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath)
-    {
-        return solution.GetDocumentIdsWithFilePath(filePath)
+    internal static IReadOnlyList<DocumentId> FindDocumentIds(Solution solution, string filePath, string projectFilePath) => solution.GetDocumentIdsWithFilePath(filePath)
             .Select(id => solution.GetDocument(id))
             .Where(document => document is not null && document.Project.Language == LanguageNames.CSharp)
             .OrderBy(document => string.Equals(document.Project.FilePath, projectFilePath, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
@@ -310,24 +261,6 @@ internal sealed class VisualStudioRoslynWorkspace
             .ThenBy(document => document.Project.Name, StringComparer.Ordinal)
             .Select(document => document.Id)
             .ToList();
-    }
-
-    private static List<Project> FindProjectsInClosestDirectory(Solution solution, string filePath)
-    {
-        var candidates = solution.Projects
-            .Where(project => project.Language == LanguageNames.CSharp && !string.IsNullOrEmpty(project.FilePath))
-            .Select(project => (Project: project, Directory: Path.GetDirectoryName(project.FilePath) + Path.DirectorySeparatorChar))
-            .Where(candidate => filePath.StartsWith(candidate.Directory, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        if (candidates.Count == 0)
-        {
-            return new List<Project>();
-        }
-
-        var closest = candidates.Max(candidate => candidate.Directory.Length);
-
-        return candidates.Where(candidate => candidate.Directory.Length == closest).Select(candidate => candidate.Project).ToList();
-    }
 
     /// <summary>
     /// Replaces the text of the document with <paramref name="currentText" /> when it differs, keeping the

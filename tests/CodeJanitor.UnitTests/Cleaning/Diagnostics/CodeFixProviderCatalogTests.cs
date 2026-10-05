@@ -167,14 +167,11 @@ public sealed class CodeFixProviderCatalogTests
         return MetadataReference.CreateFromImage(stream.ToArray());
     }
 
-    private static IEnumerable<MetadataReference> GetFrameworkReferences()
-    {
-        return AppDomain.CurrentDomain.GetAssemblies()
+    private static IEnumerable<MetadataReference> GetFrameworkReferences() => AppDomain.CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
             .GroupBy(assembly => assembly.GetName().Name, StringComparer.OrdinalIgnoreCase)
             .Select(group => (MetadataReference)MetadataReference.CreateFromFile(group.First().Location))
             .ToList();
-    }
 
     private sealed class LoadFromPathLoader : IAnalyzerAssemblyLoader
     {

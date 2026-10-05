@@ -3,7 +3,6 @@ using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using System;
 
 namespace CodeJanitor.Logic.Cleaning;
 
@@ -87,8 +86,8 @@ internal sealed class RemoveWhitespaceLogic
             return;
         }
 
-        const string pattern = @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)";
-        string replacement = @"$1" + Environment.NewLine;
+        const string pattern = @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2,}(?![ \t]*//)";
+        const string replacement = @"$1$3";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
@@ -96,12 +95,12 @@ internal sealed class RemoveWhitespaceLogic
     /// <summary>
     /// The pattern matching the last line of a C# documentation comment followed by one or more blank lines.
     /// </summary>
-    internal const string BlankLinesAfterDocumentationCommentPattern = @"(^[ \t]*///(?!/)[^\r\n]*)\r?\n(?:[ \t]*\r?\n)+";
+    internal const string BlankLinesAfterDocumentationCommentPattern = @"(^[ \t]*///(?!/)[^\r\n]*)(\r?\n)(?:[ \t]*\r?\n)+";
 
     /// <summary>
     /// The pattern matching the last line of a Visual Basic documentation comment followed by one or more blank lines.
     /// </summary>
-    internal const string BlankLinesAfterVisualBasicDocumentationCommentPattern = @"(^[ \t]*'''(?!')[^\r\n]*)\r?\n(?:[ \t]*\r?\n)+";
+    internal const string BlankLinesAfterVisualBasicDocumentationCommentPattern = @"(^[ \t]*'''(?!')[^\r\n]*)(\r?\n)(?:[ \t]*\r?\n)+";
 
     /// <summary>
     /// Removes the blank lines between a documentation comment and the declaration it documents.
@@ -112,7 +111,7 @@ internal sealed class RemoveWhitespaceLogic
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, @"$1" + Environment.NewLine);
+        TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, @"$1$2");
     }
 
     /// <summary>
@@ -130,7 +129,7 @@ internal sealed class RemoveWhitespaceLogic
         }
 
         const string pattern = @"\{([ \t]*(//[^\r\n]*)*)(\r?\n){2,}";
-        string replacement = @"{$1" + Environment.NewLine;
+        const string replacement = @"{$1$3";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
@@ -150,7 +149,7 @@ internal sealed class RemoveWhitespaceLogic
         }
 
         const string pattern = @"(\r?\n){2,}([ \t]*)\}";
-        string replacement = Environment.NewLine + @"$2}";
+        const string replacement = @"$1$2}";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
@@ -170,7 +169,7 @@ internal sealed class RemoveWhitespaceLogic
         }
 
         const string pattern = @"(\r?\n){2,}([ \t]*)</";
-        string replacement = Environment.NewLine + @"$2</";
+        const string replacement = @"$1$2</";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
@@ -190,7 +189,7 @@ internal sealed class RemoveWhitespaceLogic
         }
 
         const string pattern = @"(\r?\n){2,}([ \t]*)(else|catch|finally)( |\t|\r?\n)";
-        string replacement = Environment.NewLine + @"$2$3$4";
+        const string replacement = @"$1$2$3$4";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
@@ -210,23 +209,23 @@ internal sealed class RemoveWhitespaceLogic
         }
 
         // Remove blank spaces before regular closing angle brackets.
-        const string pattern = @"(\r?\n)*[ \t]+>\r?\n";
-        string replacement = @">" + Environment.NewLine;
+        const string pattern = @"(\r?\n)*[ \t]+>(\r?\n)";
+        const string replacement = @">$2";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
 
         // Handle blank spaces before self closing angle brackets based on insert blank space setting.
         if (settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets)))
         {
-            const string oneSpacePattern = @"(\r?\n)*[ \t]{2,}/>\r?\n";
-            string oneSpaceReplacement = @" />" + Environment.NewLine;
+            const string oneSpacePattern = @"(\r?\n)*[ \t]{2,}/>(\r?\n)";
+            const string oneSpaceReplacement = @" />$2";
 
             TextDocumentHelper.SubstituteAllStringMatches(textDocument, oneSpacePattern, oneSpaceReplacement);
         }
         else
         {
-            const string noSpacePattern = @"(\r?\n)*[ \t]+/>\r?\n";
-            string noSpaceReplacement = @"/>" + Environment.NewLine;
+            const string noSpacePattern = @"(\r?\n)*[ \t]+/>(\r?\n)";
+            const string noSpaceReplacement = @"/>$2";
 
             TextDocumentHelper.SubstituteAllStringMatches(textDocument, noSpacePattern, noSpaceReplacement);
         }
@@ -246,8 +245,8 @@ internal sealed class RemoveWhitespaceLogic
             return;
         }
 
-        const string pattern = @"[ \t]+\r?\n";
-        string replacement = Environment.NewLine;
+        const string pattern = @"[ \t]+(\r?\n)";
+        const string replacement = @"$1";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }
@@ -267,7 +266,7 @@ internal sealed class RemoveWhitespaceLogic
         }
 
         const string pattern = @"(\r?\n){3,}";
-        string replacement = Environment.NewLine + Environment.NewLine;
+        const string replacement = @"$1$1";
 
         TextDocumentHelper.SubstituteAllStringMatches(textDocument, pattern, replacement);
     }

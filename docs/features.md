@@ -5,78 +5,58 @@ Code Janitor combines the established CodeMaid feature set with ongoing moderniz
 ## Code cleaning
 
 - Normalize whitespace.
-- Add unspecified access modifiers where configured.
+- Add unspecified access modifiers (one setting; Roslyn IDE0040).
 - Use Visual Studio formatting capabilities.
 - Remove and sort using statements.
 - Apply cleanup to a file, project or solution.
 - Run cleanup on demand or automatically on save.
 - Apply inclusion and exclusion rules.
 - Support configurable file headers.
-- Fix and normalize namespaces.
+- Fix namespaces to match the folder structure (Roslyn IDE0130).
 - Show a one-time cleanup options dialog for selected-scope cleanup.
 
-### Using directive placement (C#)
+### Steps applied through Roslyn rules (C#)
 
-With **Move using directives outside namespace** enabled, using directives declared inside a
-block-scoped or file-scoped namespace are moved to the top of the file. When `.editorconfig`
-sets `csharp_using_directive_placement = inside_namespace`, file-level using directives are
-moved into the namespace instead (see [Settings precedence](#settings-precedence-editorconfig-codejanitor-user-settings)).
-Inside a namespace a
-name such as `using Services;` can refer to `Company.App.Services`; at file level it could not.
-Every moved directive, alias target and `using static` is therefore resolved with the Roslyn
-semantic model. Directives that mean the same at file level keep their exact text (for example
-`using Str = System.String;` or `using V1::Lib;`); the others are written fully qualified
-(`using Company.App.Services;`). Duplicates of existing top-level directives are dropped; their
-comments move to the surviving directive. Comments on using directives, the file header, line
-endings and the blank line after the directives are kept.
+These Cleaning settings apply Roslyn's own analyzer and code fix in the diagnostic cleanup
+(see [Settings precedence](#settings-precedence-editorconfig-codejanitor-user-settings)), the same way
+**Make Fields Readonly** applies IDE0044. When the repository's `.editorconfig` enforces the rule, its
+value wins; otherwise Code Janitor applies the value listed here while the setting is on.
 
-The move is all-or-nothing per file. The using directives are left in place (the rest of the
-cleanup still runs), and the reason is written to the Code Janitor output pane, when:
+| Setting | Rule | Value applied when `.editorconfig` does not decide the rule |
+|---|---|---|
+| Convert local variables to `var` when the type is apparent | [IDE0007](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0007-ide0008) | `csharp_style_var_when_type_is_apparent = true`; `csharp_style_var_for_built_in_types` and `csharp_style_var_elsewhere` are off unless `.editorconfig` enforces them, so built-in and non-apparent types keep their explicit type |
+| Inline `out` variable declarations | [IDE0018](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0018) | `csharp_style_inlined_variable_declaration = true` |
+| Convert array and collection initializations to collection expressions when the types match exactly | [IDE0300–IDE0306](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0300) | `dotnet_style_prefer_collection_expression = true` (types must match exactly; `when_types_loosely_match` can change semantics, so `IEnumerable<int> x = new int[] { 1 }` keeps the array). Needs C# 12, checked by Roslyn |
+| Use expression bodies for lambdas | [IDE0053](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0053) | `csharp_style_expression_bodied_lambdas = true` |
+| Insert explicit accessibility modifiers | [IDE0040](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0040) | `dotnet_style_require_accessibility_modifiers = for_non_interface_members` (interface members get no modifier) |
+| Convert block-scoped namespace to file-scoped | [IDE0161](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0160-ide0161) | `csharp_style_namespace_declarations = file_scoped` (`block_scoped` from `.editorconfig` converts back, IDE0160). Needs C# 10, checked by Roslyn |
+| Move using directives outside namespace | [IDE0065](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0065) | `csharp_using_directive_placement = outside_namespace` (`inside_namespace` from `.editorconfig` moves them in) |
+| Remove multiple consecutive blank lines | [IDE2000](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide2000) (experimental) | `dotnet_style_allow_multiple_blank_lines_experimental = false`. C# only; VB, C/C++, markup and other files use Code Janitor's own text step |
 
-- a directive cannot be resolved, or its fully qualified form would refer to something else
-  at its new place (for example a target reached only through an `extern alias` declared
-  inside the namespace, which stays there);
-- the file, another document of the project or a project it references uses conditional
-  compilation (`#if`/`#elif`) and the move is unsafe in any combination of the relevant
-  symbols (symbols of another document count when they change its declarations or directives
-  alone or only together, as in `#if A && B`; every combination of up to four symbols is
-  verified; with more than four the directives are left in place). Usings inside a namespace
-  that is excluded in the current build configuration stay where they are;
-- the directives would move across other preprocessor directives (`#region`, `#nullable`,
-  `#pragma`, ...) between the file-level using directives and the namespace;
-- the file is not part of a C# project in the Visual Studio workspace;
-- the file is compiled by several projects or target frameworks (linked files, shared
-  projects, multi-targeting) and the move is unsafe in any of them or gives a different
-  result in each of them;
-- the moved file would have compile errors the original did not have (for example an
-  ambiguity after merging the directives of several namespaces);
-- a name, member or implicitly called member (for example the `GetEnumerator` of a `foreach`,
-  a collection-initializer `Add`, `GetAwaiter`, `Deconstruct` or a query operator) would bind
-  to a different symbol after the move (an import searched after a same-named type or an
-  extension method of an enclosing namespace, or a same-named type of another assembly);
-- a moved directive imports an extension member that the compiler calls without exposing the
-  binding to verify: `Add` or `GetEnumerator` used by a collection expression or spread
-  element, `GetPinnableReference` used by a `fixed` statement, or `operator ==`/`!=` used
-  element-wise by tuple equality.
+**Insert explicit accessibility modifiers** is one checkbox under Cleaning > Insert
+(`.codejanitor` key `insertExplicitAccessModifiers`, on by default); there are no per-kind settings.
 
-The step needs the Visual Studio Roslyn workspace (Roslyn 5.0 or newer, which every supported Visual Studio ships). It runs before the
-text cleanup and the type split, so the file header, using organization and split files see the
-moved directives. Region directives are removed before moving whenever cleanup would remove
-them anyway (unless the repository policy keeps regions).
-It is not part of the C# text cleanup preview. Converting to a
-file-scoped namespace keeps using directives inside the namespace; they are moved only by this
-step. The file-scoped conversion itself runs only when every project and target framework that
-compiles the file uses C# 10 or newer (read from the Visual Studio Roslyn workspace); otherwise,
-or when the language version is unknown, the namespace stays block-scoped and the reason is
-written to the output pane. With `csharp_style_namespace_declarations = block_scoped`, a
-file-scoped namespace is converted back to a block-scoped one.
+These steps run in the diagnostic cleanup after the other Code Janitor steps, for open and closed
+files, and are not part of the C# text cleanup preview. They run on the cleaned file only, so files
+created by **Move top-level types to separate files** get them when those files are cleaned.
 
-The inward move uses the same all-or-nothing checks. A directive that would bind to a
-different symbol inside the namespace is written `global::`-qualified. Files with no namespace
-or with several namespaces, and files with anything other than using and extern alias
-directives outside their single namespace (a type, a delegate, top-level statements or an
-assembly attribute such as `[assembly: InternalsVisibleTo(...)]`), are left unchanged without
-analysis, so no reason is written to the output pane for them.
+The **Fix Namespace** command runs only
+[IDE0130](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0130)
+(`dotnet_style_namespace_match_folder`) through the diagnostic cleanup. Its code fix also updates
+references in other files. It needs the project's root namespace and directory, which Visual Studio
+provides, and reports the changed files, the IDE0130 diagnostics it could not fix, and failures. Files
+IDE0130 does not report (for example a type declared in several files, or a file without a namespace)
+are left unchanged.
+
+Some steps keep Code Janitor's own implementation because no Roslyn rule of the Visual Studio host
+covers them:
+
+- pattern-matching null checks: IDE0041 covers only `ReferenceEquals(x, null)` and
+  `(object)x == null`, IDE0150 only `is T` type checks; no rule converts `x == null`;
+- `nameof` (CA1507) and `JsonSerializerOptions` reuse (CA1869): .NET analyzers, not part of the
+  Visual Studio host analyzers;
+- string-format-to-interpolation: there is only a refactoring, no diagnostic;
+- blank lines after `{` / before `}`: IDE2002 removes only blank lines between two consecutive braces.
 
 ### Class sealing (C#)
 
@@ -299,14 +279,14 @@ Each cleanup setting is resolved per file, in the editor and for closed files al
 
 | `.editorconfig` key | Code Janitor step |
 |---|---|
-| `csharp_style_namespace_declarations` (IDE0160, IDE0161) = `file_scoped` / `block_scoped` | convert to file-scoped (C# 10+) / convert to block-scoped; the body moves by one `indent_size` (`tab_width` when `indent_size = tab`, otherwise 4 spaces) |
-| `csharp_using_directive_placement` (IDE0065) = `outside_namespace` / `inside_namespace` | move using directives outside / inside the namespace |
+| `csharp_style_namespace_declarations` (IDE0160, IDE0161) = `file_scoped` / `block_scoped` | convert to file-scoped / block-scoped namespace (Roslyn code fix) |
+| `csharp_using_directive_placement` (IDE0065) = `outside_namespace` / `inside_namespace` | move using directives outside / inside the namespace (Roslyn code fix) |
 | `indent_style` = `space` / `tab` (`tab_width`, `indent_size`) | leading tabs to spaces / leading spaces to tabs (closed-file cleanup; the editor uses Visual Studio formatting) |
 | `insert_final_newline` = `true` / `false` | ensure / remove the final newline |
 | `trim_trailing_whitespace` | remove end-of-line whitespace |
 | `dotnet_sort_system_directives_first`, `dotnet_separate_import_directive_groups` | organize using directives (only when `System` directives go first and groups are not separated) |
 | `csharp_style_var_when_type_is_apparent` (IDE0007, IDE0008) | convert to `var` when the type is apparent |
-| `dotnet_style_require_accessibility_modifiers` (IDE0040; `always`, `for_non_interface_members` / `never`, `omit_if_default`) | insert explicit access modifiers / do not insert them |
+| `dotnet_style_require_accessibility_modifiers` (IDE0040) | insert explicit access modifiers (Roslyn code fix; Code Janitor's value is `for_non_interface_members`) |
 | `csharp_style_inlined_variable_declaration` (IDE0018) | inline `out` variable declarations |
 | `dotnet_style_prefer_collection_expression` (IDE0300–IDE0306) | convert to collection expressions |
 | `dotnet_style_readonly_field` (IDE0044) | make fields `readonly` when safe |
@@ -316,14 +296,14 @@ Each cleanup setting is resolved per file, in the editor and for closed files al
 | `dotnet_diagnostic.CA1852.severity` | seal classes when safe (on; disabled by default in Roslyn, so category and global severities do not enable it) |
 | `dotnet_diagnostic.CA1507.severity` | convert strings to `nameof` (on) |
 | `dotnet_diagnostic.CA1869.severity` | reuse `JsonSerializerOptions` (on) |
-| `dotnet_style_allow_multiple_blank_lines_experimental` (IDE2000) | remove multiple consecutive blank lines (`false` turns it on) |
+| `dotnet_style_allow_multiple_blank_lines_experimental` (IDE2000) | remove multiple consecutive blank lines (`false` turns it on; C# through the Roslyn code fix) |
 | `csharp_style_allow_blank_lines_between_consecutive_braces_experimental` (IDE2002) | remove blank lines after opening / before closing braces (`false` turns them on) |
 | `dotnet_diagnostic.IDE0005.severity` | run Visual Studio Remove and Sort Usings (on) |
 | `dotnet_diagnostic.IDE0055.severity` | run Visual Studio Format Document (on) |
 
-Where Code Janitor has no step for the opposite style (for example `var` to explicit types),
-its own step is turned off and the diagnostic cleanup applies the Roslyn code fix when the rule
-is reported as `suggestion`, `warning` or `error` (not `silent` or `none`).
+Rules without a Code Janitor setting for the opposite style (for example `var` to explicit types)
+are fixed by the diagnostic cleanup when the rule is reported as `suggestion`, `warning` or `error`
+(not `silent` or `none`).
 
 Options shows which of these settings the open solution's `.editorconfig` overrides: under each
 affected option (Cleaning > Visual Studio, Remove, Update, Insert and Code Style), a note names the key and the `.editorconfig`
@@ -356,7 +336,7 @@ Cleanup behavior can be pinned per repository with a `.codejanitor` (or `.code-j
 }
 ```
 
-The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group aliases `insertBlankLinePadding` and `insertExplicitAccessModifiers` (individual keys override the alias), and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization when `.editorconfig` does not configure the using order). `codeStyle` sets the [Code Style rules](#code-style-rules), keyed by `.editorconfig` option name: a string value (matched ignoring case, so `"True"` works; JSON booleans are ignored) enables the rule with that value and `null` disables it; a rule it does not list follows the Options switch. `.codejanitor` values apply in the editor as well as to closed files; keys that `.editorconfig` enforces take precedence over them.
+The schema mirrors the VS Code `codeJanitor.cleanup.*` settings: camelCase keys, the group alias `insertBlankLinePadding` (individual keys override the alias), the single key `insertExplicitAccessModifiers` for access modifiers, and string-encoded enums for the file header. Repository-only policies without a Visual Studio user setting include `removeRegions` (region removal opt-out) and `organizeUsings` (force using organization when `.editorconfig` does not configure the using order). `codeStyle` sets the [Code Style rules](#code-style-rules), keyed by `.editorconfig` option name: a string value (matched ignoring case, so `"True"` works; JSON booleans are ignored) enables the rule with that value and `null` disables it; a rule it does not list follows the Options switch. `.codejanitor` values apply in the editor as well as to closed files; keys that `.editorconfig` enforces take precedence over them.
 
 Two commands manage the file from the Code Janitor menu:
 

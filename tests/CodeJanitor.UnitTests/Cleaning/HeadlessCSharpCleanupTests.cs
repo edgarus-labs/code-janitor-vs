@@ -1,14 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
-using CodeJanitor.UnitTests.Transformations;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
@@ -25,14 +19,12 @@ public sealed class HeadlessCSharpCleanupTests
         Settings.Default.Cleaning_AiXmlDocumentationEnabled = false;
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
     }
 
     [TestCleanup]
     public void TestCleanup()
     {
         Settings.Default.Reset();
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
 
         if (Directory.Exists(_tempDirectory))
         {
@@ -47,7 +39,7 @@ public sealed class HeadlessCSharpCleanupTests
         string source = "namespace Demo;\r\n#region Sample\r\nclass C {}\r\n#endregion\r\n";
         File.WriteAllText(filePath, source);
 
-        SourceTransformationPipeline.PreviewResult preview = CodeCleanupManager.CreateHeadlessCSharpPipeline(source, filePath).Preview(source);
+        SourceTransformationPipeline.PreviewResult preview = CodeCleanupManager.CreateHeadlessCSharpPipeline(filePath).Preview(source);
 
         Assert.AreEqual(CodeCleanupManager.ApplyHeadlessCSharpTransformations(source, filePath), preview.UpdatedSource);
         Assert.AreEqual(source, File.ReadAllText(filePath));
@@ -112,7 +104,6 @@ public sealed class HeadlessCSharpCleanupTests
 
         Settings.Default.Cleaning_RemoveBlankLinesAfterOpeningBrace = true;
         Settings.Default.Cleaning_RemoveBlankLinesBeforeClosingBrace = true;
-        Settings.Default.Cleaning_RemoveMultipleConsecutiveBlankLines = true;
 
         string filePath = Path.Combine(_tempDirectory, "PreprocessorSample.cs");
         string input =
@@ -271,119 +262,6 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_AppliesOutVarInlining_WhenEnabled()
-    {
-        Settings.Default.Cleaning_InlineOutVariableDeclarations = true;
-
-        string filePath = Path.Combine(_tempDirectory, "SampleOutVar.cs");
-        string input = "namespace Demo;\r\n\r\npublic class C { public void M(string s) { int res;\r\nif (int.TryParse(s, out res)) { } } }\r\n";
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
-
-        Assert.Contains("if (int.TryParse(s, out int res))", output);
-    }
-
-    [TestMethod]
-    public async Task ApplyHeadlessCSharpTransformations_NeverMovesNamespaceUsings_SoNamespaceRelativeUsingsKeepCompiling()
-    {
-        // The text pipeline has no semantic model; placing using directives is done by the separate workspace step.
-        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = true;
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
-
-        string filePath = Path.Combine(_tempDirectory, "SampleRelativeUsings.cs");
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(NamespaceRelativeUsingSource, filePath);
-
-        int namespaceIndex = output.IndexOf("namespace Company.App;", StringComparison.Ordinal);
-        Assert.IsGreaterThanOrEqualTo(0, namespaceIndex, output);
-        Assert.IsGreaterThan(namespaceIndex, output.IndexOf("using Services;", StringComparison.Ordinal), "The using directive must stay inside the namespace:" + Environment.NewLine + output);
-        Document document = CompilingTestProject.CreateDocument(NamespaceRelativeUsingSource, "namespace Company.App.Services { public class Svc { } }");
-        IReadOnlyList<string> errors = await CompilingTestProject.GetCompileErrorsAsync(document, output);
-        Assert.IsEmpty(errors, output + Environment.NewLine + string.Join(Environment.NewLine, errors));
-    }
-
-    [TestMethod]
-    public async Task HeadlessCleanup_OfAClosedFileWithPlacedUsings_InsertsTheFileHeaderAfterTheMovedUsings()
-    {
-        // The using directive placement rewrites the closed file first; the headless cleanup then reads the placed
-        // directives from disk, so a header placed after the usings lands between the moved usings and the namespace.
-        Settings.Default.Cleaning_MoveUsingsOutsideNamespace = true;
-        Settings.Default.Cleaning_UpdateFileHeaderCSharp = "// header";
-        Settings.Default.Cleaning_UpdateFileHeader_HeaderPosition = 1;
-        Settings.Default.Cleaning_UpdateFileHeader_HeaderUpdateMode = 0;
-        string filePath = Path.Combine(_tempDirectory, "PlacedUsings.cs");
-        File.WriteAllText(filePath, NamespaceRelativeUsingSource);
-
-        UsingsMoveOutcome placement = await UsingDirectivePlacementLogic.PlaceUsingDirectivesInFileAsync(filePath, async (currentText, direction) =>
-        {
-            Document document = CompilingTestProject.CreateDocument(currentText, "namespace Company.App.Services { public class Svc { } }");
-            UsingDirectivePlacementResult result = await UsingDirectivePlacementLogic.PlaceInEveryFlavorAsync(new UsingDirectivePlacementConverter(), direction, new[] { document }, CancellationToken.None);
-
-            return result.Status == UsingDirectivePlacementStatus.Moved
-                ? (UsingsMoveOutcome.Moved, result.Text)
-                : (UsingsMoveOutcome.LeftInPlace, (string)null);
-        });
-        CodeCleanupManager.HeadlessPreCleanupOutcome headless = CodeCleanupManager.GetInstance(null).TryRunHeadlessPreCleanupForCSharpCore(filePath);
-
-        Assert.AreEqual(UsingsMoveOutcome.Moved, placement);
-        Assert.AreEqual(CodeCleanupManager.HeadlessCleanupResult.Changed, headless.Result);
-        string output = File.ReadAllText(filePath);
-        int usingIndex = output.IndexOf("using Company.App.Services;", StringComparison.Ordinal);
-        int headerIndex = output.IndexOf("// header", StringComparison.Ordinal);
-        int namespaceIndex = output.IndexOf("namespace Company.App", StringComparison.Ordinal);
-        Assert.IsGreaterThanOrEqualTo(0, usingIndex, "The using directive must be placed outside the namespace:" + Environment.NewLine + output);
-        Assert.IsGreaterThan(usingIndex, headerIndex, "The header must follow the placed using directive:" + Environment.NewLine + output);
-        Assert.IsGreaterThan(headerIndex, namespaceIndex, "The header must precede the namespace:" + Environment.NewLine + output);
-    }
-
-    [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_ConvertsToBlockScopedNamespace_WhenEditorConfigRequiresIt_OverPolicyAndUserSetting()
-    {
-        WriteEditorConfig("csharp_style_namespace_declarations = block_scoped:suggestion");
-        WriteRepositoryPolicy("\"convertToFileScopedNamespace\": true");
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(
-            "namespace Demo;\r\n\r\npublic class C\r\n{\r\n}\r\n", Path.Combine(_tempDirectory, "Sample.cs"));
-
-        Assert.Contains("namespace Demo\r\n{\r\n", output);
-        Assert.DoesNotContain("namespace Demo;", output, output);
-    }
-
-    [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_ConvertsToFileScopedNamespace_WhenEditorConfigRequiresIt_OverPolicyAndUserSetting()
-    {
-        WriteEditorConfig("csharp_style_namespace_declarations = file_scoped:warning");
-        WriteRepositoryPolicy("\"convertToFileScopedNamespace\": false");
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = false;
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(
-            "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n", Path.Combine(_tempDirectory, "Sample.cs"));
-
-        Assert.Contains("namespace Demo;", output);
-    }
-
-    [TestMethod]
-    [DataRow(false, true, false, DisplayName = "policy off beats user on")]
-    [DataRow(null, true, true, DisplayName = "no policy, user on")]
-    [DataRow(null, false, false, DisplayName = "no policy, user off")]
-    public void ApplyHeadlessCSharpTransformations_IgnoresEditorConfigNamespaceStyleWithNoneSeverity(bool? policy, bool userSetting, bool converted)
-    {
-        WriteEditorConfig("csharp_style_namespace_declarations = file_scoped:none");
-        if (policy.HasValue)
-        {
-            File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"), $"{{ \"cleanup\": {{ \"convertToFileScopedNamespace\": {(policy.Value ? "true" : "false")} }} }}");
-        }
-
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = userSetting;
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(
-            "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n", Path.Combine(_tempDirectory, "Sample.cs"));
-
-        Assert.AreEqual(converted, output.Contains("namespace Demo;"), output);
-    }
-
-    [TestMethod]
     public void ApplyHeadlessCSharpTransformations_DoesNotOrganizeUsings_WhenEditorConfigContradictsTheOrganizer_OverPolicy()
     {
         WriteEditorConfig("dotnet_sort_system_directives_first = false");
@@ -434,20 +312,6 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_IndentsTheBlockScopedNamespaceBody_WithTheEditorConfigIndentSize()
-    {
-        Settings.Default.Cleaning_SealClassesWhenSafe = false;
-        WriteEditorConfig("csharp_style_namespace_declarations = block_scoped", "indent_style = space", "indent_size = 2");
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(
-            "namespace Demo;\r\n\r\npublic class C\r\n{\r\n  public void M()\r\n  {\r\n  }\r\n}\r\n",
-            Path.Combine(_tempDirectory, "Sample.cs"));
-
-        Assert.Contains("\r\n  public class C\r\n", output);
-        Assert.Contains("\r\n    public void M()\r\n", output);
-    }
-
-    [TestMethod]
     public void RequiresEditorCleanupForCSharp_IsFalse_WhenTheVisualStudioCommandsAreEnabled()
     {
         // Diagnostic cleanup runs the Roslyn equivalents of both commands on closed files.
@@ -458,18 +322,6 @@ public sealed class HeadlessCSharpCleanupTests
     }
 
     [TestMethod]
-    public void ApplyHeadlessCSharpTransformations_InsertsAccessModifiersOnMethods_WhenEditorConfigRequiresThem_OverUserSetting()
-    {
-        WriteEditorConfig("dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion");
-        Settings.Default.Cleaning_InsertExplicitAccessModifiersOnMethods = false;
-
-        string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(MethodWithoutAccessModifierSource, Path.Combine(_tempDirectory, "Sample.cs"));
-
-        Assert.Contains("\r\n    private void M()\r\n", output);
-    }
-
-    [TestMethod]
-    [DataRow("insertExplicitAccessModifiersOnMethods", nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods), false, MethodWithoutAccessModifierSource, DisplayName = "explicit access modifiers on methods: policy off beats user on")]
     [DataRow("insertBlankLinePaddingBeforeCaseStatements", nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements), false, CaseStatementsSource, DisplayName = "padding before case statements: policy off beats user on")]
     [DataRow("updateSingleLineMethods", nameof(Settings.Cleaning_UpdateSingleLineMethods), true, SingleLineMethodSource, DisplayName = "update single-line methods: policy on beats user off")]
     [DataRow("updateAccessorsToBothBeSingleLineOrMultiLine", nameof(Settings.Cleaning_UpdateAccessorsToBothBeSingleLineOrMultiLine), true, MixedAccessorsSource, DisplayName = "update accessors: policy on beats user off")]
@@ -489,26 +341,14 @@ public sealed class HeadlessCSharpCleanupTests
     /// <summary>
     /// Writes a root .editorconfig with the specified C# options into the test directory.
     /// </summary>
-    private void WriteEditorConfig(params string[] options)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
+    private void WriteEditorConfig(params string[] options) => File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"),
             "root = true\r\n\r\n[*.cs]\r\n" + string.Join("\r\n", options) + "\r\n");
-    }
 
     /// <summary>
     /// Writes a .codejanitor repository policy with the specified cleanup entries into the test directory.
     /// </summary>
-    private void WriteRepositoryPolicy(string cleanupEntries)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
+    private void WriteRepositoryPolicy(string cleanupEntries) => File.WriteAllText(Path.Combine(_tempDirectory, RepositoryCleanupSettings.PrimaryConfigFileName),
             "{ \"cleanup\": { " + cleanupEntries + " } }");
-    }
-
-    private const string NamespaceRelativeUsingSource =
-        "namespace Company.App\r\n{\r\n    using Services;\r\n\r\n    public class C\r\n    {\r\n        public Svc Service { get; set; }\r\n    }\r\n}\r\n";
-
-    private const string MethodWithoutAccessModifierSource =
-        "namespace Demo;\r\n\r\npublic class C\r\n{\r\n    void M()\r\n    {\r\n    }\r\n}\r\n";
 
     private const string CaseStatementsSource =
         "namespace Demo;\r\n\r\npublic class C\r\n{\r\n    public void M(int value)\r\n    {\r\n        switch (value)\r\n        {\r\n            case 1:\r\n                break;\r\n            case 2:\r\n                break;\r\n        }\r\n    }\r\n}\r\n";

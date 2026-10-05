@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
 
 namespace CodeJanitor.UnitTests.Transformations;
@@ -18,37 +15,6 @@ namespace CodeJanitor.UnitTests.Transformations;
 internal static class CompilingTestProject
 {
     /// <summary>
-    /// <c>System.Index</c> and <c>System.Range</c>, which mscorlib lacks but <c>^1</c>, <c>1..</c>, list patterns and
-    /// slice patterns need.
-    /// </summary>
-    public const string IndexAndRangeSource =
-        "namespace System\r\n" +
-        "{\r\n" +
-        "    public readonly struct Index\r\n" +
-        "    {\r\n" +
-        "        private readonly int _value;\r\n" +
-        "        public Index(int value, bool fromEnd = false) { _value = fromEnd ? ~value : value; }\r\n" +
-        "        public int Value => _value < 0 ? ~_value : _value;\r\n" +
-        "        public bool IsFromEnd => _value < 0;\r\n" +
-        "        public static Index Start => new Index(0);\r\n" +
-        "        public static Index End => new Index(0, true);\r\n" +
-        "        public int GetOffset(int length) => IsFromEnd ? length - Value : Value;\r\n" +
-        "        public static implicit operator Index(int value) => new Index(value);\r\n" +
-        "    }\r\n" +
-        "\r\n" +
-        "    public readonly struct Range\r\n" +
-        "    {\r\n" +
-        "        public Range(Index start, Index end) { Start = start; End = end; }\r\n" +
-        "        public Index Start { get; }\r\n" +
-        "        public Index End { get; }\r\n" +
-        "        public static Range All => new Range(Index.Start, Index.End);\r\n" +
-        "        public static Range StartAt(Index start) => new Range(start, Index.End);\r\n" +
-        "        public static Range EndAt(Index end) => new Range(Index.Start, end);\r\n" +
-        "        public (int Offset, int Length) GetOffsetAndLength(int length) { var start = Start.GetOffset(length); return (start, End.GetOffset(length) - start); }\r\n" +
-        "    }\r\n" +
-        "}\r\n";
-
-    /// <summary>
     /// Creates the target document <c>Target.cs</c> in a project that also contains <paramref name="librarySources" />.
     /// </summary>
     public static Document CreateDocument(string source, params string[] librarySources)
@@ -56,7 +22,7 @@ internal static class CompilingTestProject
 
     /// <summary>
     /// Creates the target document <c>Target.cs</c> in a project with the given language version and additional
-    /// metadata references (for example a reference with an extern alias).
+    /// metadata references (for example System.Core or System.Text.Json).
     /// </summary>
     public static Document CreateDocument(
         string source,
@@ -112,30 +78,6 @@ internal static class CompilingTestProject
         }
 
         return project;
-    }
-
-    /// <summary>
-    /// Compiles <paramref name="source" /> into an in-memory assembly and returns a reference to it with the given
-    /// extern alias.
-    /// </summary>
-    public static MetadataReference CreateAliasedReference(string assemblyName, string source, string alias)
-    {
-        CSharpCompilation compilation = CSharpCompilation.Create(
-            assemblyName,
-            new[] { CSharpSyntaxTree.ParseText(source) },
-            new[] { MscorlibReference },
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-        using (MemoryStream stream = new MemoryStream())
-        {
-            EmitResult result = compilation.Emit(stream);
-            if (!result.Success)
-            {
-                throw new InvalidOperationException("The aliased test assembly does not compile: " + string.Join("; ", result.Diagnostics));
-            }
-
-            return MetadataReference.CreateFromImage(stream.ToArray()).WithAliases(new[] { alias });
-        }
     }
 
     private static MetadataReference MscorlibReference { get; } = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);

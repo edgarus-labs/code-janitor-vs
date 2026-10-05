@@ -56,12 +56,7 @@ internal sealed class CleanupActiveCodeCommand : BaseCommand
     internal void OnBeforeDocumentSave(Document document)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
-        if (!Settings.Default.Cleaning_AutoCleanupOnFileSave)
-        {
-            return;
-        }
-
-        if (!CodeCleanupAvailabilityLogic.CanCleanupDocument(document))
+        if (!ShouldCleanupOnSave(document))
         {
             return;
         }
@@ -79,6 +74,19 @@ internal sealed class CleanupActiveCodeCommand : BaseCommand
         {
             Package.IsAutoSaveContext = false;
         }
+    }
+
+    /// <summary>
+    /// Determines whether saving the document runs the cleanup: cleanup on save is enabled and the document can be
+    /// cleaned up.
+    /// </summary>
+    /// <param name="document">The document about to be saved.</param>
+    /// <returns>True if the document is cleaned up before it is saved, otherwise false.</returns>
+    internal bool ShouldCleanupOnSave(Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return Settings.Default.Cleaning_AutoCleanupOnFileSave && CodeCleanupAvailabilityLogic.CanCleanupDocument(document);
     }
 
     /// <summary>

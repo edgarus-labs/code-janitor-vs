@@ -190,11 +190,8 @@ internal sealed class AiXmlDocumentationLogic
     /// whether the AI XML documentation cleaning endpoint URL is configured in the application settings.
     /// </summary>
     /// <returns>true if the condition is met; otherwise, false.</returns>
-    internal static bool IsConfigurationPresent()
-    {
-        return OpenAiCompatibleClient.IsEndpointConfigured(
+    internal static bool IsConfigurationPresent() => OpenAiCompatibleClient.IsEndpointConfigured(
             Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl);
-    }
 
     /// <summary>
     /// Asynchronously tests reachability and authentication of the specified OpenAI-compatible AI
@@ -747,25 +744,22 @@ internal sealed class AiXmlDocumentationLogic
     /// Loads and returns an AiXmlDocumentationRunOptions instance populated from the application settings, applying positive-value fallbacks to numeric limits and the configured toggles for deterministic fallback, filtering rules, and change previewing.
     /// </summary>
     /// <returns>The ai xml documentation run options result.</returns>
-    private static AiXmlDocumentationRunOptions LoadRunOptionsFromSettings()
+    private static AiXmlDocumentationRunOptions LoadRunOptionsFromSettings() => new AiXmlDocumentationRunOptions
     {
-        return new AiXmlDocumentationRunOptions
-        {
-            MaxMethodsPerFile = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxMethodsPerFile, 25),
-            MaxRequestsPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, 25),
-            MaxInputCharsPerMethod = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, 2500),
-            MaxTokensPerRequest = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxTokensPerRequest, 256),
-            ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
-            MaxEstimatedTokensPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, 8000),
-            GlobalTimeoutSeconds = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, 60),
-            AllowDeterministicFallback = Settings.Default.Cleaning_AiXmlDocumentationAllowDeterministicFallback,
-            IgnoreGeneratedCode = Settings.Default.Cleaning_AiXmlDocumentationIgnoreGeneratedCode,
-            IgnoreObsolete = Settings.Default.Cleaning_AiXmlDocumentationIgnoreObsolete,
-            IgnoreTestMethods = Settings.Default.Cleaning_AiXmlDocumentationIgnoreTestMethods,
-            IgnorePattern = Settings.Default.Cleaning_AiXmlDocumentationIgnorePattern,
-            PreviewChanges = Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges
-        };
-    }
+        MaxMethodsPerFile = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxMethodsPerFile, 25),
+        MaxRequestsPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxRequestsPerCleanup, 25),
+        MaxInputCharsPerMethod = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxInputCharsPerMethod, 2500),
+        MaxTokensPerRequest = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxTokensPerRequest, 256),
+        ContextWindowTokens = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072),
+        MaxEstimatedTokensPerCleanup = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationMaxEstimatedTokensPerCleanup, 8000),
+        GlobalTimeoutSeconds = PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationGlobalTimeoutSeconds, 60),
+        AllowDeterministicFallback = Settings.Default.Cleaning_AiXmlDocumentationAllowDeterministicFallback,
+        IgnoreGeneratedCode = Settings.Default.Cleaning_AiXmlDocumentationIgnoreGeneratedCode,
+        IgnoreObsolete = Settings.Default.Cleaning_AiXmlDocumentationIgnoreObsolete,
+        IgnoreTestMethods = Settings.Default.Cleaning_AiXmlDocumentationIgnoreTestMethods,
+        IgnorePattern = Settings.Default.Cleaning_AiXmlDocumentationIgnorePattern,
+        PreviewChanges = Settings.Default.Cleaning_AiXmlDocumentationPreviewChanges
+    };
 
     /// <summary>
     /// Returns the specified value when it is positive, or the provided fallback when the value is zero or negative.
@@ -779,16 +773,13 @@ internal sealed class AiXmlDocumentationLogic
     /// Creates and configures an OpenAI-compatible client using the AI XML documentation cleaning settings, including endpoint URL, API key, model, timeout, and context window size.
     /// </summary>
     /// <returns>The open ai compatible client result.</returns>
-    private static OpenAiCompatibleClient CreateClientFromSettings()
-    {
-        return CreateClient(
+    private static OpenAiCompatibleClient CreateClientFromSettings() => CreateClient(
             Settings.Default.Cleaning_AiXmlDocumentationEndpointUrl,
             GetConfiguredApiKey(),
             Settings.Default.Cleaning_AiXmlDocumentationApiKeyHeader,
             Settings.Default.Cleaning_AiXmlDocumentationModel,
                 Settings.Default.Cleaning_AiXmlDocumentationTimeoutSeconds,
                 PositiveOrDefault(Settings.Default.Cleaning_AiXmlDocumentationContextWindowTokens, 131072));
-    }
 
     /// <summary>
     /// Creates and returns a new OpenAI-compatible client instance using the specified endpoint, credentials, model, and timeout settings, or returns null when the endpoint is not configured.
@@ -1854,6 +1845,7 @@ internal sealed class AiXmlDocumentationLogic
                 return "Represents a command to " + (string.IsNullOrWhiteSpace(split) ? "execute the operation" : split) + ".";
             }
             if (typeName.EndsWith("Query", StringComparison.OrdinalIgnoreCase))
+
             {
                 var noun = typeName.Substring(0, typeName.Length - "Query".Length);
                 var split = SplitIdentifier(noun).ToLowerInvariant();
@@ -1861,6 +1853,7 @@ internal sealed class AiXmlDocumentationLogic
                 return "Represents a query to retrieve " + (string.IsNullOrWhiteSpace(split) ? "the requested data" : split) + ".";
             }
             if (typeName.EndsWith("Dto", StringComparison.OrdinalIgnoreCase) ||
+
                 typeName.EndsWith("Response", StringComparison.OrdinalIgnoreCase) ||
                 typeName.EndsWith("Request", StringComparison.OrdinalIgnoreCase))
             {
@@ -2037,15 +2030,12 @@ internal sealed class AiXmlDocumentationLogic
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string XmlEscape(string text)
-    {
-        return (text ?? string.Empty)
+    private static string XmlEscape(string text) => (text ?? string.Empty)
             .Replace("&", "&amp;")
             .Replace("<", "&lt;")
             .Replace(">", "&gt;")
             .Replace("\"", "&quot;")
             .Replace("'", "&apos;");
-    }
 
     /// <summary>
     /// Returns the specified text unchanged if it is null, empty, or within the maximum length; otherwise, truncates the text to the specified maximum length and appends a period.

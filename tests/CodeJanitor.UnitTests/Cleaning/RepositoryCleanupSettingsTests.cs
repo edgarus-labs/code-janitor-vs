@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
@@ -21,14 +20,12 @@ public sealed class RepositoryCleanupSettingsTests
         Settings.Default.Cleaning_AiXmlDocumentationEnabled = false;
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
     }
 
     [TestCleanup]
     public void TestCleanup()
     {
         Settings.Default.Reset();
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
 
         if (Directory.Exists(_tempDirectory))
         {
@@ -53,11 +50,10 @@ public sealed class RepositoryCleanupSettingsTests
     public void Parse_AppliesGroupAliases_AndIndividualKeysWin()
     {
         RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
-            "{ \"cleanup\": { \"insertBlankLinePadding\": false, \"insertBlankLinePaddingBeforeClasses\": true, \"insertExplicitAccessModifiers\": false } }");
+            "{ \"cleanup\": { \"insertBlankLinePadding\": false, \"insertBlankLinePaddingBeforeClasses\": true } }");
 
         // Alias fans out to the group members.
         Assert.IsFalse(overrides.TryGetBoolean("Cleaning_InsertBlankLinePaddingAfterMethods", true));
-        Assert.IsFalse(overrides.TryGetBoolean("Cleaning_InsertExplicitAccessModifiersOnMethods", true));
 
         // The individual key overrides the alias.
         Assert.IsTrue(overrides.TryGetBoolean("Cleaning_InsertBlankLinePaddingBeforeClasses", false));
@@ -253,16 +249,16 @@ public sealed class RepositoryCleanupSettingsTests
     [TestCategory("Cleaning UnitTests")]
     public void ApplyHeadlessCSharpTransformations_HonorsRepositoryOverride()
     {
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = false;
+        Settings.Default.Cleaning_RemoveEndOfLineWhitespace = false;
         File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"),
-            "{ \"cleanup\": { \"convertToFileScopedNamespace\": true } }");
+            "{ \"cleanup\": { \"removeEndOfLineWhitespace\": true } }");
 
         string filePath = Path.Combine(_tempDirectory, "Sample.cs");
-        string input = "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n";
+        string input = "namespace Demo;\r\n\r\npublic class C   \r\n{\r\n}\r\n";
 
         string output = CodeCleanupManager.ApplyHeadlessCSharpTransformations(input, filePath);
 
-        Assert.Contains("namespace Demo;", output);
+        Assert.Contains("public class C\r\n", output);
     }
 
     [TestMethod]
@@ -436,12 +432,6 @@ public sealed class RepositoryCleanupSettingsTests
         RepositoryCleanupOverrides overrides = RepositoryCleanupSettings.Parse(
             "{ \"cleanup\": { \"insertExplicitAccessModifiers\": true, \"insertBlankLinePadding\": true } }");
 
-        string[] accessModifierMembers = { "Classes", "Delegates", "Enumerations", "Events", "Fields", "Interfaces", "Methods", "Properties", "Structs" };
-        foreach (string member in accessModifierMembers)
-        {
-            Assert.IsTrue(overrides.TryGetBoolean("Cleaning_InsertExplicitAccessModifiersOn" + member, false), member);
-        }
-
         // The alias covers every Before/After padding setting except the single-line fields/properties and single-line
         // comments; the "Between" setting for property accessors is a separate switch.
         string[] notInTheAlias =
@@ -458,7 +448,7 @@ public sealed class RepositoryCleanupSettingsTests
             .ToArray();
 
         Assert.AreSequenceEqual(
-            accessModifierMembers.Select(member => "Cleaning_InsertExplicitAccessModifiersOn" + member).Concat(expectedPadding).ToArray(), overrides.Values.Keys.ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
+            new[] { "Cleaning_InsertExplicitAccessModifiers" }.Concat(expectedPadding).ToArray(), overrides.Values.Keys.ToArray(), Microsoft.VisualStudio.TestTools.UnitTesting.SequenceOrder.InAnyOrder);
         Assert.IsTrue(overrides.Values.Values.All(value => value is bool flag && flag));
     }
 

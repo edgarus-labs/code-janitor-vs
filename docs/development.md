@@ -56,6 +56,29 @@ Visual Studio extension changes should be tested in an experimental instance bef
 - `pkgdef` generation;
 - deployment scripts.
 
+### Automated Experimental-instance checks
+
+`scripts/test-exp-integration.ps1` runs the commands the unit tests cannot reach in the Experimental instance, unattended:
+it installs the VSIX with `scripts/deploy-exp.ps1`, creates a temporary solution (dirty C# fixtures, `.editorconfig`,
+`.codejanitor`, a solution-specific `CodeJanitor.config` so the user's settings file is never written, a git repository),
+starts `devenv.exe /rootsuffix Exp` and drives it through the DTE. It verifies by file bytes, editor buffers and
+`dotnet build`: Cleanup Active Document (edited unsaved buffer), Cleanup Open Code, Cleanup Selected Code, Cleanup All
+Code, Cleanup Changed Files (git), Automatic Cleanup On Save, Fix Namespace, Remove All Regions, Reorganize, Sort and Join
+Lines, the Options command, the external file prompt, read-only files, line endings and byte order mark preservation, undo
+after cleanup, and idempotence (a second run changes nothing). Modal dialogs are found with Win32 window enumeration of
+the Experimental process and answered without mouse or keyboard input (`BM_CLICK` for message boxes, UI Automation
+`InvokePattern` for WPF dialogs).
+
+```powershell
+powershell -STA -File scripts\test-exp-integration.ps1                       # deploy, then run everything
+powershell -STA -File scripts\test-exp-integration.ps1 -SkipDeploy -Scenario ActiveDocument,Undo
+```
+
+It prints one `PASS`/`FAIL` line per check and exits with 0 only when all checks pass. It stops only the Experimental
+`devenv.exe` it started (never another Visual Studio session), deletes its temporary directory (`-KeepWorkspace` keeps it)
+and holds the `Global\cj-build-test` mutex of the unit test runner while deploying. It needs Visual Studio 2026, `dotnet`
+and `git` on the path, and a desktop session, so it is a local release check, not a CI job.
+
 ## Code scanning
 
 `.github/workflows/codeql.yml` runs GitHub CodeQL on pull requests to `develop`, on pushes to

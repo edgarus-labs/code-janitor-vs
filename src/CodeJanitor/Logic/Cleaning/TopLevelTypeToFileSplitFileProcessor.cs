@@ -154,10 +154,7 @@ internal sealed class TopLevelTypeToFileSplitFileProcessor
     /// <param name="filePath">The path of the split file.</param>
     /// <param name="notDeletedFiles">The created files that could not be deleted.</param>
     /// <returns>The warning.</returns>
-    internal static string FormatNotDeletedFilesWarning(string filePath, IEnumerable<string> notDeletedFiles)
-    {
-        return $"These file(s) created by the top-level type split could not be removed and duplicate types of '{filePath}'; delete them: {string.Join(", ", notDeletedFiles)}";
-    }
+    internal static string FormatNotDeletedFilesWarning(string filePath, IEnumerable<string> notDeletedFiles) => $"These file(s) created by the top-level type split could not be removed and duplicate types of '{filePath}'; delete them: {string.Join(", ", notDeletedFiles)}";
 
     /// <summary>
     /// Writes content to a new file atomically by creating missing directories, writing to a unique temporary file in

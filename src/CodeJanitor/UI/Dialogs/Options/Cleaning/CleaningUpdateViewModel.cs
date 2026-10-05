@@ -258,7 +258,8 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if block-scoped namespaces should be converted to file-scoped.
+    /// Gets or sets the flag indicating if block-scoped namespaces should be converted to file-scoped
+    /// through the Roslyn IDE0161 analyzer and code fix.
     /// </summary>
     public bool ConvertToFileScopedNamespace
     {
@@ -267,7 +268,8 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if using directives should be moved outside namespace declarations to the top of the file.
+    /// Gets or sets the flag indicating if using directives should be moved outside namespace declarations
+    /// through the Roslyn IDE0065 analyzer and code fix.
     /// </summary>
     public bool MoveUsingsOutsideNamespace
     {
@@ -287,7 +289,7 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
 
     /// <summary>
     /// Gets or sets the flag indicating if local variable declarations should be converted to
-    /// <c>var</c> when the type is apparent from the right-hand side.
+    /// <c>var</c> when the type is apparent, through the Roslyn IDE0007 analyzer and code fix.
     /// </summary>
     public bool ConvertToVarWhenApparent
     {
@@ -296,8 +298,8 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if <c>List&lt;T&gt;</c> and array initializations
-    /// should be converted to the C# 12 collection expression syntax.
+    /// Gets or sets the flag indicating if array and collection initializations should be converted to
+    /// collection expressions when the types match exactly, through the Roslyn IDE0300-IDE0306 analyzers and code fixes.
     /// </summary>
     public bool ConvertToCollectionExpressions
     {
@@ -317,8 +319,8 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if single-statement lambda block bodies should be
-    /// simplified to expression bodies (including removing unnecessary <c>return</c>).
+    /// Gets or sets the flag indicating if lambdas should use expression bodies, through the Roslyn
+    /// IDE0053 analyzer and code fix.
     /// </summary>
     public bool SimplifySingleStatementLambdas
     {
@@ -375,7 +377,8 @@ public sealed class CleaningUpdateViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if separate uninitialized out variable declarations should be inlined into inline out declarations (out T x).
+    /// Gets or sets the flag indicating if out variable declarations should be inlined (out T x),
+    /// through the Roslyn IDE0018 analyzer and code fix.
     /// </summary>
     public bool InlineOutVariableDeclarations
     {

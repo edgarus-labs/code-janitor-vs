@@ -18,12 +18,10 @@ namespace CodeJanitor.Logic.Cleaning;
 /// </summary>
 internal sealed class EffectiveCleanupSettings
 {
-    private const string ConvertToFileScopedNamespaceSetting = "Cleaning_ConvertToFileScopedNamespace";
-    private const string MoveUsingsOutsideNamespaceSetting = "Cleaning_MoveUsingsOutsideNamespace";
     private const string FileHeaderSetting = "Cleaning_UpdateFileHeaderCSharp";
     private const string MakeFieldsReadonlySetting = "Cleaning_MakeFieldsReadonlyWhenSafe";
+    private const string ExplicitAccessModifiersSetting = "Cleaning_InsertExplicitAccessModifiers";
     private const int DefaultTabSize = 4;
-    private const int DefaultIndentSize = 4;
 
     /// <summary>
     /// The analyzer categories of the non-IDE diagnostics the cleanup steps follow; every IDE diagnostic is "Style".
@@ -44,20 +42,23 @@ internal sealed class EffectiveCleanupSettings
         "CA1852",
     };
 
+    private static readonly string[] NoDiagnosticIds = Array.Empty<string>();
+
     /// <summary>
-    /// The settings controlled by <c>dotnet_style_require_accessibility_modifiers</c>.
+    /// The cleanup steps applied through a Roslyn analyzer and code fix in the diagnostic cleanup, each the way the
+    /// Microsoft Learn page of its rule documents it.
     /// </summary>
-    private static readonly string[] ExplicitAccessModifierSettings =
+    private static readonly RoslynStep[] RoslynSteps =
     {
-        "Cleaning_InsertExplicitAccessModifiersOnClasses",
-        "Cleaning_InsertExplicitAccessModifiersOnDelegates",
-        "Cleaning_InsertExplicitAccessModifiersOnEnumerations",
-        "Cleaning_InsertExplicitAccessModifiersOnEvents",
-        "Cleaning_InsertExplicitAccessModifiersOnFields",
-        "Cleaning_InsertExplicitAccessModifiersOnInterfaces",
-        "Cleaning_InsertExplicitAccessModifiersOnMethods",
-        "Cleaning_InsertExplicitAccessModifiersOnProperties",
-        "Cleaning_InsertExplicitAccessModifiersOnStructs",
+        new RoslynStep("Cleaning_ConvertToVarWhenApparent", "csharp_style_var_when_type_is_apparent", "true", new[] { "IDE0007" }, NoDiagnosticIds, "csharp_style_var_for_built_in_types", "csharp_style_var_elsewhere"),
+        new RoslynStep("Cleaning_InlineOutVariableDeclarations", "csharp_style_inlined_variable_declaration", "true", new[] { "IDE0018" }, NoDiagnosticIds),
+        new RoslynStep("Cleaning_ConvertToCollectionExpressions", "dotnet_style_prefer_collection_expression", "true", new[] { "IDE0300", "IDE0301", "IDE0302", "IDE0303", "IDE0304", "IDE0305", "IDE0306" }, NoDiagnosticIds),
+        new RoslynStep(MakeFieldsReadonlySetting, "dotnet_style_readonly_field", "true", new[] { "IDE0044" }, NoDiagnosticIds),
+        new RoslynStep(ExplicitAccessModifiersSetting, "dotnet_style_require_accessibility_modifiers", "for_non_interface_members", new[] { "IDE0040" }, NoDiagnosticIds),
+        new RoslynStep("Cleaning_SimplifySingleStatementLambdas", "csharp_style_expression_bodied_lambdas", "true", new[] { "IDE0053" }, NoDiagnosticIds),
+        new RoslynStep("Cleaning_ConvertToFileScopedNamespace", "csharp_style_namespace_declarations", "file_scoped", new[] { "IDE0161" }, new[] { "IDE0160" }),
+        new RoslynStep("Cleaning_MoveUsingsOutsideNamespace", "csharp_using_directive_placement", "outside_namespace", new[] { "IDE0065" }, new[] { "IDE0065" }),
+        new RoslynStep("Cleaning_RemoveMultipleConsecutiveBlankLines", "dotnet_style_allow_multiple_blank_lines_experimental", "false", new[] { "IDE2000" }, NoDiagnosticIds),
     };
 
     private readonly IReadOnlyDictionary<string, string> _editorConfigOptions;
@@ -87,17 +88,12 @@ internal sealed class EffectiveCleanupSettings
         ResolveCodeStyleRules();
         AnalyzerConfigOverrides = BuildAnalyzerConfigOverrides();
 
-        NamespaceDeclarations = ResolveNamespaceDeclarations();
-        UsingDirectivePlacement = ResolveUsingDirectivePlacement();
         OrganizeUsings = ResolveOrganizeUsings();
 
         Indentation = TryReadOption("indent_style", ParseIndentStyle, out var indentStyle)
             ? indentStyle ?? IndentationPreference.Unchanged
             : IndentationPreference.Unchanged;
         TabSize = ReadPositiveInteger("tab_width") ?? ReadPositiveInteger("indent_size") ?? DefaultTabSize;
-        IndentSize = ReadPositiveInteger("indent_size")
-            ?? (TryReadOption("indent_size", ParseTabKeyword, out _) ? ReadPositiveInteger("tab_width") : null)
-            ?? DefaultIndentSize;
 
         // The closed-file cleanup always ensured a final newline; only an enforced .editorconfig "false" reverses it.
         InsertFinalNewline = !(TryReadOption("insert_final_newline", ParseBoolean, out var insertFinalNewline) && insertFinalNewline == false);
@@ -124,9 +120,13 @@ internal sealed class EffectiveCleanupSettings
 
     /// <summary>
     /// Gets the analyzer configuration entries the diagnostic cleanup applies on top of .editorconfig so that Roslyn
-    /// reports, and fixes, exactly the rules of <see cref="CodeStyleValues" />: each rule with its value and
-    /// <c>suggestion</c> severity, the severity of its diagnostics raised to <c>suggestion</c>, and every other rule
-    /// reported through one of those diagnostics, unless .editorconfig enforces it, silenced with <c>none</c>.
+    /// reports, and fixes, exactly the rules of <see cref="CodeStyleValues" /> and the enabled cleanup steps applied
+    /// through Roslyn rules. A Code Style rule gets its value with <c>suggestion</c> severity and the severity of its
+    /// diagnostics raised to <c>suggestion</c>; every other rule reported through one of those diagnostics, unless
+    /// .editorconfig enforces it, is silenced with <c>none</c>. A Roslyn step .editorconfig does not decide gets the
+    /// value the step applies, with its diagnostics raised to <c>suggestion</c>; a step .editorconfig decides by its
+    /// option keeps that value, repeated lower-cased with <c>suggestion</c> severity, and the diagnostics of the decided
+    /// direction that no severity configures are raised to <c>suggestion</c>.
     /// </summary>
     internal IReadOnlyDictionary<string, string> AnalyzerConfigOverrides { get; }
 
@@ -144,16 +144,27 @@ internal sealed class EffectiveCleanupSettings
     internal bool OrganizeUsings { get; }
 
     /// <summary>
-    /// Gets the namespace declaration style to enforce, from <c>csharp_style_namespace_declarations</c>, the
-    /// repository <c>convertToFileScopedNamespace</c> policy or the user setting, in that order.
+    /// Determines whether the Roslyn equivalent of the Visual Studio "Remove and Sort Usings" command runs: it is on and
+    /// not skipped because the cleanup runs on save.
     /// </summary>
-    internal NamespaceDeclarationPreference NamespaceDeclarations { get; }
+    /// <param name="isAutoSaveContext">True when the cleanup runs on save.</param>
+    /// <returns>True when Remove and Sort Usings runs.</returns>
+    internal bool RunsRemoveAndSortUsings(bool isAutoSaveContext) =>
+        GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements))
+        && !(isAutoSaveContext && GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave)));
 
     /// <summary>
-    /// Gets the using directive placement to enforce, from <c>csharp_using_directive_placement</c>, the repository
-    /// <c>moveUsingsOutsideNamespace</c> policy or the user setting, in that order.
+    /// Gets how the diagnostic cleanup sorts the using directives of a document a fix changed: as the step that sorted
+    /// them before the fixes, which is Remove and Sort Usings when it is on, otherwise, for a closed file, the
+    /// <see cref="OrganizeUsings" /> organizer of the headless cleanup. An open file is not sorted by that organizer.
     /// </summary>
-    internal UsingDirectivePlacementPreference UsingDirectivePlacement { get; }
+    /// <param name="isAutoSaveContext">True when the cleanup runs on save.</param>
+    /// <param name="isClosedFile">True for a closed file, whose text the headless cleanup produced.</param>
+    /// <returns>The sorting.</returns>
+    internal Diagnostics.UsingDirectiveSorting GetUsingDirectiveSortingAfterFixes(bool isAutoSaveContext, bool isClosedFile) =>
+        GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements))
+            ? (RunsRemoveAndSortUsings(isAutoSaveContext) ? Diagnostics.UsingDirectiveSorting.RemoveAndSortUsings : Diagnostics.UsingDirectiveSorting.None)
+            : (isClosedFile && OrganizeUsings ? Diagnostics.UsingDirectiveSorting.OrganizeUsings : Diagnostics.UsingDirectiveSorting.None);
 
     /// <summary>
     /// Gets the indentation style to enforce. Only .editorconfig (<c>indent_style</c>) defines it.
@@ -167,12 +178,6 @@ internal sealed class EffectiveCleanupSettings
     internal int TabSize { get; }
 
     /// <summary>
-    /// Gets the number of columns of one indentation level: a numeric <c>indent_size</c>, <c>tab_width</c> when
-    /// <c>indent_size = tab</c>, otherwise 4.
-    /// </summary>
-    internal int IndentSize { get; }
-
-    /// <summary>
     /// Gets a value indicating whether the closed-file cleanup ensures a final newline (true) or removes trailing
     /// line breaks (false). Only an enforced .editorconfig <c>insert_final_newline = false</c> yields false.
     /// </summary>
@@ -184,37 +189,28 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="filePath">The source file path.</param>
     /// <returns>The effective settings for the file.</returns>
-    internal static EffectiveCleanupSettings For(string filePath)
-    {
-        return new EffectiveCleanupSettings(
+    internal static EffectiveCleanupSettings For(string filePath) => new EffectiveCleanupSettings(
             filePath,
             EditorConfigHelper.LoadOptions(filePath),
             RepositoryCleanupSettings.LoadForFile(filePath));
-    }
 
     /// <summary>
     /// Gets the effective value of a boolean Visual Studio setting.
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_RemoveEndOfLineWhitespace</c>.</param>
     /// <returns>The effective value.</returns>
-    internal bool GetBoolean(string settingName)
-    {
-        return _editorConfigValues.TryGetValue(settingName, out var value) && value is bool boolean
+    internal bool GetBoolean(string settingName) => _editorConfigValues.TryGetValue(settingName, out var value) && value is bool boolean
             ? boolean
             : _repositoryOverrides.TryGetBoolean(settingName, (bool)Settings.Default[settingName]);
-    }
 
     /// <summary>
     /// Gets the effective value of a string Visual Studio setting.
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_UpdateFileHeaderCSharp</c>.</param>
     /// <returns>The effective value.</returns>
-    internal string GetString(string settingName)
-    {
-        return _editorConfigValues.TryGetValue(settingName, out var value) && value is string text
+    internal string GetString(string settingName) => _editorConfigValues.TryGetValue(settingName, out var value) && value is string text
             ? text
             : _repositoryOverrides.TryGetString(settingName, (string)Settings.Default[settingName]);
-    }
 
     /// <summary>
     /// Gets the effective value of an integer Visual Studio setting.
@@ -263,11 +259,9 @@ internal sealed class EffectiveCleanupSettings
         ApplyRule("Cleaning_InlineOutVariableDeclarations", "csharp_style_inlined_variable_declaration", new[] { "IDE0018" }, ParseBoolean, defaultValue: true);
         ApplyRule("Cleaning_ConvertToCollectionExpressions", "dotnet_style_prefer_collection_expression", new[] { "IDE0300", "IDE0301", "IDE0302", "IDE0303", "IDE0304", "IDE0305", "IDE0306" }, ParseCollectionExpressionPreference, defaultValue: true);
         ApplyRule("Cleaning_MakeFieldsReadonlyWhenSafe", "dotnet_style_readonly_field", new[] { "IDE0044" }, ParseBoolean, defaultValue: true);
-        foreach (var settingName in ExplicitAccessModifierSettings)
-        {
-            ApplyRule(settingName, "dotnet_style_require_accessibility_modifiers", new[] { "IDE0040" }, ParseAccessibilityModifiersPreference, defaultValue: true);
-        }
-
+        ApplyRule(ExplicitAccessModifiersSetting, "dotnet_style_require_accessibility_modifiers", new[] { "IDE0040" }, ParseAccessibilityModifiersPreference, defaultValue: true);
+        ApplyRule("Cleaning_ConvertToFileScopedNamespace", "csharp_style_namespace_declarations", new[] { "IDE0160", "IDE0161" }, ParseNamespaceDeclarations, defaultValue: false);
+        ApplyRule("Cleaning_MoveUsingsOutsideNamespace", "csharp_using_directive_placement", new[] { "IDE0065" }, ParseUsingDirectivePlacement, defaultValue: true);
         ApplyRule("Cleaning_SimplifySingleStatementLambdas", "csharp_style_expression_bodied_lambdas", new[] { "IDE0053" }, ParseExpressionBodyPreference, defaultValue: true);
         ApplyNullCheckRules();
         ApplyRule("Cleaning_SealClassesWhenSafe", null, new[] { "CA1852" }, null, defaultValue: true);
@@ -399,12 +393,60 @@ internal sealed class EffectiveCleanupSettings
             overrides[rule.Key] = value + ":none";
         }
 
-        // "Make fields readonly" is Roslyn's IDE0044, whose semantic analysis sees every write, ref use and struct copy.
-        // .editorconfig, when it enforces the rule, reports it itself.
-        if (!_editorConfigKeys.ContainsKey(MakeFieldsReadonlySetting) && GetBoolean(MakeFieldsReadonlySetting))
+        // A Roslyn step that .editorconfig decides by its option keeps the .editorconfig value. Roslyn reports a
+        // diagnostic that no dotnet_diagnostic, category or global severity configures with the option's own severity,
+        // which may be silent (some analyzers then skip the rule) or no different from a run without .editorconfig, so
+        // the option is repeated, lower-cased as Roslyn parses it, with suggestion severity, and those diagnostics of
+        // the decided direction are raised to suggestion. A step .editorconfig decides only through severities is left
+        // to them. A step .editorconfig does not decide gets the value the step applies. The other options reported
+        // through the same diagnostic are switched off when .editorconfig sets them to true without enforcing them, so
+        // the raised severity applies to the step only.
+        foreach (var step in RoslynSteps)
         {
-            overrides["dotnet_style_readonly_field"] = "true:suggestion";
-            overrides["dotnet_diagnostic.IDE0044.severity"] = "suggestion";
+            var enabled = GetBoolean(step.SettingName);
+            if (_editorConfigKeys.TryGetValue(step.SettingName, out var decidingKey))
+            {
+                var unconfiguredIds = (enabled ? step.DiagnosticIds : step.ReverseDiagnosticIds)
+                    .Where(diagnosticId => !TryReadDiagnosticSeverity(diagnosticId, out _, out _))
+                    .ToList();
+                if (decidingKey != step.Key || unconfiguredIds.Count == 0 || !TryReadRawOption(step.Key, out var decidedValue, out _))
+                {
+                    continue;
+                }
+
+                overrides[step.Key] = decidedValue.ToLowerInvariant() + ":suggestion";
+                RaiseSeverities(unconfiguredIds);
+            }
+            else if (enabled)
+            {
+                overrides[step.Key] = step.Value + ":suggestion";
+                RaiseSeverities(step.DiagnosticIds);
+            }
+            else
+            {
+                continue;
+            }
+
+            if (enabled)
+            {
+                foreach (var key in step.OtherOptions)
+                {
+                    if (TryReadRawOption(key, out var configuredValue, out _)
+                        && ParseBoolean(configuredValue) == true
+                        && !TryReadRule(key, step.DiagnosticIds, value => ParseBoolean(value).HasValue, out _, out _))
+                    {
+                        overrides[key] = "true:none";
+                    }
+                }
+            }
+        }
+
+        void RaiseSeverities(IEnumerable<string> diagnosticIds)
+        {
+            foreach (var diagnosticId in diagnosticIds)
+            {
+                overrides["dotnet_diagnostic." + diagnosticId + ".severity"] = "suggestion";
+            }
         }
 
         return overrides;
@@ -437,48 +479,6 @@ internal sealed class EffectiveCleanupSettings
             .Select(line => line.Length == 0 ? "//" : "// " + line);
 
         SetEditorConfigValue(FileHeaderSetting, "file_header_template", string.Join(Environment.NewLine, lines));
-    }
-
-    /// <summary>
-    /// Resolves the namespace declaration style: .editorconfig wins when it enforces
-    /// <c>csharp_style_namespace_declarations</c> (IDE0160, IDE0161; see <see cref="TryReadRule" />), with Roslyn's
-    /// default <c>block_scoped</c> when enforced by severity only; otherwise the file-scoped conversion setting decides.
-    /// </summary>
-    /// <returns>The namespace declaration style.</returns>
-    private NamespaceDeclarationPreference ResolveNamespaceDeclarations()
-    {
-        if (TryReadRule("csharp_style_namespace_declarations", new[] { "IDE0160", "IDE0161" }, value => ParseNamespaceDeclarations(value).HasValue, out var value, out var decidingKey))
-        {
-            var preference = value is null ? NamespaceDeclarationPreference.BlockScoped : ParseNamespaceDeclarations(value).Value;
-            SetEditorConfigValue(ConvertToFileScopedNamespaceSetting, decidingKey, preference == NamespaceDeclarationPreference.FileScoped);
-
-            return preference;
-        }
-
-        return GetBoolean(ConvertToFileScopedNamespaceSetting)
-            ? NamespaceDeclarationPreference.FileScoped
-            : NamespaceDeclarationPreference.Unchanged;
-    }
-
-    /// <summary>
-    /// Resolves the using directive placement: .editorconfig wins when it enforces
-    /// <c>csharp_using_directive_placement</c> (IDE0065; see <see cref="TryReadRule" />), with Roslyn's default
-    /// <c>outside_namespace</c> when enforced by severity only; otherwise the move-outside setting decides.
-    /// </summary>
-    /// <returns>The using directive placement.</returns>
-    private UsingDirectivePlacementPreference ResolveUsingDirectivePlacement()
-    {
-        if (TryReadRule("csharp_using_directive_placement", new[] { "IDE0065" }, value => ParseUsingDirectivePlacement(value).HasValue, out var value, out var decidingKey))
-        {
-            var preference = value is null ? UsingDirectivePlacementPreference.OutsideNamespace : ParseUsingDirectivePlacement(value).Value;
-            SetEditorConfigValue(MoveUsingsOutsideNamespaceSetting, decidingKey, preference == UsingDirectivePlacementPreference.OutsideNamespace);
-
-            return preference;
-        }
-
-        return GetBoolean(MoveUsingsOutsideNamespaceSetting)
-            ? UsingDirectivePlacementPreference.OutsideNamespace
-            : UsingDirectivePlacementPreference.Unchanged;
     }
 
     /// <summary>
@@ -679,12 +679,9 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="diagnosticId">The diagnostic ID.</param>
     /// <returns>The category, or null when unknown.</returns>
-    private static string GetDiagnosticCategory(string diagnosticId)
-    {
-        return diagnosticId.StartsWith("IDE", StringComparison.OrdinalIgnoreCase)
+    private static string GetDiagnosticCategory(string diagnosticId) => diagnosticId.StartsWith("IDE", StringComparison.OrdinalIgnoreCase)
             ? "Style"
             : AnalyzerCategories.TryGetValue(diagnosticId, out var category) ? category : null;
-    }
 
     /// <summary>
     /// Tells whether an option severity suffix enforces the option.
@@ -752,13 +749,6 @@ internal sealed class EffectiveCleanupSettings
     private static int? ParsePositiveInteger(string value) => int.TryParse(value, out var parsed) && parsed > 0 ? parsed : null;
 
     /// <summary>
-    /// Parses the <c>tab</c> value of <c>indent_size</c>.
-    /// </summary>
-    /// <param name="value">The option value.</param>
-    /// <returns>True for <c>tab</c>, or null otherwise.</returns>
-    private static bool? ParseTabKeyword(string value) => string.Equals(value, "tab", StringComparison.OrdinalIgnoreCase) ? true : null;
-
-    /// <summary>
     /// Parses <c>dotnet_style_prefer_collection_expression</c>.
     /// </summary>
     /// <param name="value">The option value.</param>
@@ -807,16 +797,16 @@ internal sealed class EffectiveCleanupSettings
     /// Parses <c>csharp_style_namespace_declarations</c>.
     /// </summary>
     /// <param name="value">The option value.</param>
-    /// <returns>The namespace declaration style, or null when unrecognized.</returns>
-    private static NamespaceDeclarationPreference? ParseNamespaceDeclarations(string value)
+    /// <returns>True for <c>file_scoped</c>, false for <c>block_scoped</c>, or null when unrecognized.</returns>
+    private static bool? ParseNamespaceDeclarations(string value)
     {
         switch (value.ToLowerInvariant())
         {
             case "file_scoped":
-                return NamespaceDeclarationPreference.FileScoped;
+                return true;
 
             case "block_scoped":
-                return NamespaceDeclarationPreference.BlockScoped;
+                return false;
 
             default:
                 return null;
@@ -827,16 +817,16 @@ internal sealed class EffectiveCleanupSettings
     /// Parses <c>csharp_using_directive_placement</c>.
     /// </summary>
     /// <param name="value">The option value.</param>
-    /// <returns>The using directive placement, or null when unrecognized.</returns>
-    private static UsingDirectivePlacementPreference? ParseUsingDirectivePlacement(string value)
+    /// <returns>True for <c>outside_namespace</c>, false for <c>inside_namespace</c>, or null when unrecognized.</returns>
+    private static bool? ParseUsingDirectivePlacement(string value)
     {
         switch (value.ToLowerInvariant())
         {
             case "outside_namespace":
-                return UsingDirectivePlacementPreference.OutsideNamespace;
+                return true;
 
             case "inside_namespace":
-                return UsingDirectivePlacementPreference.InsideNamespace;
+                return false;
 
             default:
                 return null;
@@ -861,5 +851,62 @@ internal sealed class EffectiveCleanupSettings
             default:
                 return null;
         }
+    }
+
+    /// <summary>
+    /// A cleanup step applied through a Roslyn analyzer and code fix.
+    /// </summary>
+    private sealed class RoslynStep
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoslynStep" /> class.
+        /// </summary>
+        /// <param name="settingName">The Visual Studio setting that turns the step on.</param>
+        /// <param name="key">The .editorconfig option of the rule.</param>
+        /// <param name="value">The option value the step applies.</param>
+        /// <param name="diagnosticIds">The IDs of the diagnostics the step fixes.</param>
+        /// <param name="reverseDiagnosticIds">
+        /// The IDs of the diagnostics that apply the opposite value of the option when .editorconfig decides it.
+        /// </param>
+        /// <param name="otherOptions">The other boolean options reported through the same diagnostics.</param>
+        internal RoslynStep(string settingName, string key, string value, string[] diagnosticIds, string[] reverseDiagnosticIds, params string[] otherOptions)
+        {
+            SettingName = settingName;
+            Key = key;
+            Value = value;
+            DiagnosticIds = diagnosticIds;
+            ReverseDiagnosticIds = reverseDiagnosticIds;
+            OtherOptions = otherOptions;
+        }
+
+        /// <summary>
+        /// Gets the Visual Studio setting that turns the step on.
+        /// </summary>
+        internal string SettingName { get; }
+
+        /// <summary>
+        /// Gets the .editorconfig option of the rule.
+        /// </summary>
+        internal string Key { get; }
+
+        /// <summary>
+        /// Gets the option value the step applies.
+        /// </summary>
+        internal string Value { get; }
+
+        /// <summary>
+        /// Gets the IDs of the diagnostics the step fixes.
+        /// </summary>
+        internal string[] DiagnosticIds { get; }
+
+        /// <summary>
+        /// Gets the IDs of the diagnostics that apply the opposite value of the option when .editorconfig decides it.
+        /// </summary>
+        internal string[] ReverseDiagnosticIds { get; }
+
+        /// <summary>
+        /// Gets the other boolean options reported through the same diagnostics.
+        /// </summary>
+        internal string[] OtherOptions { get; }
     }
 }

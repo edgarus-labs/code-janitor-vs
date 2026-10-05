@@ -78,11 +78,8 @@ public sealed class DiagnosticCleanupResult
     /// </summary>
     public bool IsComplete => Unresolved.All(diagnostic => !IsBlocking(diagnostic.Reason));
 
-    private static bool IsBlocking(UnresolvedDiagnosticReason reason)
-    {
-        return reason == UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors
+    private static bool IsBlocking(UnresolvedDiagnosticReason reason) => reason == UnresolvedDiagnosticReason.FixRejectedIntroducesCompilerErrors
             || reason == UnresolvedDiagnosticReason.FixRejectedUnsupportedChanges
             || reason == UnresolvedDiagnosticReason.NotConverged
             || reason == UnresolvedDiagnosticReason.FixProviderFailed;
-    }
 }

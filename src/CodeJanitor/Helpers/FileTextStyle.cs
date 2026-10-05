@@ -66,8 +66,7 @@ internal static class FileTextStyle
     internal static void WriteAllText(string filePath, string text, Encoding encoding, string originalText, string styleFilePath = null)
     {
         var options = EditorConfigHelper.LoadOptions(styleFilePath ?? filePath);
-        var lineEnding = ParseEndOfLine(options) ?? GetUniformLineEnding(originalText);
-        var styledText = lineEnding is null ? text : NormalizeLineEndings(text, lineEnding);
+        var styledText = ApplyLineEnding(text, ReadOption(options, EndOfLineKey), originalText);
         var charset = ParseCharset(options);
         var targetEncoding = charset is not null && EncodesWithoutLoss(charset, styledText) ? charset : encoding;
         if (!EncodesWithoutLoss(targetEncoding, styledText))
@@ -210,6 +209,21 @@ internal static class FileTextStyle
     internal static string NormalizeLineEndings(string text, string lineEnding) => string.IsNullOrEmpty(text) ? text : LineBreak.Replace(text, _ => lineEnding);
 
     /// <summary>
+    /// Gives a text the line ending defined by an <c>end_of_line</c> value, otherwise the one line ending
+    /// <paramref name="originalText" /> uses throughout; the text is returned unchanged when neither applies.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="endOfLine">The <c>end_of_line</c> value (<c>lf</c>, <c>crlf</c> or <c>cr</c>), or null.</param>
+    /// <param name="originalText">The text before the change, or null.</param>
+    /// <returns>The text with the resolved line ending.</returns>
+    internal static string ApplyLineEnding(string text, string endOfLine, string originalText)
+    {
+        var lineEnding = ParseLineEnding(endOfLine) ?? GetUniformLineEnding(originalText);
+
+        return lineEnding is null ? text : NormalizeLineEndings(text, lineEnding);
+    }
+
+    /// <summary>
     /// Gets the line ending of a text that uses exactly one kind.
     /// </summary>
     /// <param name="text">The text, or null.</param>
@@ -266,9 +280,11 @@ internal static class FileTextStyle
         }
     }
 
-    private static string ParseEndOfLine(IReadOnlyDictionary<string, string> options)
+    private static string ParseEndOfLine(IReadOnlyDictionary<string, string> options) => ParseLineEnding(ReadOption(options, EndOfLineKey));
+
+    private static string ParseLineEnding(string endOfLine)
     {
-        switch (ReadOption(options, EndOfLineKey))
+        switch (endOfLine?.Trim().ToLowerInvariant())
         {
             case "lf":
                 return Lf;

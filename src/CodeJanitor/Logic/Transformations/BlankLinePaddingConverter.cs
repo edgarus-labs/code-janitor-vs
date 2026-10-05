@@ -208,8 +208,8 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
 
     /// <summary>
     /// Comments directly above a declaration belong to it, so padding has to go above the comments rather than
-    /// between them and the declaration. A plain comment block at the very top of the file is a file header and
-    /// stays separate; documentation comments always belong to the declaration.
+    /// between them and the declaration. A plain comment block at the very top of the file (below a shebang line, if
+    /// any) is a file header and stays separate; documentation comments always belong to the declaration.
     /// </summary>
     private static int GetPaddingStartLine(SyntaxNode node, SyntaxTree tree)
     {
@@ -236,7 +236,9 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         }
 
         int count = attachedComments.Count;
-        if (count > 0 && lineBelow == 0)
+        var sourceText = tree.GetText();
+        int fileHeaderLine = sourceText.Lines[0].ToString().StartsWith("#!", StringComparison.Ordinal) ? 1 : 0;
+        if (count > 0 && lineBelow == fileHeaderLine)
         {
             while (count > 0 && !IsDocumentationComment(attachedComments[count - 1]))
             {
@@ -247,18 +249,12 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
         return count == 0 ? startLine : tree.GetLineSpan(attachedComments[count - 1].Span).StartLinePosition.Line;
     }
 
-    private static bool IsComment(SyntaxTrivia trivia)
-    {
-        return trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
+    private static bool IsComment(SyntaxTrivia trivia) => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia) ||
             trivia.IsKind(SyntaxKind.MultiLineCommentTrivia) ||
             IsDocumentationComment(trivia);
-    }
 
-    private static bool IsDocumentationComment(SyntaxTrivia trivia)
-    {
-        return trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
+    private static bool IsDocumentationComment(SyntaxTrivia trivia) => trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
             trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
-    }
 
     /// <summary>
     /// The line holding the last character of the trivia; a single-line documentation comment includes its final line break.
@@ -522,9 +518,7 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
     /// Returns true if any of the listed blank-line padding settings is enabled in the effective settings, otherwise false, with no side effects.
     /// </summary>
     /// <returns>A bool value produced by this method.</returns>
-    private bool AnySettingEnabled()
-    {
-        return _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
+    private bool AnySettingEnabled() => _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
             _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterClasses)) ||
             _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeDelegates)) ||
             _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterDelegates)) ||
@@ -556,5 +550,4 @@ public sealed class BlankLinePaddingConverter : ISourceTransformation
             _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingAfterUsingStatementBlocks)) ||
             _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeCaseStatements)) ||
             _settings.GetBoolean(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeSingleLineComments));
-    }
 }

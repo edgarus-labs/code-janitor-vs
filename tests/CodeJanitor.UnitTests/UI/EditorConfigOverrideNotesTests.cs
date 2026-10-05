@@ -15,19 +15,6 @@ namespace CodeJanitor.UnitTests.UI;
 [TestClass]
 public sealed class EditorConfigOverrideNotesTests
 {
-    private static readonly string[] ExplicitAccessModifierSettings =
-    {
-        "Cleaning_InsertExplicitAccessModifiersOnClasses",
-        "Cleaning_InsertExplicitAccessModifiersOnDelegates",
-        "Cleaning_InsertExplicitAccessModifiersOnEnumerations",
-        "Cleaning_InsertExplicitAccessModifiersOnEvents",
-        "Cleaning_InsertExplicitAccessModifiersOnFields",
-        "Cleaning_InsertExplicitAccessModifiersOnInterfaces",
-        "Cleaning_InsertExplicitAccessModifiersOnMethods",
-        "Cleaning_InsertExplicitAccessModifiersOnProperties",
-        "Cleaning_InsertExplicitAccessModifiersOnStructs",
-    };
-
     private string _tempDirectory;
     private string _solutionDirectory;
     private string _solutionPath;
@@ -62,6 +49,7 @@ public sealed class EditorConfigOverrideNotesTests
     [DataRow("csharp_style_var_when_type_is_apparent = false:warning", "Cleaning_ConvertToVarWhenApparent", "csharp_style_var_when_type_is_apparent")]
     [DataRow("csharp_style_inlined_variable_declaration = true:suggestion", "Cleaning_InlineOutVariableDeclarations", "csharp_style_inlined_variable_declaration")]
     [DataRow("dotnet_style_prefer_collection_expression = when_types_loosely_match", "Cleaning_ConvertToCollectionExpressions", "dotnet_style_prefer_collection_expression")]
+    [DataRow("dotnet_style_require_accessibility_modifiers = always:warning", "Cleaning_InsertExplicitAccessModifiers", "dotnet_style_require_accessibility_modifiers")]
     [DataRow("dotnet_style_readonly_field = true:suggestion", "Cleaning_MakeFieldsReadonlyWhenSafe", "dotnet_style_readonly_field")]
     [DataRow("csharp_style_namespace_declarations = file_scoped:warning", "Cleaning_ConvertToFileScopedNamespace", "csharp_style_namespace_declarations")]
     [DataRow("csharp_using_directive_placement = inside_namespace", "Cleaning_MoveUsingsOutsideNamespace", "csharp_using_directive_placement")]
@@ -80,20 +68,6 @@ public sealed class EditorConfigOverrideNotesTests
         EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
 
         Assert.AreEqual($"Overridden by .editorconfig: {key} in {configPath}", notes[settingName]);
-    }
-
-    [TestMethod]
-    [TestCategory("UI UnitTests")]
-    public void Indexer_AccessibilityModifiersKey_AnnotatesEveryExplicitAccessModifierSetting()
-    {
-        WriteEditorConfig(_solutionDirectory, isRoot: false, "dotnet_style_require_accessibility_modifiers = always:warning");
-
-        EditorConfigOverrideNotes notes = EditorConfigOverrideNotes.ForSolution(_solutionPath);
-
-        foreach (string settingName in ExplicitAccessModifierSettings)
-        {
-            Assert.Contains("dotnet_style_require_accessibility_modifiers", notes[settingName], settingName);
-        }
     }
 
     [TestMethod]
@@ -125,20 +99,20 @@ public sealed class EditorConfigOverrideNotesTests
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 
-        string[] expected = ExplicitAccessModifierSettings
-            .Concat(new[]
+        string[] expected = new[]
             {
                 "Cleaning_ConvertToCollectionExpressions",
                 "Cleaning_ConvertToFileScopedNamespace",
                 "Cleaning_ConvertToVarWhenApparent",
                 "Cleaning_InlineOutVariableDeclarations",
                 "Cleaning_InsertEndOfFileTrailingNewLine",
+                "Cleaning_InsertExplicitAccessModifiers",
                 "Cleaning_MakeFieldsReadonlyWhenSafe",
                 "Cleaning_MoveUsingsOutsideNamespace",
                 "Cleaning_RemoveEndOfFileTrailingNewLine",
                 "Cleaning_RemoveEndOfLineWhitespace",
                 "Cleaning_UpdateFileHeaderCSharp",
-            })
+            }
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 

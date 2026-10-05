@@ -106,10 +106,7 @@ public sealed class JsonSerializerOptionsReuseConverter : ISourceTransformation
         /// <param name="argumentList">The argument list.</param>
         /// <param name="index">The index of the argument.</param>
         /// <returns>True when a later argument has no name.</returns>
-        private static bool IsFollowedByPositionalArgument(ArgumentListSyntax argumentList, int index)
-        {
-            return argumentList.Arguments.Skip(index + 1).Any(argument => argument.NameColon is null);
-        }
+        private static bool IsFollowedByPositionalArgument(ArgumentListSyntax argumentList, int index) => argumentList.Arguments.Skip(index + 1).Any(argument => argument.NameColon is null);
 
         /// <summary>
         /// Determines whether the given invocation expression is a call to JsonSerializer by checking if its member access receiver is exactly one of the expected fully qualified names, returning false otherwise with no side effects.

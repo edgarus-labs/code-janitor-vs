@@ -376,7 +376,7 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     [TestMethod]
     public void Apply_WhenTheRollbackCannotDeleteAFile_ReportsThatFile()
     {
-        List<string> warnings = new List<string>();
+        List<string> warnings = [];
         TopLevelTypeToFileSplitFileProcessor processor = new TopLevelTypeToFileSplitFileProcessor(reportWarning: warnings.Add);
         string filePath = Path.Combine(_tempDirectory, "Foo.cs");
         string firstCreated = null;
@@ -417,7 +417,7 @@ public sealed class TopLevelTypeToFileSplitFileProcessorTests
     [TestMethod]
     public void Apply_WhenTheRollbackDeletesEveryFile_ReportsNothing()
     {
-        List<string> warnings = new List<string>();
+        List<string> warnings = [];
         TopLevelTypeToFileSplitFileProcessor processor = new TopLevelTypeToFileSplitFileProcessor(reportWarning: warnings.Add);
         int transformCalls = 0;
 

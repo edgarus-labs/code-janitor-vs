@@ -13,7 +13,11 @@ This file records changes made in Code Janitor after the project became an indep
 - Safe Razor and Blazor formatter.
 - Razor formatter settings and configuration UI.
 - Formatting support for Razor control blocks, including `@try`, `@catch` and `@finally`.
-- Namespace fixer and namespace cleanup support.
+- Fix Namespace command: makes namespaces match the folder structure with Roslyn's IDE0130
+	(`dotnet_style_namespace_match_folder`) analyzer and code fix through the diagnostic cleanup, which also
+	updates references in other files. It needs the project's root namespace and directory from Visual Studio
+	and reports the changed files, the IDE0130 diagnostics it could not fix, and failures. Files IDE0130 does
+	not report (for example a type declared in several files) are left unchanged.
 - Optional AI-assisted XML documentation cleanup.
 - Advanced XMLDoc controls, filters and budget limits.
 - One-time cleanup options dialog for selected-scope cleanup.
@@ -33,12 +37,11 @@ This file records changes made in Code Janitor after the project became an indep
 - CodeQL code scanning (`.github/workflows/codeql.yml`) for C# and GitHub Actions workflows on
 	pull requests and pushes to `develop`, and weekly. Results are uploaded to GitHub code scanning.
 - `.editorconfig` as the source of truth for the cleanup steps it configures, in both directions:
-	`csharp_style_namespace_declarations = block_scoped` converts file-scoped namespaces back to block-scoped,
-	`csharp_using_directive_placement = inside_namespace` moves file-level using directives into the namespace
-	(semantically verified, `global::`-qualified where a name would bind differently, all-or-nothing),
-	`indent_style = tab` converts leading spaces to tabs and `insert_final_newline = false` removes the final
-	newline in closed-file cleanup. Namespace conversion moves the body by one `indent_size` (`tab_width` when
-	`indent_size = tab`). See the key mapping in `docs/features.md`.
+	`csharp_style_namespace_declarations = block_scoped` converts file-scoped namespaces back to block-scoped
+	(IDE0160), `csharp_using_directive_placement = inside_namespace` moves file-level using directives into the
+	namespace (IDE0065), both through the Roslyn code fixes of the diagnostic cleanup, `indent_style = tab`
+	converts leading spaces to tabs and `insert_final_newline = false` removes the final newline in closed-file
+	cleanup. See the key mapping in `docs/features.md`.
 - Options notes for settings overridden by `.editorconfig`: under each affected Cleaning option, a note
 	names the `.editorconfig` key and file that decide it for the open solution (evaluated for a C# file in
 	the solution directory). No note is shown when no solution is open or the key is ignored.
@@ -81,8 +84,8 @@ This file records changes made in Code Janitor after the project became an indep
 	`refactoring` leaves the decision to the next source. `:silent` previously enforced the value. Editor cleanup previously ignored
 	`.codejanitor` for every step except moving using directives, and read only a few `.editorconfig` keys for
 	closed files, with incorrect section matching and file precedence. Closed-file cleanup applies the resolved
-	settings to each kind of explicit access modifier, blank-line padding and single-line method/accessor update,
-	not only to the decision whether the step runs, so it gives the same result as editor cleanup.
+	settings to blank-line padding and single-line method/accessor update, not only to the decision whether the
+	step runs, so it gives the same result as editor cleanup.
 - Closed C# files are no longer opened in an invisible editor for "Remove and Sort Usings" and "Format
 	Document": their Roslyn equivalents run on the closed file with the same settings (including the
 	auto-save skip and the using statements to reinsert). A closed file whose cleanup changes only that
@@ -98,6 +101,43 @@ This file records changes made in Code Janitor after the project became an indep
 	still applied and the diagnostic is reported as unresolved. A failure that means the host Roslyn cannot be bound
 	(older than the Roslyn 5.0 Code Janitor is built against) is still reported as a failure that leaves the file
 	unchanged, not blamed on a provider.
+- Cleanup steps that were syntax-only converters now apply Roslyn's own analyzers and code fixes through the
+	diagnostic cleanup, like "Make Fields Readonly" (IDE0044): convert to `var` when the type is apparent
+	(IDE0007), inline `out` variable declarations (IDE0018), convert to collection expressions (IDE0300–IDE0306),
+	simplify single-statement lambdas (IDE0053), insert explicit access modifiers (IDE0040), convert to a
+	file-scoped namespace (IDE0161), move using directives outside the namespace (IDE0065) and, for C# only,
+	remove multiple consecutive blank lines (IDE2000, experimental). When `.editorconfig` does not decide the
+	rule, Code Janitor applies `csharp_style_var_when_type_is_apparent = true` (with the other `var` options
+	off, so built-in and non-apparent types keep their explicit type), `csharp_style_inlined_variable_declaration
+	= true`, `dotnet_style_prefer_collection_expression = true` (types must match exactly; for example
+	`IEnumerable<int> x = new int[] { 1 }` keeps the array), `csharp_style_expression_bodied_lambdas = true`,
+	`dotnet_style_require_accessibility_modifiers = for_non_interface_members`,
+	`csharp_style_namespace_declarations = file_scoped`, `csharp_using_directive_placement = outside_namespace`
+	and `dotnet_style_allow_multiple_blank_lines_experimental = false`; an `.editorconfig` that enforces the rule
+	wins. A rule `.editorconfig` sets by value alone (for example `csharp_style_namespace_declarations =
+	block_scoped` without a severity) is applied with that value, even where Roslyn would report it as silent;
+	option values are matched ignoring case. The language-version requirements (C# 10 for file-scoped namespaces, C# 12 for collection expressions)
+	are Roslyn's own checks. These steps run after the other cleanup steps, for open and closed files (inlining
+	`out` variables previously ran on closed files only), and are no longer part of the C# text cleanup preview.
+	They run on the cleaned file only, so files created by "Move top-level types to separate files" get them
+	when those files are cleaned. VB, C/C++, markup and other files keep Code
+	Janitor's own multiple-blank-line removal. Pattern-matching null checks, `nameof`, `JsonSerializerOptions`
+	reuse, string-format-to-interpolation and blank lines at braces keep their own steps: no Roslyn rule of the
+	Visual Studio host covers them.
+- **Breaking:** one setting, Cleaning > Insert > **Insert explicit accessibility modifiers**
+	(`Cleaning_InsertExplicitAccessModifiers`, `.codejanitor` key `insertExplicitAccessModifiers`, on by default),
+	replaces the nine per-kind settings (classes, delegates, enumerations, events, fields, interfaces, methods,
+	properties, structs) and their `.codejanitor` keys, which are no longer read. Interface members get no modifier.
+	If you had turned the per-kind settings off, turn the new setting (or `insertExplicitAccessModifiers`) off.
+- Cleanup of a closed file now honors the inclusion expression like the editor cleanup, and skips a file that holds
+	an `<auto-generated` marker, as the editor cleanup does.
+- A file header is inserted below a shebang line, the XML declaration of XML, XAML and HTML files, and the opening
+	tag of PHP files instead of above it.
+- Fixed the diagnostic cleanup leaving a blank first line when a code fix moves the first member of a file, for
+	example the using directives moved above a file-scoped namespace.
+- Fixed removing blank lines after attributes leaving one blank line when several followed, and the editor's
+	blank-line steps changing the line endings of an LF document. The blank-line steps of closed-file cleanup no
+	longer change the content of multi-line string literals.
 
 ### Removed
 
@@ -106,9 +146,17 @@ This file records changes made in Code Janitor after the project became an indep
 	that installed there, but it already required Roslyn 5.9 for C# cleanup, which Visual Studio 2022 does not ship).
 	Code Janitor uses the Roslyn that Visual Studio ships (the VSIX does not carry its own copy) and is
 	built against Roslyn 5.0, the version of Visual Studio 2026 18.0; Visual Studio 2022 ships Roslyn 4.x.
+- Code Janitor's own converters for the steps now applied through Roslyn rules: `OutVarInliningConverter`,
+	`SingleStatementLambdaConverter`, `CollectionExpressionConverter`, `VarWhenApparentConverter`,
+	`ExplicitAccessModifierConverter` and `InsertExplicitAccessModifierLogic`, `FileScopedNamespaceConverter`,
+	`UsingDirectivePlacementConverter`, `NamespaceFixerConverter` and `NamespaceFixerLogic`,
+	`NormalizeBlankLinesConverter`, and the C# language-version check `CSharpLanguageVersionSupport`.
 
 ### Fixed
 
+- Fixed the diagnostic cleanup leaving mixed line endings when a code fix inserts line breaks of its own (for
+	example Roslyn's "Move misplaced using directives" fix always inserts CRLF): every changed file keeps its
+	`end_of_line`, otherwise the one line ending it used throughout, also in open documents.
 - Fixed "Seal Classes" cleanup sealing classes designed for inheritance, such as classes with a `protected`
 	constructor (#43) or other `protected`, `protected internal` or `private protected` members (`CS0628`). Class
 	sealing now runs on the Visual Studio Roslyn workspace: it seals a class only when it has no virtual or protected
@@ -133,9 +181,6 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed the AI XML documentation option "Run during cleanup" having no effect: cleanup now adds the AI-generated
 	XML documentation to each file a cleanup batch cleans up, open or closed. Cleanup Active Document and the
 	automatic cleanup on save never add it. Canceling a cleanup batch also stops its XML documentation.
-- Fixed "Inline out variable declarations" dropping the declared type (`Enum.TryParse(text, out var value)` no longer
-	compiled, and overloaded or `dynamic` arguments changed meaning); the inlined declaration now keeps its type
-	(`out DayOfWeek value`). Consecutive declarations before one call are all inlined.
 - Fixed "Move top-level types to separate files" leaving the files it had already created behind when a later file
 	could not be written; a retry no longer creates duplicate `Name~1.cs` files.
 - Fixed the cleanup summary counting a file both as changed and as an editor item when a semantic step changed it and
@@ -156,66 +201,19 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed two `.editorconfig` key names in Options > Cleaning > Update (`csharp_style_namespace_declarations`,
 	`csharp_using_directive_placement`) shown without an underscore, because WPF read it as an access key.
 - Fixed closed non-C# files in a batch cleanup being counted as no-op and never cleaned.
-- Fixed legacy EnvDTE access modifier insertion corrupting code or injecting misplaced `private` tokens on generic method declarations and constraints; added a hard stop guarding generic declarations in `InsertExplicitAccessModifierLogic`.
 - Added post-cleanup compilation check and syntax error reporting so cleanup passes report errors and warnings instead of unconditionally claiming success.
 - Fixed "Move using directives outside namespace" breaking compilation (`CS0246`) for namespace-relative
-	directives such as `using Services;` inside `namespace Company.App`. Each moved directive, alias target and
-	`using static` is now resolved with the Roslyn semantic model: directives that mean the same at file level
-	keep their exact text, the others are written fully qualified (`using Company.App.Services;`). If a
-	directive cannot be resolved or its fully qualified form would refer to something else at file level (a
-	target reached only through an `extern alias` declared inside the namespace), the directives would move
-	across preprocessor directives, a moved directive
-	imports an extension `Add`, `GetEnumerator`, `GetPinnableReference`, `==` or `!=` that collection
-	expressions, spreads, `fixed` statements or tuple comparisons in the file call implicitly (such calls cannot
-	be compared, so the move is skipped even if nothing would bind differently), or the move would
-	add compile errors or make a name, member or implicitly called member (such as an extension
-	`GetEnumerator`, `Add`, `Count` or `operator true`) refer to a different symbol (including a same-named
-	type of another assembly) in any project, target framework or conditional-compilation variant (up to four
-	relevant `#if` symbols, including ones that change declarations or using directives, including
-	`global using`, in other files or referenced projects, alone or only together as in `#if A && B`) that
-	compiles the file, the directives are
-	left in place, the rest of the cleanup still runs, and the reason is written to the output pane once per
-	cleanup. The step runs against the Visual Studio Roslyn workspace before the
-	text cleanup (and before type splitting), honors the `.codejanitor` `moveUsingsOutsideNamespace` policy in
-	the editor too, and is no longer part of the selected-scope text preview. Converting to a file-scoped
-	namespace no longer moves using directives on its own: without the move step they stay inside the
-	file-scoped namespace, where they keep compiling. For files not compiled in a loaded C# project, the
-	directives are left in place.
-- Fixed cleanup emitting syntax the project's C# version does not support: conversion to file-scoped
-	namespaces (C# 10, `CS8370`) and to collection expressions (C# 12) now run only when every project and
-	target framework that compiles the file uses that version or newer, as read from the Visual Studio Roslyn
-	workspace. Otherwise, or when the version cannot be determined, the code is left as it is and the reason is
-	written to the output pane. This applies to the editor cleanup, the closed-file cleanup and the preview.
-	String-format-to-interpolation no longer moves a multi-line argument into an interpolation hole, which
-	needs C# 11.
-- Fixed "Convert block-scoped namespace to file-scoped" changing the content of multi-line verbatim, raw and
-	interpolated string literals and of `#if`-disabled code by removing their indentation, and dropping
-	everything after the namespace's closing brace (a trailing `#endif`, `#endregion` or comment). The
-	conversion also leaves the file unchanged when `#if`-disabled code before the namespace declares types or
-	namespaces, which would break the build configurations that enable it (`CS8956`, `CS8955`).
+	directives such as `using Services;` inside `namespace Company.App`, and dropping using directives: the step
+	now applies Roslyn's IDE0065 code fix through the diagnostic cleanup and honors the `.codejanitor`
+	`moveUsingsOutsideNamespace` policy in the editor too. With "Remove and Sort Usings" on, or `organizeUsings`
+	in effect for a closed file, the moved directives are sorted in the same cleanup.
+- Fixed string-format-to-interpolation moving a multi-line argument into an interpolation hole, which needs
+	C# 11.
 - Fixed "Make Fields Readonly" cleanup breaking compilation or behavior (fields written through `ref`, `out`,
 	`ref this` extension methods or another instance, mutating calls and getters on struct fields, code excluded by
 	`#if`): the step now applies Roslyn's own "Make field readonly" analyzer and code fix (IDE0044) through the
 	diagnostic cleanup, which sees every write semantically, instead of a syntax-only check. The step no longer
 	appears in the C# text cleanup preview.
-- Fixed "Inline `out` variable declarations" moving a declaration into a statement that scopes the variable to
-	itself (loops, `using`, `lock`, lambdas, queries), which broke later uses, and dropping comments between the
-	declaration and the call.
-- Fixed "Simplify single-statement lambdas" changing the chosen overload (for example `Func<Task>` instead of
-	`Action`, or an `IQueryable` expression-tree overload) for lambdas passed as arguments or collection
-	elements, changing a lambda's natural type (`Action` to `Func<T>`; only lambdas whose target is a written delegate
-	or expression type such as `Action`, `Func<>`, `Predicate<>` or `Expression<>` are simplified), converting
-	parameterless anonymous methods whose target needs a parameter list, dropping comments or directives inside the
-	body, dropping `static` from a `static delegate { }` anonymous method, and turning an Allman-style anonymous
-	method into a line that starts with `=>` (the arrow now stays on the header line).
-- Fixed "Convert to collection expressions" converting multi-dimensional and jagged arrays of another shape,
-	dropping comments outside the braces and comments or preprocessor directives between the initializer braces,
-	converting member or indexer initializers (`new List<int> { Capacity = 5 }`) to invalid collection expressions,
-	replacing implicitly typed arrays whose declared element type could be a covariant base
-	(`object[] a = new[] { "a" }`), which changed the runtime array type, and turning open-start ranges (`..3`) in a
-	`Range` collection into spread elements.
-- Fixed "Convert to `var` when the type is apparent" producing `const var` (`CS0822`) and converting arrays
-	whose rank differs from the declared type.
 - Fixed string-format-to-interpolation treating escaped braces (`{{`, `}}`) as placeholders, not escaping
 	backslashes, quotes and control characters in format specifiers (a format specifier containing a brace leaves
 	the call unchanged), not parenthesizing conditional expressions and `global::` names in holes, copying
@@ -241,8 +239,6 @@ This file records changes made in Code Janitor after the project became an indep
 	argument follows it (`(JsonSerializerOptions)null, ct`), which compiles in every C# version, or when the call is not
 	known to be on `System.Text.Json.JsonSerializer`. An options allocation passed as the first argument (the value)
 	is left unchanged.
-- Fixed explicit access modifier insertion adding `private` to types and fields nested in interfaces and
-	adding an access modifier to `file`-scoped types.
 - Fixed region removal and "Update `#endregion` directives" changing lines inside multi-line string literals
 	and comments, and `#endregion` updates skipping nameless regions and changing the file's line endings.
 - Fixed splitting top-level types into files breaking compilation when a `#region` spans several types
@@ -265,10 +261,6 @@ This file records changes made in Code Janitor after the project became an indep
 - Fixed blank-line padding adding a blank line directly below `#if`, `#elif` or `#else` or above `#elif`, `#else` or
 	`#endif`, and `return`/`throw` padding adding one directly below a preprocessor directive. `return`/`throw`
 	padding applies only to statements of a braced block; top-level statements and `switch` sections are not padded.
-- Fixed explicit access modifier insertion treating a `record struct` as a class (it now follows the Structs
-	setting; `record` and `record class` follow Classes) and skipping indexers without an access modifier (they
-	get `private` under the Properties setting). Partial properties, indexers, events and constructors are left
-	unchanged, like partial methods: both parts must declare the same accessibility.
 - Fixed region removal and "Update `#endregion` directives" taking exponential time on deeply nested inactive `#if`
 	branches and allocating a substring per line.
 - Fixed "Move top-level types to separate files" leaving the files it created on disk, next to the unchanged

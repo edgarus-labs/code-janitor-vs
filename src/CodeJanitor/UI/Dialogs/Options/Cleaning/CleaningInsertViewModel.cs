@@ -51,15 +51,7 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLinePaddingBeforeUsingStatementBlocks, x => InsertBlankLinePaddingBeforeUsingStatementBlocks),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors, x => InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors),
             new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets, x => InsertBlankSpaceBeforeSelfClosingAngleBrackets),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnClasses, x => InsertExplicitAccessModifiersOnClasses),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnDelegates, x => InsertExplicitAccessModifiersOnDelegates),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnEnumerations, x => InsertExplicitAccessModifiersOnEnumerations),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnEvents, x => InsertExplicitAccessModifiersOnEvents),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnFields, x => InsertExplicitAccessModifiersOnFields),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnInterfaces, x => InsertExplicitAccessModifiersOnInterfaces),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnMethods, x => InsertExplicitAccessModifiersOnMethods),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnProperties, x => InsertExplicitAccessModifiersOnProperties),
-            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiersOnStructs, x => InsertExplicitAccessModifiersOnStructs)
+            new SettingToOptionMapping<bool, bool>(x => ActiveSettings.Cleaning_InsertExplicitAccessModifiers, x => InsertExplicitAccessModifiers)
         };
     }
 
@@ -380,81 +372,9 @@ public sealed class CleaningInsertViewModel : OptionsPageViewModel
     }
 
     /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on classes.
+    /// Gets or sets the flag indicating if explicit accessibility modifiers should be added (Roslyn IDE0040).
     /// </summary>
-    public bool InsertExplicitAccessModifiersOnClasses
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on delegates.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnDelegates
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on enumerations.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnEnumerations
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on events.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnEvents
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on fields.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnFields
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on interfaces.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnInterfaces
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on methods.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnMethods
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on properties.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnProperties
-    {
-        get { return GetPropertyValue<bool>(); }
-        set { SetPropertyValue(value); }
-    }
-
-    /// <summary>
-    /// Gets or sets the flag indicating if explicit access modifiers should be added on structs.
-    /// </summary>
-    public bool InsertExplicitAccessModifiersOnStructs
+    public bool InsertExplicitAccessModifiers
     {
         get { return GetPropertyValue<bool>(); }
         set { SetPropertyValue(value); }

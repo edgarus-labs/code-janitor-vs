@@ -75,54 +75,6 @@ internal static class CodeElementHelper
     }
 
     /// <summary>
-    /// Gets the declaration of the specified code class as a string.
-    /// </summary>
-    /// <param name="codeClass">The code class.</param>
-    /// <returns>The string declaration.</returns>
-    internal static string GetClassDeclaration(CodeClass codeClass)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        // Get the start point after the attributes.
-        var startPoint = codeClass.GetStartPoint(vsCMPart.vsCMPartHeader);
-
-        return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"\{");
-    }
-
-    /// <summary>
-    /// Gets the declaration of the specified code delegate as a string.
-    /// </summary>
-    /// <param name="codeDelegate">The code delegate.</param>
-    /// <returns>The string declaration.</returns>
-    internal static string GetDelegateDeclaration(CodeDelegate codeDelegate)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        // Get the start point at the end of the attributes if there are any (vsCMPartHeader is
-        // not available for delegates).
-        var startPoint = codeDelegate.Attributes.Count > 0
-            ? codeDelegate.GetEndPoint(vsCMPart.vsCMPartAttributesWithDelimiter)
-            : codeDelegate.StartPoint;
-
-        return TextDocumentHelper.GetTextToFirstMatch(startPoint, @";");
-    }
-
-    /// <summary>
-    /// Gets the declaration of the specified code enum as a string.
-    /// </summary>
-    /// <param name="codeEnum">The code enum.</param>
-    /// <returns>The string declaration.</returns>
-    internal static string GetEnumerationDeclaration(CodeEnum codeEnum)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        // Get the start point after the attributes.
-        var startPoint = codeEnum.GetStartPoint(vsCMPart.vsCMPartHeader);
-
-        return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"\{");
-    }
-
-    /// <summary>
     /// Gets the declaration of the specified code event as a string.
     /// </summary>
     /// <param name="codeEvent">The code event.</param>
@@ -138,39 +90,6 @@ internal static class CodeElementHelper
             : codeEvent.StartPoint;
 
         return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"[\{;]");
-    }
-
-    /// <summary>
-    /// Gets the declaration of the specified code field as a string.
-    /// </summary>
-    /// <param name="codeField">The code field.</param>
-    /// <returns>The string declaration.</returns>
-    internal static string GetFieldDeclaration(CodeVariable codeField)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        // Get the start point at the end of the attributes if there are any (vsCMPartHeader is
-        // not available for fields).
-        var startPoint = codeField.Attributes.Count > 0
-            ? codeField.GetEndPoint(vsCMPart.vsCMPartAttributesWithDelimiter)
-            : codeField.StartPoint;
-
-        return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"[,;]");
-    }
-
-    /// <summary>
-    /// Gets the declaration of the specified code interface as a string.
-    /// </summary>
-    /// <param name="codeInterface">The code interface.</param>
-    /// <returns>The string declaration.</returns>
-    internal static string GetInterfaceDeclaration(CodeInterface codeInterface)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        // Get the start point after the attributes.
-        var startPoint = codeInterface.GetStartPoint(vsCMPart.vsCMPartHeader);
-
-        return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"\{");
     }
 
     /// <summary>
@@ -202,21 +121,6 @@ internal static class CodeElementHelper
         var startPoint = codeProperty.Attributes.Count > 0
             ? codeProperty.GetEndPoint(vsCMPart.vsCMPartAttributesWithDelimiter)
             : codeProperty.StartPoint;
-
-        return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"[\{;]");
-    }
-
-    /// <summary>
-    /// Gets the declaration of the specified code struct as a string.
-    /// </summary>
-    /// <param name="codeStruct">The code struct.</param>
-    /// <returns>The string declaration.</returns>
-    internal static string GetStructDeclaration(CodeStruct codeStruct)
-    {
-        ThreadHelper.ThrowIfNotOnUIThread();
-
-        // Get the start point after the attributes.
-        var startPoint = codeStruct.GetStartPoint(vsCMPart.vsCMPartHeader);
 
         return TextDocumentHelper.GetTextToFirstMatch(startPoint, @"[\{;]");
     }

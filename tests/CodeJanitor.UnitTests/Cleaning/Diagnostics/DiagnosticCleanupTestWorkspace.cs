@@ -66,6 +66,18 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     public Workspace Workspace => _workspace;
 
     /// <summary>
+    /// Gets or sets the default namespace of the project (Visual Studio sets it from the RootNamespace property);
+    /// set it before <see cref="CreateSolution" />.
+    /// </summary>
+    public string DefaultNamespace { get; set; }
+
+    /// <summary>
+    /// Gets or sets the C# parse options of the project, or null for the default (latest) language version; set it
+    /// before <see cref="CreateSolution" />.
+    /// </summary>
+    public CSharpParseOptions ParseOptions { get; set; }
+
+    /// <summary>
     /// Builds an absolute path below <see cref="RootDirectory" />.
     /// </summary>
     public static string GetPath(string relativePath)
@@ -99,11 +111,18 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
     }
 
     public void ConfigureRuleSeverity(string diagnosticId, string severity)
-    {
-        string filePath = GetPath($"{diagnosticId}.globalconfig");
-        string text = $"is_global = true\ndotnet_diagnostic.{diagnosticId}.severity = {severity}\n";
+        => AddGlobalConfig(diagnosticId, $"dotnet_diagnostic.{diagnosticId}.severity = {severity}\n");
 
-        _editorConfigs.Add(DocumentInfo.Create(DocumentId.CreateNewId(_projectId, filePath), $"{diagnosticId}.globalconfig", loader: CreateLoader(text, filePath), filePath: filePath));
+    /// <summary>
+    /// Adds a global analyzer configuration (<c>is_global = true</c>) named <paramref name="name" /> with the entries
+    /// in <paramref name="entries" />, as the build adds MSBuild properties such as <c>build_property.RootNamespace</c>.
+    /// </summary>
+    public void AddGlobalConfig(string name, string entries)
+    {
+        string filePath = GetPath($"{name}.globalconfig");
+        string text = "is_global = true\n" + entries;
+
+        _editorConfigs.Add(DocumentInfo.Create(DocumentId.CreateNewId(_projectId, filePath), $"{name}.globalconfig", loader: CreateLoader(text, filePath), filePath: filePath));
     }
 
     /// <summary>
@@ -121,10 +140,12 @@ internal sealed class DiagnosticCleanupTestWorkspace : IDisposable
                     LanguageNames.CSharp,
                     filePath: GetPath("TestProject.csproj"),
                     compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                    parseOptions: ParseOptions,
                     documents: _documents,
                     metadataReferences: new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
                     analyzerReferences: _projectAnalyzers.IsEmpty ? null : new[] { new AnalyzerImageReference(_projectAnalyzers) })
-                .WithAnalyzerConfigDocuments(_editorConfigs);
+                .WithAnalyzerConfigDocuments(_editorConfigs)
+                .WithDefaultNamespace(DefaultNamespace);
 
             _workspace = new AdhocWorkspace(HostServices.Value);
             _workspace.AddSolution(SolutionInfo.Create(

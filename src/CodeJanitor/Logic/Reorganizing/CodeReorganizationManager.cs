@@ -191,11 +191,8 @@ internal sealed class CodeReorganizationManager
     /// <param name="firstItem">The first item.</param>
     /// <param name="secondItem">The second item.</param>
     /// <returns>True if the items should be separated by a newline, otherwise false.</returns>
-    private bool ShouldBeSeparatedByNewLine(BaseCodeItem firstItem, BaseCodeItem secondItem)
-    {
-        return _insertBlankLinePaddingLogic.ShouldBeFollowedByBlankLine(firstItem) ||
+    private bool ShouldBeSeparatedByNewLine(BaseCodeItem firstItem, BaseCodeItem secondItem) => _insertBlankLinePaddingLogic.ShouldBeFollowedByBlankLine(firstItem) ||
             _insertBlankLinePaddingLogic.ShouldBePrecededByBlankLine(secondItem);
-    }
 
     /// <summary>
     /// Determines if the specified item's children should be reorganized.

@@ -157,21 +157,15 @@ internal sealed class CodeCleanupManager
 
     private readonly CodeCleanupAvailabilityLogic _codeCleanupAvailabilityLogic;
     private readonly CommentFormatLogic _commentFormatLogic;
-    private readonly CollectionExpressionLogic _collectionExpressionLogic;
     private readonly InsertBlankLinePaddingLogic _insertBlankLinePaddingLogic;
-    private readonly InsertExplicitAccessModifierLogic _insertExplicitAccessModifierLogic;
     private readonly InsertWhitespaceLogic _insertWhitespaceLogic;
     private readonly JsonSerializerOptionsReuseLogic _jsonSerializerOptionsReuseLogic;
     private readonly FileHeaderLogic _fileHeaderLogic;
-    private readonly FileScopedNamespaceLogic _fileScopedNamespaceLogic;
-    private readonly UsingDirectivePlacementLogic _usingDirectivePlacementLogic;
-    private readonly VarWhenApparentLogic _varWhenApparentLogic;
     private readonly RazorFormatterLogic _razorFormatterLogic;
     private readonly ReturnThrowBlankLinePaddingLogic _returnThrowBlankLinePaddingLogic;
     private readonly NullCheckPatternMatchingLogic _nullCheckPatternMatchingLogic;
     private readonly SealedClassLogic _sealedClassLogic;
     private readonly AiXmlDocumentationLogic _aiXmlDocumentationLogic;
-    private readonly SingleStatementLambdaLogic _singleStatementLambdaLogic;
     private readonly RemoveRegionLogic _removeRegionLogic;
     private readonly RemoveWhitespaceLogic _removeWhitespaceLogic;
     private readonly RemoveByteOrderMarkLogic _removeByteOrderMarkLogic;
@@ -218,22 +212,16 @@ internal sealed class CodeCleanupManager
 
         _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(_package);
         _commentFormatLogic = CommentFormatLogic.GetInstance(_package);
-        _collectionExpressionLogic = CollectionExpressionLogic.GetInstance(_package);
         _jsonSerializerOptionsReuseLogic = JsonSerializerOptionsReuseLogic.GetInstance(_package);
         _insertBlankLinePaddingLogic = InsertBlankLinePaddingLogic.GetInstance(_package);
-        _insertExplicitAccessModifierLogic = InsertExplicitAccessModifierLogic.GetInstance();
         _insertWhitespaceLogic = InsertWhitespaceLogic.GetInstance(_package);
         _editorConfigDiagnosticCleanupLogic = EditorConfigDiagnosticCleanupLogic.GetInstance(_package);
         _fileHeaderLogic = FileHeaderLogic.GetInstance(_package);
-        _fileScopedNamespaceLogic = FileScopedNamespaceLogic.GetInstance(_package);
-        _usingDirectivePlacementLogic = UsingDirectivePlacementLogic.GetInstance(_package);
-        _varWhenApparentLogic = VarWhenApparentLogic.GetInstance(_package);
         _razorFormatterLogic = RazorFormatterLogic.GetInstance(_package);
         _returnThrowBlankLinePaddingLogic = ReturnThrowBlankLinePaddingLogic.GetInstance(_package);
         _nullCheckPatternMatchingLogic = NullCheckPatternMatchingLogic.GetInstance(_package);
         _sealedClassLogic = SealedClassLogic.GetInstance(_package);
         _aiXmlDocumentationLogic = AiXmlDocumentationLogic.GetInstance(_package);
-        _singleStatementLambdaLogic = SingleStatementLambdaLogic.GetInstance(_package);
         _removeRegionLogic = RemoveRegionLogic.GetInstance(_package);
         _removeWhitespaceLogic = RemoveWhitespaceLogic.GetInstance(_package);
         _removeByteOrderMarkLogic = RemoveByteOrderMarkLogic.GetInstance(_package);
@@ -264,17 +252,14 @@ internal sealed class CodeCleanupManager
         // buffer is then the source of truth and cleanup must operate on the live document.
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
         var headlessResult = HeadlessCleanupResult.NotApplicable;
-        var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
         if (!wasOpen)
         {
-            // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
-            // Studio workspace and run first, so the headless steps (header, using organization, type splitting) see
-            // their result.
-            usingsMoveOutcome = ThreadHelper.JoinableTaskFactory.Run(() => _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem));
+            // The semantic steps (class sealing, null check conversion) need the Visual Studio workspace and run first,
+            // so the headless steps (header, using organization, type splitting) see their result.
             var classesSealed = ThreadHelper.JoinableTaskFactory.Run(() => _sealedClassLogic.SealWhenSafeAsync(projectItem));
             var nullChecksConverted = ThreadHelper.JoinableTaskFactory.Run(() => _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem));
             headlessResult = TryRunHeadlessPreCleanupForCSharp(projectItem);
-            if ((usingsMoveOutcome == UsingsMoveOutcome.Moved || classesSealed || nullChecksConverted) && headlessResult == HeadlessCleanupResult.NoChanges)
+            if ((classesSealed || nullChecksConverted) && headlessResult == HeadlessCleanupResult.NoChanges)
             {
                 headlessResult = HeadlessCleanupResult.Changed;
             }
@@ -318,13 +303,13 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            if (CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen))
+            if (CleanupDocument(projectItem.Document, semanticStepsDone: !wasOpen))
             {
                 ThreadHelper.JoinableTaskFactory.Run(() => RunXmlDocumentationDuringCleanupAsync(projectItem));
             }
 
             // Close the document if it was opened for cleanup.
-            if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
+            if (ShouldCloseDocumentAfterCleanup(wasOpen))
             {
                 projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
             }
@@ -349,8 +334,8 @@ internal sealed class CodeCleanupManager
     /// calls run on a background thread so the IDE stays responsive and can be canceled.
     /// </summary>
     /// <param name="projectItem">The project item for cleanup.</param>
-    /// <param name="cancellationToken">Cancels the semantic using directive placement of a closed file.</param>
-    /// <exception cref="OperationCanceledException">The using directive placement was canceled; the file is left unchanged.</exception>
+    /// <param name="cancellationToken">Cancels the semantic steps of a closed file.</param>
+    /// <exception cref="OperationCanceledException">A semantic step was canceled; the file is left unchanged.</exception>
     internal async Task CleanupAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -371,8 +356,8 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="projectItem">The project item for cleanup.</param>
     /// <param name="rewriteSteps">
-    /// The semantic steps that run on a closed file after the using directive placement; each returns true when it
-    /// rewrote the file.
+    /// The semantic steps that run on a closed file before its headless cleanup; each returns true when it rewrote the
+    /// file.
     /// </param>
     /// <param name="cancellationToken">Cancels the semantic steps of a closed file.</param>
     /// <exception cref="OperationCanceledException">A semantic step was canceled; the file is left unchanged.</exception>
@@ -394,28 +379,18 @@ internal sealed class CodeCleanupManager
         bool wasOpen = projectItem.IsOpen[Constants.vsViewKindTextView] || projectItem.IsOpen[Constants.vsViewKindCode];
 
         var headlessResult = HeadlessCleanupResult.NotApplicable;
-        var usingsMoveOutcome = UsingsMoveOutcome.NotApplicable;
         var changedBySemanticSteps = false;
         var countedWhenRewritten = false;
 
         if (!wasOpen)
         {
-            // The semantic steps (using directive placement, class sealing, null check conversion) need the Visual
-            // Studio workspace and run first, so the headless steps (header, using organization, type splitting) see
-            // their result. A file that only the headless-only branch below finishes is counted as changed as soon as a
-            // step rewrites it, so it is counted even when a later step fails. When editor cleanup is required the file
-            // is counted as an editor item by CleanupDocument instead, and must not be counted as changed as well.
+            // The semantic steps (class sealing, null check conversion) need the Visual Studio workspace and run first,
+            // so the headless steps (header, using organization, type splitting) see their result. A file that only the
+            // headless-only branch below finishes is counted as changed as soon as a step rewrites it, so it is counted
+            // even when a later step fails. When editor cleanup is required the file is counted as an editor item by
+            // CleanupDocument instead, and must not be counted as changed as well.
             countedWhenRewritten = !RequiresEditorCleanupForCSharp();
-            var semanticSteps = new List<Func<Task<bool>>>
-            {
-                async () =>
-                {
-                    usingsMoveOutcome = await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken);
-
-                    return usingsMoveOutcome == UsingsMoveOutcome.Moved;
-                },
-            };
-            semanticSteps.AddRange(rewriteSteps.Select(step => (Func<Task<bool>>)(() => step(projectItem, cancellationToken))));
+            var semanticSteps = rewriteSteps.Select(step => (Func<Task<bool>>)(() => step(projectItem, cancellationToken))).ToList();
 
             await RunSemanticStepsAsync(
                 semanticSteps,
@@ -505,13 +480,13 @@ internal sealed class CodeCleanupManager
 
         if (projectItem.Document is not null)
         {
-            if (CleanupDocument(projectItem.Document, usingsMoveOutcome == UsingsMoveOutcome.LeftInPlace, semanticStepsDone: !wasOpen))
+            if (CleanupDocument(projectItem.Document, semanticStepsDone: !wasOpen))
             {
                 await RunXmlDocumentationDuringCleanupAsync(projectItem);
             }
 
             // Close the document if it was opened for cleanup.
-            if (Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen)
+            if (ShouldCloseDocumentAfterCleanup(wasOpen))
             {
                 projectItem.Document.Close(vsSaveChanges.vsSaveChangesYes);
             }
@@ -608,7 +583,7 @@ internal sealed class CodeCleanupManager
                 }
             }
 
-            var transformedSource = CreateHeadlessCSharpPipeline(originalSource, projectItemFileName, settings).Run(originalSource);
+            var transformedSource = CreateHeadlessCSharpPipeline(settings).Run(originalSource);
             var removeByteOrderMark = settings.GetBoolean(nameof(Settings.Cleaning_RemoveByteOrderMark));
             var targetEncoding = removeByteOrderMark
                 ? new UTF8Encoding(false)
@@ -854,41 +829,25 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source text.</param>
     /// <param name="filePath">The file path whose effective cleanup settings select the transformations.</param>
     /// <returns>Transformed source text.</returns>
-    internal static string ApplyHeadlessCSharpTransformations(string source, string filePath) => CreateHeadlessCSharpPipeline(source, filePath).Run(source);
+    internal static string ApplyHeadlessCSharpTransformations(string source, string filePath) => CreateHeadlessCSharpPipeline(filePath).Run(source);
 
     /// <summary>
     /// Creates the closed-file C# cleanup pipeline for a file from its effective cleanup settings
     /// (.editorconfig, then the .codejanitor repository policy, then the Visual Studio settings).
     /// </summary>
-    /// <param name="source">The source text the pipeline will run on.</param>
     /// <param name="filePath">The file path.</param>
     /// <returns>The pipeline.</returns>
-    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(string source, string filePath) => CreateHeadlessCSharpPipeline(source, filePath, EffectiveCleanupSettings.For(filePath));
+    internal static SourceTransformationPipeline CreateHeadlessCSharpPipeline(string filePath) => CreateHeadlessCSharpPipeline(EffectiveCleanupSettings.For(filePath));
 
     /// <summary>
     /// Creates the closed-file C# cleanup pipeline for a file from its already resolved effective cleanup settings.
     /// </summary>
-    /// <param name="source">The source text the pipeline will run on.</param>
-    /// <param name="filePath">The file path.</param>
     /// <param name="settings">The effective cleanup settings of the file.</param>
     /// <returns>The pipeline.</returns>
-    private static SourceTransformationPipeline CreateHeadlessCSharpPipeline(
-        string source,
-        string filePath,
-        EffectiveCleanupSettings settings)
+    private static SourceTransformationPipeline CreateHeadlessCSharpPipeline(EffectiveCleanupSettings settings)
     {
         bool IsEnabled(string settingName) => settings.GetBoolean(settingName);
         var transformations = new List<ISourceTransformation>();
-
-        // A step whose output needs a C# version newer than C# 7.3 runs only when every project compiling the file uses
-        // that version; otherwise it is skipped, with a warning when it would have changed the file.
-        var languageVersion = CSharpLanguageVersionSupport.For(filePath);
-        void AddForLanguageVersion(ISourceTransformation transformation, CSharpLanguageVersionSupport.SyntaxRequirement requirement)
-        {
-            transformations.Add(languageVersion.Supports(requirement, out var skipMessage)
-                ? transformation
-                : CreateSkippedTransformation(transformation, skipMessage));
-        }
 
         // Region directives are policy-only structure and are removed unless the repository
         // policy (.codejanitor) explicitly opts out via removeRegions.
@@ -902,48 +861,28 @@ internal sealed class CodeCleanupManager
             transformations.Add(new ByteOrderMarkConverter());
         }
 
-        // Using directive placement is not a text transformation: it needs the semantic model and runs against the
-        // Visual Studio workspace before this pipeline (UsingDirectivePlacementLogic.PlaceUsingDirectivesAsync).
-
-        switch (settings.NamespaceDeclarations)
+        var fileHeader = settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSharp));
+        if (!string.IsNullOrWhiteSpace(fileHeader))
         {
-            case NamespaceDeclarationPreference.FileScoped:
-                var fileScopedConverter = FileScopedNamespaceLogic.CreateConverter(settings);
-                if (!fileScopedConverter.HasMultipleNamespaces(source))
-                {
-                    AddForLanguageVersion(fileScopedConverter, CSharpLanguageVersionSupport.FileScopedNamespaces);
-                }
-
-                break;
-
-            case NamespaceDeclarationPreference.BlockScoped:
-                transformations.Add(new DelegateSourceTransformation("Block-Scoped Namespace", FileScopedNamespaceLogic.CreateConverter(settings).ConvertToBlockScoped));
-                break;
+            var fileHeaderPosition = (HeaderPosition)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderPosition));
+            var fileHeaderUpdateMode = (HeaderUpdateMode)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderUpdateMode));
+            transformations.Add(new DelegateSourceTransformation(
+                "Update C# file header",
+                text => ApplyConfiguredCSharpFileHeader(text, fileHeader, fileHeaderPosition, fileHeaderUpdateMode)));
         }
 
-        if (IsEnabled(nameof(Settings.Cleaning_ConvertToVarWhenApparent)))
-        {
-            transformations.Add(new VarWhenApparentConverter());
-        }
+        // Using directive placement, namespace declarations, 'var', collection expressions, lambda bodies, inlined
+        // 'out' variables, accessibility modifiers and multiple blank lines are Roslyn rules that the diagnostic
+        // cleanup applies after this pipeline (EffectiveCleanupSettings.AnalyzerConfigOverrides).
 
         if (IsEnabled(nameof(Settings.Cleaning_InsertBlankLineBeforeReturnAndThrowStatements)))
         {
             transformations.Add(new ReturnThrowBlankLinePaddingConverter());
         }
 
-        if (IsEnabled(nameof(Settings.Cleaning_ConvertToCollectionExpressions)))
-        {
-            AddForLanguageVersion(new CollectionExpressionConverter(), CSharpLanguageVersionSupport.CollectionExpressions);
-        }
-
         if (IsEnabled(nameof(Settings.Cleaning_ReuseJsonSerializerOptionsForCA1869)))
         {
             transformations.Add(new JsonSerializerOptionsReuseConverter());
-        }
-
-        if (IsEnabled(nameof(Settings.Cleaning_SimplifySingleStatementLambdas)))
-        {
-            transformations.Add(new SingleStatementLambdaConverter());
         }
 
         if (IsEnabled(nameof(Settings.Cleaning_ConvertStringFormatToInterpolation)))
@@ -954,24 +893,6 @@ internal sealed class CodeCleanupManager
         if (IsEnabled(nameof(Settings.Cleaning_ConvertToStringNameOf)))
         {
             transformations.Add(new NameOfOperatorConverter());
-        }
-
-        if (IsEnabled(nameof(Settings.Cleaning_InlineOutVariableDeclarations)))
-        {
-            transformations.Add(new OutVarInliningConverter());
-        }
-
-        if (IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnClasses)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnDelegates)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEnumerations)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnEvents)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnFields)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnInterfaces)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnMethods)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnProperties)) ||
-            IsEnabled(nameof(Settings.Cleaning_InsertExplicitAccessModifiersOnStructs)))
-        {
-            transformations.Add(new ExplicitAccessModifierConverter(settings));
         }
 
         if (IsEnabled(nameof(Settings.Cleaning_InsertBlankLinePaddingBeforeClasses)) ||
@@ -1030,16 +951,6 @@ internal sealed class CodeCleanupManager
             transformations.Add(new CommentFormatConverter());
         }
 
-        var fileHeader = settings.GetString(nameof(Settings.Cleaning_UpdateFileHeaderCSharp));
-        if (!string.IsNullOrWhiteSpace(fileHeader))
-        {
-            var fileHeaderPosition = (HeaderPosition)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderPosition));
-            var fileHeaderUpdateMode = (HeaderUpdateMode)settings.GetInt32(nameof(Settings.Cleaning_UpdateFileHeader_HeaderUpdateMode));
-            transformations.Add(new DelegateSourceTransformation(
-                "Update C# file header",
-                text => ApplyConfiguredCSharpFileHeader(text, fileHeader, fileHeaderPosition, fileHeaderUpdateMode)));
-        }
-
         switch (settings.Indentation)
         {
             case IndentationPreference.Spaces:
@@ -1093,36 +1004,11 @@ internal sealed class CodeCleanupManager
             transformations.Add(new DelegateSourceTransformation("Remove blank lines between chained statements", RemoveBlankLinesBetweenChainedStatements));
         }
 
-        if (IsEnabled(nameof(Settings.Cleaning_RemoveMultipleConsecutiveBlankLines)))
-        {
-            transformations.Add(new NormalizeBlankLinesConverter());
-        }
-
         transformations.Add(settings.InsertFinalNewline
             ? new EnsureFinalNewlineConverter()
             : (ISourceTransformation)new RemoveFinalNewlineConverter());
 
         return new SourceTransformationPipeline(transformations);
-    }
-
-    /// <summary>
-    /// Creates the pipeline step that replaces a transformation whose output the file's C# language version does not
-    /// support: it leaves the source unchanged and logs the skip message when the transformation would have changed it.
-    /// </summary>
-    /// <param name="transformation">The skipped transformation.</param>
-    /// <param name="skipMessage">The warning explaining why the transformation is skipped.</param>
-    /// <returns>The pipeline step.</returns>
-    private static ISourceTransformation CreateSkippedTransformation(ISourceTransformation transformation, string skipMessage)
-    {
-        return new DelegateSourceTransformation(transformation.Name, source =>
-        {
-            if (transformation.Apply(source) != source)
-            {
-                OutputWindowHelper.WarningWriteLine(skipMessage);
-            }
-
-            return source;
-        });
     }
 
     /// <summary>
@@ -1188,9 +1074,15 @@ internal sealed class CodeCleanupManager
         switch (headerPosition)
         {
             case HeaderPosition.DocumentStart:
-                return headerUpdateMode == HeaderUpdateMode.Insert
-                    ? InsertHeaderAtDocumentStart(source, settingsFileHeader)
-                    : ReplaceHeaderAtDocumentStart(source, settingsFileHeader);
+                {
+                    // A shebang line has to stay the first line of the file: the header goes below it.
+                    var prologLength = FileHeaderHelper.GetPrologLength(CodeLanguage.CSharp, source);
+                    var body = source.Substring(prologLength);
+
+                    return source.Substring(0, prologLength) + (headerUpdateMode == HeaderUpdateMode.Insert
+                        ? InsertHeaderAtDocumentStart(body, settingsFileHeader)
+                        : ReplaceHeaderAtDocumentStart(body, settingsFileHeader));
+                }
 
             case HeaderPosition.AfterUsings:
                 return headerUpdateMode == HeaderUpdateMode.Insert
@@ -1208,12 +1100,9 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
-    {
-        return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
+    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader) => source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
             ? source
             : settingsFileHeader + source;
-    }
 
     /// <summary>
     /// Replaces the leading header in the source with the trimmed settings header if they differ, otherwise returns the original source unchanged.
@@ -1369,7 +1258,7 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string RemoveBlankLinesAfterAttributes(string source) => ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2}(?![ \t]*//)", "$1{NL}");
+    private static string RemoveBlankLinesAfterAttributes(string source) => ReplaceUsingFileLineEnding(source, @"(^[ \t]*\[[^\]]+\][ \t]*(//[^\r\n]*)*)(\r?\n){2,}(?![ \t]*//)", "$1{NL}");
 
     /// <summary>
     /// Removes the blank lines between a documentation comment and the declaration it documents, keeping the
@@ -1410,8 +1299,16 @@ internal sealed class CodeCleanupManager
     private static string ReplaceUsingFileLineEnding(string source, string pattern, string replacement)
     {
         var newline = source.Contains("\r\n") ? "\r\n" : "\n";
+        var expandedReplacement = replacement.Replace("{NL}", newline);
+        var literalSpans = new Lazy<List<Microsoft.CodeAnalysis.Text.TextSpan>>(() => RegionDirectiveRemover.FindMultiLineLiteralSpans(source));
 
-        return Regex.Replace(source, pattern, replacement.Replace("{NL}", newline), RegexOptions.Multiline);
+        // The content of a multi-line string literal is data: a match that starts inside one is not a blank line of the code.
+
+        return Regex.Replace(
+            source,
+            pattern,
+            match => RegionDirectiveRemover.StartsInside(literalSpans.Value, match.Index) ? match.Value : match.Result(expandedReplacement),
+            RegexOptions.Multiline);
     }
 
     /// <summary>
@@ -1423,7 +1320,7 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        CleanupDocument(document, usingsLeftInPlace: false, semanticStepsDone: false);
+        CleanupDocument(document, semanticStepsDone: false);
     }
 
     /// <summary>
@@ -1439,7 +1336,7 @@ internal sealed class CodeCleanupManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        if (!CleanupDocument(document, usingsLeftInPlace: false, semanticStepsDone: false) || _package.IsAutoSaveContext)
+        if (!CleanupDocument(document, semanticStepsDone: false) || _package.IsAutoSaveContext)
         {
             return null;
         }
@@ -1451,10 +1348,6 @@ internal sealed class CodeCleanupManager
     /// Attempts to run code cleanup on the specified document.
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
-    /// <param name="usingsLeftInPlace">
-    /// True when the semantic using directive placement was already attempted for the file in this cleanup and left
-    /// the using directives in place: it is not retried, since that would repeat the analysis and the warning.
-    /// </param>
     /// <param name="semanticStepsDone">
     /// True when class sealing and null check conversion already ran for the closed file in this cleanup: they are
     /// not repeated, since each attempt analyzes the semantic model of every project compiling the file.
@@ -1463,7 +1356,7 @@ internal sealed class CodeCleanupManager
     /// True when the document was cleaned; false when it cannot be cleaned up (for example an excluded or
     /// auto-generated file) or a designer window of it is active.
     /// </returns>
-    private bool CleanupDocument(Document document, bool usingsLeftInPlace, bool semanticStepsDone)
+    private bool CleanupDocument(Document document, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -1492,19 +1385,11 @@ internal sealed class CodeCleanupManager
         // repository policy, then the Visual Studio settings.
         var settings = EffectiveCleanupSettings.For(document.FullName);
 
-        // When types are split into their own files, the semantic using directive placement must run before the split
-        // so the created files inherit the placed directives. It is then its own undo unit, like the split, and the
-        // calls in the cleanup undo transaction (RunCodeCleanupCSharp) find nothing left to move. Once a placement left
-        // the directives in place (including the closed-file placement of this cleanup), no later step retries it.
-        // Class sealing and null check conversion also run before the split, for the same reason: a type moved to a
-        // created file is no longer in this document when the cleanup steps below run, and the created file is not
-        // cleaned in this pass. They are then not repeated in RunCodeCleanupCSharp, since each attempt analyzes the
-        // semantic model of every project compiling the file.
+        // When types are split into their own files, class sealing and null check conversion run before the split: a
+        // type moved to a created file is no longer in this document when the cleanup steps below run, and the created
+        // file is not cleaned in this pass. They are then not repeated in RunCodeCleanupCSharp, since each attempt
+        // analyzes the semantic model of every project compiling the file.
         var splitsCSharpTypes = settings.GetBoolean(nameof(Settings.Cleaning_MoveTopLevelTypesToSeparateFiles)) && document.GetCodeLanguage() == CodeLanguage.CSharp;
-        if (!usingsLeftInPlace && splitsCSharpTypes)
-        {
-            usingsLeftInPlace = _usingDirectivePlacementLogic.PlaceUsingDirectives(document.GetTextDocument()) == UsingsMoveOutcome.LeftInPlace;
-        }
 
         if (splitsCSharpTypes && !semanticStepsDone)
         {
@@ -1531,7 +1416,7 @@ internal sealed class CodeCleanupManager
         new UndoTransactionHelper(_package, string.Format(Resources.CodeJanitorCleanupFor0, document.Name)).Run(
             delegate
             {
-                var cleanupMethod = FindCodeCleanupMethod(document, settings, usingsLeftInPlace, semanticStepsDone: semanticStepsDone || splitsCSharpTypes);
+                var cleanupMethod = FindCodeCleanupMethod(document, settings, semanticStepsDone: semanticStepsDone || splitsCSharpTypes);
                 if (cleanupMethod is not null)
                 {
                     OutputWindowHelper.InfoWriteLine($"Cleanup started for '{document.FullName}'");
@@ -1547,7 +1432,7 @@ internal sealed class CodeCleanupManager
 
         // Diagnostic cleanup runs after the Janitor cleanup of a C# document, as its own undo unit,
         // against the cleaned editor buffer.
-        if (document.GetCodeLanguage() == CodeLanguage.CSharp)
+        if (RunsDiagnosticCleanup(document))
         {
             var outcome = ThreadHelper.JoinableTaskFactory.Run(() => _editorConfigDiagnosticCleanupLogic.CleanupAsync(document));
             if (!RecordDiagnosticCleanupOutcome(document.FullName, outcome))
@@ -1560,9 +1445,30 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
+    /// Determines whether the diagnostic cleanup runs for an open document: it needs a C# document of the solution,
+    /// because a file outside the solution is not part of the Roslyn workspace and cannot be analyzed.
+    /// </summary>
+    /// <param name="document">The document.</param>
+    /// <returns>True when the diagnostic cleanup runs.</returns>
+    internal static bool RunsDiagnosticCleanup(Document document)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        return document.GetCodeLanguage() == CodeLanguage.CSharp && !document.IsExternal();
+    }
+
+    /// <summary>
     /// Resets execution statistics for the next cleanup batch.
     /// </summary>
     internal void ResetCleanupExecutionStats() => _cleanupExecutionStats = default(CleanupExecutionStats);
+
+    /// <summary>
+    /// Determines whether a document is saved and closed after its cleanup: when it was opened by the cleanup and the
+    /// user opted in.
+    /// </summary>
+    /// <param name="wasOpen">True when the document was already open before the cleanup.</param>
+    /// <returns>True when the cleanup closes the document.</returns>
+    internal static bool ShouldCloseDocumentAfterCleanup(bool wasOpen) => Settings.Default.Cleaning_AutoSaveAndCloseIfOpenedByCleanup && !wasOpen;
 
     /// <summary>
     /// Records a failure that was isolated to one cleanup item.
@@ -1581,17 +1487,6 @@ internal sealed class CodeCleanupManager
     }
 
     /// <summary>
-    /// Places the using directives of a closed C# project item inside or outside its namespaces, as its effective
-    /// settings require. Must run before the headless cleanup of the item (see <see cref="UsingDirectivePlacementLogic" />).
-    /// </summary>
-    /// <param name="projectItem">The project item.</param>
-    /// <param name="cancellationToken">Cancels the semantic analysis of the move; the file is then left unchanged.</param>
-    /// <returns>True when the file was rewritten with the placed directives.</returns>
-    /// <exception cref="OperationCanceledException">The move was canceled.</exception>
-    internal async Task<bool> PlaceUsingDirectivesAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) =>
-        await _usingDirectivePlacementLogic.PlaceUsingDirectivesAsync(projectItem, cancellationToken) == UsingsMoveOutcome.Moved;
-
-    /// <summary>
     /// Seals the classes of a closed C# project item that are safe to seal, when its effective settings enable it. Must
     /// run before the headless cleanup of the item (see <see cref="SealedClassLogic" />).
     /// </summary>
@@ -1599,10 +1494,7 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with sealed classes.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
-    internal Task<bool> SealClassesWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
-    {
-        return _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
-    }
+    internal Task<bool> SealClassesWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) => _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
 
     /// <summary>
     /// Converts the null checks of a closed C# project item that are safe to convert to pattern matching, when its
@@ -1613,10 +1505,7 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with converted null checks.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
-    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
-    {
-        return _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
-    }
+    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) => _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
 
     /// <summary>
     /// Adds AI-generated XML documentation to a cleaned file (open in the editor or closed on disk), when AI XML
@@ -1700,19 +1589,16 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-    /// <param name="usingsLeftInPlace">
-    /// True when the semantic using directive placement already left the using directives in place in this cleanup.
-    /// </param>
     /// <param name="semanticStepsDone">True when class sealing and null check conversion already ran for the document in this cleanup.</param>
     /// <returns>The code cleanup method, otherwise null.</returns>
-    private Action<Document> FindCodeCleanupMethod(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace, bool semanticStepsDone)
+    private Action<Document> FindCodeCleanupMethod(Document document, EffectiveCleanupSettings settings, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         switch (document.GetCodeLanguage())
         {
             case CodeLanguage.CSharp:
-                return csharpDocument => RunCodeCleanupCSharp(csharpDocument, settings, usingsLeftInPlace, semanticStepsDone);
+                return csharpDocument => RunCodeCleanupCSharp(csharpDocument, settings, semanticStepsDone);
 
             case CodeLanguage.VisualBasic:
                 return vbDocument => RunCodeCleanupVB(vbDocument, settings);
@@ -1937,30 +1823,12 @@ internal sealed class CodeCleanupManager
     /// </summary>
     /// <param name="document">The document for cleanup.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-    /// <param name="usingsLeftInPlace">
-    /// True when the semantic using directive placement already left the using directives in place in this cleanup;
-    /// it is then not retried.
-    /// </param>
     /// <param name="semanticStepsDone">True when class sealing and null check conversion already ran for the document in this cleanup.</param>
-    private void RunCodeCleanupCSharp(Document document, EffectiveCleanupSettings settings, bool usingsLeftInPlace, bool semanticStepsDone)
+    private void RunCodeCleanupCSharp(Document document, EffectiveCleanupSettings settings, bool semanticStepsDone)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         var textDocument = document.GetTextDocument();
-
-        // Place using directives inside or outside the namespace, as the effective settings require. Each attempt
-        // re-analyzes the document semantically, so once the placement left the directives in place it is not
-        // attempted again.
-        if (!usingsLeftInPlace)
-        {
-            usingsLeftInPlace = _usingDirectivePlacementLogic.PlaceUsingDirectives(textDocument) == UsingsMoveOutcome.LeftInPlace;
-        }
-
-        // Convert to the enforced namespace declaration style first (changes file structure).
-        _fileScopedNamespaceLogic.ApplyNamespaceDeclarationStyle(textDocument, settings);
-
-        // Convert local variable declarations to 'var' when the type is apparent, when enabled.
-        _varWhenApparentLogic.ConvertToVarWhenApparent(textDocument, settings);
 
         // Add 'sealed' to classes proven safe to seal across the solution, and convert the null checks proven safe to
         // pattern matching, when enabled and not already done.
@@ -1973,28 +1841,14 @@ internal sealed class CodeCleanupManager
         // Insert a blank line before return/throw statements that end a block, when enabled.
         _returnThrowBlankLinePaddingLogic.InsertPaddingBeforeReturnAndThrowStatements(textDocument, settings);
 
-        // Convert List<T>/array initializations to collection expression syntax, when enabled.
-        _collectionExpressionLogic.ConvertToCollectionExpressions(textDocument, settings);
-
         // Replace direct JsonSerializerOptions allocations in JsonSerializer calls, when enabled.
         _jsonSerializerOptionsReuseLogic.ReuseJsonSerializerOptionsForCA1869(textDocument, settings);
-
-        // Simplify single-statement lambda blocks to expression-bodied lambdas, when enabled.
-        _singleStatementLambdaLogic.SimplifySingleStatementLambdas(textDocument, settings);
 
         // Perform any actions that can modify the file code model first.
         RunExternalFormatting(textDocument, settings);
         if (!document.IsExternal())
         {
             _usingStatementCleanupLogic.RemoveAndSortUsingStatements(textDocument, settings);
-
-            // External cleanup (e.g. ReSharper, or Format Document running a code cleanup profile) can move using
-            // directives across the namespace boundary; place them again unless the placement already proved unsafe.
-            // When every directive is already where it belongs this is a syntax-only check, without semantic analysis.
-            if (!usingsLeftInPlace)
-            {
-                _usingDirectivePlacementLogic.PlaceUsingDirectives(textDocument);
-            }
         }
 
         // Interpret the document into a collection of elements.
@@ -2036,7 +1890,12 @@ internal sealed class CodeCleanupManager
         _removeWhitespaceLogic.RemoveBlankLinesAfterOpeningBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
-        _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
+
+        // A document outside the solution gets no Roslyn diagnostic cleanup, which removes the multiple blank lines of the others.
+        if (!RunsDiagnosticCleanup(document))
+        {
+            _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
+        }
 
         // Perform insertion of blank line padding cleanup.
         _insertBlankLinePaddingLogic.InsertPaddingBeforeRegionTags(regions, settings);
@@ -2081,17 +1940,6 @@ internal sealed class CodeCleanupManager
 
         _insertBlankLinePaddingLogic.InsertPaddingBeforeCaseStatements(textDocument, settings);
         _insertBlankLinePaddingLogic.InsertPaddingBeforeSingleLineComments(textDocument, settings);
-
-        // Perform insertion of explicit access modifier cleanup.
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnClasses(classes, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnDelegates(delegates, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnEnumerations(enumerations, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnEvents(events, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnFields(fields, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnInterfaces(interfaces, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnMethods(methods, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnProperties(properties, settings);
-        _insertExplicitAccessModifierLogic.InsertExplicitAccessModifiersOnStructs(structs, settings);
 
         // Perform the final newline cleanup (insert or remove, as the effective settings require).
         _insertWhitespaceLogic.InsertEOFTrailingNewLine(textDocument, settings);

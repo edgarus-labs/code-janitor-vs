@@ -53,11 +53,9 @@ internal abstract class BaseCommand : OleMenuCommand, ISwitchableFeature
     /// <summary>
     /// Called to update the current status of the command.
     /// </summary>
-    protected virtual void OnBeforeQueryStatus()
-    {
+    protected virtual void OnBeforeQueryStatus() =>
         // By default, commands are always enabled.
         Enabled = true;
-    }
 
     /// <summary>
     /// Called to execute the command.

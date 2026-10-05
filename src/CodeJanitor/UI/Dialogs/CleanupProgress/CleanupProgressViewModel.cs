@@ -147,14 +147,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// Posts a progress update to the UI thread without waiting for it.
     /// </summary>
     /// <param name="state">The progress state.</param>
-    private void ReportProgress(ProgressReportState state)
-    {
-        _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
-        {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            OnProgressChanged(state);
-        });
-    }
+    private void ReportProgress(ProgressReportState state) => _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                                                                   {
+                                                                       await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                                                                       OnProgressChanged(state);
+                                                                   });
 
     /// <summary>
     /// Runs <paramref name="action" /> on the UI thread through the joinable task factory, so it is also serviced while
@@ -212,7 +209,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
-            // The semantic steps (using directive placement, class sealing, null check conversion) run before the
+            // The semantic steps (class sealing, null check conversion) run before the
             // parallel headless pass, so the headless steps (header, using organization, type splitting) see their
             // result. Projects run in parallel, the files of one project one at a time. A file is counted as changed as
             // soon as it is rewritten, so it is counted even when the batch is canceled before its headless cleanup. The
@@ -234,7 +231,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await CodeCleanupManager.RunSemanticStepsAsync(
                         new Func<Task<bool>>[]
                         {
-                            () => CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken),
                             () => CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken),
                             () => CodeCleanupManager.ConvertNullChecksWhenSafeAsync(workItem.ProjectItem, cancellationToken),
                         },

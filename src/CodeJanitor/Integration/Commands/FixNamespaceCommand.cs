@@ -5,6 +5,7 @@ using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using Task = System.Threading.Tasks.Task;
@@ -12,7 +13,8 @@ using Task = System.Threading.Tasks.Task;
 namespace CodeJanitor.Integration.Commands;
 
 /// <summary>
-/// A command that fixes the namespace of the active C# document.
+/// A command that makes the namespaces of the C# files in scope match their folders through Roslyn's IDE0130 analyzer
+/// and code fix (see <see cref="EditorConfigDiagnosticCleanupLogic.FixNamespaceAsync" />).
 /// </summary>
 internal sealed class FixNamespaceCommand : BaseCommand
 {
@@ -26,13 +28,13 @@ internal sealed class FixNamespaceCommand : BaseCommand
     /// </summary>
     private const int VeryLargeScopeWarningThreshold = 10000;
 
-    private readonly NamespaceFixerLogic _namespaceFixerLogic;
+    private readonly EditorConfigDiagnosticCleanupLogic _diagnosticCleanupLogic;
     private readonly CodeCleanupAvailabilityLogic _codeCleanupAvailabilityLogic;
 
     internal FixNamespaceCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorFixNamespace)
     {
-        _namespaceFixerLogic = NamespaceFixerLogic.GetInstance(Package);
+        _diagnosticCleanupLogic = EditorConfigDiagnosticCleanupLogic.GetInstance(Package);
         _codeCleanupAvailabilityLogic = CodeCleanupAvailabilityLogic.GetInstance(Package);
     }
 
@@ -94,6 +96,8 @@ internal sealed class FixNamespaceCommand : BaseCommand
         }
 
         var changedCount = 0;
+        var unresolvedCount = 0;
+        var failedCount = 0;
 
         using (new ActiveDocumentRestorer(Package))
         {
@@ -104,22 +108,34 @@ internal sealed class FixNamespaceCommand : BaseCommand
             {
                 current++;
 
-                if (projectItem is not null)
+                Package.IDE.StatusBar.Text = $"CodeJanitor fixing namespace {current}/{totalCount}: {projectItem.Name}";
+
+                var outcome = ThreadHelper.JoinableTaskFactory.Run(() => _diagnosticCleanupLogic.FixNamespaceAsync(projectItem));
+                if (outcome.Failure is not null)
                 {
-                    Package.IDE.StatusBar.Text = $"CodeJanitor fixing namespace {current}/{totalCount}: {projectItem.Name}";
+                    OutputWindowHelper.ExceptionWriteLine($"Fix Namespace failed for '{projectItem.GetFileName()}'", outcome.Failure);
+                    failedCount++;
+                    continue;
                 }
 
-                if (_namespaceFixerLogic.FixNamespace(projectItem))
+                if (outcome.Changed)
                 {
                     changedCount++;
                 }
+
+                unresolvedCount += outcome.UnresolvedCount;
             }
         }
 
-        Package.IDE.StatusBar.Text = $"CodeJanitor Fix Namespace completed: changed {changedCount} of {projectItems.Count} file(s).";
-        MessageBox.Show($"Processed {projectItems.Count} file(s). Changed {changedCount} file(s).",
-                        "CodeJanitor Fix Namespace",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+        var problems = failedCount > 0 || unresolvedCount > 0;
+        Package.IDE.StatusBar.Text = $"CodeJanitor Fix Namespace completed: changed {changedCount} of {projectItems.Count} file(s), {failedCount} failed, {unresolvedCount} namespace(s) left unchanged.";
+        MessageBox.Show(
+            $"Processed {projectItems.Count} file(s). Changed {changedCount} file(s)."
+                + (unresolvedCount == 0 ? string.Empty : $" {unresolvedCount} namespace(s) could not be fixed; see the CodeJanitor output pane.")
+                + (failedCount == 0 ? string.Empty : $" {failedCount} file(s) failed; see the CodeJanitor output pane."),
+            "CodeJanitor Fix Namespace",
+            MessageBoxButton.OK,
+            problems ? MessageBoxImage.Warning : MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -146,7 +162,7 @@ internal sealed class FixNamespaceCommand : BaseCommand
     }
 
     /// <summary>
-    /// Returns distinct project items from selected UI hierarchy roots that pass namespace fixer logic, falling back to the active document&apos;s project item if selection empty, and otherwise returns an empty sequence while requiring the UI thread and accessing Package state.
+    /// Returns distinct C# project items (see <see cref="CanFixNamespace" />) from selected UI hierarchy roots, falling back to the active document&apos;s project item if selection empty, and otherwise returns an empty sequence while requiring the UI thread and accessing Package state.
     /// </summary>
     /// <returns>A IEnumerable&lt;ProjectItem&gt; value produced by this method.</returns>
     private IEnumerable<ProjectItem> GetScopeProjectItems()
@@ -158,7 +174,7 @@ internal sealed class FixNamespaceCommand : BaseCommand
         if (activeWindow is not null && activeWindow.Type == vsWindowType.vsWindowTypeDocument)
         {
             var activeDoc = Package.ActiveDocument;
-            if (activeDoc?.ProjectItem is not null && _namespaceFixerLogic.CanFixNamespaceProjectItem(activeDoc.ProjectItem))
+            if (activeDoc?.ProjectItem is not null && CanFixNamespace(activeDoc.ProjectItem))
             {
                 return new[] { activeDoc.ProjectItem };
             }
@@ -173,7 +189,7 @@ internal sealed class FixNamespaceCommand : BaseCommand
         // If a single ProjectItem (file) is selected in Solution Explorer
         if (selectedScopeRoots.Count == 1 && selectedScopeRoots[0] is ProjectItem singleProjectItem)
         {
-            if (_namespaceFixerLogic.CanFixNamespaceProjectItem(singleProjectItem))
+            if (CanFixNamespace(singleProjectItem))
             {
                 return new[] { singleProjectItem };
             }
@@ -181,7 +197,7 @@ internal sealed class FixNamespaceCommand : BaseCommand
 
         var selectedProjectItems = selectedScopeRoots
             .SelectMany(SolutionHelper.GetItemsRecursively<ProjectItem>)
-            .Where(projectItem => _namespaceFixerLogic.CanFixNamespaceProjectItem(projectItem));
+            .Where(CanFixNamespace);
 
         var selectedScopedDistinct = DistinctByFilePath(selectedProjectItems).ToList();
         if (selectedScopedDistinct.Count > 0)
@@ -191,12 +207,32 @@ internal sealed class FixNamespaceCommand : BaseCommand
 
         // 3. Fallback to active document if any
         var fallbackDoc = Package.ActiveDocument;
-        if (fallbackDoc?.ProjectItem is not null && _namespaceFixerLogic.CanFixNamespaceProjectItem(fallbackDoc.ProjectItem))
+        if (fallbackDoc?.ProjectItem is not null && CanFixNamespace(fallbackDoc.ProjectItem))
         {
             return new[] { fallbackDoc.ProjectItem };
         }
 
         return Enumerable.Empty<ProjectItem>();
+    }
+
+    /// <summary>
+    /// Determines whether the namespace of a project item can be fixed: a physical .cs file outside the bin, obj and
+    /// generated folders.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>True when the namespace can be fixed.</returns>
+    private static bool CanFixNamespace(ProjectItem projectItem)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (projectItem is null || !projectItem.IsPhysicalFile() || !string.Equals(Path.GetExtension(projectItem.Name), ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var filePath = projectItem.GetFileName();
+
+        return !string.IsNullOrWhiteSpace(filePath) && !NamespacePathHelper.IsInExcludedDirectory(filePath);
     }
 
     /// <summary>
