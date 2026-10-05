@@ -164,31 +164,7 @@
     <Setting Name="Cleaning_InsertEndOfFileTrailingNewLine" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnClasses" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnDelegates" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnEnumerations" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnEvents" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnFields" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnInterfaces" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnMethods" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnProperties" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Cleaning_InsertExplicitAccessModifiersOnStructs" Type="System.Boolean" Scope="User">
+    <Setting Name="Cleaning_InsertExplicitAccessModifiers" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="Cleaning_PerformPartialCleanupOnExternal" Type="System.Int32" Scope="User">

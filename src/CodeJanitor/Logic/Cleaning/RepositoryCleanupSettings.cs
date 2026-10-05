@@ -60,18 +60,6 @@ internal static class RepositoryCleanupSettings
     };
 
     /// <summary>
-    /// The target settings of the insertExplicitAccessModifiers group alias, mirroring the VS Code extension.
-    /// </summary>
-    private static readonly string[] ExplicitAccessModifierAliasTargets =
-    {
-        "insertExplicitAccessModifiersOnClasses", "insertExplicitAccessModifiersOnDelegates",
-        "insertExplicitAccessModifiersOnEnumerations", "insertExplicitAccessModifiersOnEvents",
-        "insertExplicitAccessModifiersOnFields", "insertExplicitAccessModifiersOnInterfaces",
-        "insertExplicitAccessModifiersOnMethods", "insertExplicitAccessModifiersOnProperties",
-        "insertExplicitAccessModifiersOnStructs",
-    };
-
-    /// <summary>
     /// The canonical boolean policy keys in the order used by the VS Code extension schema.
     /// </summary>
     private static readonly string[] CanonicalBooleanKeys =
@@ -93,11 +81,7 @@ internal static class RepositoryCleanupSettings
         "insertBlankLinePaddingBeforeUsingStatementBlocks", "insertBlankLinePaddingAfterUsingStatementBlocks",
         "insertBlankLinePaddingBeforeCaseStatements", "insertBlankLinePaddingBeforeSingleLineComments",
 
-        "insertExplicitAccessModifiersOnClasses", "insertExplicitAccessModifiersOnDelegates",
-        "insertExplicitAccessModifiersOnEnumerations", "insertExplicitAccessModifiersOnEvents",
-        "insertExplicitAccessModifiersOnFields", "insertExplicitAccessModifiersOnInterfaces",
-        "insertExplicitAccessModifiersOnMethods", "insertExplicitAccessModifiersOnProperties",
-        "insertExplicitAccessModifiersOnStructs",
+        "insertExplicitAccessModifiers",
 
         "convertToFileScopedNamespace", "convertToVarWhenApparent",
         "makeFieldsReadonlyWhenSafe", "sealClassesWhenSafe",
@@ -226,16 +210,14 @@ internal static class RepositoryCleanupSettings
         bool? removeRegions = null;
         bool? organizeUsings = null;
 
-        // Group aliases are applied first so that individual keys override them, mirroring VS Code.
+        // The group alias is applied first so that individual keys override it, mirroring VS Code.
         ApplyBooleanAlias(cleanup, values, "insertBlankLinePadding", BlankLinePaddingAliasTargets);
-        ApplyBooleanAlias(cleanup, values, "insertExplicitAccessModifiers", ExplicitAccessModifierAliasTargets);
 
         foreach (var pair in cleanup)
         {
             switch (pair.Key)
             {
                 case "insertBlankLinePadding":
-                case "insertExplicitAccessModifiers":
                     continue;
 
                 case "removeRegions":

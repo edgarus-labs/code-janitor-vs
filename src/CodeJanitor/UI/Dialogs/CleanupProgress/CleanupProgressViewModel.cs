@@ -212,7 +212,7 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
             var (parallelItems, sequentialItems) = CleanupBatchPartitioner.Partition(workItems, workItem => workItem.FilePath, editorItems.Contains);
             totalCount = parallelItems.Count + sequentialItems.Count;
 
-            // The semantic steps (using directive placement, class sealing, null check conversion) run before the
+            // The semantic steps (class sealing, null check conversion) run before the
             // parallel headless pass, so the headless steps (header, using organization, type splitting) see their
             // result. Projects run in parallel, the files of one project one at a time. A file is counted as changed as
             // soon as it is rewritten, so it is counted even when the batch is canceled before its headless cleanup. The
@@ -234,7 +234,6 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
                     await CodeCleanupManager.RunSemanticStepsAsync(
                         new Func<Task<bool>>[]
                         {
-                            () => CodeCleanupManager.PlaceUsingDirectivesAsync(workItem.ProjectItem, cancellationToken),
                             () => CodeCleanupManager.SealClassesWhenSafeAsync(workItem.ProjectItem, cancellationToken),
                             () => CodeCleanupManager.ConvertNullChecksWhenSafeAsync(workItem.ProjectItem, cancellationToken),
                         },

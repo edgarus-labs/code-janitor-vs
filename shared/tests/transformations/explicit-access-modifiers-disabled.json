@@ -1,6 +1,6 @@
 {
   "name": "explicit-access-modifiers-disabled",
-  "description": "The group alias turns all access modifier insertion off at once.",
+  "description": "With insertExplicitAccessModifiers off no access modifiers are inserted (a group alias in VS Code, the single setting in Visual Studio).",
   "input": "namespace Demo\n{\n    class Sample\n    {\n        void M() { }\n    }\n}\n",
   "settings": {
     "insertExplicitAccessModifiers": false,

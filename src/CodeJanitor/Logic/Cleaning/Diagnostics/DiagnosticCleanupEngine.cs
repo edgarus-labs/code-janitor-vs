@@ -1,8 +1,10 @@
 using CodeJanitor.Helpers;
+using CodeJanitor.Logic.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
@@ -116,9 +118,7 @@ public sealed class DiagnosticCleanupEngine
         var run = new CleanupRun(document.Id, options, analyzers, new Lazy<ILookup<string, CodeFixProvider>>(() => IndexByDiagnosticId(_catalog.GetProviders(project))));
         var result = await run.ExecuteAsync(project.Solution, cancellationToken).ConfigureAwait(false);
 
-        return ReferenceEquals(workingDocument, document)
-            ? result
-            : await RebaseAsync(result, solution, cancellationToken).ConfigureAwait(false);
+        return await RebaseAsync(result, solution, document.Id, options.UsingDirectiveSorting, cancellationToken).ConfigureAwait(false);
     }
 
     private static DiagnosticCleanupResult CreateUnchangedResult(Solution solution) =>
@@ -163,10 +163,18 @@ public sealed class DiagnosticCleanupEngine
     }
 
     /// <summary>
-    /// Moves the text changes of a run on the overridden solution onto <paramref name="solution" />, so the result
-    /// never carries the analyzer configuration overrides.
+    /// Moves the text changes of a run onto <paramref name="solution" />, so the result never carries the analyzer
+    /// configuration overrides. The using directives of the cleaned document, when it changed, are sorted as
+    /// <paramref name="usingDirectiveSorting" /> says. Each changed document keeps the line ending of its file (see
+    /// <see cref="FileTextStyle.ApplyLineEnding" />: its <c>end_of_line</c>, otherwise the one line ending its original
+    /// text uses throughout), because a code fix may insert line breaks of its own.
     /// </summary>
-    private static async Task<DiagnosticCleanupResult> RebaseAsync(DiagnosticCleanupResult result, Solution solution, CancellationToken cancellationToken)
+    private static async Task<DiagnosticCleanupResult> RebaseAsync(
+        DiagnosticCleanupResult result,
+        Solution solution,
+        DocumentId cleanedDocumentId,
+        UsingDirectiveSorting usingDirectiveSorting,
+        CancellationToken cancellationToken)
     {
         var changedSolution = solution;
 
@@ -174,8 +182,29 @@ public sealed class DiagnosticCleanupEngine
         {
             foreach (var documentId in projectChanges.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true))
             {
+                var original = solution.GetDocument(documentId);
+                var originalText = await original.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                var tree = await original.GetSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
+                original.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GetOptions(tree).TryGetValue("end_of_line", out var endOfLine);
+
                 var text = await result.ChangedSolution.GetDocument(documentId).GetTextAsync(cancellationToken).ConfigureAwait(false);
-                changedSolution = changedSolution.WithDocumentText(documentId, text);
+                if (documentId == cleanedDocumentId && usingDirectiveSorting == UsingDirectiveSorting.RemoveAndSortUsings)
+                {
+                    var organized = await Formatter.OrganizeImportsAsync(changedSolution.WithDocumentText(documentId, text).GetDocument(documentId), cancellationToken).ConfigureAwait(false);
+                    text = await organized.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else if (documentId == cleanedDocumentId && usingDirectiveSorting == UsingDirectiveSorting.OrganizeUsings)
+                {
+                    var fixedContent = text.ToString();
+                    var organizedContent = new UsingDirectiveOrganizer().Organize(fixedContent);
+                    text = organizedContent == fixedContent ? text : SourceText.From(organizedContent, text.Encoding, text.ChecksumAlgorithm);
+                }
+
+                var content = text.ToString();
+                var styledContent = FileTextStyle.ApplyLineEnding(content, endOfLine, originalText.ToString());
+                changedSolution = changedSolution.WithDocumentText(
+                    documentId,
+                    styledContent == content ? text : SourceText.From(styledContent, text.Encoding, text.ChecksumAlgorithm));
             }
         }
 
@@ -185,8 +214,8 @@ public sealed class DiagnosticCleanupEngine
     /// <summary>
     /// Gets the analyzers of the project and solution analyzer references (the latter are the host analyzers, e.g.
     /// the built-in IDE analyzers in Visual Studio), deduplicated by type with project analyzers taking precedence.
-    /// Analyzers that cannot report a diagnostic of an enabled category are skipped, which does not change the result;
-    /// diagnostic suppressors always run so suppressed diagnostics stay suppressed.
+    /// Analyzers that cannot report a diagnostic of an enabled category, or none of <see cref="DiagnosticCleanupOptions.DiagnosticIds" />,
+    /// are skipped, which does not change the result; diagnostic suppressors always run so suppressed diagnostics stay suppressed.
     /// </summary>
     private static ImmutableArray<DiagnosticAnalyzer> GetAnalyzers(Project project, DiagnosticCleanupOptions options)
     {
@@ -198,7 +227,9 @@ public sealed class DiagnosticCleanupEngine
             foreach (var analyzer in reference.GetAnalyzers(project.Language))
             {
                 if (analyzerTypes.Add(analyzer.GetType().FullName)
-                    && (analyzer is DiagnosticSuppressor || s_analyzerCategories.GetValue(analyzer, ClassifySupportedDiagnostics).Categories.Any(options.IsEnabled)))
+                    && (analyzer is DiagnosticSuppressor
+                        || (s_analyzerCategories.GetValue(analyzer, ClassifySupportedDiagnostics).Categories.Any(options.IsEnabled)
+                            && (options.DiagnosticIds is null || SupportsAnyIncludedDiagnostic(analyzer, options)))))
                 {
                     analyzers.Add(analyzer);
                 }
@@ -206,6 +237,19 @@ public sealed class DiagnosticCleanupEngine
         }
 
         return analyzers.ToImmutable();
+    }
+
+    private static bool SupportsAnyIncludedDiagnostic(DiagnosticAnalyzer analyzer, DiagnosticCleanupOptions options)
+    {
+        try
+        {
+            return analyzer.SupportedDiagnostics.Any(descriptor => descriptor != null && options.Includes(descriptor.Id));
+        }
+        catch (Exception)
+        {
+            // Same as ClassifySupportedDiagnostics: an analyzer whose descriptors cannot be obtained cannot report a valid diagnostic.
+            return false;
+        }
     }
 
     private static AnalyzerCategories ClassifySupportedDiagnostics(DiagnosticAnalyzer analyzer)
@@ -341,7 +385,8 @@ public sealed class DiagnosticCleanupEngine
                 if (diagnostic.Location.SourceTree != tree
                     || diagnostic.IsSuppressed
                     || diagnostic.Severity < DiagnosticSeverity.Info
-                    || !reported.Add(diagnostic))
+                    || !reported.Add(diagnostic)
+                    || !_options.Includes(diagnostic.Id))
                 {
                     continue;
                 }

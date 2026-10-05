@@ -14,7 +14,6 @@ using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Dialogs.CleanupProgress;
 using EnvDTE80;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VisualStudio.Threading;
@@ -135,7 +134,6 @@ public sealed class ProgressViewModelTests
         Directory.CreateDirectory(directory);
         Settings.Default.Reset();
         Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
         try
         {
             string filePath = Path.Combine(directory, "Foo.cs");
@@ -168,7 +166,6 @@ public sealed class ProgressViewModelTests
         }
         finally
         {
-            CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
             Settings.Default.Reset();
             Directory.Delete(directory, true);
         }
@@ -184,7 +181,6 @@ public sealed class ProgressViewModelTests
         File.WriteAllText(Path.Combine(isolationDirectory, ".editorconfig"), "root = true\n");
         Settings.Default.Reset();
         Settings.Default.Cleaning_MoveTopLevelTypesToSeparateFiles = true;
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
         try
         {
             string filePath = Path.Combine(directory, "Foo.cs");
@@ -221,7 +217,6 @@ public sealed class ProgressViewModelTests
         }
         finally
         {
-            CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
             Settings.Default.Reset();
             Directory.Delete(isolationDirectory, true);
         }

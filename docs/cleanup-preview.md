@@ -45,10 +45,14 @@ Visual Studio runtime checklist below is still pending.
 ## Current limitations
 
 Only `.cs` files are supported in this increment. Other file types are listed as
-skipped. Type splitting, AI documentation, namespace fixing, code reorganization,
-third-party cleanup, Visual Studio formatting/removal of unused usings, moving using
-directives outside namespaces, sealing classes, making fields readonly and converting null checks to pattern matching (all need the semantic model), and changes to the
-file's disk encoding are not previewed or applied by this mode.
+skipped. Type splitting, AI documentation, code reorganization, third-party cleanup,
+Visual Studio formatting/removal of unused usings, sealing classes and converting null
+checks to pattern matching (both need the semantic model), the steps applied through
+Roslyn analyzers and code fixes (making fields readonly, using directive placement,
+file-scoped namespaces, `var` when the type is apparent, collection expressions,
+single-statement lambdas, inlining `out` variables, explicit access modifiers,
+removing multiple consecutive blank lines in C#, and namespace fixing through IDE0130),
+and changes to the file's disk encoding are not previewed or applied by this mode.
 
 This is a preview of the existing deterministic text pipeline, not a compiler or
 semantic-equivalence check. Review the result and run the relevant build/tests.

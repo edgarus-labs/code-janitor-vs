@@ -106,34 +106,6 @@ public sealed class SourceTransformationPipelineTests
     }
 
     [TestMethod]
-    [TestCategory("Transformations UnitTests")]
-    public void AdaptedConverters_AreComposableInPipeline()
-    {
-        // Verify that VarWhenApparentConverter and FileScopedNamespaceConverter
-        // can be instantiated and composed in a pipeline with other blocks.
-        SourceTransformationPipeline pipeline = new SourceTransformationPipeline(
-            new UsingDirectiveOrganizer(),
-            new VarWhenApparentConverter(),
-            new FileScopedNamespaceConverter());
-
-        // A simple example: namespace that gets converted to file-scoped. The var
-        // converter won't apply but should not disrupt the pipeline.
-        // FileScopedNamespaceConverter appends: header + "namespace N;" + newline + newline + dedented body + newline
-        string input = "namespace N\n{\n\tusing B;\n\tusing A;\n}\n";
-        string expected = "namespace N;\n\nusing A;\nusing B;\n";
-
-        string result = pipeline.Run(input);
-        Assert.AreEqual(expected, result, $"Expected length: {expected.Length}, Actual length: {result.Length}. Expected repr: {repr(expected)}, Actual repr: {repr(result)}");
-
-        // Verify all transformations are exposed with their names.
-        List<string> names = pipeline.Transformations.Select(t => t.Name).ToList();
-        Assert.HasCount(3, names);
-        Assert.Contains("Sort using directives", names);
-        Assert.Contains("Var When Apparent", names);
-        Assert.Contains("File-Scoped Namespace", names);
-    }
-
-    [TestMethod]
     public void PreviewFile_RuleChangesRecomputeFromOriginalAndFileExclusionPreventsApply()
     {
         string source = "\tclass C {}";
@@ -290,7 +262,7 @@ public sealed class SourceTransformationPipelineTests
     public void WhitespaceFlowOverATopLevelStatementsFile_ProducesCleanOutputWithoutAddedComments()
     {
         string input =
-            "\uFEFFusing System;  \r\n\r\n\r\n\r\n//Entry point\r\nConsole.WriteLine(\"hi\");\t\r\nRun();\r\n\r\n" +
+            "\uFEFFusing System;  \r\n\r\n//Entry point\r\nConsole.WriteLine(\"hi\");\t\r\nRun();\r\n\r\n" +
             "static int Run()\r\n{\r\n\tvar x = 1;\r\n\treturn x;\r\n}";
         string expected =
             "using System;\r\n\r\n// Entry point\r\nConsole.WriteLine(\"hi\");\r\nRun();\r\n\r\n" +
@@ -301,7 +273,6 @@ public sealed class SourceTransformationPipelineTests
             new ReturnThrowBlankLinePaddingConverter(),
             new CommentFormatConverter(),
             new TabToSpaceConverter(),
-            new NormalizeBlankLinesConverter(),
             new EnsureFinalNewlineConverter());
         bool commentFormatting = CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup;
         CodeJanitor.Properties.Settings.Default.Formatting_CommentRunDuringCleanup = true;
@@ -322,6 +293,4 @@ public sealed class SourceTransformationPipelineTests
 
         public string Apply(string source) => null;
     }
-
-    private static string repr(string s) => "\"" + s.Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
 }

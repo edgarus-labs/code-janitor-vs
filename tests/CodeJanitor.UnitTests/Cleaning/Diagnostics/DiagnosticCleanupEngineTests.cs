@@ -1605,6 +1605,30 @@ public sealed class DiagnosticCleanupEngineTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task CleanupAsync_DiagnosticIdsFilter_FixesOnlyTheIncludedIdOfAnAnalyzerReportingSeveral()
+    {
+        using DiagnosticCleanupTestWorkspace workspace = new DiagnosticCleanupTestWorkspace(new LegacyFieldAnalyzer(("CJT0073", "Performance"), ("CJT0074", "Performance")));
+        workspace.ConfigureRuleSeverity("CJT0073", "warning");
+        workspace.ConfigureRuleSeverity("CJT0074", "warning");
+        DocumentId documentId = workspace.AddDocument("Settings.cs", LegacySettingsClass());
+        DiagnosticCleanupEngine engine = new DiagnosticCleanupEngine(
+            new CodeFixProviderCatalog(new CodeFixProvider[] { new BatchRenameLegacyFieldCodeFixProvider("CJT0073"), new RenameLegacyFieldCodeFixProvider("CJT0074") }));
+
+        DiagnosticCleanupResult result = await engine.CleanupAsync(
+            workspace.CreateSolution().GetDocument(documentId),
+            new DiagnosticCleanupOptions(new[] { DiagnosticCleanupCategory.AnalyzerFixes }, diagnosticIds: new[] { "CJT0074" }),
+            CancellationToken.None);
+
+        Assert.AreEqual(LegacySettingsClass().Replace("legacyValue", "renamedValue"), await DiagnosticCleanupTestWorkspace.GetTextAsync(result.ChangedSolution, documentId));
+        AppliedDiagnosticFix applied = result.AppliedFixes.Single();
+        Assert.AreEqual("CJT0074", applied.DiagnosticId);
+        Assert.AreEqual("RenameLegacyFieldCodeFixProvider", applied.ProviderName);
+        Assert.IsEmpty(result.Unresolved);
+        Assert.IsTrue(result.IsComplete);
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     public async Task CleanupAsync_FixWithoutAnyOperation_ReportsNoApplicableCodeAction()
     {
         using DiagnosticCleanupTestWorkspace workspace = CreateLegacySettingsWorkspace("CJT0070", out DocumentId documentId);

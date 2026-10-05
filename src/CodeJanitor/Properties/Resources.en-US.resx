@@ -375,9 +375,6 @@
   <data name="CodeJanitorReset" xml:space="preserve">
     <value>CodeJanitor: Reset </value>
   </data>
-  <data name="CodeJanitorSkippedFileScopedNamespaceConversion0" xml:space="preserve">
-    <value>CodeJanitor skipped file-scoped namespace conversion for '{0}' because the file contains more than one namespace.</value>
-  </data>
   <data name="CodeJanitorSort" xml:space="preserve">
     <value>CodeJanitor Sort</value>
   </data>
@@ -554,8 +551,8 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
   <data name="InsertEndOfFileTrailingNewLine" xml:space="preserve">
     <value>Insert end of file trailing new line</value>
   </data>
-  <data name="InsertExplicitAccessModifiersOn" xml:space="preserve">
-    <value>Insert explicit access modifiers on</value>
+  <data name="InsertExplicitAccessModifiers" xml:space="preserve">
+    <value>Insert explicit accessibility modifiers on every declaration except interface members (Roslyn IDE0040; .editorconfig dotnet__style__require__accessibility__modifiers takes precedence)</value>
   </data>
   <data name="InsertKeepRegionsEvenIfTheyAreEmpty" xml:space="preserve">
     <value>Insert/keep regions even if they are empty</value>
@@ -705,7 +702,7 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
     <value>Remove existing regions</value>
   </data>
   <data name="RemoveMultipleConsecutiveBlankLines" xml:space="preserve">
-    <value>Remove multiple consecutive blank lines</value>
+    <value>Remove multiple consecutive blank lines (C#: Roslyn IDE2000)</value>
   </data>
   <data name="RemoveRegion" xml:space="preserve">
     <value>Remove Region</value>
@@ -984,7 +981,7 @@ Do you want to reorganize anyways (DANGEROUS)?</value>
     <value>Inline 'out' variable declarations ('out T x')</value>
   </data>
   <data name="InlineOutVariableDeclarationsToolTip" xml:space="preserve">
-    <value>Inlines separate uninitialized local variable declarations directly into out arguments.</value>
+    <value>Applies Roslyn's IDE0018 code fix: out variables are declared inline in the argument list when possible.</value>
   </data>
   <data name="CodeJanitorCleaned0WithUnresolvedDiagnostics" xml:space="preserve">
     <value>CodeJanitor cleaned '{0}', but some diagnostics were not fixed (see the CodeJanitor output pane)</value>

@@ -67,7 +67,33 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// </summary>
     /// <param name="projectItem">The project item.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-    internal async Task<DiagnosticCleanupOutcome> CleanupAsync(EnvDTE.ProjectItem projectItem)
+    internal Task<DiagnosticCleanupOutcome> CleanupAsync(EnvDTE.ProjectItem projectItem) => RunAsync(projectItem, fixNamespaceOnly: false);
+
+    /// <summary>
+    /// Runs diagnostic cleanup for an open C# document, using its editor buffer text as input.
+    /// </summary>
+    /// <param name="document">The open document.</param>
+    /// <returns>The diagnostic cleanup outcome.</returns>
+    internal Task<DiagnosticCleanupOutcome> CleanupAsync(EnvDTE.Document document) => RunAsync(document, fixNamespaceOnly: false);
+
+    /// <summary>
+    /// Makes the namespace of a C# project item match its folder through Roslyn's "Namespace does not match folder
+    /// structure" analyzer and code fix (IDE0130, see <see cref="DiagnosticCleanupOptions.NamespaceMatchFolder" />),
+    /// which also updates the references to the moved types. No other diagnostic is fixed. The editor buffer is used
+    /// when the item is open, the file on disk otherwise.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <returns>The outcome.</returns>
+    internal Task<DiagnosticCleanupOutcome> FixNamespaceAsync(EnvDTE.ProjectItem projectItem) => RunAsync(projectItem, fixNamespaceOnly: true);
+
+    /// <summary>
+    /// Runs the engine for a C# project item, using the editor buffer when the item is open and the file on disk
+    /// otherwise.
+    /// </summary>
+    /// <param name="projectItem">The project item.</param>
+    /// <param name="fixNamespaceOnly">True to fix only IDE0130, false for the diagnostic cleanup.</param>
+    /// <returns>The outcome.</returns>
+    private async Task<DiagnosticCleanupOutcome> RunAsync(EnvDTE.ProjectItem projectItem, bool fixNamespaceOnly)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -76,16 +102,17 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         var document = isOpen ? projectItem.Document : null;
 
         return document is not null
-            ? await CleanupAsync(document)
-            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath), isClosedFile: true);
+            ? await RunAsync(document, fixNamespaceOnly)
+            : await CleanupCoreAsync(filePath, VisualStudioRoslynWorkspace.GetContainingProjectPath(projectItem), () => VisualStudioRoslynWorkspace.ReadFileText(filePath), isClosedFile: true, fixNamespaceOnly);
     }
 
     /// <summary>
-    /// Runs diagnostic cleanup for an open C# document, using its editor buffer text as input.
+    /// Runs the engine for an open C# document, using its editor buffer text as input.
     /// </summary>
     /// <param name="document">The open document.</param>
-    /// <returns>The diagnostic cleanup outcome.</returns>
-    internal async Task<DiagnosticCleanupOutcome> CleanupAsync(EnvDTE.Document document)
+    /// <param name="fixNamespaceOnly">True to fix only IDE0130, false for the diagnostic cleanup.</param>
+    /// <returns>The outcome.</returns>
+    private async Task<DiagnosticCleanupOutcome> RunAsync(EnvDTE.Document document, bool fixNamespaceOnly)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -99,7 +126,8 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
                 return textDocument.StartPoint.CreateEditPoint().GetText(textDocument.EndPoint);
             },
-            isClosedFile: false);
+            isClosedFile: false,
+            fixNamespaceOnly);
     }
 
     /// <summary>
@@ -108,9 +136,10 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
-    /// <param name="isClosedFile">True for a closed file: the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands run first, and a change limited to the file is written to disk in the background.</param>
+    /// <param name="isClosedFile">True for a closed file: a change limited to the file is written to disk in the background.</param>
+    /// <param name="fixNamespaceOnly">True to fix only IDE0130, false for the diagnostic cleanup.</param>
     /// <returns>The diagnostic cleanup outcome.</returns>
-    private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText, bool isClosedFile)
+    private async Task<DiagnosticCleanupOutcome> CleanupCoreAsync(string filePath, string projectFilePath, Func<string> readCurrentText, bool isClosedFile, bool fixNamespaceOnly)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -121,7 +150,7 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
 
         try
         {
-            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText, isClosedFile);
+            return await RunInWorkspaceAsync(filePath, projectFilePath, readCurrentText, isClosedFile, fixNamespaceOnly);
         }
         catch (Exception ex) when (VisualStudioRoslynWorkspace.IsRoslynBindingFailure(ex))
         {
@@ -155,14 +184,20 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="filePath">The file path.</param>
     /// <param name="projectFilePath">The file path of the project containing the item, if known.</param>
     /// <param name="readCurrentText">Reads the current cleaned text of the file; called on the UI thread.</param>
-    /// <param name="isClosedFile">True for a closed file: the Roslyn equivalents of the Visual Studio "Remove and Sort Usings" and "Format Document" commands run first, and a change limited to the file is written to disk in the background.</param>
+    /// <param name="isClosedFile">True for a closed file: a change limited to the file is written to disk in the background.</param>
+    /// <param name="fixNamespaceOnly">
+    /// True to fix only IDE0130 (<see cref="DiagnosticCleanupOptions.NamespaceMatchFolder" />); false for the diagnostic
+    /// cleanup with the file's effective settings, where a closed file first gets the Roslyn equivalents of the Visual
+    /// Studio "Remove and Sort Usings" and "Format Document" commands.
+    /// </param>
     /// <returns>The diagnostic cleanup outcome.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<DiagnosticCleanupOutcome> RunInWorkspaceAsync(
         string filePath,
         string projectFilePath,
         Func<string> readCurrentText,
-        bool isClosedFile)
+        bool isClosedFile,
+        bool fixNamespaceOnly)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -171,11 +206,11 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
         var cancellationToken = _package.DisposalToken;
 
         EffectiveCleanupSettings settings = EffectiveCleanupSettings.For(filePath);
-        var options = new DiagnosticCleanupOptions(AllCategories, analyzerConfigOverrides: settings.AnalyzerConfigOverrides);
-        bool removeAndSortUsings = isClosedFile &&
-            settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioRemoveAndSortUsingStatements)) &&
-            !(_package.IsAutoSaveContext && settings.GetBoolean(nameof(Settings.Cleaning_SkipRemoveAndSortUsingStatementsDuringAutoCleanupOnSave)));
-        bool format = isClosedFile && settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand));
+        var options = fixNamespaceOnly
+            ? DiagnosticCleanupOptions.NamespaceMatchFolder
+            : new DiagnosticCleanupOptions(AllCategories, analyzerConfigOverrides: settings.AnalyzerConfigOverrides, usingDirectiveSorting: settings.GetUsingDirectiveSortingAfterFixes(_package.IsAutoSaveContext, isClosedFile));
+        bool removeAndSortUsings = isClosedFile && !fixNamespaceOnly && settings.RunsRemoveAndSortUsings(_package.IsAutoSaveContext);
+        bool format = isClosedFile && !fixNamespaceOnly && settings.GetBoolean(nameof(Settings.Cleaning_RunVisualStudioFormatDocumentCommand));
         List<string> usingsToKeep = (settings.GetString(nameof(Settings.Cleaning_UsingStatementsToReinsertWhenRemovedExpression)) ?? string.Empty)
             .Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
             .Select(usingStatement => usingStatement.Trim())

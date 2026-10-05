@@ -674,108 +674,12 @@ namespace CodeJanitor.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnClasses {
+        public bool Cleaning_InsertExplicitAccessModifiers {
             get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnClasses"]));
+                return ((bool)(this["Cleaning_InsertExplicitAccessModifiers"]));
             }
             set {
-                this["Cleaning_InsertExplicitAccessModifiersOnClasses"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnDelegates {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnDelegates"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnDelegates"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnEnumerations {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnEnumerations"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnEnumerations"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnEvents {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnEvents"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnEvents"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnFields {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnFields"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnFields"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnInterfaces {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnInterfaces"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnInterfaces"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnMethods {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnMethods"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnMethods"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnProperties {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnProperties"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnProperties"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool Cleaning_InsertExplicitAccessModifiersOnStructs {
-            get {
-                return ((bool)(this["Cleaning_InsertExplicitAccessModifiersOnStructs"]));
-            }
-            set {
-                this["Cleaning_InsertExplicitAccessModifiersOnStructs"] = value;
+                this["Cleaning_InsertExplicitAccessModifiers"] = value;
             }
         }
         

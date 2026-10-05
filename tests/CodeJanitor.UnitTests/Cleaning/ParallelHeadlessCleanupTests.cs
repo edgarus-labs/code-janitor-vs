@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
@@ -27,9 +26,6 @@ public sealed class ParallelHeadlessCleanupTests
         Settings.Default.Cleaning_ConvertStringFormatToInterpolation = true;
         Settings.Default.Cleaning_RemoveByteOrderMark = true;
 
-        // The samples are files of a C# 10+ project (file-scoped namespaces).
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
-
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
         File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true\n");
@@ -39,7 +35,6 @@ public sealed class ParallelHeadlessCleanupTests
     public void TestCleanup()
     {
         Settings.Default.Reset();
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
 
         if (Directory.Exists(_tempDirectory))
         {

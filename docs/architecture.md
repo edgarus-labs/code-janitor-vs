@@ -44,7 +44,7 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
 `DiagnosticCleanupResult` (changed solution, applied fixes, unresolved diagnostics).
 
 `EditorConfigDiagnosticCleanupLogic` is the Visual Studio host adapter. Through
-`VisualStudioRoslynWorkspace` (shared with the using-directive move below) it:
+`VisualStudioRoslynWorkspace` it:
 
 - resolves `VisualStudioWorkspace` through MEF (`IComponentModel`) by type name;
 - supplies the C# `CodeFixProvider` MEF exports, cached per package;
@@ -55,11 +55,16 @@ with the project's analyzers and `.editorconfig` analyzer options, then applies 
   keeps the configured reinsert list, then `Formatter.OrganizeImportsAsync`) and "Format
   Document" (`Formatter.FormatAsync`) commands, gated by the same settings as the editor
   commands, so closed files are never opened in an editor;
-- runs the engine off the UI thread; the engine's gate rejects a fix that adds any compiler
+- runs the engine off the UI thread; once a fix changed the document, the engine sorts its using
+  directives as the step that sorts them before the fixes does
+  (`EffectiveCleanupSettings.GetUsingDirectiveSortingAfterFixes`, `DiagnosticCleanupOptions.UsingDirectiveSorting`):
+  Roslyn's organize imports when "Remove and Sort Usings" runs, `UsingDirectiveOrganizer` for a closed file
+  when only the `organizeUsings` policy applies (the organizer of the headless cleanup; open files are not
+  sorted by it), so directives moved by IDE0065 are sorted in the same run and the next cleanup
+  does not reorder them; the engine's gate rejects a fix that adds any compiler
   error to a project it changed, even one that removed another error (`CompilerErrors`
   compares the errors as a multiset by id and file, matching an error either by message
-  (`CompilerErrorMatching.MatchByMessage`, shared with the using placement's compile-error
-  check) or by its position mapped through the fix's text changes, so a rename that only
+  (`CompilerErrorMatching.MatchByMessage`) or by its position mapped through the fix's text changes, so a rename that only
   changes the message of an existing error is not rejected);
 - before applying, checks every other project flavor of each changed file (linked files,
   shared projects, multi-targeting) with the new text and fails the cleanup, naming the
@@ -102,86 +107,55 @@ enforce is taken from `.codejanitor` `codeStyle` or the `Cleaning_CodeStyleRules
 those IDs set to `none`). `DiagnosticCleanupEngine` appends them as the last section of an
 in-memory `.editorconfig` in the document's directory, so they win over every other analyzer
 configuration, analyzes and fixes with that solution, and moves only the resulting document texts
-onto the original solution, so no configuration change ever reaches the workspace.
+onto the original solution, so no configuration change ever reaches the workspace. Each changed
+text gets the line ending of its file (`end_of_line`, otherwise the one line ending the original text
+uses throughout), because some code fixes insert line breaks of their own.
 
-Namespace declarations, using placement and indentation are directional
-(`NamespaceDeclarationPreference`, `UsingDirectivePlacementPreference`,
-`IndentationPreference`): the reverse direction is implemented natively
-(`FileScopedNamespaceConverter.ConvertToBlockScoped`, the inward move below,
-`SpaceToTabConverter`, `RemoveFinalNewlineConverter`). Other reverse directions (for example
-`var` to explicit types) are left to the diagnostic cleanup, which fixes rules reported as
-`suggestion`, `warning` or `error` (never `silent` or `none`). Steps that emit syntax newer than
-C# 7.3 (file-scoped namespaces, collection expressions, ...) additionally require that language
-version in every project flavor (read from the workspace parse options).
+Indentation is directional (`IndentationPreference`). Indentation and the final newline reverse
+natively (`SpaceToTabConverter`, `RemoveFinalNewlineConverter`).
 
-### Using directive placement
+For each Roslyn step below, a setting `.editorconfig` does not decide and that is enabled gets Code
+Janitor's option value with `suggestion` and the step's diagnostic IDs raised to `suggestion`. When
+`.editorconfig` decides the setting by its option value, that value is re-emitted lower-cased with
+`suggestion`, and the diagnostic IDs of the decided direction that have no `dotnet_diagnostic`,
+category or global severity are raised to `suggestion`: the step's IDs when the value enables the
+step, its reverse IDs when it disables it. Only two steps have a reverse direction applied this
+way: IDE0160 (`csharp_style_namespace_declarations = block_scoped`) and IDE0065
+(`csharp_using_directive_placement = inside_namespace`). Other disabling values (for example `var`
+to explicit types or `never` accessibility modifiers) are not raised by Code Janitor; the diagnostic
+cleanup fixes them only when `.editorconfig` reports them at `suggestion`, `warning` or `error`.
+When `.editorconfig` decides a setting only through diagnostic severities, no entry is added and
+Roslyn reports those IDs as configured. `csharp_style_var_for_built_in_types` and
+`csharp_style_var_elsewhere` are set to `true:none` only when `.editorconfig` sets them to `true`
+without enforcing them, so IDE0007 does not surface for them; otherwise they are left as configured.
 
-`UsingDirectivePlacementConverter` is host-agnostic. `MoveUsingsInsideAsync` moves file-level
-using directives into the single top-level namespace, keeping a directive's text when it binds
-to the same symbol inside the namespace and writing it `global::`-qualified otherwise, with the
-same all-or-nothing checks as the outward move. Given a Roslyn `Document`,
-`MoveUsingsOutsideAsync`:
+### Steps applied through Roslyn rules
 
-- resolves every namespace-level using directive with the semantic model;
-- keeps a directive's text when it binds to the same symbol at file level, and writes the
-  others fully qualified; comments attached to using directives are kept;
-- rejects the move when the directives would move across preprocessor directives, when a
-  fully qualified directive would refer to something else at its new place (a target reached
-  only through an extern alias declared inside the namespace), when the document's compile
-  errors grow, when any name, member or implicitly called member
-  (`foreach`/`await`/deconstruction/pattern/query/list-pattern members, `operator true` in
-  conditions) binds to a different symbol (symbols are compared including their declaring
-  assemblies, so same-named types of extern-aliased references are told apart), or when a
-  moved import brings an extension member
-  that the compiler calls without exposing the binding (collection expression `Add`, spread
-  `GetEnumerator`, `fixed` `GetPinnableReference`, tuple `==`/`!=` element operators);
-- verifies conditional compilation through `ConditionalCompilationVariants`: the relevant
-  symbols are those in the document's `#if`/`#elif` conditions plus those whose value, alone
-  or together with the other condition symbols of that document, changes a declaration
-  signature, a using directive (including `global using`) or an extern alias in another
-  document of the project or of a project it references (every assignment of up to six
-  condition symbols per document is parsed; a document with more counts all of them).
-  Every assignment of at most four relevant symbols (16 variants) is re-parsed at
-  project level and must pass the same checks; more symbols reject the move. Usings of a
-  namespace in a region inactive in the active configuration stay where they are.
-  Configuration-dependent metadata references are not varied.
+Several Cleaning settings have no Code Janitor implementation; they enable a Roslyn rule.
+`EffectiveCleanupSettings.RoslynSteps` lists these steps with their settings, diagnostic
+IDs and option values: IDE0007 (`csharp_style_var_when_type_is_apparent = true`, other `var`
+options off), IDE0018, IDE0300–IDE0306 (`dotnet_style_prefer_collection_expression = true`),
+IDE0053, IDE0040 (`for_non_interface_members`), IDE0161/IDE0160
+(`csharp_style_namespace_declarations`), IDE0065 (`csharp_using_directive_placement`) and, for C#,
+IDE2000 (`dotnet_style_allow_multiple_blank_lines_experimental = false`), alongside IDE0044. A step
+whose rule `.editorconfig` enforces keeps the `.editorconfig` value.
+`EffectiveCleanupSettings.AnalyzerConfigOverrides` turns these steps into the same in-memory
+analyzer configuration entries as the Code Style rules, and `DiagnosticCleanupEngine` analyzes and
+fixes them after the other cleanup steps, for open and closed files. Language-version
+requirements (C# 10 for file-scoped namespaces, C# 12 for collection expressions) are the analyzers'
+own checks. None of these steps is a text transformation, so the headless text pipeline and the
+cleanup preview do not include them.
 
-It returns the moved text or a skip reason; it never returns a partial move.
-
-`UsingDirectivePlacementLogic` takes the direction from `EffectiveCleanupSettings` and resolves every C# document of the file in
-`VisualStudioWorkspace` (one per project and target framework that compiles it: linked files,
-shared projects, multi-targeted projects), injects the current text into each, and runs the
-converter on all of them. It applies the move only when every flavor returns the same moved
-text; otherwise the usings stay in place and the skip reason names the disagreeing project.
-Region directives are removed before moving whenever the cleanup removes them anyway
-(`EffectiveCleanupSettings.RemovesRegions`, in both paths).
-
-Call sites, per file and cleanup:
-
-- Closed files: `CodeCleanupManager.Cleanup(ProjectItem)`/`CleanupAsync` (and
-  `CleanupProgressViewModel` before its parallel pass) run it before the headless cleanup and
-  rewrite the file with its original encoding, so the header, using organization and
-  type-split steps see the moved directives. `CleanupProgressViewModel` passes a token that the
-  dialog's Cancel cancels (linked with package disposal) to its pre-pass and to `CleanupAsync`
-  in its sequential and non-parallel loops; a cancelled move leaves the file unchanged and is
-  not recorded as a failure. A file the pre-pass rewrites counts as
-  changed as soon as it is written, so it is counted even if the batch is then cancelled.
-- Editor, type splitting enabled: `CodeCleanupManager.Cleanup(Document)` runs it before the
-  split, as its own undo unit, so the created files inherit the moved directives.
-- Editor: `RunCodeCleanupCSharp` runs it first inside the cleanup undo transaction, and again
-  after external formatting and Remove and Sort Usings, which can put directives back inside a
-  namespace. When nothing is inside a namespace a call is a syntax-only check.
-
-Once an attempt leaves the directives in place (skip reason, I/O or workspace failure), the
-later call sites of the same cleanup do not retry it, so the semantic analysis and its warning
-happen once per file. Skip reasons and failures go to the output pane. The step is not a text
-transformation, so the headless text pipeline and the cleanup preview do not include it.
+`DiagnosticCleanupOptions.DiagnosticIds` restricts a run to the given diagnostic IDs.
+`DiagnosticCleanupOptions.NamespaceMatchFolder` uses it for the Fix Namespace command, which runs only
+IDE0130 (`dotnet_style_namespace_match_folder`) with the project's root namespace and directory from
+Visual Studio; the code fix also updates references in other files.
 
 Class sealing (`SealedClassLogic`) and pattern-matching null checks (`NullCheckPatternMatchingLogic`)
-run on the same workspace through the shared `SemanticFileRewriter` (setting check, document
-resolution for every project flavor, encoding-preserving file write, editor buffer replacement,
-output-pane warnings). They follow the same order: before the headless cleanup for closed files,
-and in the editor before the type split when splitting is enabled (then not again in
+run on the Visual Studio Roslyn workspace through the shared `SemanticFileRewriter` (setting check,
+document resolution for every project flavor, encoding-preserving file write, editor buffer
+replacement, output-pane warnings). They run before the headless cleanup for closed files, and in
+the editor before the type split when splitting is enabled (then not again in
 `RunCodeCleanupCSharp`), so a type moved to a created file is already processed. Neither is a text
 transformation, so the headless pipeline and the cleanup preview do not include them.
 

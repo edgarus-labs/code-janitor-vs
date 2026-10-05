@@ -5,7 +5,6 @@ using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model.CodeItems;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeJanitor.UnitTests.Cleaning;
@@ -25,63 +24,17 @@ public sealed class EditorCleanupSettingsTests
         Settings.Default.Reset();
         _tempDirectory = Path.Combine(Path.GetTempPath(), "CodeJanitor.UnitTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDirectory);
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp12 });
     }
 
     [TestCleanup]
     public void TestCleanup()
     {
         Settings.Default.Reset();
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(null);
 
         if (Directory.Exists(_tempDirectory))
         {
             Directory.Delete(_tempDirectory, true);
         }
-    }
-
-    [TestMethod]
-    public void NamespaceStep_ConvertsFileScopedNamespaceToBlockScoped_WhenEditorConfigRequiresIt_OverUserSetting()
-    {
-        WriteEditorConfig("csharp_style_namespace_declarations = block_scoped");
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
-        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
-
-        string output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(
-            "namespace Demo;\r\n\r\npublic class C\r\n{\r\n}\r\n",
-            filePath,
-            EffectiveCleanupSettings.For(filePath));
-
-        Assert.AreEqual("namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n", output);
-    }
-
-    [TestMethod]
-    [DataRow("indent_style = tab", "\t", DisplayName = "tabs")]
-    [DataRow("indent_style = space\r\nindent_size = 2", "  ", DisplayName = "two spaces")]
-    public void NamespaceStep_IndentsTheBlockScopedBody_AsEditorConfigRequires(string indentation, string level)
-    {
-        WriteEditorConfig("csharp_style_namespace_declarations = block_scoped", indentation);
-        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
-
-        string output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(
-            "namespace Demo;\r\n\r\npublic class C\r\n{\r\n}\r\n",
-            filePath,
-            EffectiveCleanupSettings.For(filePath));
-
-        Assert.AreEqual($"namespace Demo\r\n{{\r\n{level}public class C\r\n{level}{{\r\n{level}}}\r\n}}\r\n", output);
-    }
-
-    [TestMethod]
-    public void NamespaceStep_LeavesBlockScopedNamespace_WhenAProjectCompilingTheFileIsOlderThanCSharp10()
-    {
-        CSharpLanguageVersionSupport.SetLanguageVersionResolver(_ => new[] { LanguageVersion.CSharp9 });
-        Settings.Default.Cleaning_ConvertToFileScopedNamespace = true;
-        const string Source = "namespace Demo\r\n{\r\n    public class C\r\n    {\r\n    }\r\n}\r\n";
-        string filePath = Path.Combine(_tempDirectory, "Sample.cs");
-
-        string output = FileScopedNamespaceLogic.GetInstance(null).ConvertNamespaceDeclarations(Source, filePath, EffectiveCleanupSettings.For(filePath));
-
-        Assert.AreEqual(Source, output);
     }
 
     [TestMethod]

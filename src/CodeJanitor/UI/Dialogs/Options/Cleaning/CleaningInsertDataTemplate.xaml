@@ -58,19 +58,8 @@
 				<ToggleButton Content="self-closing angle brackets" IsChecked="{Binding InsertBlankSpaceBeforeSelfClosingAngleBrackets}" />
 			</WrapPanel>
 
-			<TextBlock Margin="5,5,5,0" Text="{x:Static p:Resources.InsertExplicitAccessModifiersOn}" />
-			<TextBlock Margin="35,0,5,7" Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_InsertExplicitAccessModifiersOnClasses]}" />
-			<WrapPanel Margin="35,0,5,20" IsEnabled="{Binding EditorConfigOverrides[Cleaning_InsertExplicitAccessModifiersOnClasses], Converter={x:Static converters:NullToBooleanConverter.IsNull}}">
-				<ToggleButton Content="classes" IsChecked="{Binding InsertExplicitAccessModifiersOnClasses}" />
-				<ToggleButton Content="delegates" IsChecked="{Binding InsertExplicitAccessModifiersOnDelegates}" />
-				<ToggleButton Content="enumerations" IsChecked="{Binding InsertExplicitAccessModifiersOnEnumerations}" />
-				<ToggleButton Content="events" IsChecked="{Binding InsertExplicitAccessModifiersOnEvents}" />
-				<ToggleButton Content="fields" IsChecked="{Binding InsertExplicitAccessModifiersOnFields}" />
-				<ToggleButton Content="interfaces" IsChecked="{Binding InsertExplicitAccessModifiersOnInterfaces}" />
-				<ToggleButton Content="methods" IsChecked="{Binding InsertExplicitAccessModifiersOnMethods}" />
-				<ToggleButton Content="properties" IsChecked="{Binding InsertExplicitAccessModifiersOnProperties}" />
-				<ToggleButton Content="structs" IsChecked="{Binding InsertExplicitAccessModifiersOnStructs}" />
-			</WrapPanel>
+			<CheckBox Margin="5,5,5,0" Content="{x:Static p:Resources.InsertExplicitAccessModifiers}" IsChecked="{Binding InsertExplicitAccessModifiers}" IsEnabled="{Binding EditorConfigOverrides[Cleaning_InsertExplicitAccessModifiers], Converter={x:Static converters:NullToBooleanConverter.IsNull}}" />
+			<TextBlock Margin="35,0,5,20" Style="{DynamicResource EditorConfigOverrideNote}" Text="{Binding EditorConfigOverrides[Cleaning_InsertExplicitAccessModifiers]}" />
 		</StackPanel>
 	</DataTemplate>
 </ResourceDictionary>

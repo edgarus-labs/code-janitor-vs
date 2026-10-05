@@ -297,6 +297,19 @@ public sealed class FileTextStyleTests
         Assert.AreSequenceEqual(new[] { ".editorconfig", "Sample.cs" }, Directory.GetFiles(_tempDirectory).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
     }
 
+    [TestMethod]
+    [TestCategory("Helpers UnitTests")]
+    [DataRow(" CRLF ", "a\nb\r\n", "x\ny\n", "a\r\nb\r\n", DisplayName = "end_of_line wins, ignoring case and spaces")]
+    [DataRow("lf", "a\r\nb\n", "x\r\ny\r\n", "a\nb\n", DisplayName = "end_of_line wins over the original's line ending")]
+    [DataRow(null, "a\r\nb\n", "x\ny\n", "a\nb\n", DisplayName = "the original's uniform LF")]
+    [DataRow("unset", "a\nb\n", "x\r\ny\r\n", "a\r\nb\r\n", DisplayName = "unrecognized end_of_line: the original's uniform CRLF")]
+    [DataRow(null, "a\r\nb\n", "x\r\ny\nz", "a\r\nb\n", DisplayName = "an original with mixed line endings leaves the text unchanged")]
+    [DataRow(null, "a\r\nb\n", null, "a\r\nb\n", DisplayName = "no original leaves the text unchanged")]
+    public void ApplyLineEnding_UsesEndOfLine_OtherwiseTheUniformLineEndingOfTheOriginal(string endOfLine, string text, string originalText, string expected)
+    {
+        Assert.AreEqual(expected, FileTextStyle.ApplyLineEnding(text, endOfLine, originalText));
+    }
+
     private static void RewriteWith(string filePath, string newText)
     {
         string original = FileTextStyle.ReadAllText(filePath, out Encoding encoding);
