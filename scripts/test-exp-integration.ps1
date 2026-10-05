@@ -398,9 +398,14 @@ function Close-AllDocuments {
 
 function Select-SolutionItem {
     param([string[]]$Segments)
-    Com { $script:Dte.Windows.Item($SolutionExplorerKind).Activate() }
-    $explorer = Com { $script:Dte.ToolWindows.SolutionExplorer }
-    $item = Com { $explorer.UIHierarchyItems.Item(1) }
+    $window = Com { $script:Dte.Windows.Item($SolutionExplorerKind) }
+    if (-not $window) { throw 'The Solution Explorer window was not found.' }
+    Com { $window.Activate() }
+    $explorer = Com { $window.Object }
+    if (-not $explorer) { throw 'The Solution Explorer window exposes no UIHierarchy.' }
+    $root = Com { $explorer.UIHierarchyItems }
+    $item = Com { $root.Item(1) }
+    if (-not $item) { throw 'Solution Explorer has no root item.' }
     foreach ($segment in $Segments) {
         Com { $item.UIHierarchyItems.Expanded = $true }
         $item = Com { $item.UIHierarchyItems.Item($segment) }
@@ -1041,7 +1046,7 @@ function Resolve-Commands {
                 $found = @()
                 foreach ($command in $script:Dte.Commands) {
                     $name = $command.Name
-                    if ($name -and $name -like 'CodeJanitor*') { $found += $name }
+                    if ($name -and ($name -like 'CodeJanitor*' -or $name -like '*.CodeJanitor.*')) { $found += $name }
                 }
                 $found
             })
@@ -1433,7 +1438,7 @@ $scenarios['ExternalFile'] = {
 
 $scenarios['ReadOnly'] = {
     $confirm = '^CodeJanitor: Confirmation for Cleanup All Code$'
-    Reset-Scenario @((New-DialogRule $confirm '^Yes$'), (New-DialogRule '^Microsoft Visual Studio$' '^(Cancel|Anuluj)$'))
+    Reset-Scenario @((New-DialogRule $confirm '^Yes$'), (New-DialogRule '^CodeJanitor Cleanup Warning$' '^OK$'), (New-DialogRule '^Microsoft Visual Studio$' '^(Cancel|Anuluj)$'))
     $lockedPath = Write-DirtyFixture 'Sample\ReadOnly\Locked.cs' 'Sample.ReadOnly' 'Locked'
     Write-DirtyFixture 'Sample\ReadOnly\Sibling.cs' 'Sample.ReadOnly' 'Sibling' | Out-Null
     $lockedBefore = Read-DiskBytes 'Sample\ReadOnly\Locked.cs'

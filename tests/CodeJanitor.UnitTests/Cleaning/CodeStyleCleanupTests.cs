@@ -503,6 +503,16 @@ public sealed class CodeStyleCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
+    public async Task InlineOutVariable_VariableUsedOutsideTheBlockOfTheCall_IsLeftUnchanged()
+    {
+        Settings.Default.Cleaning_InlineOutVariableDeclarations = true;
+        string input = "using System.Collections.Generic;\n\nclass Probe\n{\n    private readonly object _gate = new object();\n    private readonly Dictionary<string, string> _entries = new Dictionary<string, string>();\n\n    string Get(string key)\n    {\n        string entry;\n        lock (_gate)\n        {\n            if (!_entries.TryGetValue(key, out entry))\n            {\n                entry = string.Empty;\n            }\n        }\n\n        return entry;\n    }\n}\n";
+
+        Assert.AreEqual(input, await CleanupAsync(input, editorConfig: null));
+    }
+
+    [TestMethod]
+    [TestCategory("Cleaning UnitTests")]
     [DataRow(
         nameof(Settings.Cleaning_ConvertToCollectionExpressions),
         "using System.Collections.Generic;\n\nclass Probe\n{\n    IEnumerable<int> Get() { IEnumerable<int> j = new int[] { 1, 2, 3 }; return j; }\n}\n",

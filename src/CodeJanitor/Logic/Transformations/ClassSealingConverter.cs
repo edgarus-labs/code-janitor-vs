@@ -561,9 +561,10 @@ public sealed class ClassSealingConverter
             {
                 var completion = new TaskCompletionSource<TValue>(TaskCreationOptions.RunContinuationsAsynchronously);
                 var candidate = new Entry(version, completion.Task);
+                Entry entry;
                 lock (_gate)
                 {
-                    if (!_entries.TryGetValue(key, out var entry) || entry.Version != version)
+                    if (!_entries.TryGetValue(key, out entry) || entry.Version != version)
                     {
                         _entries.Remove(key);
                         _entries.Add(key, candidate);

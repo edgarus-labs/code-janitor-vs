@@ -1891,6 +1891,12 @@ internal sealed class CodeCleanupManager
         _removeWhitespaceLogic.RemoveBlankLinesBeforeClosingBrace(textDocument, settings);
         _removeWhitespaceLogic.RemoveBlankLinesBetweenChainedStatements(textDocument, settings);
 
+        // A document outside the solution gets no Roslyn diagnostic cleanup, which removes the multiple blank lines of the others.
+        if (!RunsDiagnosticCleanup(document))
+        {
+            _removeWhitespaceLogic.RemoveMultipleConsecutiveBlankLines(textDocument, settings);
+        }
+
         // Perform insertion of blank line padding cleanup.
         _insertBlankLinePaddingLogic.InsertPaddingBeforeRegionTags(regions, settings);
         _insertBlankLinePaddingLogic.InsertPaddingAfterRegionTags(regions, settings);
