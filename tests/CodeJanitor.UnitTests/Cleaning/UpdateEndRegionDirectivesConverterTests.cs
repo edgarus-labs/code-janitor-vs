@@ -151,20 +151,14 @@ public sealed class UpdateEndRegionDirectivesConverterTests
     public void Apply_KeepsTheLineEndingsOfTheFile(string source, string expected) => Assert.AreEqual(expected, _converter.Apply(source));
 
     [TestMethod]
-    public void NamelessNestedRegion_GetsItsOwnEndregion_AndTheOuterKeepsItsName()
-    {
-        Assert.AreEqual(
+    public void NamelessNestedRegion_GetsItsOwnEndregion_AndTheOuterKeepsItsName() => Assert.AreEqual(
             "#region Outer\n#region\nclass C { }\n#endregion\n#endregion Outer\n",
             _converter.Apply("#region Outer\n#region\nclass C { }\n#endregion\n#endregion\n"));
-    }
 
     [TestMethod]
-    public void RegionNameSeparatedByATab_IsUsedForTheEndregion()
-    {
-        Assert.AreEqual(
+    public void RegionNameSeparatedByATab_IsUsedForTheEndregion() => Assert.AreEqual(
             "#region\tTabbed\nclass C { }\n#endregion Tabbed\n",
             _converter.Apply("#region\tTabbed\nclass C { }\n#endregion\n"));
-    }
 
     [TestMethod]
     [DataRow("#region A\n#regionX\n#endregionY\n#endregion\n", "#region A\n#regionX\n#endregionY\n#endregion A\n", DisplayName = "directives that continue into a word character are ignored")]

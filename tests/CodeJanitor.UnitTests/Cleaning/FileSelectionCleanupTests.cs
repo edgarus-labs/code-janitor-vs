@@ -12,16 +12,16 @@ using CodeJanitor.Integration.Commands;
 using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Properties;
 using CodeJanitor.UI.Enumerations;
+using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.Threading;
+using NSubstitute;
 using Constants = EnvDTE.Constants;
 using dbgDebugMode = EnvDTE.dbgDebugMode;
 using Document = EnvDTE.Document;
 using ProjectItem = EnvDTE.ProjectItem;
 using ProjectItems = EnvDTE.ProjectItems;
-using EnvDTE80;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Threading;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
 
 namespace CodeJanitor.UnitTests.Cleaning;
 
@@ -159,10 +159,7 @@ public sealed class FileSelectionCleanupTests
     [DataRow("XML", CodeLanguage.XML)]
     [DataRow("Plain Text", CodeLanguage.Unknown)]
     [DataRow("", CodeLanguage.Unknown)]
-    public void GetCodeLanguage_MapsTheLanguageVisualStudioReports(string language, CodeLanguage expected)
-    {
-        Assert.AreEqual(expected, CodeLanguageHelper.GetCodeLanguage(language));
-    }
+    public void GetCodeLanguage_MapsTheLanguageVisualStudioReports(string language, CodeLanguage expected) => Assert.AreEqual(expected, CodeLanguageHelper.GetCodeLanguage(language));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -239,10 +236,7 @@ public sealed class FileSelectionCleanupTests
     [DataRow(@"C:\repo\wwwroot\site.min.css")]
     [DataRow(@"C:\repo\wwwroot\app.min.js")]
     [DataRow(@"C:\REPO\FORM1.DESIGNER.CS")]
-    public void DefaultExclusionExpression_ExcludesGeneratedAndMinifiedFiles(string filename)
-    {
-        Assert.IsTrue(CodeCleanupAvailabilityLogic.IsFileNameExcluded(filename, DefaultExclusions()));
-    }
+    public void DefaultExclusionExpression_ExcludesGeneratedAndMinifiedFiles(string filename) => Assert.IsTrue(CodeCleanupAvailabilityLogic.IsFileNameExcluded(filename, DefaultExclusions()));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -254,10 +248,7 @@ public sealed class FileSelectionCleanupTests
     [DataRow(@"C:\repo\wwwroot\site.css")]
     [DataRow(@"C:\repo\wwwroot\app.js")]
     [DataRow(@"C:\repo\Resources.resx.cs")]
-    public void DefaultExclusionExpression_DoesNotExcludeOtherFiles(string filename)
-    {
-        Assert.IsFalse(CodeCleanupAvailabilityLogic.IsFileNameExcluded(filename, DefaultExclusions()));
-    }
+    public void DefaultExclusionExpression_DoesNotExcludeOtherFiles(string filename) => Assert.IsFalse(CodeCleanupAvailabilityLogic.IsFileNameExcluded(filename, DefaultExclusions()));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -295,10 +286,7 @@ public sealed class FileSelectionCleanupTests
     [TestCategory("Cleaning UnitTests")]
     [DataRow(null)]
     [DataRow("")]
-    public void IsFileNameExcluded_WithoutAFileName_ExcludesNothing(string filename)
-    {
-        Assert.IsFalse(CodeCleanupAvailabilityLogic.IsFileNameExcluded(filename, [".*"]));
-    }
+    public void IsFileNameExcluded_WithoutAFileName_ExcludesNothing(string filename) => Assert.IsFalse(CodeCleanupAvailabilityLogic.IsFileNameExcluded(filename, [".*"]));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -341,10 +329,7 @@ public sealed class FileSelectionCleanupTests
     [TestCategory("Cleaning UnitTests")]
     [DataRow(null)]
     [DataRow("")]
-    public void IsFileNameIncluded_WithoutAFileName_IncludesNothing(string filename)
-    {
-        Assert.IsFalse(CodeCleanupAvailabilityLogic.IsFileNameIncluded(filename, []));
-    }
+    public void IsFileNameIncluded_WithoutAFileName_IncludesNothing(string filename) => Assert.IsFalse(CodeCleanupAvailabilityLogic.IsFileNameIncluded(filename, []));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -396,51 +381,39 @@ public sealed class FileSelectionCleanupTests
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanupDocument_RegularCSharpDocumentOfTheSolution_CanBeCleaned()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
+    public void CanCleanupDocument_RegularCSharpDocumentOfTheSolution_CanBeCleaned() => RunOnVisualStudioUIThread(() =>
+                                                                                             {
+                                                                                                 CodeCleanupAvailabilityLogic logic = CreateLogic();
 
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp")));
-        });
-    }
+                                                                                                 Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp")));
+                                                                                             });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_NothingToClean_IsRefused()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
+    public void CanCleanup_NothingToClean_IsRefused() => RunOnVisualStudioUIThread(() =>
+                                                              {
+                                                                  CodeCleanupAvailabilityLogic logic = CreateLogic();
 
-            Assert.IsFalse(logic.CanCleanupDocument(null));
-            Assert.IsFalse(logic.CanCleanupProjectItem(null));
-        });
-    }
+                                                                  Assert.IsFalse(logic.CanCleanupDocument(null));
+                                                                  Assert.IsFalse(logic.CanCleanupProjectItem(null));
+                                                              });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow(dbgDebugMode.dbgBreakMode)]
     [DataRow(dbgDebugMode.dbgRunMode)]
-    public void CanCleanup_WhileDebugging_IsRefused(dbgDebugMode mode)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic(mode);
+    public void CanCleanup_WhileDebugging_IsRefused(dbgDebugMode mode) => RunOnVisualStudioUIThread(() =>
+                                                                               {
+                                                                                   CodeCleanupAvailabilityLogic logic = CreateLogic(mode);
 
-            Assert.IsFalse(logic.IsCleanupEnvironmentAvailable());
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp")));
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\A.js")));
-        });
-    }
+                                                                                   Assert.IsFalse(logic.IsCleanupEnvironmentAvailable());
+                                                                                   Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp")));
+                                                                                   Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\A.js")));
+                                                                               });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void IsCleanupEnvironmentAvailable_InDesignMode_IsTrue()
-    {
-        RunOnVisualStudioUIThread(() => Assert.IsTrue(CreateLogic().IsCleanupEnvironmentAvailable()));
-    }
+    public void IsCleanupEnvironmentAvailable_InDesignMode_IsTrue() => RunOnVisualStudioUIThread(() => Assert.IsTrue(CreateLogic().IsCleanupEnvironmentAvailable()));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -466,257 +439,207 @@ public sealed class FileSelectionCleanupTests
     [DataRow("XAML", @"C:\repo\a.xaml", nameof(Settings.Cleaning_IncludeXAML))]
     [DataRow("XML", @"C:\repo\a.xml", nameof(Settings.Cleaning_IncludeXML))]
     [DataRow("Plain Text", @"C:\repo\a.txt", nameof(Settings.Cleaning_IncludeEverythingElse))]
-    public void CanCleanupDocument_FollowsTheLanguageFlagOfTheDocument(string language, string filePath, string flag)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
+    public void CanCleanupDocument_FollowsTheLanguageFlagOfTheDocument(string language, string filePath, string flag) => RunOnVisualStudioUIThread(() =>
+                                                                                                                              {
+                                                                                                                                  CodeCleanupAvailabilityLogic logic = CreateLogic();
 
-            SetIncludeSettings(enabled: flag);
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(filePath, language)), "Only the flag of the language is on.");
+                                                                                                                                  SetIncludeSettings(enabled: flag);
+                                                                                                                                  Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(filePath, language)), "Only the flag of the language is on.");
 
-            SetIncludeSettings(disabled: flag);
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(filePath, language)), "Only the flag of the language is off.");
-        });
-    }
+                                                                                                                                  SetIncludeSettings(disabled: flag);
+                                                                                                                                  Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(filePath, language)), "Only the flag of the language is off.");
+                                                                                                                              });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanupProjectItem_JavaScriptFile_FollowsTheJavaScriptFlag()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
+    public void CanCleanupProjectItem_JavaScriptFile_FollowsTheJavaScriptFlag() => RunOnVisualStudioUIThread(() =>
+                                                                                        {
+                                                                                            CodeCleanupAvailabilityLogic logic = CreateLogic();
 
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js")));
+                                                                                            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js")));
 
-            Settings.Default.Cleaning_IncludeJavaScript = false;
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js")));
-        });
-    }
+                                                                                            Settings.Default.Cleaning_IncludeJavaScript = false;
+                                                                                            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js")));
+                                                                                        });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanupProjectItem_FileOfAnUnknownLanguage_FollowsTheEverythingElseFlag()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
+    public void CanCleanupProjectItem_FileOfAnUnknownLanguage_FollowsTheEverythingElseFlag() => RunOnVisualStudioUIThread(() =>
+                                                                                                     {
+                                                                                                         CodeCleanupAvailabilityLogic logic = CreateLogic();
 
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.unknownextension")));
+                                                                                                         Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.unknownextension")));
 
-            Settings.Default.Cleaning_IncludeEverythingElse = true;
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.unknownextension")));
-        });
-    }
+                                                                                                         Settings.Default.Cleaning_IncludeEverythingElse = true;
+                                                                                                         Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.unknownextension")));
+                                                                                                     });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanupProjectItem_ItemThatIsNotAPhysicalFile_IsRefused()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Assert.IsFalse(CreateLogic().CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js", physicalFile: false)));
-        });
-    }
+    public void CanCleanupProjectItem_ItemThatIsNotAPhysicalFile_IsRefused() => RunOnVisualStudioUIThread(() =>
+                                                                                     Assert.IsFalse(CreateLogic().CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js", physicalFile: false))));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_FileMatchingTheExclusionExpression_IsRefused()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
+    public void CanCleanup_FileMatchingTheExclusionExpression_IsRefused() => RunOnVisualStudioUIThread(() =>
+                                                                                  {
+                                                                                      CodeCleanupAvailabilityLogic logic = CreateLogic();
 
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.Designer.cs", "CSharp")));
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\app.min.js")));
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.cs", "CSharp")));
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\app.js")));
-        });
-    }
+                                                                                      Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.Designer.cs", "CSharp")));
+                                                                                      Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\app.min.js")));
+                                                                                      Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.cs", "CSharp")));
+                                                                                      Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\app.js")));
+                                                                                  });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_ChangedExclusionExpression_AppliesToTheNextDecision()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Legacy\A.cs", "CSharp")));
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Legacy\a.js")));
+    public void CanCleanup_ChangedExclusionExpression_AppliesToTheNextDecision() => RunOnVisualStudioUIThread(() =>
+                                                                                         {
+                                                                                             CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                             Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Legacy\A.cs", "CSharp")));
+                                                                                             Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Legacy\a.js")));
 
-            Settings.Default.Cleaning_ExclusionExpression = @"\\Legacy\\";
+                                                                                             Settings.Default.Cleaning_ExclusionExpression = @"\\Legacy\\";
 
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Legacy\A.cs", "CSharp")));
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Legacy\a.js")));
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.Designer.cs", "CSharp")), "The default expressions were replaced.");
-        });
-    }
+                                                                                             Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Legacy\A.cs", "CSharp")));
+                                                                                             Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Legacy\a.js")));
+                                                                                             Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.Designer.cs", "CSharp")), "The default expressions were replaced.");
+                                                                                         });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_InvalidExclusionExpression_DoesNotStopTheCleanup()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Settings.Default.Cleaning_ExclusionExpression = @"([unclosed||\.skip\.cs$";
+    public void CanCleanup_InvalidExclusionExpression_DoesNotStopTheCleanup() => RunOnVisualStudioUIThread(() =>
+                                                                                      {
+                                                                                          CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                          Settings.Default.Cleaning_ExclusionExpression = @"([unclosed||\.skip\.cs$";
 
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp")));
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.skip.cs", "CSharp")));
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js")));
-        });
-    }
+                                                                                          Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp")));
+                                                                                          Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.skip.cs", "CSharp")));
+                                                                                          Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\a.js")));
+                                                                                      });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_WithAnInclusionExpression_OnlyMatchingFilesAreCleaned()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Settings.Default.Cleaning_InclusionExpression = @"\\src\\||\\lib\\";
+    public void CanCleanup_WithAnInclusionExpression_OnlyMatchingFilesAreCleaned() => RunOnVisualStudioUIThread(() =>
+                                                                                           {
+                                                                                               CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                               Settings.Default.Cleaning_InclusionExpression = @"\\src\\||\\lib\\";
 
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\SRC\A.cs", "CSharp")));
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\lib\A.cs", "CSharp")));
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\tests\A.cs", "CSharp")));
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\SRC\a.js")));
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\tests\a.js")));
-        });
-    }
+                                                                                               Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\SRC\A.cs", "CSharp")));
+                                                                                               Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\lib\A.cs", "CSharp")));
+                                                                                               Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\tests\A.cs", "CSharp")));
+                                                                                               Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\SRC\a.js")));
+                                                                                               Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\tests\a.js")));
+                                                                                           });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_FileMatchingBothExpressions_IsExcluded()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Settings.Default.Cleaning_InclusionExpression = @"\\src\\";
-            Settings.Default.Cleaning_ExclusionExpression = @"\.Designer\.cs$||\.min\.js$";
+    public void CanCleanup_FileMatchingBothExpressions_IsExcluded() => RunOnVisualStudioUIThread(() =>
+                                                                            {
+                                                                                CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                Settings.Default.Cleaning_InclusionExpression = @"\\src\\";
+                                                                                Settings.Default.Cleaning_ExclusionExpression = @"\.Designer\.cs$||\.min\.js$";
 
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\src\Form1.Designer.cs", "CSharp")));
-            Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\src\app.min.js")));
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\src\Form1.cs", "CSharp")));
-        });
-    }
+                                                                                Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\src\Form1.Designer.cs", "CSharp")));
+                                                                                Assert.IsFalse(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\src\app.min.js")));
+                                                                                Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\src\Form1.cs", "CSharp")));
+                                                                            });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow(AskYesNo.Yes, true)]
     [DataRow(AskYesNo.No, false)]
     [DataRow(AskYesNo.Ask, true)]
-    public void CanCleanupDocument_DocumentExternalToTheSolution_FollowsThePartialCleanupPreference(AskYesNo preference, bool expected)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Settings.Default.Cleaning_PerformPartialCleanupOnExternal = (int)preference;
-            Document external = CreateDocument(@"C:\elsewhere\A.cs", "CSharp", openedOutsideAnyProject: true);
+    public void CanCleanupDocument_DocumentExternalToTheSolution_FollowsThePartialCleanupPreference(AskYesNo preference, bool expected) => RunOnVisualStudioUIThread(() =>
+                                                                                                                                                {
+                                                                                                                                                    CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                                                                                    Settings.Default.Cleaning_PerformPartialCleanupOnExternal = (int)preference;
+                                                                                                                                                    Document external = CreateDocument(@"C:\elsewhere\A.cs", "CSharp", openedOutsideAnyProject: true);
 
-            Assert.AreEqual(expected, logic.CanCleanupDocument(external, allowUserPrompts: false));
-        });
-    }
+                                                                                                                                                    Assert.AreEqual(expected, logic.CanCleanupDocument(external, allowUserPrompts: false));
+                                                                                                                                                });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow("CSharp", false, true, DisplayName = "C# document of the solution")]
     [DataRow("CSharp", true, false, DisplayName = "C# document outside the solution: the Roslyn workspace does not contain it")]
     [DataRow("Basic", false, false, DisplayName = "document that is not C#")]
-    public void RunsDiagnosticCleanup_NeedsACSharpDocumentOfTheSolution(string language, bool outsideAnyProject, bool expected)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Document document = CreateDocument(@"C:\repo\A.cs", language, openedOutsideAnyProject: outsideAnyProject);
+    public void RunsDiagnosticCleanup_NeedsACSharpDocumentOfTheSolution(string language, bool outsideAnyProject, bool expected) => RunOnVisualStudioUIThread(() =>
+                                                                                                                                        {
+                                                                                                                                            Document document = CreateDocument(@"C:\repo\A.cs", language, openedOutsideAnyProject: outsideAnyProject);
 
-            Assert.AreEqual(expected, CodeCleanupManager.RunsDiagnosticCleanup(document));
-        });
-    }
+                                                                                                                                            Assert.AreEqual(expected, CodeCleanupManager.RunsDiagnosticCleanup(document));
+                                                                                                                                        });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanupDocument_ItemMissingFromItsCollection_IsExternalToTheSolution()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Settings.Default.Cleaning_PerformPartialCleanupOnExternal = (int)AskYesNo.No;
+    public void CanCleanupDocument_ItemMissingFromItsCollection_IsExternalToTheSolution() => RunOnVisualStudioUIThread(() =>
+                                                                                                  {
+                                                                                                      CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                                      Settings.Default.Cleaning_PerformPartialCleanupOnExternal = (int)AskYesNo.No;
 
 #pragma warning disable VSTHRD010 // The substitutes stand in for Visual Studio's COM objects, which the test calls from its own thread.
-            ProjectItem notInItsCollection = CreateProjectItem(@"C:\repo\A.cs");
-            SetItems(notInItsCollection.Collection, CreateProjectItem(@"C:\repo\Other.cs"));
+                                                                                                      ProjectItem notInItsCollection = CreateProjectItem(@"C:\repo\A.cs");
+                                                                                                      SetItems(notInItsCollection.Collection, CreateProjectItem(@"C:\repo\Other.cs"));
 #pragma warning restore VSTHRD010
 
-            Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp", notInItsCollection)), "The item is not part of its collection.");
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp", CreateProjectItem(@"C:\repo\A.cs"))), "The item is part of the solution.");
-        });
-    }
+                                                                                                      Assert.IsFalse(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp", notInItsCollection)), "The item is not part of its collection.");
+                                                                                                      Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\A.cs", "CSharp", CreateProjectItem(@"C:\repo\A.cs"))), "The item is part of the solution.");
+                                                                                                  });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     [DataRow(true, false)]
     [DataRow(false, true)]
-    public void CanCleanup_FileGeneratedByAT4Template_FollowsTheExcludeT4Setting(bool excludeT4, bool expected)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            Settings.Default.Cleaning_ExcludeT4GeneratedCode = excludeT4;
-            Settings.Default.Cleaning_IncludeEverythingElse = true;
+    public void CanCleanup_FileGeneratedByAT4Template_FollowsTheExcludeT4Setting(bool excludeT4, bool expected) => RunOnVisualStudioUIThread(() =>
+                                                                                                                        {
+                                                                                                                            CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                                                            Settings.Default.Cleaning_ExcludeT4GeneratedCode = excludeT4;
+                                                                                                                            Settings.Default.Cleaning_IncludeEverythingElse = true;
 
-            ProjectItem template = CreateProjectItem(@"C:\repo\Model.tt");
+                                                                                                                            ProjectItem template = CreateProjectItem(@"C:\repo\Model.tt");
 
-            Assert.AreEqual(expected, logic.CanCleanupDocument(CreateDocument(@"C:\repo\Model.cs", "CSharp", CreateProjectItem(@"C:\repo\Model.cs", parent: template))));
-            Assert.AreEqual(expected, logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Model.js", parent: template)));
-        });
-    }
+                                                                                                                            Assert.AreEqual(expected, logic.CanCleanupDocument(CreateDocument(@"C:\repo\Model.cs", "CSharp", CreateProjectItem(@"C:\repo\Model.cs", parent: template))));
+                                                                                                                            Assert.AreEqual(expected, logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Model.js", parent: template)));
+                                                                                                                        });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void CanCleanup_FileNestedUnderAnotherFile_IsNotConsideredGeneratedCode()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CodeCleanupAvailabilityLogic logic = CreateLogic();
-            ProjectItem parent = CreateProjectItem(@"C:\repo\Form1.cs");
+    public void CanCleanup_FileNestedUnderAnotherFile_IsNotConsideredGeneratedCode() => RunOnVisualStudioUIThread(() =>
+                                                                                             {
+                                                                                                 CodeCleanupAvailabilityLogic logic = CreateLogic();
+                                                                                                 ProjectItem parent = CreateProjectItem(@"C:\repo\Form1.cs");
 
-            Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.Layout.cs", "CSharp", CreateProjectItem(@"C:\repo\Form1.Layout.cs", parent: parent))));
-            Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Form1.Layout.js", parent: parent)));
-        });
-    }
+                                                                                                 Assert.IsTrue(logic.CanCleanupDocument(CreateDocument(@"C:\repo\Form1.Layout.cs", "CSharp", CreateProjectItem(@"C:\repo\Form1.Layout.cs", parent: parent))));
+                                                                                                 Assert.IsTrue(logic.CanCleanupProjectItem(CreateProjectItem(@"C:\repo\Form1.Layout.js", parent: parent)));
+                                                                                             });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void ShouldCleanupOnSave_WithCleanupOnSaveDisabled_NeverTouchesTheDocument()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CleanupActiveCodeCommand command = CreateCleanupActiveCodeCommand();
-            Document document = CreateDocument(@"C:\repo\A.cs", "CSharp");
-            document.ClearReceivedCalls();
-            Settings.Default.Cleaning_AutoCleanupOnFileSave = false;
+    public void ShouldCleanupOnSave_WithCleanupOnSaveDisabled_NeverTouchesTheDocument() => RunOnVisualStudioUIThread(() =>
+                                                                                                {
+                                                                                                    CleanupActiveCodeCommand command = CreateCleanupActiveCodeCommand();
+                                                                                                    Document document = CreateDocument(@"C:\repo\A.cs", "CSharp");
+                                                                                                    document.ClearReceivedCalls();
+                                                                                                    Settings.Default.Cleaning_AutoCleanupOnFileSave = false;
 
-            Assert.IsFalse(command.ShouldCleanupOnSave(document));
-            Assert.IsEmpty(document.ReceivedCalls());
-        });
-    }
+                                                                                                    Assert.IsFalse(command.ShouldCleanupOnSave(document));
+                                                                                                    Assert.IsEmpty(document.ReceivedCalls());
+                                                                                                });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
-    public void ShouldCleanupOnSave_WithCleanupOnSaveEnabled_CleansDocumentsThatCanBeCleaned()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            CleanupActiveCodeCommand command = CreateCleanupActiveCodeCommand();
-            Settings.Default.Cleaning_AutoCleanupOnFileSave = true;
+    public void ShouldCleanupOnSave_WithCleanupOnSaveEnabled_CleansDocumentsThatCanBeCleaned() => RunOnVisualStudioUIThread(() =>
+                                                                                                       {
+                                                                                                           CleanupActiveCodeCommand command = CreateCleanupActiveCodeCommand();
+                                                                                                           Settings.Default.Cleaning_AutoCleanupOnFileSave = true;
 
-            Assert.IsTrue(command.ShouldCleanupOnSave(CreateDocument(@"C:\repo\A.cs", "CSharp")));
-            Assert.IsFalse(command.ShouldCleanupOnSave(CreateDocument(@"C:\repo\Form1.Designer.cs", "CSharp")), "Excluded file name.");
+                                                                                                           Assert.IsTrue(command.ShouldCleanupOnSave(CreateDocument(@"C:\repo\A.cs", "CSharp")));
+                                                                                                           Assert.IsFalse(command.ShouldCleanupOnSave(CreateDocument(@"C:\repo\Form1.Designer.cs", "CSharp")), "Excluded file name.");
 
-            Settings.Default.Cleaning_IncludeCSharp = false;
-            Assert.IsFalse(command.ShouldCleanupOnSave(CreateDocument(@"C:\repo\A.cs", "CSharp")), "Language not enabled.");
-        });
-    }
+                                                                                                           Settings.Default.Cleaning_IncludeCSharp = false;
+                                                                                                           Assert.IsFalse(command.ShouldCleanupOnSave(CreateDocument(@"C:\repo\A.cs", "CSharp")), "Language not enabled.");
+                                                                                                       });
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -771,6 +694,7 @@ public sealed class FileSelectionCleanupTests
     }
 
 #pragma warning disable VSTHRD010 // The substitutes stand in for Visual Studio's COM objects, which the test calls from its own thread.
+
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
     public void IsChangedFile_ItemOfSeveralFiles_IsChangedWhenAnyFileChanged()
@@ -873,6 +797,7 @@ public sealed class FileSelectionCleanupTests
 
         return item;
     }
+
 #pragma warning restore VSTHRD010
 
     /// <summary>

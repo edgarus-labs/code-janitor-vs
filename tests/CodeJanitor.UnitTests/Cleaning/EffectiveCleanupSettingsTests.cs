@@ -1078,6 +1078,6 @@ public sealed class EffectiveCleanupSettingsTests
     /// </summary>
     private void WritePolicy(string cleanupEntries) => File.WriteAllText(Path.Combine(_tempDirectory, ".codejanitor"), "{ \"cleanup\": { " + cleanupEntries + " } }");
 
-    private static string GetOverride(EffectiveCleanupSettings settings, string key) =>
-        settings.AnalyzerConfigOverrides.TryGetValue(key, out string value) ? value : null;
+    private static string GetOverride(EffectiveCleanupSettings settings, string key)
+        => settings.AnalyzerConfigOverrides.TryGetValue(key, out string value) ? value : null;
 }

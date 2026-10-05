@@ -1074,15 +1074,15 @@ internal sealed class CodeCleanupManager
         switch (headerPosition)
         {
             case HeaderPosition.DocumentStart:
-            {
-                // A shebang line has to stay the first line of the file: the header goes below it.
-                var prologLength = FileHeaderHelper.GetPrologLength(CodeLanguage.CSharp, source);
-                var body = source.Substring(prologLength);
+                {
+                    // A shebang line has to stay the first line of the file: the header goes below it.
+                    var prologLength = FileHeaderHelper.GetPrologLength(CodeLanguage.CSharp, source);
+                    var body = source.Substring(prologLength);
 
-                return source.Substring(0, prologLength) + (headerUpdateMode == HeaderUpdateMode.Insert
-                    ? InsertHeaderAtDocumentStart(body, settingsFileHeader)
-                    : ReplaceHeaderAtDocumentStart(body, settingsFileHeader));
-            }
+                    return source.Substring(0, prologLength) + (headerUpdateMode == HeaderUpdateMode.Insert
+                        ? InsertHeaderAtDocumentStart(body, settingsFileHeader)
+                        : ReplaceHeaderAtDocumentStart(body, settingsFileHeader));
+                }
 
             case HeaderPosition.AfterUsings:
                 return headerUpdateMode == HeaderUpdateMode.Insert
@@ -1100,12 +1100,9 @@ internal sealed class CodeCleanupManager
     /// <param name="source">The source.</param>
     /// <param name="settingsFileHeader">The settings file header.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader)
-    {
-        return source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
+    private static string InsertHeaderAtDocumentStart(string source, string settingsFileHeader) => source.StartsWith(settingsFileHeader.Trim(), StringComparison.Ordinal)
             ? source
             : settingsFileHeader + source;
-    }
 
     /// <summary>
     /// Replaces the leading header in the source with the trimmed settings header if they differ, otherwise returns the original source unchanged.
@@ -1306,6 +1303,7 @@ internal sealed class CodeCleanupManager
         var literalSpans = new Lazy<List<Microsoft.CodeAnalysis.Text.TextSpan>>(() => RegionDirectiveRemover.FindMultiLineLiteralSpans(source));
 
         // The content of a multi-line string literal is data: a match that starts inside one is not a blank line of the code.
+
         return Regex.Replace(
             source,
             pattern,
@@ -1496,10 +1494,7 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with sealed classes.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
-    internal Task<bool> SealClassesWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
-    {
-        return _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
-    }
+    internal Task<bool> SealClassesWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) => _sealedClassLogic.SealWhenSafeAsync(projectItem, cancellationToken);
 
     /// <summary>
     /// Converts the null checks of a closed C# project item that are safe to convert to pattern matching, when its
@@ -1510,10 +1505,7 @@ internal sealed class CodeCleanupManager
     /// <param name="cancellationToken">Cancels the semantic analysis; the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten with converted null checks.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled.</exception>
-    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
-    {
-        return _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
-    }
+    internal Task<bool> ConvertNullChecksWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) => _nullCheckPatternMatchingLogic.ConvertWhenSafeAsync(projectItem, cancellationToken);
 
     /// <summary>
     /// Adds AI-generated XML documentation to a cleaned file (open in the editor or closed on disk), when AI XML

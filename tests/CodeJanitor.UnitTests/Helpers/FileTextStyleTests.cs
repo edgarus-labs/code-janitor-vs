@@ -305,10 +305,7 @@ public sealed class FileTextStyleTests
     [DataRow("unset", "a\nb\n", "x\r\ny\r\n", "a\r\nb\r\n", DisplayName = "unrecognized end_of_line: the original's uniform CRLF")]
     [DataRow(null, "a\r\nb\n", "x\r\ny\nz", "a\r\nb\n", DisplayName = "an original with mixed line endings leaves the text unchanged")]
     [DataRow(null, "a\r\nb\n", null, "a\r\nb\n", DisplayName = "no original leaves the text unchanged")]
-    public void ApplyLineEnding_UsesEndOfLine_OtherwiseTheUniformLineEndingOfTheOriginal(string endOfLine, string text, string originalText, string expected)
-    {
-        Assert.AreEqual(expected, FileTextStyle.ApplyLineEnding(text, endOfLine, originalText));
-    }
+    public void ApplyLineEnding_UsesEndOfLine_OtherwiseTheUniformLineEndingOfTheOriginal(string endOfLine, string text, string originalText, string expected) => Assert.AreEqual(expected, FileTextStyle.ApplyLineEnding(text, endOfLine, originalText));
 
     private static void RewriteWith(string filePath, string newText)
     {

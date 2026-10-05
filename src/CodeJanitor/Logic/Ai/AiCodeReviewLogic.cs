@@ -76,9 +76,7 @@ internal sealed class AiCodeReviewLogic
     /// <param name="targetName">The target name.</param>
     /// <param name="codeSnippet">The code snippet.</param>
     /// <returns>A string value produced by this method.</returns>
-    private static string BuildReviewPrompt(string targetName, string codeSnippet)
-    {
-        return $@"Perform a comprehensive, professional code review on the following C# code for '{targetName}':
+    private static string BuildReviewPrompt(string targetName, string codeSnippet) => $@"Perform a comprehensive, professional code review on the following C# code for '{targetName}':
 
 ```csharp
 {codeSnippet}
@@ -102,7 +100,6 @@ A 1-2 sentence overall verdict on code health and quality.
 - Naming, method decomposition, and modern C# idioms.
 - Concrete fix recommendations.
 ";
-    }
 
     /// <summary>
     /// Creates and returns an OpenAiCompatibleClient instance built from user settings, returning null when the endpoint URL is unconfigured, falling back to the plaintext API key if decryption yields empty, defaulting the header to &quot;Authorization&quot; when unset, and applying fallback values of 45 seconds for timeout and 131072 for context window tokens when those settings are non-positive.

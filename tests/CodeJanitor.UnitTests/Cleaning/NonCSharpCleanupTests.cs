@@ -146,9 +146,8 @@ public sealed class NonCSharpCleanupTests
 
             Cleanup(manager, language, text, out List<string> deleteWhitespaceCalls);
 
-            CollectionAssert.AreEqual(
-                new[] { "0:" + vsWhitespaceOptions.vsWhitespaceOptionsVertical, text.Length + ":" + vsWhitespaceOptions.vsWhitespaceOptionsVertical },
-                deleteWhitespaceCalls);
+            Assert.AreSequenceEqual(
+                new[] { "0:" + vsWhitespaceOptions.vsWhitespaceOptionsVertical, text.Length + ":" + vsWhitespaceOptions.vsWhitespaceOptionsVertical }, deleteWhitespaceCalls);
         });
     }
 
@@ -294,35 +293,32 @@ public sealed class NonCSharpCleanupTests
         return editor.Text;
     }
 
-    private static void RunWithManager(Action<CodeCleanupManager> test)
-    {
-        WhitespaceStepCleanupTests.RunOnVisualStudioUIThread(() =>
-        {
-            CodeJanitorPackage package = (CodeJanitorPackage)FormatterServices.GetUninitializedObject(typeof(CodeJanitorPackage));
-            typeof(CodeJanitorPackage).GetField("_ide", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(package, Substitute.For<DTE2>());
+    private static void RunWithManager(Action<CodeCleanupManager> test) => WhitespaceStepCleanupTests.RunOnVisualStudioUIThread(() =>
+                                                                                {
+                                                                                    CodeJanitorPackage package = (CodeJanitorPackage)FormatterServices.GetUninitializedObject(typeof(CodeJanitorPackage));
+                                                                                    typeof(CodeJanitorPackage).GetField("_ide", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(package, Substitute.For<DTE2>());
 
-            FieldInfo[] singletonFields = typeof(CodeCleanupManager).Assembly.GetTypes()
-                .Where(type => type.GetMethod("GetInstance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic, null, new[] { typeof(CodeJanitorPackage) }, null) is not null)
-                .Select(type => type.GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic))
-                .Where(field => field is not null)
-                .ToArray();
-            object[] previousInstances = Array.ConvertAll(singletonFields, field => field.GetValue(null));
-            foreach (FieldInfo field in singletonFields)
-            {
-                field.SetValue(null, null);
-            }
+                                                                                    FieldInfo[] singletonFields = typeof(CodeCleanupManager).Assembly.GetTypes()
+                                                                                        .Where(type => type.GetMethod("GetInstance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic, null, new[] { typeof(CodeJanitorPackage) }, null) is not null)
+                                                                                        .Select(type => type.GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic))
+                                                                                        .Where(field => field is not null)
+                                                                                        .ToArray();
+                                                                                    object[] previousInstances = Array.ConvertAll(singletonFields, field => field.GetValue(null));
+                                                                                    foreach (FieldInfo field in singletonFields)
+                                                                                    {
+                                                                                        field.SetValue(null, null);
+                                                                                    }
 
-            try
-            {
-                test(CodeCleanupManager.GetInstance(package));
-            }
-            finally
-            {
-                for (int i = 0; i < singletonFields.Length; i++)
-                {
-                    singletonFields[i].SetValue(null, previousInstances[i]);
-                }
-            }
-        });
-    }
+                                                                                    try
+                                                                                    {
+                                                                                        test(CodeCleanupManager.GetInstance(package));
+                                                                                    }
+                                                                                    finally
+                                                                                    {
+                                                                                        for (int i = 0; i < singletonFields.Length; i++)
+                                                                                        {
+                                                                                            singletonFields[i].SetValue(null, previousInstances[i]);
+                                                                                        }
+                                                                                    }
+                                                                                });
 }

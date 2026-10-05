@@ -656,7 +656,7 @@ public sealed class FileHeaderAllLanguagesTests
         Settings.Default.Cleaning_UpdateFileHeaderCSharp = "// User header";
         WriteEditorConfig("file_header_template = unset");
 
-        Assert.IsFalse(Headless(HeadlessBody).Contains("User header"));
+        Assert.DoesNotContain("User header", Headless(HeadlessBody));
     }
 
     [TestMethod]
@@ -712,10 +712,7 @@ public sealed class FileHeaderAllLanguagesTests
     [DataRow(CodeLanguage.CSharp, "#!/usr/bin/env dotnet\r\nclass C { }", "#!/usr/bin/env dotnet\r\n")]
     [DataRow(CodeLanguage.VisualBasic, "' comment\r\nModule M", "")]
     [DataRow(CodeLanguage.JavaScript, "", "")]
-    public void GetPrologLength_CoversTheLinesThatMustStayFirst(CodeLanguage language, string text, string expectedProlog)
-    {
-        Assert.AreEqual(expectedProlog, text.Substring(0, FileHeaderHelper.GetPrologLength(language, text)));
-    }
+    public void GetPrologLength_CoversTheLinesThatMustStayFirst(CodeLanguage language, string text, string expectedProlog) => Assert.AreEqual(expectedProlog, text.Substring(0, FileHeaderHelper.GetPrologLength(language, text)));
 
     [TestMethod]
     [TestCategory("Cleaning UnitTests")]
@@ -977,6 +974,7 @@ public sealed class FileHeaderAllLanguagesTests
     }
 
 #pragma warning disable VSTHRD010 // The substitutes stand in for Visual Studio's COM objects, which the test calls from its own thread.
+
     /// <summary>
     /// An editor buffer behind the <see cref="TextDocument" /> and <see cref="EditPoint" /> members the file header
     /// update uses. Like Visual Studio's, its offsets count a line break as one character.
@@ -1070,4 +1068,5 @@ public sealed class FileHeaderAllLanguagesTests
         }
     }
 }
+
 #pragma warning restore VSTHRD010

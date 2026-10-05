@@ -2,7 +2,6 @@ using CodeJanitor.Helpers;
 using CodeJanitor.Integration.Commands;
 using CodeJanitor.Integration.Events;
 using CodeJanitor.Integration.Options;
-using CodeJanitor.Logic.Cleaning;
 using CodeJanitor.Model;
 using CodeJanitor.Properties;
 using CodeJanitor.UI;

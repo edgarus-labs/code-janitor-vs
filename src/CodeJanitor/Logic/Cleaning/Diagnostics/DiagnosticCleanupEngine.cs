@@ -339,6 +339,7 @@ public sealed class DiagnosticCleanupEngine
 
         // Providers that threw while registering fixes for a diagnostic id: they are not asked again in later passes of
         // this run (like _rejectedGroups for failures while computing a fix), so their exception is logged once.
+
         private readonly Dictionary<(CodeFixProvider Provider, string DiagnosticId), string> _registrationFailures =
             new Dictionary<(CodeFixProvider Provider, string DiagnosticId), string>();
 
@@ -563,12 +564,9 @@ public sealed class DiagnosticCleanupEngine
         /// <see cref="InvalidCastException" /> thrown by the code of the provider's own assembly is a bug of the
         /// provider instead.
         /// </summary>
-        private static bool IsHostBindingFailure(Exception exception, CodeFixProvider provider)
-        {
-            return VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception) &&
+        private static bool IsHostBindingFailure(Exception exception, CodeFixProvider provider) => VisualStudioRoslynWorkspace.IsRoslynBindingFailure(exception) &&
                 !(exception is InvalidCastException &&
                   new StackTrace(exception, fNeedFileInfo: false).GetFrame(0)?.GetMethod()?.DeclaringType?.Assembly == provider.GetType().Assembly);
-        }
 
         /// <summary>
         /// Writes the full exception (with its stack trace) to the diagnostic log and returns the one-line detail
@@ -679,6 +677,7 @@ public sealed class DiagnosticCleanupEngine
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // The provider (or its fix-all provider) threw while computing the fix: only this group is skipped.
+
                 return FixAttempt.Rejected(UnresolvedDiagnosticReason.FixProviderFailed, DescribeProviderFailure(first.Provider, exception));
             }
 
@@ -985,15 +984,9 @@ public sealed class DiagnosticCleanupEngine
 
         public (CodeFixProvider Provider, string EquivalenceKey) GroupKey => (Provider, Action?.EquivalenceKey);
 
-        public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives)
-        {
-            return new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null, null);
-        }
+        public static FixPlan Fixable(ActionableDiagnostic actionable, CodeFixProvider provider, CodeAction action, bool hasEquivalentAlternatives) => new FixPlan(actionable, provider, action, hasEquivalentAlternatives, null, null);
 
-        public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason, string detail = null)
-        {
-            return new FixPlan(actionable, null, null, false, reason, detail);
-        }
+        public static FixPlan Unfixable(ActionableDiagnostic actionable, UnresolvedDiagnosticReason reason, string detail = null) => new FixPlan(actionable, null, null, false, reason, detail);
     }
 
     private sealed class FixAttempt
@@ -1025,15 +1018,9 @@ public sealed class DiagnosticCleanupEngine
         public static FixAttempt Accepted(
             Solution solution,
             ImmutableArray<ActionableDiagnostic> fixedDiagnostics,
-            ImmutableArray<CodeActionOperation> postApplyOperations)
-        {
-            return new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null, null);
-        }
+            ImmutableArray<CodeActionOperation> postApplyOperations) => new FixAttempt(solution, fixedDiagnostics, postApplyOperations, null, null);
 
-        public static FixAttempt Rejected(UnresolvedDiagnosticReason reason, string detail = null)
-        {
-            return new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason, detail);
-        }
+        public static FixAttempt Rejected(UnresolvedDiagnosticReason reason, string detail = null) => new FixAttempt(null, ImmutableArray<ActionableDiagnostic>.Empty, ImmutableArray<CodeActionOperation>.Empty, reason, detail);
     }
 
     /// <summary>

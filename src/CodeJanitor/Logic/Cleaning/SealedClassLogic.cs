@@ -75,10 +75,7 @@ internal sealed class SealedClassLogic
     /// </summary>
     /// <param name="textDocument">The text document to update.</param>
     /// <param name="settings">The effective cleanup settings of the document.</param>
-    internal void SealWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings)
-    {
-        _rewriter.Rewrite(textDocument, settings);
-    }
+    internal void SealWhenSafe(TextDocument textDocument, EffectiveCleanupSettings settings) => _rewriter.Rewrite(textDocument, settings);
 
     /// <summary>
     /// Seals the classes of a closed C# file that are safe to seal, when enabled in the effective settings, and writes
@@ -89,10 +86,7 @@ internal sealed class SealedClassLogic
     /// <param name="cancellationToken">Cancels the analysis (together with the disposal of the package); the file is then left unchanged.</param>
     /// <returns>True when the file was rewritten.</returns>
     /// <exception cref="OperationCanceledException">The analysis was canceled; the file is left unchanged.</exception>
-    internal Task<bool> SealWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default)
-    {
-        return _rewriter.RewriteAsync(projectItem, cancellationToken);
-    }
+    internal Task<bool> SealWhenSafeAsync(ProjectItem projectItem, CancellationToken cancellationToken = default) => _rewriter.RewriteAsync(projectItem, cancellationToken);
 
     /// <summary>
     /// Resolves every C# document of the file in the Visual Studio workspace with <paramref name="currentText" /> and
@@ -144,10 +138,7 @@ internal sealed class SealedClassLogic
     /// <param name="createdFiles">The full paths of the files the cleanup created.</param>
     /// <returns>The missing file, or null.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static string FindFileMissingFromWorkspace(Microsoft.CodeAnalysis.Solution solution, IEnumerable<string> createdFiles)
-    {
-        return createdFiles.FirstOrDefault(createdFile => File.Exists(createdFile) && solution.GetDocumentIdsWithFilePath(createdFile).IsEmpty);
-    }
+    internal static string FindFileMissingFromWorkspace(Microsoft.CodeAnalysis.Solution solution, IEnumerable<string> createdFiles) => createdFiles.FirstOrDefault(createdFile => File.Exists(createdFile) && solution.GetDocumentIdsWithFilePath(createdFile).IsEmpty);
 
     /// <summary>
     /// Gets the project files that projects outside the Roslyn workspace reference, after verifying that the workspace

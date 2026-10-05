@@ -406,13 +406,10 @@ internal sealed class CodeCleanupAvailabilityLogic
     /// </summary>
     /// <param name="expression">The setting value.</param>
     /// <returns>The regular expressions.</returns>
-    internal static List<string> ParseFilterExpression(string expression)
-    {
-        return expression.Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
+    internal static List<string> ParseFilterExpression(string expression) => expression.Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
                          .Select(x => x.Trim())
                          .Where(y => !string.IsNullOrEmpty(y))
                          .ToList();
-    }
 
     /// <summary>
     /// Determines whether the specified filename is matched by one of the exclusion expressions.

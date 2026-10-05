@@ -111,12 +111,9 @@ public sealed class ThemeManager : Bindable
     /// </summary>
     /// <param name="number">The number to convert.</param>
     /// <returns>The color.</returns>
-    private static Color GetColorFromUInt(uint number)
-    {
-        return Color.FromRgb((byte)(number >> 16),
+    private static Color GetColorFromUInt(uint number) => Color.FromRgb((byte)(number >> 16),
             (byte)(number >> 8),
             (byte)(number >> 0));
-    }
 
     /// <summary>
     /// Applies the specified theme to the specified element.

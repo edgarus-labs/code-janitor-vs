@@ -189,37 +189,28 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="filePath">The source file path.</param>
     /// <returns>The effective settings for the file.</returns>
-    internal static EffectiveCleanupSettings For(string filePath)
-    {
-        return new EffectiveCleanupSettings(
+    internal static EffectiveCleanupSettings For(string filePath) => new EffectiveCleanupSettings(
             filePath,
             EditorConfigHelper.LoadOptions(filePath),
             RepositoryCleanupSettings.LoadForFile(filePath));
-    }
 
     /// <summary>
     /// Gets the effective value of a boolean Visual Studio setting.
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_RemoveEndOfLineWhitespace</c>.</param>
     /// <returns>The effective value.</returns>
-    internal bool GetBoolean(string settingName)
-    {
-        return _editorConfigValues.TryGetValue(settingName, out var value) && value is bool boolean
+    internal bool GetBoolean(string settingName) => _editorConfigValues.TryGetValue(settingName, out var value) && value is bool boolean
             ? boolean
             : _repositoryOverrides.TryGetBoolean(settingName, (bool)Settings.Default[settingName]);
-    }
 
     /// <summary>
     /// Gets the effective value of a string Visual Studio setting.
     /// </summary>
     /// <param name="settingName">The Visual Studio setting property name, for example <c>Cleaning_UpdateFileHeaderCSharp</c>.</param>
     /// <returns>The effective value.</returns>
-    internal string GetString(string settingName)
-    {
-        return _editorConfigValues.TryGetValue(settingName, out var value) && value is string text
+    internal string GetString(string settingName) => _editorConfigValues.TryGetValue(settingName, out var value) && value is string text
             ? text
             : _repositoryOverrides.TryGetString(settingName, (string)Settings.Default[settingName]);
-    }
 
     /// <summary>
     /// Gets the effective value of an integer Visual Studio setting.
@@ -688,12 +679,9 @@ internal sealed class EffectiveCleanupSettings
     /// </summary>
     /// <param name="diagnosticId">The diagnostic ID.</param>
     /// <returns>The category, or null when unknown.</returns>
-    private static string GetDiagnosticCategory(string diagnosticId)
-    {
-        return diagnosticId.StartsWith("IDE", StringComparison.OrdinalIgnoreCase)
+    private static string GetDiagnosticCategory(string diagnosticId) => diagnosticId.StartsWith("IDE", StringComparison.OrdinalIgnoreCase)
             ? "Style"
             : AnalyzerCategories.TryGetValue(diagnosticId, out var category) ? category : null;
-    }
 
     /// <summary>
     /// Tells whether an option severity suffix enforces the option.

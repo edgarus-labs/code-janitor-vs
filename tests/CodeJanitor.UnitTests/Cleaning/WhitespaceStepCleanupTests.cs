@@ -84,16 +84,10 @@ public sealed class WhitespaceStepCleanupTests
     }
 
     [TestMethod]
-    public void Headless_RemoveBlankLinesAtTop_EmptiesAFileOfOnlyBlankLines_WhenEnabled()
-    {
-        Assert.AreEqual(string.Empty, RunHeadless(Crlf + "  " + Crlf + Crlf, nameof(Settings.Cleaning_RemoveBlankLinesAtTop)));
-    }
+    public void Headless_RemoveBlankLinesAtTop_EmptiesAFileOfOnlyBlankLines_WhenEnabled() => Assert.AreEqual(string.Empty, RunHeadless(Crlf + "  " + Crlf + Crlf, nameof(Settings.Cleaning_RemoveBlankLinesAtTop)));
 
     [TestMethod]
-    public void Headless_RemoveBlankLinesAtTop_KeepsTheBlankContentOfAFileOfOnlyBlankLines_WhenDisabled()
-    {
-        Assert.AreEqual(Crlf + "  " + Crlf, RunHeadless(Crlf + "  " + Crlf + Crlf));
-    }
+    public void Headless_RemoveBlankLinesAtTop_KeepsTheBlankContentOfAFileOfOnlyBlankLines_WhenDisabled() => Assert.AreEqual(Crlf + "  " + Crlf, RunHeadless(Crlf + "  " + Crlf + Crlf));
 
     [TestMethod]
     public void Headless_RemoveBlankLinesAtTop_LeavesAnEmptyFileEmpty_WhetherEnabledOrNot()
@@ -123,16 +117,10 @@ public sealed class WhitespaceStepCleanupTests
     }
 
     [TestMethod]
-    public void Headless_RemoveBlankLinesAtBottom_EmptiesAFileOfOnlyBlankLines_WhenEnabled()
-    {
-        Assert.AreEqual(string.Empty, RunHeadless(Crlf + Crlf, nameof(Settings.Cleaning_RemoveBlankLinesAtBottom)));
-    }
+    public void Headless_RemoveBlankLinesAtBottom_EmptiesAFileOfOnlyBlankLines_WhenEnabled() => Assert.AreEqual(string.Empty, RunHeadless(Crlf + Crlf, nameof(Settings.Cleaning_RemoveBlankLinesAtBottom)));
 
     [TestMethod]
-    public void Headless_RemoveBlankLinesAtBottom_KeepsASingleNewlineInAFileOfOnlyBlankLines_WhenDisabled()
-    {
-        Assert.AreEqual(Crlf, RunHeadless(Crlf + Crlf));
-    }
+    public void Headless_RemoveBlankLinesAtBottom_KeepsASingleNewlineInAFileOfOnlyBlankLines_WhenDisabled() => Assert.AreEqual(Crlf, RunHeadless(Crlf + Crlf));
 
     [TestMethod]
     [DataRow("\r\n")]
@@ -441,307 +429,226 @@ public sealed class WhitespaceStepCleanupTests
     // ---------------------------------------------------------------------------------------------------------------
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAtTop_DeletesTheVerticalWhitespaceAtTheStartOfTheDocument_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Crlf + Crlf + "text" + Crlf + Crlf);
+    public void Editor_RemoveBlankLinesAtTop_DeletesTheVerticalWhitespaceAtTheStartOfTheDocument_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                       {
+                                                                                                                           using FakeTextEditor editor = NewEditor(Crlf + Crlf + "text" + Crlf + Crlf);
 
-            Logic.RemoveBlankLinesAtTop(editor.TextDocument, Effective());
+                                                                                                                           Logic.RemoveBlankLinesAtTop(editor.TextDocument, Effective());
 
-            CollectionAssert.AreEqual(new[] { "0:" + vsWhitespaceOptions.vsWhitespaceOptionsVertical }, editor.DeleteWhitespaceCalls);
-        });
-    }
+                                                                                                                           Assert.AreSequenceEqual(new[] { "0:" + vsWhitespaceOptions.vsWhitespaceOptionsVertical }, editor.DeleteWhitespaceCalls);
+                                                                                                                       });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAtTop_LeavesTheDocument_WhenDisabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_RemoveBlankLinesAtTop = false;
-            using FakeTextEditor editor = NewEditor(Crlf + "text");
+    public void Editor_RemoveBlankLinesAtTop_LeavesTheDocument_WhenDisabled() => RunOnVisualStudioUIThread(() =>
+                                                                                      {
+                                                                                          Settings.Default.Cleaning_RemoveBlankLinesAtTop = false;
+                                                                                          using FakeTextEditor editor = NewEditor(Crlf + "text");
 
-            Logic.RemoveBlankLinesAtTop(editor.TextDocument, Effective());
+                                                                                          Logic.RemoveBlankLinesAtTop(editor.TextDocument, Effective());
 
-            Assert.IsEmpty(editor.DeleteWhitespaceCalls);
-        });
-    }
+                                                                                          Assert.IsEmpty(editor.DeleteWhitespaceCalls);
+                                                                                      });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAtBottom_DeletesTheVerticalWhitespaceAtTheEndOfTheDocument_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            string text = "text" + Crlf + Crlf;
-            using FakeTextEditor editor = NewEditor(text);
+    public void Editor_RemoveBlankLinesAtBottom_DeletesTheVerticalWhitespaceAtTheEndOfTheDocument_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                        {
+                                                                                                                            string text = "text" + Crlf + Crlf;
+                                                                                                                            using FakeTextEditor editor = NewEditor(text);
 
-            Logic.RemoveBlankLinesAtBottom(editor.TextDocument, Effective());
+                                                                                                                            Logic.RemoveBlankLinesAtBottom(editor.TextDocument, Effective());
 
-            CollectionAssert.AreEqual(new[] { text.Length + ":" + vsWhitespaceOptions.vsWhitespaceOptionsVertical }, editor.DeleteWhitespaceCalls);
-        });
-    }
+                                                                                                                            Assert.AreSequenceEqual(new[] { text.Length + ":" + vsWhitespaceOptions.vsWhitespaceOptionsVertical }, editor.DeleteWhitespaceCalls);
+                                                                                                                        });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAtBottom_LeavesTheDocument_WhenDisabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_RemoveBlankLinesAtBottom = false;
-            using FakeTextEditor editor = NewEditor("text" + Crlf);
+    public void Editor_RemoveBlankLinesAtBottom_LeavesTheDocument_WhenDisabled() => RunOnVisualStudioUIThread(() =>
+                                                                                         {
+                                                                                             Settings.Default.Cleaning_RemoveBlankLinesAtBottom = false;
+                                                                                             using FakeTextEditor editor = NewEditor("text" + Crlf);
 
-            Logic.RemoveBlankLinesAtBottom(editor.TextDocument, Effective());
+                                                                                             Logic.RemoveBlankLinesAtBottom(editor.TextDocument, Effective());
 
-            Assert.IsEmpty(editor.DeleteWhitespaceCalls);
-        });
-    }
+                                                                                             Assert.IsEmpty(editor.DeleteWhitespaceCalls);
+                                                                                         });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAfterAttributes_RemovesTheBlankLineAfterTheAttribute_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "[Serializable]", "", "public class C { }", "", "[Obsolete] // note", "", "int _p;", "[A]", "", "// comment", "int _q;"));
+    public void Editor_RemoveBlankLinesAfterAttributes_RemovesTheBlankLineAfterTheAttribute_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                  {
+                                                                                                                      using FakeTextEditor editor = NewEditor(Source(Crlf, "[Serializable]", "", "public class C { }", "", "[Obsolete] // note", "", "int _p;", "[A]", "", "// comment", "int _q;"));
 
-            Logic.RemoveBlankLinesAfterAttributes(editor.TextDocument, Effective());
+                                                                                                                      Logic.RemoveBlankLinesAfterAttributes(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "[Serializable]", "public class C { }", "", "[Obsolete] // note", "int _p;", "[A]", "", "// comment", "int _q;"), editor.Text);
-        });
-    }
+                                                                                                                      Assert.AreEqual(Source(Crlf, "[Serializable]", "public class C { }", "", "[Obsolete] // note", "int _p;", "[A]", "", "// comment", "int _q;"), editor.Text);
+                                                                                                                  });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAfterAttributes_RemovesSeveralBlankLines_InOnePass()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "[Serializable]", "", "", "", "public class C { }"));
+    public void Editor_RemoveBlankLinesAfterAttributes_RemovesSeveralBlankLines_InOnePass() => RunOnVisualStudioUIThread(() =>
+                                                                                                    {
+                                                                                                        using FakeTextEditor editor = NewEditor(Source(Crlf, "[Serializable]", "", "", "", "public class C { }"));
 
-            Logic.RemoveBlankLinesAfterAttributes(editor.TextDocument, Effective());
+                                                                                                        Logic.RemoveBlankLinesAfterAttributes(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "[Serializable]", "public class C { }"), editor.Text);
-        });
-    }
+                                                                                                        Assert.AreEqual(Source(Crlf, "[Serializable]", "public class C { }"), editor.Text);
+                                                                                                    });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAfterAttributes_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterAttributes), Source(Crlf, "[Serializable]", "", "public class C { }"), (logic, document, settings) => logic.RemoveBlankLinesAfterAttributes(document, settings));
-    }
+    public void Editor_RemoveBlankLinesAfterAttributes_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterAttributes), Source(Crlf, "[Serializable]", "", "public class C { }"), (logic, document, settings) => logic.RemoveBlankLinesAfterAttributes(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAfterDocumentationComments_UsesTheDocumentationCommentPatternOfTheLanguage()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor csharp = NewEditor(Source(Crlf, "/// <summary>A</summary>", "", "", "public class C { }", "//// not documentation", "", "int _x;"));
+    public void Editor_RemoveBlankLinesAfterDocumentationComments_UsesTheDocumentationCommentPatternOfTheLanguage() => RunOnVisualStudioUIThread(() =>
+                                                                                                                            {
+                                                                                                                                using FakeTextEditor csharp = NewEditor(Source(Crlf, "/// <summary>A</summary>", "", "", "public class C { }", "//// not documentation", "", "int _x;"));
 
-            Logic.RemoveBlankLinesAfterDocumentationComments(csharp.TextDocument, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern);
+                                                                                                                                Logic.RemoveBlankLinesAfterDocumentationComments(csharp.TextDocument, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern);
 
-            Assert.AreEqual(Source(Crlf, "/// <summary>A</summary>", "public class C { }", "//// not documentation", "", "int _x;"), csharp.Text);
+                                                                                                                                Assert.AreEqual(Source(Crlf, "/// <summary>A</summary>", "public class C { }", "//// not documentation", "", "int _x;"), csharp.Text);
 
-            using FakeTextEditor basic = NewEditor(Source(Crlf, "''' <summary>A</summary>", "", "Public Class C", "End Class"));
+                                                                                                                                using FakeTextEditor basic = NewEditor(Source(Crlf, "''' <summary>A</summary>", "", "Public Class C", "End Class"));
 
-            Logic.RemoveBlankLinesAfterDocumentationComments(basic.TextDocument, RemoveWhitespaceLogic.BlankLinesAfterVisualBasicDocumentationCommentPattern);
+                                                                                                                                Logic.RemoveBlankLinesAfterDocumentationComments(basic.TextDocument, RemoveWhitespaceLogic.BlankLinesAfterVisualBasicDocumentationCommentPattern);
 
-            Assert.AreEqual(Source(Crlf, "''' <summary>A</summary>", "Public Class C", "End Class"), basic.Text);
-        });
-    }
+                                                                                                                                Assert.AreEqual(Source(Crlf, "''' <summary>A</summary>", "Public Class C", "End Class"), basic.Text);
+                                                                                                                            });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAfterOpeningBrace_RemovesTheBlankLines_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "class C", "{", "", "", "    void M() { // open", "", "        var x = new[] { 1,", "", "            2 };", "    }", "}"));
+    public void Editor_RemoveBlankLinesAfterOpeningBrace_RemovesTheBlankLines_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                    {
+                                                                                                        using FakeTextEditor editor = NewEditor(Source(Crlf, "class C", "{", "", "", "    void M() { // open", "", "        var x = new[] { 1,", "", "            2 };", "    }", "}"));
+                                                                                                        Logic.RemoveBlankLinesAfterOpeningBrace(editor.TextDocument, Effective());
 
-            Logic.RemoveBlankLinesAfterOpeningBrace(editor.TextDocument, Effective());
-
-            Assert.AreEqual(Source(Crlf, "class C", "{", "    void M() { // open", "        var x = new[] { 1,", "", "            2 };", "    }", "}"), editor.Text);
-        });
-    }
+                                                                                                        Assert.AreEqual(Source(Crlf, "class C", "{", "    void M() { // open", "        var x = new[] { 1,", "", "            2 };", "    }", "}"), editor.Text);
+                                                                                                    });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesAfterOpeningBrace_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterOpeningBrace), Source(Crlf, "class C", "{", "", "    int _x;", "}"), (logic, document, settings) => logic.RemoveBlankLinesAfterOpeningBrace(document, settings));
-    }
+    public void Editor_RemoveBlankLinesAfterOpeningBrace_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesAfterOpeningBrace), Source(Crlf, "class C", "{", "", "    int _x;", "}"), (logic, document, settings) => logic.RemoveBlankLinesAfterOpeningBrace(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesBeforeClosingBrace_RemovesTheBlankLines_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "class C", "{", "    void M()", "    {", "        var x = 1;", "", "    }", "", "", "}"));
+    public void Editor_RemoveBlankLinesBeforeClosingBrace_RemovesTheBlankLines_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                     {
+                                                                                                         using FakeTextEditor editor = NewEditor(Source(Crlf, "class C", "{", "    void M()", "    {", "        var x = 1;", "", "    }", "", "", "}"));
 
-            Logic.RemoveBlankLinesBeforeClosingBrace(editor.TextDocument, Effective());
+                                                                                                         Logic.RemoveBlankLinesBeforeClosingBrace(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "class C", "{", "    void M()", "    {", "        var x = 1;", "    }", "}"), editor.Text);
-        });
-    }
+                                                                                                         Assert.AreEqual(Source(Crlf, "class C", "{", "    void M()", "    {", "        var x = 1;", "    }", "}"), editor.Text);
+                                                                                                     });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesBeforeClosingBrace_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingBrace), Source(Crlf, "class C", "{", "    int _x;", "", "}"), (logic, document, settings) => logic.RemoveBlankLinesBeforeClosingBrace(document, settings));
-    }
+    public void Editor_RemoveBlankLinesBeforeClosingBrace_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingBrace), Source(Crlf, "class C", "{", "    int _x;", "", "}"), (logic, document, settings) => logic.RemoveBlankLinesBeforeClosingBrace(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesBetweenChainedStatements_RemovesTheBlankLinesBeforeElseCatchAndFinally_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "if (a)", "{", "}", "", "else", "{", "}", "", "try", "{", "}", "", "", "catch (Exception)", "{", "}", "", "finally", "{", "}", "", "elsewhere();"));
+    public void Editor_RemoveBlankLinesBetweenChainedStatements_RemovesTheBlankLinesBeforeElseCatchAndFinally_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                                    {
+                                                                                                                                        using FakeTextEditor editor = NewEditor(Source(Crlf, "if (a)", "{", "}", "", "else", "{", "}", "", "try", "{", "}", "", "", "catch (Exception)", "{", "}", "", "finally", "{", "}", "", "elsewhere();"));
 
-            Logic.RemoveBlankLinesBetweenChainedStatements(editor.TextDocument, Effective());
+                                                                                                                                        Logic.RemoveBlankLinesBetweenChainedStatements(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "if (a)", "{", "}", "else", "{", "}", "", "try", "{", "}", "catch (Exception)", "{", "}", "finally", "{", "}", "", "elsewhere();"), editor.Text);
-        });
-    }
+                                                                                                                                        Assert.AreEqual(Source(Crlf, "if (a)", "{", "}", "else", "{", "}", "", "try", "{", "}", "catch (Exception)", "{", "}", "finally", "{", "}", "", "elsewhere();"), editor.Text);
+                                                                                                                                    });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesBetweenChainedStatements_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesBetweenChainedStatements), Source(Crlf, "if (a)", "{", "}", "", "else", "{", "}"), (logic, document, settings) => logic.RemoveBlankLinesBetweenChainedStatements(document, settings));
-    }
+    public void Editor_RemoveBlankLinesBetweenChainedStatements_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesBetweenChainedStatements), Source(Crlf, "if (a)", "{", "}", "", "else", "{", "}"), (logic, document, settings) => logic.RemoveBlankLinesBetweenChainedStatements(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveEOLWhitespace_RemovesTrailingSpacesAndTabs_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor("class C  " + Crlf + "{\t" + Crlf + "    int _x; // note \t" + Crlf + "\t" + Crlf + "}   ");
+    public void Editor_RemoveEOLWhitespace_RemovesTrailingSpacesAndTabs_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                              {
+                                                                                                  using FakeTextEditor editor = NewEditor("class C  " + Crlf + "{\t" + Crlf + "    int _x; // note \t" + Crlf + "\t" + Crlf + "}   ");
 
-            Logic.RemoveEOLWhitespace(editor.TextDocument, Effective());
+                                                                                                  Logic.RemoveEOLWhitespace(editor.TextDocument, Effective());
 
-            Assert.AreEqual("class C" + Crlf + "{" + Crlf + "    int _x; // note" + Crlf + "" + Crlf + "}   ", editor.Text, "Whitespace after the last line break has no line end to precede.");
-        });
-    }
+                                                                                                  Assert.AreEqual("class C" + Crlf + "{" + Crlf + "    int _x; // note" + Crlf + "" + Crlf + "}   ", editor.Text, "Whitespace after the last line break has no line end to precede.");
+                                                                                              });
 
     [TestMethod]
-    public void Editor_RemoveEOLWhitespace_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveEndOfLineWhitespace), "class C  " + Crlf + "{\t" + Crlf + "}", (logic, document, settings) => logic.RemoveEOLWhitespace(document, settings));
-    }
+    public void Editor_RemoveEOLWhitespace_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveEndOfLineWhitespace), "class C  " + Crlf + "{\t" + Crlf + "}", (logic, document, settings) => logic.RemoveEOLWhitespace(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveEOLWhitespace_IsDisabledByEditorConfigTrimTrailingWhitespaceFalse_OverTheUserSetting()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            WriteEditorConfig("trim_trailing_whitespace = false");
-            using FakeTextEditor editor = NewEditor("class C  " + Crlf + "{" + Crlf + "}" + Crlf);
+    public void Editor_RemoveEOLWhitespace_IsDisabledByEditorConfigTrimTrailingWhitespaceFalse_OverTheUserSetting() => RunOnVisualStudioUIThread(() =>
+                                                                                                                            {
+                                                                                                                                WriteEditorConfig("trim_trailing_whitespace = false");
+                                                                                                                                using FakeTextEditor editor = NewEditor("class C  " + Crlf + "{" + Crlf + "}" + Crlf);
 
-            Logic.RemoveEOLWhitespace(editor.TextDocument, Effective());
+                                                                                                                                Logic.RemoveEOLWhitespace(editor.TextDocument, Effective());
 
-            Assert.AreEqual("class C  " + Crlf + "{" + Crlf + "}" + Crlf, editor.Text);
-        });
-    }
+                                                                                                                                Assert.AreEqual("class C  " + Crlf + "{" + Crlf + "}" + Crlf, editor.Text);
+                                                                                                                            });
 
     [TestMethod]
-    public void Editor_RemoveMultipleConsecutiveBlankLines_KeepsASingleBlankLine_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "a", "", "b", "", "", "", "", "c", "d"));
+    public void Editor_RemoveMultipleConsecutiveBlankLines_KeepsASingleBlankLine_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                       {
+                                                                                                           using FakeTextEditor editor = NewEditor(Source(Crlf, "a", "", "b", "", "", "", "", "c", "d"));
 
-            Logic.RemoveMultipleConsecutiveBlankLines(editor.TextDocument, Effective());
+                                                                                                           Logic.RemoveMultipleConsecutiveBlankLines(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "a", "", "b", "", "c", "d"), editor.Text);
-        });
-    }
+                                                                                                           Assert.AreEqual(Source(Crlf, "a", "", "b", "", "c", "d"), editor.Text);
+                                                                                                       });
 
     [TestMethod]
-    public void Editor_RemoveMultipleConsecutiveBlankLines_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveMultipleConsecutiveBlankLines), Source(Crlf, "a", "", "", "", "b"), (logic, document, settings) => logic.RemoveMultipleConsecutiveBlankLines(document, settings));
-    }
+    public void Editor_RemoveMultipleConsecutiveBlankLines_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveMultipleConsecutiveBlankLines), Source(Crlf, "a", "", "", "", "b"), (logic, document, settings) => logic.RemoveMultipleConsecutiveBlankLines(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveMultipleConsecutiveBlankLines_TreatsWhitespaceOnlyLinesAsContent()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            string text = Source(Crlf, "a", "  ", "", "", "b");
-            using FakeTextEditor editor = NewEditor(text);
+    public void Editor_RemoveMultipleConsecutiveBlankLines_TreatsWhitespaceOnlyLinesAsContent() => RunOnVisualStudioUIThread(() =>
+                                                                                                        {
+                                                                                                            string text = Source(Crlf, "a", "  ", "", "", "b");
+                                                                                                            using FakeTextEditor editor = NewEditor(text);
 
-            Logic.RemoveMultipleConsecutiveBlankLines(editor.TextDocument, Effective());
+                                                                                                            Logic.RemoveMultipleConsecutiveBlankLines(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "a", "  ", "", "b"), editor.Text);
-        });
-    }
+                                                                                                            Assert.AreEqual(Source(Crlf, "a", "  ", "", "b"), editor.Text);
+                                                                                                        });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesBeforeClosingTag_RemovesTheBlankLines_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "<root>", "  <a>", "", "    text", "", "", "  </a>", "", "</root>"));
+    public void Editor_RemoveBlankLinesBeforeClosingTag_RemovesTheBlankLines_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                   {
+                                                                                                       using FakeTextEditor editor = NewEditor(Source(Crlf, "<root>", "  <a>", "", "    text", "", "", "  </a>", "", "</root>"));
 
-            Logic.RemoveBlankLinesBeforeClosingTag(editor.TextDocument, Effective());
+                                                                                                       Logic.RemoveBlankLinesBeforeClosingTag(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "<root>", "  <a>", "", "    text", "  </a>", "</root>"), editor.Text);
-        });
-    }
+                                                                                                       Assert.AreEqual(Source(Crlf, "<root>", "  <a>", "", "    text", "  </a>", "</root>"), editor.Text);
+                                                                                                   });
 
     [TestMethod]
-    public void Editor_RemoveBlankLinesBeforeClosingTag_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingTags), Source(Crlf, "<root>", "  <a>", "", "  </a>", "", "</root>"), (logic, document, settings) => logic.RemoveBlankLinesBeforeClosingTag(document, settings));
-    }
+    public void Editor_RemoveBlankLinesBeforeClosingTag_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankLinesBeforeClosingTags), Source(Crlf, "<root>", "  <a>", "", "  </a>", "", "</root>"), (logic, document, settings) => logic.RemoveBlankLinesBeforeClosingTag(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_MovesTheBracketToTheEndOfTheAttributes_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "<a", "    b=\"1\"", "    >", "  text", "</a>"));
+    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_MovesTheBracketToTheEndOfTheAttributes_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                               {
+                                                                                                                                   using FakeTextEditor editor = NewEditor(Source(Crlf, "<a", "    b=\"1\"", "    >", "  text", "</a>"));
 
-            Logic.RemoveBlankSpacesBeforeClosingAngleBracket(editor.TextDocument, Effective());
+                                                                                                                                   Logic.RemoveBlankSpacesBeforeClosingAngleBracket(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "<a", "    b=\"1\">", "  text", "</a>"), editor.Text);
-        });
-    }
+                                                                                                                                   Assert.AreEqual(Source(Crlf, "<a", "    b=\"1\">", "  text", "</a>"), editor.Text);
+                                                                                                                               });
 
     [TestMethod]
-    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_LeavesTheDocument_WhenDisabled()
-    {
-        AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets), Source(Crlf, "<a", "    b=\"1\"", "    >", "<b x=\"1\"   />"), (logic, document, settings) => logic.RemoveBlankSpacesBeforeClosingAngleBracket(document, settings));
-    }
+    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_LeavesTheDocument_WhenDisabled() => AssertUnchangedWhenDisabled(nameof(Settings.Cleaning_RemoveBlankSpacesBeforeClosingAngleBrackets), Source(Crlf, "<a", "    b=\"1\"", "    >", "<b x=\"1\"   />"), (logic, document, settings) => logic.RemoveBlankSpacesBeforeClosingAngleBracket(document, settings));
 
     [TestMethod]
-    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_CollapsesTheSpacesBeforeASelfClosingBracketToOne_WhenSelfClosingSpaceIsEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = true;
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "<b x=\"1\"   />", "<c x=\"1\" />", "<d x=\"1\"/>", "<e />"));
+    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_CollapsesTheSpacesBeforeASelfClosingBracketToOne_WhenSelfClosingSpaceIsEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                                                           {
+                                                                                                                                                               Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = true;
+                                                                                                                                                               using FakeTextEditor editor = NewEditor(Source(Crlf, "<b x=\"1\"   />", "<c x=\"1\" />", "<d x=\"1\"/>", "<e />"));
 
-            Logic.RemoveBlankSpacesBeforeClosingAngleBracket(editor.TextDocument, Effective());
+                                                                                                                                                               Logic.RemoveBlankSpacesBeforeClosingAngleBracket(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "<b x=\"1\" />", "<c x=\"1\" />", "<d x=\"1\"/>", "<e />"), editor.Text);
-        });
-    }
+                                                                                                                                                               Assert.AreEqual(Source(Crlf, "<b x=\"1\" />", "<c x=\"1\" />", "<d x=\"1\"/>", "<e />"), editor.Text);
+                                                                                                                                                           });
 
     [TestMethod]
-    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_RemovesTheSpacesBeforeASelfClosingBracket_WhenSelfClosingSpaceIsDisabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = false;
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "<b x=\"1\"   />", "<c x=\"1\" />", "<d x=\"1\"/>", "<e />"));
+    public void Editor_RemoveBlankSpacesBeforeClosingAngleBracket_RemovesTheSpacesBeforeASelfClosingBracket_WhenSelfClosingSpaceIsDisabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                                                     {
+                                                                                                                                                         Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = false;
+                                                                                                                                                         using FakeTextEditor editor = NewEditor(Source(Crlf, "<b x=\"1\"   />", "<c x=\"1\" />", "<d x=\"1\"/>", "<e />"));
 
-            Logic.RemoveBlankSpacesBeforeClosingAngleBracket(editor.TextDocument, Effective());
+                                                                                                                                                         Logic.RemoveBlankSpacesBeforeClosingAngleBracket(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "<b x=\"1\"/>", "<c x=\"1\"/>", "<d x=\"1\"/>", "<e/>"), editor.Text);
-        });
-    }
+                                                                                                                                                         Assert.AreEqual(Source(Crlf, "<b x=\"1\"/>", "<c x=\"1\"/>", "<d x=\"1\"/>", "<e/>"), editor.Text);
+                                                                                                                                                     });
 
     [TestMethod]
-    public void Editor_RemovalSteps_KeepTheLfLineEndingsOfAnLfDocument()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            (string Name, string Text, string Expected, Action<TextDocument, EffectiveCleanupSettings> Step)[] cases =
-            {
+    public void Editor_RemovalSteps_KeepTheLfLineEndingsOfAnLfDocument() => RunOnVisualStudioUIThread(() =>
+                                                                                 {
+                                                                                     (string Name, string Text, string Expected, Action<TextDocument, EffectiveCleanupSettings> Step)[] cases =
+                                                                                     {
                 ("after documentation comments", "/// <summary>A</summary>\n\nclass C { }\n", "/// <summary>A</summary>\nclass C { }\n", (d, s) => Logic.RemoveBlankLinesAfterDocumentationComments(d, RemoveWhitespaceLogic.BlankLinesAfterDocumentationCommentPattern)),
                 ("after attributes", "[A]\n\nclass C { }\n", "[A]\nclass C { }\n", (d, s) => Logic.RemoveBlankLinesAfterAttributes(d, s)),
                 ("after opening brace", "{\n\nint x;\n}\n", "{\nint x;\n}\n", (d, s) => Logic.RemoveBlankLinesAfterOpeningBrace(d, s)),
@@ -751,46 +658,39 @@ public sealed class WhitespaceStepCleanupTests
                 ("multiple blank lines", "a\n\n\n\nb\n", "a\n\nb\n", (d, s) => Logic.RemoveMultipleConsecutiveBlankLines(d, s)),
                 ("before closing tags", "<a>\n\n</a>\n", "<a>\n</a>\n", (d, s) => Logic.RemoveBlankLinesBeforeClosingTag(d, s)),
                 ("before closing angle brackets", "<a\n  b=\"1\"\n  >\n", "<a\n  b=\"1\">\n", (d, s) => Logic.RemoveBlankSpacesBeforeClosingAngleBracket(d, s)),
-            };
+                                                                                     };
 
-            foreach ((string name, string text, string expected, Action<TextDocument, EffectiveCleanupSettings> step) in cases)
-            {
-                using FakeTextEditor editor = NewEditor(text);
+                                                                                     foreach ((string name, string text, string expected, Action<TextDocument, EffectiveCleanupSettings> step) in cases)
+                                                                                     {
+                                                                                         using FakeTextEditor editor = NewEditor(text);
 
-                step(editor.TextDocument, Effective());
+                                                                                         step(editor.TextDocument, Effective());
 
-                Assert.AreEqual(expected, editor.Text, name);
-            }
-        });
-    }
-
-    [TestMethod]
-    public void Editor_InsertBlankSpaceBeforeSelfClosingAngleBracket_InsertsOneSpace_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = true;
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "<a/>", "<b x=\"1\"/>", "<c x=\"1\" />", "<d x=\"1\"\t/>"));
-
-            InsertLogic.InsertBlankSpaceBeforeSelfClosingAngleBracket(editor.TextDocument, Effective());
-
-            Assert.AreEqual(Source(Crlf, "<a />", "<b x=\"1\" />", "<c x=\"1\" />", "<d x=\"1\"\t/>"), editor.Text);
-        });
-    }
+                                                                                         Assert.AreEqual(expected, editor.Text, name);
+                                                                                     }
+                                                                                 });
 
     [TestMethod]
-    public void Editor_InsertBlankSpaceBeforeSelfClosingAngleBracket_LeavesTheDocument_WhenDisabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = false;
-            using FakeTextEditor editor = NewEditor(Source(Crlf, "<a/>", "<b x=\"1\"/>"));
+    public void Editor_InsertBlankSpaceBeforeSelfClosingAngleBracket_InsertsOneSpace_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                           {
+                                                                                                               Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = true;
+                                                                                                               using FakeTextEditor editor = NewEditor(Source(Crlf, "<a/>", "<b x=\"1\"/>", "<c x=\"1\" />", "<d x=\"1\"\t/>"));
 
-            InsertLogic.InsertBlankSpaceBeforeSelfClosingAngleBracket(editor.TextDocument, Effective());
+                                                                                                               InsertLogic.InsertBlankSpaceBeforeSelfClosingAngleBracket(editor.TextDocument, Effective());
 
-            Assert.AreEqual(Source(Crlf, "<a/>", "<b x=\"1\"/>"), editor.Text);
-        });
-    }
+                                                                                                               Assert.AreEqual(Source(Crlf, "<a />", "<b x=\"1\" />", "<c x=\"1\" />", "<d x=\"1\"\t/>"), editor.Text);
+                                                                                                           });
+
+    [TestMethod]
+    public void Editor_InsertBlankSpaceBeforeSelfClosingAngleBracket_LeavesTheDocument_WhenDisabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                              {
+                                                                                                                  Settings.Default.Cleaning_InsertBlankSpaceBeforeSelfClosingAngleBrackets = false;
+                                                                                                                  using FakeTextEditor editor = NewEditor(Source(Crlf, "<a/>", "<b x=\"1\"/>"));
+
+                                                                                                                  InsertLogic.InsertBlankSpaceBeforeSelfClosingAngleBracket(editor.TextDocument, Effective());
+
+                                                                                                                  Assert.AreEqual(Source(Crlf, "<a/>", "<b x=\"1\"/>"), editor.Text);
+                                                                                                              });
 
     // ---------------------------------------------------------------------------------------------------------------
     // Editor pipeline: final newline
@@ -801,133 +701,109 @@ public sealed class WhitespaceStepCleanupTests
     [DataRow("text\r\n", "text\r\n")]
     [DataRow("text\r\n\r\n", "text\r\n\r\n")]
     [DataRow("", "")]
-    public void Editor_InsertEOFTrailingNewLine_EndsTheDocumentWithALineBreak(string text, string expected)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor(text);
+    public void Editor_InsertEOFTrailingNewLine_EndsTheDocumentWithALineBreak(string text, string expected) => RunOnVisualStudioUIThread(() =>
+                                                                                                                    {
+                                                                                                                        using FakeTextEditor editor = NewEditor(text);
 
-            InsertLogic.InsertEOFTrailingNewLine(editor.TextDocument, Effective());
+                                                                                                                        InsertLogic.InsertEOFTrailingNewLine(editor.TextDocument, Effective());
 
-            Assert.AreEqual(expected, editor.Text);
-        });
-    }
+                                                                                                                        Assert.AreEqual(expected, editor.Text);
+                                                                                                                    });
 
     [TestMethod]
-    public void Editor_InsertEOFTrailingNewLine_LeavesTheDocument_WhenEditorConfigInsertFinalNewlineIsFalse()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            WriteEditorConfig("insert_final_newline = false");
-            using FakeTextEditor editor = NewEditor("text");
+    public void Editor_InsertEOFTrailingNewLine_LeavesTheDocument_WhenEditorConfigInsertFinalNewlineIsFalse() => RunOnVisualStudioUIThread(() =>
+                                                                                                                      {
+                                                                                                                          WriteEditorConfig("insert_final_newline = false");
+                                                                                                                          using FakeTextEditor editor = NewEditor("text");
 
-            InsertLogic.InsertEOFTrailingNewLine(editor.TextDocument, Effective());
+                                                                                                                          InsertLogic.InsertEOFTrailingNewLine(editor.TextDocument, Effective());
 
-            Assert.AreEqual("text", editor.Text);
-        });
-    }
+                                                                                                                          Assert.AreEqual("text", editor.Text);
+                                                                                                                      });
 
     [TestMethod]
     [DataRow("text\r\n", "text")]
     [DataRow("text\r\n\r\n  \r\n", "text")]
     [DataRow("text", "text")]
     [DataRow("", "")]
-    public void Editor_RemoveEOFTrailingNewLine_RemovesTheFinalLineBreaks_WhenEditorConfigInsertFinalNewlineIsFalse(string text, string expected)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            WriteEditorConfig("insert_final_newline = false");
-            using FakeTextEditor editor = NewEditor(text);
+    public void Editor_RemoveEOFTrailingNewLine_RemovesTheFinalLineBreaks_WhenEditorConfigInsertFinalNewlineIsFalse(string text, string expected) => RunOnVisualStudioUIThread(() =>
+                                                                                                                                                          {
+                                                                                                                                                              WriteEditorConfig("insert_final_newline = false");
+                                                                                                                                                              using FakeTextEditor editor = NewEditor(text);
 
-            Logic.RemoveEOFTrailingNewLine(editor.TextDocument, Effective());
+                                                                                                                                                              Logic.RemoveEOFTrailingNewLine(editor.TextDocument, Effective());
 
-            Assert.AreEqual(expected, editor.Text);
-        });
-    }
+                                                                                                                                                              Assert.AreEqual(expected, editor.Text);
+                                                                                                                                                          });
 
     [TestMethod]
-    public void Editor_RemoveEOFTrailingNewLine_LeavesTheDocument_WhenTheFinalNewlineIsRequired()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            using FakeTextEditor editor = NewEditor("text\r\n\r\n");
+    public void Editor_RemoveEOFTrailingNewLine_LeavesTheDocument_WhenTheFinalNewlineIsRequired() => RunOnVisualStudioUIThread(() =>
+                                                                                                          {
+                                                                                                              using FakeTextEditor editor = NewEditor("text\r\n\r\n");
 
-            Logic.RemoveEOFTrailingNewLine(editor.TextDocument, Effective());
+                                                                                                              Logic.RemoveEOFTrailingNewLine(editor.TextDocument, Effective());
 
-            Assert.AreEqual("text\r\n\r\n", editor.Text);
-        });
-    }
+                                                                                                              Assert.AreEqual("text\r\n\r\n", editor.Text);
+                                                                                                          });
 
     // ---------------------------------------------------------------------------------------------------------------
     // Padding between the accessors of a multi-line property
     // ---------------------------------------------------------------------------------------------------------------
 
     [TestMethod]
-    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_SeparatesMultiLineAccessors_WhenEnabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = true;
-            using FakeTextEditor editor = NewEditor(MultiLineAccessorsSource);
-            CodeItemProperty property = Property(editor, getter: (5, 8), setter: (9, 12));
+    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_SeparatesMultiLineAccessors_WhenEnabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                        {
+                                                                                                                            Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = true;
+                                                                                                                            using FakeTextEditor editor = NewEditor(MultiLineAccessorsSource);
+                                                                                                                            CodeItemProperty property = Property(editor, getter: (5, 8), setter: (9, 12));
 
-            PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { property }, Effective());
+                                                                                                                            PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { property }, Effective());
 
-            Assert.AreEqual(
-                Source(Crlf, "public class C", "{", "    public int P", "    {", "        get", "        {", "            return _p;", "        }", "", "        set", "        {", "            _p = value;", "        }", "    }", "}"),
-                editor.Text);
-        });
-    }
+                                                                                                                            Assert.AreEqual(
+                                                                                                                                Source(Crlf, "public class C", "{", "    public int P", "    {", "        get", "        {", "            return _p;", "        }", "", "        set", "        {", "            _p = value;", "        }", "    }", "}"),
+                                                                                                                                editor.Text);
+                                                                                                                        });
 
     [TestMethod]
-    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_LeavesTheAccessors_WhenDisabled()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = false;
-            using FakeTextEditor editor = NewEditor(MultiLineAccessorsSource);
-            CodeItemProperty property = Property(editor, getter: (5, 8), setter: (9, 12));
+    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_LeavesTheAccessors_WhenDisabled() => RunOnVisualStudioUIThread(() =>
+                                                                                                                {
+                                                                                                                    Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = false;
+                                                                                                                    using FakeTextEditor editor = NewEditor(MultiLineAccessorsSource);
+                                                                                                                    CodeItemProperty property = Property(editor, getter: (5, 8), setter: (9, 12));
 
-            PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { property }, Effective());
+                                                                                                                    PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { property }, Effective());
 
-            Assert.AreEqual(MultiLineAccessorsSource, editor.Text);
-        });
-    }
+                                                                                                                    Assert.AreEqual(MultiLineAccessorsSource, editor.Text);
+                                                                                                                });
 
     [TestMethod]
-    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_LeavesSingleLineAccessorsAndAccessorlessPropertiesAlone()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = true;
-            string singleLine = Source(Crlf, "public class C", "{", "    public int P", "    {", "        get { return _p; }", "        set { _p = value; }", "    }", "}");
-            using FakeTextEditor editor = NewEditor(singleLine);
-            CodeItemProperty singleLineProperty = Property(editor, getter: (5, 5), setter: (6, 6));
-            CodeItemProperty getterOnly = Property(editor, getter: (5, 5), setter: null);
+    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_LeavesSingleLineAccessorsAndAccessorlessPropertiesAlone() => RunOnVisualStudioUIThread(() =>
+                                                                                                                                        {
+                                                                                                                                            Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = true;
+                                                                                                                                            string singleLine = Source(Crlf, "public class C", "{", "    public int P", "    {", "        get { return _p; }", "        set { _p = value; }", "    }", "}");
+                                                                                                                                            using FakeTextEditor editor = NewEditor(singleLine);
+                                                                                                                                            CodeItemProperty singleLineProperty = Property(editor, getter: (5, 5), setter: (6, 6));
+                                                                                                                                            CodeItemProperty getterOnly = Property(editor, getter: (5, 5), setter: null);
 
-            PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { singleLineProperty, getterOnly }, Effective());
+                                                                                                                                            PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { singleLineProperty, getterOnly }, Effective());
 
-            Assert.AreEqual(singleLine, editor.Text);
-        });
-    }
+                                                                                                                                            Assert.AreEqual(singleLine, editor.Text);
+                                                                                                                                        });
 
     [TestMethod]
-    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_SeparatesTheAccessors_WhenOnlyTheSetterIsMultiLine()
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = true;
-            string text = Source(Crlf, "public class C", "{", "    public int P", "    {", "        get { return _p; }", "        set", "        {", "            _p = value;", "        }", "    }", "}");
-            using FakeTextEditor editor = NewEditor(text);
-            CodeItemProperty property = Property(editor, getter: (5, 5), setter: (6, 9));
+    public void Editor_InsertPaddingBetweenMultiLinePropertyAccessors_SeparatesTheAccessors_WhenOnlyTheSetterIsMultiLine() => RunOnVisualStudioUIThread(() =>
+                                                                                                                                   {
+                                                                                                                                       Settings.Default.Cleaning_InsertBlankLinePaddingBetweenPropertiesMultiLineAccessors = true;
+                                                                                                                                       string text = Source(Crlf, "public class C", "{", "    public int P", "    {", "        get { return _p; }", "        set", "        {", "            _p = value;", "        }", "    }", "}");
+                                                                                                                                       using FakeTextEditor editor = NewEditor(text);
+                                                                                                                                       CodeItemProperty property = Property(editor, getter: (5, 5), setter: (6, 9));
 
-            PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { property }, Effective());
+                                                                                                                                       PaddingLogic.InsertPaddingBetweenMultiLinePropertyAccessors(new[] { property }, Effective());
 
-            Assert.AreEqual(
-                Source(Crlf, "public class C", "{", "    public int P", "    {", "        get { return _p; }", "", "        set", "        {", "            _p = value;", "        }", "    }", "}"),
-                editor.Text);
-        });
-    }
+                                                                                                                                       Assert.AreEqual(
+                                                                                                                                           Source(Crlf, "public class C", "{", "    public int P", "    {", "        get { return _p; }", "", "        set", "        {", "            _p = value;", "        }", "    }", "}"),
+                                                                                                                                           editor.Text);
+                                                                                                                                   });
 
     // ---------------------------------------------------------------------------------------------------------------
     // Helpers
@@ -967,25 +843,20 @@ public sealed class WhitespaceStepCleanupTests
         return CodeCleanupManager.ApplyHeadlessCSharpTransformations(source, Path.Combine(_tempDirectory, "Sample.cs"));
     }
 
-    private void WriteEditorConfig(params string[] options)
-    {
-        File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true" + Crlf + Crlf + "[*]" + Crlf + string.Join(Crlf, options) + Crlf);
-    }
+    private void WriteEditorConfig(params string[] options) => File.WriteAllText(Path.Combine(_tempDirectory, ".editorconfig"), "root = true" + Crlf + Crlf + "[*]" + Crlf + string.Join(Crlf, options) + Crlf);
 
-    private void AssertUnchangedWhenDisabled(string settingName, string text, Action<RemoveWhitespaceLogic, TextDocument, EffectiveCleanupSettings> step)
-    {
-        RunOnVisualStudioUIThread(() =>
-        {
-            Settings.Default[settingName] = false;
-            using FakeTextEditor editor = NewEditor(text);
+    private void AssertUnchangedWhenDisabled(string settingName, string text, Action<RemoveWhitespaceLogic, TextDocument, EffectiveCleanupSettings> step) => RunOnVisualStudioUIThread(() =>
+                                                                                                                                                                  {
+                                                                                                                                                                      Settings.Default[settingName] = false;
+                                                                                                                                                                      using FakeTextEditor editor = NewEditor(text);
 
-            step(Logic, editor.TextDocument, Effective());
+                                                                                                                                                                      step(Logic, editor.TextDocument, Effective());
 
-            Assert.AreEqual(text, editor.Text);
-        });
-    }
+                                                                                                                                                                      Assert.AreEqual(text, editor.Text);
+                                                                                                                                                                  });
 
 #pragma warning disable VSTHRD010 // The substitutes stand in for Visual Studio's COM objects, which the test calls from its own thread.
+
     private static CodeItemProperty Property(FakeTextEditor editor, (int Start, int End) getter, (int Start, int End)? setter)
     {
         CodeProperty2 codeProperty = Substitute.For<CodeProperty2>();
@@ -1097,7 +968,7 @@ internal sealed class FakeTextEditor : IDisposable
     /// <summary>
     /// Gets the calls of <c>DeleteWhitespace</c>, each as the offset of the edit point and the direction.
     /// </summary>
-    public List<string> DeleteWhitespaceCalls { get; } = new List<string>();
+    public List<string> DeleteWhitespaceCalls { get; } = [];
 
     public TextPoint TextPointAtLineStart(int line) => TextPointAt(LineStart(line));
 
@@ -1113,6 +984,7 @@ internal sealed class FakeTextEditor : IDisposable
         point.CreateEditPoint().Returns(_ => EditPointAt(offset));
 
         _positions[point] = new[] { offset };
+
         return point;
     }
 
@@ -1188,4 +1060,5 @@ internal sealed class FakeTextEditor : IDisposable
         public int GetHashCode(object obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 }
+
 #pragma warning restore VSTHRD010

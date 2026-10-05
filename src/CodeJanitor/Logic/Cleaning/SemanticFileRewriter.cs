@@ -242,15 +242,9 @@ internal sealed class SemanticFileRewriter
         }
     }
 
-    private void WriteNotRewrittenWarning(string filePath, string reason)
-    {
-        OutputWindowHelper.WarningWriteLine($"{_notRewrittenWarning} in '{filePath}': {reason}");
-    }
+    private void WriteNotRewrittenWarning(string filePath, string reason) => OutputWindowHelper.WarningWriteLine($"{_notRewrittenWarning} in '{filePath}': {reason}");
 
-    private void WriteRewrittenInfo(string filePath)
-    {
-        OutputWindowHelper.InfoWriteLine($"{_rewrittenInfo} in '{filePath}'.");
-    }
+    private void WriteRewrittenInfo(string filePath) => OutputWindowHelper.InfoWriteLine($"{_rewrittenInfo} in '{filePath}'.");
 
     /// <summary>
     /// Runs the step on <paramref name="currentText" /> and returns the rewritten text, or null when the step changed

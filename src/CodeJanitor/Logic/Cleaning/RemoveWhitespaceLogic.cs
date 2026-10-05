@@ -3,7 +3,6 @@ using CodeJanitor.Logic.Transformations;
 using CodeJanitor.Properties;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
-using System;
 
 namespace CodeJanitor.Logic.Cleaning;
 

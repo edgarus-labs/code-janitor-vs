@@ -34,18 +34,15 @@ public sealed class ProgressViewModelTests
 
     [TestMethod]
     [TestCategory("UI UnitTests")]
-    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher()
-    {
-        RunOnVisualStudioUIThread(pump =>
-        {
-            CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
+    public void CleanupProgressViewModel_BatchCompletesOnTheJoinableTaskFactoryUiThread_WithoutPumpingTheDispatcher() => RunOnVisualStudioUIThread(pump =>
+                                                                                                                              {
+                                                                                                                                  CleanupProgressViewModel viewModel = new CleanupProgressViewModel(null, Array.Empty<object>());
 
-            bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
+                                                                                                                                  bool completed = pump.PumpUntil(() => viewModel.DialogResult is not null, PumpTimeout);
 
-            Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
-            Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
-        });
-    }
+                                                                                                                                  Assert.IsTrue(completed, "The batch must reach the UI thread through the joinable task factory, not a captured dispatcher.");
+                                                                                                                                  Assert.IsTrue(viewModel.DialogResult, "The batch must complete.");
+                                                                                                                              });
 
     [TestMethod]
     [TestCategory("UI UnitTests")]

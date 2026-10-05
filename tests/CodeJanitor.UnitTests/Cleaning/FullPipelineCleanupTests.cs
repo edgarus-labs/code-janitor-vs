@@ -489,8 +489,8 @@ public sealed class FullPipelineCleanupTests
     private static int CountSyntaxErrors(string text)
         => CSharpSyntaxTree.ParseText(text).GetDiagnostics().Count(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
 
-    private static string[] RoslynStepSettings() =>
-    [
+    private static string[] RoslynStepSettings()
+    => [
         nameof(Settings.Cleaning_ConvertToCollectionExpressions),
         nameof(Settings.Cleaning_ConvertToFileScopedNamespace),
         nameof(Settings.Cleaning_ConvertToVarWhenApparent),

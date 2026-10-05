@@ -635,12 +635,9 @@ internal sealed class EditorConfigDiagnosticCleanupLogic
     /// <param name="changed">Whether diagnostic fixes were applied; changes made only by the editor command equivalents do not count.</param>
     /// <returns>The outcome.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static DiagnosticCleanupOutcome CreateOutcome(DiagnosticCleanupResult result, bool changed)
+    private static DiagnosticCleanupOutcome CreateOutcome(DiagnosticCleanupResult result, bool changed) => new DiagnosticCleanupOutcome
     {
-        return new DiagnosticCleanupOutcome
-        {
-            Changed = changed,
-            UnresolvedCount = result.Unresolved.Count,
-        };
-    }
+        Changed = changed,
+        UnresolvedCount = result.Unresolved.Count,
+    };
 }

@@ -147,14 +147,11 @@ public sealed class CleanupProgressViewModel : BaseProgressViewModel
     /// Posts a progress update to the UI thread without waiting for it.
     /// </summary>
     /// <param name="state">The progress state.</param>
-    private void ReportProgress(ProgressReportState state)
-    {
-        _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
-        {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            OnProgressChanged(state);
-        });
-    }
+    private void ReportProgress(ProgressReportState state) => _ = ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+                                                                   {
+                                                                       await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                                                                       OnProgressChanged(state);
+                                                                   });
 
     /// <summary>
     /// Runs <paramref name="action" /> on the UI thread through the joinable task factory, so it is also serviced while

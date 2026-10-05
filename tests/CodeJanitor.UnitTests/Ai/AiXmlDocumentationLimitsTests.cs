@@ -173,7 +173,7 @@ public sealed class AiXmlDocumentationLimitsTests
             string written = File.ReadAllText(filePath);
             Assert.AreEqual(expectedDocumented, changed);
             Assert.AreEqual(expectedDocumented, written.Contains("/// Summary for Alpha.") && written.Contains("/// Summary for Bravo."));
-            Assert.AreEqual(expectedDocumented ? 2 : 0, _server.Requests.Count);
+            Assert.HasCount(expectedDocumented ? 2 : 0, _server.Requests);
             if (!expectedDocumented)
             {
                 Assert.AreEqual(source, written);
@@ -262,7 +262,7 @@ public sealed class AiXmlDocumentationLimitsTests
         FakeRequest request = _server.Requests.Single();
         Assert.AreEqual("Bearer encrypted-secret-456", request.Headers["Authorization"]);
         AssertSecretOnlyIn(request, "encrypted-secret-456", "Authorization");
-        Assert.IsFalse(request.Headers.Values.Any(value => value.Contains("legacy-plain-key")));
+        Assert.DoesNotContain(value => value.Contains("legacy-plain-key"), request.Headers.Values);
         Assert.DoesNotContain("legacy-plain-key", request.Body);
     }
 
@@ -907,8 +907,8 @@ public sealed class AiXmlDocumentationLimitsTests
         return tokensPerRequest;
     }
 
-    private static OpenAiCompatibleClient CreateClientFromSettings() =>
-        (OpenAiCompatibleClient)LogicMethod("CreateClientFromSettings").Invoke(null, null);
+    private static OpenAiCompatibleClient CreateClientFromSettings()
+        => (OpenAiCompatibleClient)LogicMethod("CreateClientFromSettings").Invoke(null, null);
 
     private static MethodInfo LogicMethod(string name)
     {
@@ -957,8 +957,8 @@ public sealed class AiXmlDocumentationLimitsTests
         return item;
     }
 
-    private static FakeReply Ok(string content, int delayMs = 0) =>
-        new FakeReply { Body = "{\"choices\":[{\"message\":{\"content\":\"" + content + "\"}}]}", DelayMs = delayMs };
+    private static FakeReply Ok(string content, int delayMs = 0)
+        => new FakeReply { Body = "{\"choices\":[{\"message\":{\"content\":\"" + content + "\"}}]}", DelayMs = delayMs };
 
     /// <summary>
     /// Runs the test on an STA thread that the Visual Studio <see cref="ThreadHelper" /> treats as its UI thread, and
@@ -1098,7 +1098,7 @@ public sealed class AiXmlDocumentationLimitsTests
         private readonly TcpListener _listener;
         private readonly CancellationTokenSource _stop = new CancellationTokenSource();
         private readonly object _gate = new object();
-        private readonly List<FakeRequest> _requests = new List<FakeRequest>();
+        private readonly List<FakeRequest> _requests = [];
         private readonly Task _acceptLoop;
         private int _inFlight;
         private int _maxInFlight;
@@ -1286,12 +1286,18 @@ public sealed class AiXmlDocumentationLimitsTests
         {
             switch (status)
             {
-                case 200: return "OK";
-                case 401: return "Unauthorized";
-                case 404: return "Not Found";
-                case 429: return "Too Many Requests";
-                case 503: return "Service Unavailable";
-                default: return "Error";
+                case 200:
+                    return "OK";
+                case 401:
+                    return "Unauthorized";
+                case 404:
+                    return "Not Found";
+                case 429:
+                    return "Too Many Requests";
+                case 503:
+                    return "Service Unavailable";
+                default:
+                    return "Error";
             }
         }
     }
