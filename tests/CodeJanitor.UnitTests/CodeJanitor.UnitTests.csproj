@@ -120,6 +120,7 @@
     <Compile Include="Helpers\EditorConfigHelperTests.cs" />
     <Compile Include="Helpers\FileTextStyleTests.cs" />
     <Compile Include="Helpers\SettingsMonitorTests.cs" />
+    <Compile Include="Helpers\UndoTransactionHelperTests.cs" />
     <Compile Include="MemberTypeSettingTests.cs" />
     <Compile Include="SettingsConfigurationSyncTests.cs" />
     <Compile Include="TestAssemblySetup.cs" />

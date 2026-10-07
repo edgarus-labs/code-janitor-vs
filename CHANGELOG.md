@@ -154,6 +154,10 @@ This file records changes made in Code Janitor after the project became an indep
 
 ### Fixed
 
+- Fixed Undo and Redo being unavailable in the whole of Visual Studio while Code Janitor was loaded (#47): Code
+	Janitor no longer keeps an undo transaction open from startup and opens one only while its own operation runs.
+	Each run of Format Comment, Join Lines, Sort Lines and the Spade Delete and Insert Region commands is now its own
+	undo step.
 - Fixed the diagnostic cleanup leaving mixed line endings when a code fix inserts line breaks of its own (for
 	example Roslyn's "Move misplaced using directives" fix always inserts CRLF): every changed file keeps its
 	`end_of_line`, otherwise the one line ending it used throughout, also in open documents.

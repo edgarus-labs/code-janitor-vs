@@ -14,7 +14,6 @@ namespace CodeJanitor.Integration.Commands;
 internal sealed class SpadeContextInsertRegionCommand : BaseCommand
 {
     private readonly GenerateRegionLogic _generateRegionLogic;
-    private readonly UndoTransactionHelper _undoTransactionHelper;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeContextInsertRegionCommand" /> class.
@@ -24,7 +23,6 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextInsertRegion)
     {
         _generateRegionLogic = GenerateRegionLogic.GetInstance(package);
-        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorInsertRegion);
     }
 
     /// <summary>
@@ -77,7 +75,7 @@ internal sealed class SpadeContextInsertRegionCommand : BaseCommand
             var startPoint = spade.SelectedItems.OrderBy(x => x.StartOffset).First().StartPoint;
             var endPoint = spade.SelectedItems.OrderBy(x => x.EndOffset).Last().EndPoint;
 
-            _undoTransactionHelper.Run(() =>
+            new UndoTransactionHelper(Package, Resources.CodeJanitorInsertRegion).Run(() =>
             {
                 // Create the new region.
                 _generateRegionLogic.InsertEndRegionTag(region, endPoint);

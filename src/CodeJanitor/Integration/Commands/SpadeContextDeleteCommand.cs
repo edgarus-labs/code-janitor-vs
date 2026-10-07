@@ -14,8 +14,6 @@ namespace CodeJanitor.Integration.Commands;
 /// </summary>
 internal sealed class SpadeContextDeleteCommand : BaseCommand
 {
-    private readonly UndoTransactionHelper _undoTransactionHelper;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="SpadeContextDeleteCommand" /> class.
     /// </summary>
@@ -23,7 +21,6 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
     internal SpadeContextDeleteCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSpadeContextDelete)
     {
-        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorDeleteItems);
     }
 
     /// <summary>
@@ -73,7 +70,7 @@ internal sealed class SpadeContextDeleteCommand : BaseCommand
             // Delay the check of start/end points until execution time, to avoid an intermediate state issue.
             var items = spade.SelectedItems.Where(IsDeletable).Where(x => x.StartPoint is not null && x.EndPoint is not null);
 
-            _undoTransactionHelper.Run(() =>
+            new UndoTransactionHelper(Package, Resources.CodeJanitorDeleteItems).Run(() =>
             {
                 // Iterate through items in reverse order (reduces line number updates during removal).
                 foreach (var item in items.OrderByDescending(x => x.StartLine))
