@@ -13,7 +13,6 @@ namespace CodeJanitor.Integration.Commands;
 internal sealed class CommentFormatCommand : BaseCommand
 {
     private readonly CommentFormatLogic _commentFormatLogic;
-    private readonly UndoTransactionHelper _undoTransactionHelper;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CommentFormatCommand" /> class.
@@ -22,7 +21,6 @@ internal sealed class CommentFormatCommand : BaseCommand
     internal CommentFormatCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorCommentFormat)
     {
-        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorFormatComment);
         _commentFormatLogic = CommentFormatLogic.GetInstance(package);
     }
 
@@ -101,7 +99,7 @@ internal sealed class CommentFormatCommand : BaseCommand
                 }
 
                 bool foundComments = false;
-                _undoTransactionHelper.Run(() => foundComments = _commentFormatLogic.FormatComments(activeTextDocument, start, end));
+                new UndoTransactionHelper(Package, Resources.CodeJanitorFormatComment).Run(() => foundComments = _commentFormatLogic.FormatComments(activeTextDocument, start, end));
 
                 if (foundComments)
                 {

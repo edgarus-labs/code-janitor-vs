@@ -190,7 +190,7 @@ internal sealed class CleanupSelectedCodeCommand : BaseCommand
                 if (!entry.Key.TryApply(currentSource, updated =>
                 {
                     ThreadHelper.ThrowIfNotOnUIThread();
-                    using (new UndoTransactionHelper(Package, "Apply C# Text Cleanup Preview"))
+                    using (UndoTransactionHelper.Begin(Package, "Apply C# Text Cleanup Preview"))
                     {
                         start.ReplaceText(textDocument.EndPoint, updated, (int)vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
                     }

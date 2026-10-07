@@ -47,7 +47,7 @@ internal static class AiContextHelper
                 ReplaceAction = newCode =>
                 {
                     ThreadHelper.ThrowIfNotOnUIThread();
-                    using (new UndoTransactionHelper(package, "AI Replace Selection"))
+                    using (UndoTransactionHelper.Begin(package, "AI Replace Selection"))
                     {
                         selection.Delete();
                         selection.Insert(newCode);
@@ -56,7 +56,7 @@ internal static class AiContextHelper
                 InsertAction = newCode =>
                 {
                     ThreadHelper.ThrowIfNotOnUIThread();
-                    using (new UndoTransactionHelper(package, "AI Insert Code"))
+                    using (UndoTransactionHelper.Begin(package, "AI Insert Code"))
                     {
                         selection.Insert(newCode);
                     }
@@ -100,7 +100,7 @@ internal static class AiContextHelper
                     ReplaceAction = newCode =>
                     {
                         ThreadHelper.ThrowIfNotOnUIThread();
-                        using (new UndoTransactionHelper(package, $"AI Replace Method {methodName}"))
+                        using (UndoTransactionHelper.Begin(package, $"AI Replace Method {methodName}"))
                         {
                             var methodStart = textDocument.CreateEditPoint();
                             methodStart.MoveToAbsoluteOffset(methodSpan.Start + 1);
@@ -113,7 +113,7 @@ internal static class AiContextHelper
                     InsertAction = newCode =>
                     {
                         ThreadHelper.ThrowIfNotOnUIThread();
-                        using (new UndoTransactionHelper(package, "AI Insert Code"))
+                        using (UndoTransactionHelper.Begin(package, "AI Insert Code"))
                         {
                             selection.Insert(newCode);
                         }
@@ -133,7 +133,7 @@ internal static class AiContextHelper
                     InsertAction = newCode =>
                     {
                         ThreadHelper.ThrowIfNotOnUIThread();
-                        using (new UndoTransactionHelper(package, "AI Insert Code"))
+                        using (UndoTransactionHelper.Begin(package, "AI Insert Code"))
                         {
                             selection.Insert(newCode);
                         }
@@ -155,7 +155,7 @@ internal static class AiContextHelper
             InsertAction = newCode =>
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
-                using (new UndoTransactionHelper(package, "AI Insert Code"))
+                using (UndoTransactionHelper.Begin(package, "AI Insert Code"))
                 {
                     selection.Insert(newCode);
                 }
@@ -183,7 +183,7 @@ internal static class AiContextHelper
                 ReplaceAction = newCode =>
                 {
                     ThreadHelper.ThrowIfNotOnUIThread();
-                    using (new UndoTransactionHelper(package, $"AI Replace {itemName}"))
+                    using (UndoTransactionHelper.Begin(package, $"AI Replace {itemName}"))
                     {
                         element.StartPoint.Delete(element.EndPoint);
                         element.StartPoint.Insert(newCode);
@@ -192,7 +192,7 @@ internal static class AiContextHelper
                 InsertAction = newCode =>
                 {
                     ThreadHelper.ThrowIfNotOnUIThread();
-                    using (new UndoTransactionHelper(package, $"AI Insert {itemName}"))
+                    using (UndoTransactionHelper.Begin(package, $"AI Insert {itemName}"))
                     {
                         element.EndPoint.Insert(Environment.NewLine + newCode);
                     }

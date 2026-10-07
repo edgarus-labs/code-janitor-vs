@@ -11,8 +11,6 @@ namespace CodeJanitor.Integration.Commands;
 /// </summary>
 internal sealed class JoinLinesCommand : BaseCommand
 {
-    private readonly UndoTransactionHelper _undoTransactionHelper;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="JoinLinesCommand" /> class.
     /// </summary>
@@ -20,7 +18,6 @@ internal sealed class JoinLinesCommand : BaseCommand
     internal JoinLinesCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorJoinLines)
     {
-        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorJoin);
     }
 
     /// <summary>
@@ -67,7 +64,7 @@ internal sealed class JoinLinesCommand : BaseCommand
             var textSelection = activeTextDocument.Selection;
             if (textSelection is not null)
             {
-                _undoTransactionHelper.Run(() => JoinText(textSelection));
+                new UndoTransactionHelper(Package, Resources.CodeJanitorJoin).Run(() => JoinText(textSelection));
             }
         }
     }

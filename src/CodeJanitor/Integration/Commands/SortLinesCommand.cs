@@ -15,8 +15,6 @@ namespace CodeJanitor.Integration.Commands;
 /// </summary>
 internal sealed class SortLinesCommand : BaseCommand
 {
-    private readonly UndoTransactionHelper _undoTransactionHelper;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="SortLinesCommand" /> class.
     /// </summary>
@@ -24,7 +22,6 @@ internal sealed class SortLinesCommand : BaseCommand
     internal SortLinesCommand(CodeJanitorPackage package)
         : base(package, PackageGuids.GuidCodeJanitorMenuSet, PackageIds.CmdIDCodeJanitorSortLines)
     {
-        _undoTransactionHelper = new UndoTransactionHelper(package, Resources.CodeJanitorSort);
     }
 
     /// <summary>
@@ -81,7 +78,7 @@ internal sealed class SortLinesCommand : BaseCommand
             var textSelection = activeTextDocument.Selection;
             if (textSelection is not null)
             {
-                _undoTransactionHelper.Run(() => SortText(textSelection));
+                new UndoTransactionHelper(Package, Resources.CodeJanitorSort).Run(() => SortText(textSelection));
             }
         }
     }
